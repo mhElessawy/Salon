@@ -1,0 +1,75 @@
+@{
+    ViewData["Title"] = "إضافة راتب";
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-plus-circle me-2"></i>إضافة راتب موظف</h1>
+</div>
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">الموظف</label>
+                    <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select" onchange="loadSalary(this)">
+                        <option value="">-- اختر الموظف --</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الشهر</label>
+                    <select name="Month" class="form-select">
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            <option value="@m" selected="@(m == DateTime.Today.Month)">@m</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">السنة</label>
+                    <input type="number" name="Year" value="@DateTime.Today.Year" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الراتب الأساسي</label>
+                    <input type="number" name="BasicSalary" id="basicSalary" step="0.001" class="form-control" value="0" oninput="calcNet()" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">البدلات</label>
+                    <input type="number" name="Allowances" step="0.001" class="form-control" value="0" oninput="calcNet()" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الخصومات</label>
+                    <input type="number" name="Deductions" step="0.001" class="form-control" value="0" oninput="calcNet()" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">السلف المخصومة</label>
+                    <input type="number" name="AdvanceDeducted" step="0.001" class="form-control" value="0" oninput="calcNet()" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">الصافي</label>
+                    <input type="number" name="NetSalary" id="netSalary" step="0.001" class="form-control" value="0" readonly style="background:#f0fff0; font-weight:bold;" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">ملاحظات</label>
+                    <textarea name="Notes" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary me-2"><i class="fas fa-save me-1"></i> حفظ</button>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function calcNet() {
+    const basic = parseFloat(document.querySelector('[name="BasicSalary"]').value) || 0;
+    const allow = parseFloat(document.querySelector('[name="Allowances"]').value) || 0;
+    const ded = parseFloat(document.querySelector('[name="Deductions"]').value) || 0;
+    const adv = parseFloat(document.querySelector('[name="AdvanceDeducted"]').value) || 0;
+    document.getElementById('netSalary').value = (basic + allow - ded - adv).toFixed(3);
+}
+</script>
+}

@@ -1,0 +1,17 @@
+@{
+    ViewData["Title"] = "غير مصرح";
+    Layout = "_AuthLayout";
+}
+
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-logo" style="background:#dc3545;">
+            <i class="fas fa-ban"></i>
+        </div>
+        <h1>غير مصرح</h1>
+        <p class="subtitle">ليس لديك صلاحية للوصول إلى هذه الصفحة</p>
+        <a href="@Url.Action("Index", "Dashboard")" class="btn-primary-orange d-block text-center" style="text-decoration:none;">
+            <i class="fas fa-home me-2"></i> العودة إلى لوحة التحكم
+        </a>
+    </div>
+</div>

@@ -1,0 +1,66 @@
+@{
+    ViewData["Title"] = "التقارير";
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-chart-line me-2"></i>التقارير</h1>
+    <p>الوصول إلى جميع تقارير النظام</p>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <a href="@Url.Action("Sales")" class="text-decoration-none">
+            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3" style="font-size:48px; color:var(--primary);"><i class="fas fa-shopping-cart"></i></div>
+                    <h5>تقرير المبيعات</h5>
+                    <p class="text-muted small">تقرير تفصيلي لجميع المبيعات خلال فترة محددة</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="@Url.Action("Expenses")" class="text-decoration-none">
+            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3" style="font-size:48px; color:#dc3545;"><i class="fas fa-file-invoice-dollar"></i></div>
+                    <h5>تقرير المصروفات</h5>
+                    <p class="text-muted small">تقرير تفصيلي لجميع المصروفات خلال فترة محددة</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="@Url.Action("MyReport")" class="text-decoration-none">
+            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3" style="font-size:48px; color:#28a745;"><i class="fas fa-file-invoice"></i></div>
+                    <h5>تقريري اليومي</h5>
+                    <p class="text-muted small">ملخص أداء اليوم من مبيعات ومصروفات وأرباح</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="@Url.Action("Reports", "Attendance")" class="text-decoration-none">
+            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3" style="font-size:48px; color:#17a2b8;"><i class="fas fa-calendar-check"></i></div>
+                    <h5>تقارير الحضور</h5>
+                    <p class="text-muted small">سجلات حضور وانصراف الموظفين</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="@Url.Action("Reports", "Shifts")" class="text-decoration-none">
+            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3" style="font-size:48px; color:#6f42c1;"><i class="fas fa-clock"></i></div>
+                    <h5>تقارير الشفتات</h5>
+                    <p class="text-muted small">تقارير تفصيلية للشفتات اليومية</p>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>

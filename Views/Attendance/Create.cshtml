@@ -1,0 +1,51 @@
+@{
+    ViewData["Title"] = "تسجيل حضور";
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-calendar-plus me-2"></i>تسجيل حضور موظف</h1>
+</div>
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">الموظف</label>
+                    <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select">
+                        <option value="">-- اختر الموظف --</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">التاريخ</label>
+                    <input type="date" name="AttendanceDate" value="@DateTime.Today.ToString("yyyy-MM-dd")" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">وقت الحضور</label>
+                    <input type="time" name="CheckIn" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">وقت الانصراف</label>
+                    <input type="time" name="CheckOut" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">الحالة</label>
+                    <select name="Status" class="form-select">
+                        <option>حاضر</option>
+                        <option>غائب</option>
+                        <option>إجازة</option>
+                        <option>تأخر</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">ملاحظات</label>
+                    <textarea name="Notes" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary me-2"><i class="fas fa-save me-1"></i> حفظ</button>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>

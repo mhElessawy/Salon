@@ -1,0 +1,152 @@
+@model Salon.Models.Sale
+@{
+    ViewData["Title"] = "فاتورة جديدة";
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-file-invoice me-2"></i>إنشاء فاتورة جديدة</h1>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post" id="saleForm">
+            @Html.AntiForgeryToken()
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label class="form-label">رقم الفاتورة</label>
+                    <input asp-for="InvoiceNumber" class="form-control" readonly />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">العميل</label>
+                    <select name="CustomerId" asp-items="@ViewBag.Customers" class="form-select">
+                        <option value="">-- زائر --</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">الموظف</label>
+                    <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select">
+                        <option value="">-- اختر --</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">طريقة الدفع</label>
+                    <select asp-for="PaymentMethod" class="form-select">
+                        <option>نقدي</option>
+                        <option>بطاقة</option>
+                        <option>تحويل بنكي</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>بنود الفاتورة</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addItem()">
+                        <i class="fas fa-plus me-1"></i> إضافة بند
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table mb-0" id="itemsTable">
+                        <thead>
+                            <tr>
+                                <th>البيان</th>
+                                <th>السعر</th>
+                                <th>الكمية</th>
+                                <th>الإجمالي</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsBody">
+                            <tr id="emptyRow">
+                                <td colspan="5" class="text-center text-muted py-3">
+                                    اضغط "إضافة بند" لإضافة خدمة أو منتج
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-end fw-bold">الإجمالي:</td>
+                                <td><span id="totalDisplay">0.000</span> د.ك</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label asp-for="Discount" class="form-label">الخصم</label>
+                    <input asp-for="Discount" type="number" step="0.001" class="form-control" value="0"
+                           oninput="calcTotal()" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الصافي</label>
+                    <input type="text" id="netDisplay" class="form-control" readonly value="0.000" />
+                </div>
+                <div class="col-12">
+                    <label asp-for="Notes" class="form-label"></label>
+                    <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-save me-1"></i> حفظ الفاتورة
+                </button>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-right me-1"></i> رجوع
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let itemCount = 0;
+
+    function addItem() {
+        document.getElementById('emptyRow').style.display = 'none';
+        itemCount++;
+        const tbody = document.getElementById('itemsBody');
+        const row = document.createElement('tr');
+        row.id = 'item' + itemCount;
+        row.innerHTML = `
+            <td><input type="text" name="itemNames" class="form-control form-control-sm" placeholder="اسم الخدمة/المنتج" onchange="calcTotal()" /></td>
+            <td><input type="number" name="itemPrices" step="0.001" class="form-control form-control-sm" value="0" oninput="calcRow(this)" style="max-width:100px;" /></td>
+            <td><input type="number" name="itemQtys" class="form-control form-control-sm" value="1" min="1" oninput="calcRow(this)" style="max-width:80px;" /></td>
+            <td class="item-total">0.000</td>
+            <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeItem('item${itemCount}')"><i class="fas fa-times"></i></button></td>
+        `;
+        tbody.appendChild(row);
+    }
+
+    function calcRow(el) {
+        const row = el.closest('tr');
+        const price = parseFloat(row.querySelector('[name="itemPrices"]').value) || 0;
+        const qty = parseInt(row.querySelector('[name="itemQtys"]').value) || 0;
+        row.querySelector('.item-total').textContent = (price * qty).toFixed(3);
+        calcTotal();
+    }
+
+    function calcTotal() {
+        let total = 0;
+        document.querySelectorAll('.item-total').forEach(el => {
+            total += parseFloat(el.textContent) || 0;
+        });
+        const discount = parseFloat(document.querySelector('[name="Discount"]').value) || 0;
+        document.getElementById('totalDisplay').textContent = total.toFixed(3);
+        document.getElementById('netDisplay').value = (total - discount).toFixed(3);
+    }
+
+    function removeItem(id) {
+        document.getElementById(id).remove();
+        calcTotal();
+        if (!document.getElementById('itemsBody').querySelector('tr:not(#emptyRow)')) {
+            document.getElementById('emptyRow').style.display = '';
+        }
+    }
+</script>
+}

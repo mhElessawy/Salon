@@ -1,0 +1,32 @@
+@{
+    ViewData["Title"] = "تقريري اليومي";
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-file-invoice me-2"></i>تقريري اليومي</h1>
+    <p>ملخص يوم @ViewBag.Date</p>
+</div>
+
+<div class="stat-cards">
+    <div class="stat-card green">
+        <div class="stat-card-header">
+            <span class="stat-label">مبيعات اليوم</span>
+            <div class="stat-icon green"><i class="fas fa-dollar-sign"></i></div>
+        </div>
+        <div class="stat-value">@ViewBag.SalesToday?.ToString("N3") د.ك</div>
+    </div>
+    <div class="stat-card red">
+        <div class="stat-card-header">
+            <span class="stat-label">مصروفات اليوم</span>
+            <div class="stat-icon red"><i class="fas fa-shopping-bag"></i></div>
+        </div>
+        <div class="stat-value">@ViewBag.ExpensesToday?.ToString("N3") د.ك</div>
+    </div>
+    <div class="stat-card orange">
+        <div class="stat-card-header">
+            <span class="stat-label">صافي الربح</span>
+            <div class="stat-icon orange"><i class="fas fa-chart-line"></i></div>
+        </div>
+        <div class="stat-value">@ViewBag.NetProfit?.ToString("N3") د.ك</div>
+    </div>
+</div>

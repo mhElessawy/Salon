@@ -1,0 +1,33 @@
+@{
+    ViewData["Title"] = "إدارة قاعدة البيانات";
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-database me-2"></i>إدارة قاعدة البيانات</h1>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-download me-2 text-success"></i>نسخ احتياطي</div>
+            <div class="card-body">
+                <p class="text-muted">قم بإنشاء نسخة احتياطية من قاعدة البيانات.</p>
+                <button type="button" class="btn btn-success" onclick="alert('سيتم تنزيل النسخة الاحتياطية')">
+                    <i class="fas fa-download me-1"></i> تنزيل نسخة احتياطية
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-upload me-2 text-warning"></i>استعادة قاعدة البيانات</div>
+            <div class="card-body">
+                <p class="text-muted">استعد قاعدة البيانات من نسخة احتياطية سابقة.</p>
+                <input type="file" class="form-control mb-3" accept=".bak,.sql" />
+                <button type="button" class="btn btn-warning" onclick="return confirm('هل تريد استعادة قاعدة البيانات؟')">
+                    <i class="fas fa-upload me-1"></i> استعادة
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

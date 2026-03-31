@@ -1,0 +1,80 @@
+@model Salon.Models.Employee
+@{
+    ViewData["Title"] = "إضافة موظف";
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-user-plus me-2"></i>إضافة موظف جديد</h1>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="FullName" class="form-label"></label>
+                    <input asp-for="FullName" class="form-control" />
+                    <span asp-validation-for="FullName" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="JobTitle" class="form-label"></label>
+                    <input asp-for="JobTitle" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Phone" class="form-label"></label>
+                    <input asp-for="Phone" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="BasicSalary" class="form-label"></label>
+                    <input asp-for="BasicSalary" type="number" step="0.001" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="HireDate" class="form-label"></label>
+                    <input asp-for="HireDate" type="date" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="BirthDate" class="form-label"></label>
+                    <input asp-for="BirthDate" type="date" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Nationality" class="form-label"></label>
+                    <input asp-for="Nationality" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="IdNumber" class="form-label"></label>
+                    <input asp-for="IdNumber" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="ResidencyExpiry" class="form-label"></label>
+                    <input asp-for="ResidencyExpiry" type="date" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ContractType" class="form-label"></label>
+                    <select asp-for="ContractType" class="form-select">
+                        <option value="">-- اختر --</option>
+                        <option>دوام كامل</option>
+                        <option>دوام جزئي</option>
+                        <option>عقد مؤقت</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label asp-for="Notes" class="form-label"></label>
+                    <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-save me-1"></i> حفظ
+                </button>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-right me-1"></i> رجوع
+                </a>
+            </div>
+        </form>
+    </div>
+</div>

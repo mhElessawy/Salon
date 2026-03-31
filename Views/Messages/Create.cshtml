@@ -1,0 +1,37 @@
+@model Salon.Models.Message
+@{
+    ViewData["Title"] = "رسالة جديدة";
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-envelope-open me-2"></i>إرسال رسالة</h1>
+</div>
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label asp-for="Subject" class="form-label"></label>
+                    <input asp-for="Subject" class="form-control" />
+                    <span asp-validation-for="Subject" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check mt-4 pt-2">
+                        <input asp-for="IsBroadcast" type="checkbox" class="form-check-input" id="broadcastCheck" />
+                        <label asp-for="IsBroadcast" class="form-check-label">إرسال للجميع</label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label asp-for="Body" class="form-label"></label>
+                    <textarea asp-for="Body" class="form-control" rows="5"></textarea>
+                    <span asp-validation-for="Body" class="text-danger small"></span>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary me-2"><i class="fas fa-paper-plane me-1"></i> إرسال</button>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>

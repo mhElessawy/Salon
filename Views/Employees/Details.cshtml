@@ -1,0 +1,89 @@
+@model Salon.Models.Employee
+@{
+    ViewData["Title"] = "بيانات الموظف";
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="fas fa-user-tie me-2"></i>@Model.FullName</h1>
+        <p>@Model.JobTitle</p>
+    </div>
+    <div>
+        <a href="@Url.Action("Edit", new { id = Model.Id })" class="btn btn-primary me-2">
+            <i class="fas fa-edit me-1"></i> تعديل
+        </a>
+        <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-right me-1"></i> رجوع
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">البيانات الأساسية</div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr><th>الاسم:</th><td>@Model.FullName</td></tr>
+                    <tr><th>المسمى:</th><td>@(Model.JobTitle ?? "-")</td></tr>
+                    <tr><th>الهاتف:</th><td>@(Model.Phone ?? "-")</td></tr>
+                    <tr><th>الجنسية:</th><td>@(Model.Nationality ?? "-")</td></tr>
+                    <tr><th>رقم الهوية:</th><td>@(Model.IdNumber ?? "-")</td></tr>
+                    <tr><th>انتهاء الإقامة:</th><td>@(Model.ResidencyExpiry?.ToString("yyyy/MM/dd") ?? "-")</td></tr>
+                    <tr><th>الراتب:</th><td>@Model.BasicSalary.ToString("N3") د.ك</td></tr>
+                    <tr><th>تاريخ التعيين:</th><td>@Model.HireDate.ToString("yyyy/MM/dd")</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card mb-3">
+            <div class="card-header">سجل الرواتب</div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead>
+                        <tr><th>الشهر</th><th>الراتب الصافي</th><th>الحالة</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in Model.Salaries.Take(6))
+                        {
+                            <tr>
+                                <td>@s.Month/@s.Year</td>
+                                <td>@s.NetSalary.ToString("N3") د.ك</td>
+                                <td><span class="badge status-@(s.Status == "مصروف" ? "completed" : "pending")">@s.Status</span></td>
+                            </tr>
+                        }
+                        @if (!Model.Salaries.Any())
+                        {
+                            <tr><td colspan="3" class="text-center text-muted">لا توجد رواتب مسجلة</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">السلف</div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead>
+                        <tr><th>التاريخ</th><th>المبلغ</th><th>الحالة</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in Model.Advances.Take(6))
+                        {
+                            <tr>
+                                <td>@a.AdvanceDate.ToString("yyyy/MM/dd")</td>
+                                <td>@a.Amount.ToString("N3") د.ك</td>
+                                <td><span class="badge status-pending">@a.Status</span></td>
+                            </tr>
+                        }
+                        @if (!Model.Advances.Any())
+                        {
+                            <tr><td colspan="3" class="text-center text-muted">لا توجد سلف</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

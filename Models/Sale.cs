@@ -1,0 +1,81 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Salon.Models
+{
+    public class Sale
+    {
+        public int Id { get; set; }
+
+        [Display(Name = "رقم الفاتورة")]
+        public string InvoiceNumber { get; set; } = string.Empty;
+
+        [Display(Name = "العميل")]
+        public int? CustomerId { get; set; }
+
+        [ForeignKey("CustomerId")]
+        public Customer? Customer { get; set; }
+
+        [Display(Name = "الموظف")]
+        public int? EmployeeId { get; set; }
+
+        [ForeignKey("EmployeeId")]
+        public Employee? Employee { get; set; }
+
+        [Display(Name = "تاريخ البيع")]
+        [DataType(DataType.DateTime)]
+        public DateTime SaleDate { get; set; } = DateTime.Now;
+
+        [Display(Name = "الإجمالي")]
+        [DataType(DataType.Currency)]
+        public decimal TotalAmount { get; set; }
+
+        [Display(Name = "الخصم")]
+        [DataType(DataType.Currency)]
+        public decimal Discount { get; set; }
+
+        [Display(Name = "الصافي")]
+        [DataType(DataType.Currency)]
+        public decimal NetAmount { get; set; }
+
+        [Display(Name = "طريقة الدفع")]
+        public string PaymentMethod { get; set; } = "نقدي";
+
+        [Display(Name = "الحالة")]
+        public string Status { get; set; } = "مكتمل";
+
+        [Display(Name = "ملاحظات")]
+        public string? Notes { get; set; }
+
+        public ICollection<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
+    }
+
+    public class SaleItem
+    {
+        public int Id { get; set; }
+        public int SaleId { get; set; }
+        public Sale? Sale { get; set; }
+
+        [Display(Name = "الخدمة / المنتج")]
+        public int? ServiceId { get; set; }
+        public Service? Service { get; set; }
+
+        [Display(Name = "المنتج")]
+        public int? ProductId { get; set; }
+        public Product? Product { get; set; }
+
+        [Display(Name = "الاسم")]
+        public string ItemName { get; set; } = string.Empty;
+
+        [Display(Name = "الكمية")]
+        public int Quantity { get; set; } = 1;
+
+        [Display(Name = "السعر")]
+        [DataType(DataType.Currency)]
+        public decimal Price { get; set; }
+
+        [Display(Name = "الإجمالي")]
+        [DataType(DataType.Currency)]
+        public decimal Total { get; set; }
+    }
+}

@@ -1,0 +1,155 @@
+@model Salon.Models.DashboardViewModel
+@{
+    ViewData["Title"] = "لوحة التحكم";
+}
+
+<div class="page-header">
+    <h1>لوحة التحكم - الكل</h1>
+    <p>نظرة عامة على أداء القسم اليوم</p>
+</div>
+
+<!-- Stat Cards Row -->
+<div class="stat-cards">
+    <div class="stat-card green">
+        <div class="stat-card-header">
+            <span class="stat-label">مبيعات اليوم</span>
+            <div class="stat-icon green"><i class="fas fa-dollar-sign"></i></div>
+        </div>
+        <div class="stat-value">@Model.SalesToday.ToString("N3") د.ك</div>
+        <div class="stat-sub">إجمالي مبيعات اليوم</div>
+    </div>
+
+    <div class="stat-card blue">
+        <div class="stat-card-header">
+            <span class="stat-label">عدد العملاء اليوم</span>
+            <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+        </div>
+        <div class="stat-value">@Model.CustomersToday</div>
+        <div class="stat-sub">عملاء تمت خدمتهم</div>
+    </div>
+
+    <div class="stat-card red">
+        <div class="stat-card-header">
+            <span class="stat-label">المصروفات اليوم</span>
+            <div class="stat-icon red"><i class="fas fa-shopping-bag"></i></div>
+        </div>
+        <div class="stat-value">@Model.ExpensesToday.ToString("N3") د.ك</div>
+        <div class="stat-sub">إجمالي مصروفات اليوم</div>
+    </div>
+
+    <div class="stat-card orange">
+        <div class="stat-card-header">
+            <span class="stat-label">صافي الربح اليوم</span>
+            <div class="stat-icon orange">
+                <i class="fas fa-arrow-up"></i>
+            </div>
+        </div>
+        <div class="stat-value">@Model.NetProfitToday.ToString("N3") د.ك</div>
+        <div class="stat-sub">ربح</div>
+    </div>
+</div>
+
+<!-- Secondary Cards -->
+<div class="secondary-cards">
+    <div class="sec-card green-bg">
+        <div class="sec-card-info">
+            <h4>newCustomersToday</h4>
+            <div class="count">@Model.NewCustomersToday</div>
+            <div class="sub-text">تم إضافتهم اليوم</div>
+        </div>
+        <div class="sec-card-icon"><i class="fas fa-user-plus"></i></div>
+    </div>
+
+    <div class="sec-card blue-bg">
+        <div class="sec-card-info">
+            <h4>أعياد ميلاد قريبة</h4>
+            <div class="count">@Model.UpcomingBirthdays.Count</div>
+            <div class="sub-text">خلال 7 أيام القادمة</div>
+        </div>
+        <div class="sec-card-icon"><i class="fas fa-calendar-day"></i></div>
+    </div>
+
+    <div class="sec-card orange-bg">
+        <div class="sec-card-info">
+            <h4 style="color:var(--primary);">منتجات قاربت صلاحيتها</h4>
+            <div class="count" style="color:var(--primary);">@Model.ExpiringProducts.Count</div>
+            <div class="sub-text">خلال 30 يوم القادمة</div>
+        </div>
+        <div class="sec-card-icon"><i class="fas fa-box"></i></div>
+    </div>
+</div>
+
+<!-- Info Cards -->
+<div class="info-cards">
+    <div class="info-card">
+        <div class="info-card-header">
+            <i class="fas fa-box"></i>
+            <span style="color:var(--primary);">منتجات قاربت صلاحيتها</span>
+        </div>
+        @if (!Model.ExpiringProducts.Any())
+        {
+            <div class="info-card-empty">
+                <i class="fas fa-check-circle fa-2x mb-2" style="color:#28a745;"></i>
+                <div>لا توجد منتجات قريبة من الانتهاء</div>
+            </div>
+        }
+        else
+        {
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>المنتج</th>
+                        <th>تاريخ الانتهاء</th>
+                        <th>الكمية</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.ExpiringProducts)
+                    {
+                        <tr>
+                            <td>@p.Name</td>
+                            <td>@p.ExpiryDate?.ToString("yyyy/MM/dd")</td>
+                            <td>@p.StockQuantity</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <div class="info-card">
+        <div class="info-card-header">
+            <i class="fas fa-calendar-day"></i>
+            <span>أعياد ميلاد قريبة</span>
+        </div>
+        @if (!Model.UpcomingBirthdays.Any())
+        {
+            <div class="info-card-empty">
+                <i class="fas fa-birthday-cake fa-2x mb-2" style="color:#adb5bd;"></i>
+                <div>لا توجد أعياد ميلاد قريبة</div>
+            </div>
+        }
+        else
+        {
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>الاسم</th>
+                        <th>تاريخ الميلاد</th>
+                        <th>الهاتف</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model.UpcomingBirthdays)
+                    {
+                        <tr>
+                            <td>@c.FullName</td>
+                            <td>@c.BirthDate?.ToString("MM/dd")</td>
+                            <td>@c.Phone</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

@@ -1,0 +1,164 @@
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString()?.ToLower();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString()?.ToLower();
+
+    string IsActive(string controller, string? action = null)
+    {
+        if (action != null)
+            return currentController == controller.ToLower() && currentAction == action.ToLower() ? "active" : "";
+        return currentController == controller.ToLower() ? "active" : "";
+    }
+}
+
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <i class="fas fa-wifi wifi-icon"></i>
+        <span>نظام معهد موس</span>
+    </div>
+    <ul class="sidebar-menu">
+        <li>
+            <a href="@Url.Action("Index", "Dashboard")" class="@IsActive("Dashboard")">
+                <i class="fas fa-th-large"></i>
+                <span>لوحة التحكم</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Index", "Shifts")" class="@IsActive("Shifts")">
+                <i class="fas fa-clock"></i>
+                <span>إدارة الشفتات</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Reports", "Shifts")" class="@IsActive("Shifts", "Reports")">
+                <i class="fas fa-file-alt"></i>
+                <span>تقارير الشفتات</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Index", "Sales")" class="@IsActive("Sales")">
+                <i class="fas fa-shopping-cart"></i>
+                <span>المبيعات / الكاشير</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Index", "Customers")" class="@IsActive("Customers")">
+                <i class="fas fa-users"></i>
+                <span>العملاء</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Index", "Employees")" class="@IsActive("Employees")">
+                <i class="fas fa-user-tie"></i>
+                <span>شؤون الموظفين</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Index", "Salaries")" class="@IsActive("Salaries")">
+                <i class="fas fa-dollar-sign"></i>
+                <span>صرف الرواتب</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Index", "Advances")" class="@IsActive("Advances")">
+                <i class="fas fa-dollar-sign"></i>
+                <span>سلف الموظفين</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Index", "Appointments")" class="@IsActive("Appointments")">
+                <i class="fas fa-calendar-check"></i>
+                <span>المواعيد</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Index", "Services")" class="@IsActive("Services")">
+                <i class="fas fa-cut"></i>
+                <span>الخدمات</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Index", "Inventory")" class="@IsActive("Inventory")">
+                <i class="fas fa-boxes"></i>
+                <span>المخزون</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Index", "Expenses")" class="@IsActive("Expenses")">
+                <i class="fas fa-dollar-sign"></i>
+                <span>المصروفات</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Index", "Reports")" class="@IsActive("Reports")">
+                <i class="fas fa-chart-line"></i>
+                <span>التقارير</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Index", "Attendance")" class="@IsActive("Attendance")">
+                <i class="fas fa-calendar-alt"></i>
+                <span>الحضور والانصراف</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Reports", "Attendance")" class="@IsActive("Attendance", "Reports")">
+                <i class="fas fa-file-alt"></i>
+                <span>تقارير الحضور</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("MyReport", "Reports")" class="@IsActive("Reports", "MyReport")">
+                <i class="fas fa-file-invoice"></i>
+                <span>تقريري اليومي</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Index", "Messages")" class="@IsActive("Messages")">
+                <i class="fas fa-envelope"></i>
+                <span>الرسائل</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("UserCards", "Settings")" class="@IsActive("Settings", "UserCards")">
+                <i class="fas fa-id-card"></i>
+                <span>بطاقات المستخدمين</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Training", "Settings")" class="@IsActive("Settings", "Training")">
+                <i class="fas fa-book"></i>
+                <span>دليل التدريب</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Licenses", "Employees")" class="@IsActive("Employees", "Licenses")">
+                <i class="fas fa-file-contract"></i>
+                <span>التراخيص والإقامات</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Packages", "Settings")" class="@IsActive("Settings", "Packages")">
+                <i class="fas fa-cube"></i>
+                <span>اختبار نظام الباقات</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Index", "Settings")" class="@IsActive("Settings", "Index")">
+                <i class="fas fa-cog"></i>
+                <span>الإعدادات</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Email", "Settings")" class="@IsActive("Settings", "Email")">
+                <i class="fas fa-envelope-open"></i>
+                <span>إعدادات البريد الإلكتروني</span>
+            </a>
+        </li>
+        <li>
+            <a href="@Url.Action("Database", "Settings")" class="@IsActive("Settings", "Database")">
+                <i class="fas fa-database"></i>
+                <span>إدارة قاعدة البيانات</span>
+            </a>
+        </li>
+    </ul>
+</nav>

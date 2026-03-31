@@ -1,0 +1,71 @@
+@model IEnumerable<Salon.Models.Sale>
+@{
+    ViewData["Title"] = "تقرير المبيعات";
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-chart-bar me-2"></i>تقرير المبيعات</h1>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+            <label class="form-label mb-0">من:</label>
+            <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:170px;" />
+            <label class="form-label mb-0">إلى:</label>
+            <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:170px;" />
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="stat-card green">
+            <div class="stat-label">إجمالي المبيعات</div>
+            <div class="stat-value">@ViewBag.TotalSales?.ToString("N3") د.ك</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card blue">
+            <div class="stat-label">عدد الفواتير</div>
+            <div class="stat-value">@ViewBag.TotalCount</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>رقم الفاتورة</th>
+                        <th>العميل</th>
+                        <th>التاريخ</th>
+                        <th>الصافي</th>
+                        <th>الدفع</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model)
+                    {
+                        <tr>
+                            <td>@s.InvoiceNumber</td>
+                            <td>@(s.Customer?.FullName ?? "زائر")</td>
+                            <td>@s.SaleDate.ToString("yyyy/MM/dd")</td>
+                            <td><strong>@s.NetAmount.ToString("N3") د.ك</strong></td>
+                            <td>@s.PaymentMethod</td>
+                            <td><span class="badge @(s.Status == "مكتمل" ? "bg-success" : "bg-danger")">@s.Status</span></td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="6" class="text-center text-muted py-4">لا توجد مبيعات في هذه الفترة</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
