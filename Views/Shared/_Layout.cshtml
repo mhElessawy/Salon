@@ -74,6 +74,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Mobile sidebar
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('show');
             document.getElementById('sidebarOverlay').classList.toggle('show');
@@ -81,6 +82,25 @@
         function closeSidebar() {
             document.getElementById('sidebar').classList.remove('show');
             document.getElementById('sidebarOverlay').classList.remove('show');
+        }
+
+        // Dropdown submenu
+        function toggleMenu(el) {
+            const li = el.closest('.has-submenu');
+            const submenu = li.querySelector('.submenu');
+            const isOpen = li.classList.contains('open');
+
+            // أغلق باقي القوائم
+            document.querySelectorAll('.has-submenu.open').forEach(function(item) {
+                if (item !== li) {
+                    item.classList.remove('open');
+                    item.querySelector('.submenu').classList.remove('show');
+                }
+            });
+
+            // افتح / أغلق الحالية
+            li.classList.toggle('open', !isOpen);
+            submenu.classList.toggle('show', !isOpen);
         }
     </script>
     @await RenderSectionAsync("Scripts", required: false)
