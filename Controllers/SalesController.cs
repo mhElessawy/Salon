@@ -47,7 +47,13 @@ namespace Salon.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Sale model, string[]? itemNames, decimal[]? itemPrices, int[]? itemQtys)
+        public async Task<IActionResult> Create(
+            Sale model,
+            string[]? itemTypes,
+            int[]? itemIds,
+            string[]? itemNames,
+            decimal[]? itemPrices,
+            int[]? itemQtys)
         {
             if (ModelState.IsValid)
             {
@@ -57,25 +63,41 @@ namespace Salon.Controllers
                 _context.Sales.Add(model);
                 await _context.SaveChangesAsync();
 
-                if (itemNames != null)
+                if (itemNames != null && itemNames.Length > 0)
                 {
                     for (int i = 0; i < itemNames.Length; i++)
                     {
-                        if (!string.IsNullOrEmpty(itemNames[i]))
+                        if (string.IsNullOrEmpty(itemNames[i])) continue;
+
+                        var qty   = itemQtys  != null && i < itemQtys.Length  ? itemQtys[i]  : 1;
+                        var price = itemPrices != null && i < itemPrices.Length ? itemPrices[i] : 0;
+                        var type  = itemTypes  != null && i < itemTypes.Length  ? itemTypes[i]  : "";
+                        var id    = itemIds    != null && i < itemIds.Length    ? itemIds[i]    : 0;
+
+                        var item = new SaleItem
                         {
-                            var qty = itemQtys != null && i < itemQtys.Length ? itemQtys[i] : 1;
-                            var price = itemPrices != null && i < itemPrices.Length ? itemPrices[i] : 0;
-                            var item = new SaleItem
-                            {
-                                SaleId = model.Id,
-                                ItemName = itemNames[i],
-                                Quantity = qty,
-                                Price = price,
-                                Total = qty * price
-                            };
-                            _context.SaleItems.Add(item);
-                            model.TotalAmount += item.Total;
+                            SaleId   = model.Id,
+                            ItemName = itemNames[i],
+                            Quantity = qty,
+                            Price    = price,
+                            Total    = qty * price
+                        };
+
+                        // ربط الخدمة أو المنتج
+                        if (type == "service" && id > 0)
+                            item.ServiceId = id;
+
+                        if (type == "product" && id > 0)
+                        {
+                            item.ProductId = id;
+                            // خصم الكمية من المخزون
+                            var product = await _context.Products.FindAsync(id);
+                            if (product != null)
+                                product.StockQuantity = Math.Max(0, product.StockQuantity - qty);
                         }
+
+                        _context.SaleItems.Add(item);
+                        model.TotalAmount += item.Total;
                     }
                 }
 
@@ -94,7 +116,8 @@ namespace Salon.Controllers
             var sale = await _context.Sales
                 .Include(s => s.Customer)
                 .Include(s => s.Employee)
-                .Include(s => s.SaleItems)
+                .Include(s => s.SaleItems).ThenInclude(i => i.Service)
+                .Include(s => s.SaleItems).ThenInclude(i => i.Product)
                 .FirstOrDefaultAsync(s => s.Id == id);
             if (sale == null) return NotFound();
             return View(sale);
@@ -103,22 +126,42 @@ namespace Salon.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-            var sale = await _context.Sales.FindAsync(id);
+            var sale = await _context.Sales
+                .Include(s => s.SaleItems)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
             if (sale != null)
             {
+                // استعادة المخزون عند الإلغاء
+                foreach (var item in sale.SaleItems.Where(i => i.ProductId != null))
+                {
+                    var product = await _context.Products.FindAsync(item.ProductId);
+                    if (product != null)
+                        product.StockQuantity += item.Quantity;
+                }
                 sale.Status = "ملغي";
                 await _context.SaveChangesAsync();
-                TempData["Success"] = "تم إلغاء الفاتورة بنجاح";
+                TempData["Success"] = "تم إلغاء الفاتورة وتمت استعادة المخزون";
             }
             return RedirectToAction(nameof(Index));
         }
 
         private async Task PopulateDropdowns()
         {
-            ViewBag.Customers = new SelectList(await _context.Customers.Where(c => c.IsActive).ToListAsync(), "Id", "FullName");
-            ViewBag.Employees = new SelectList(await _context.Employees.Where(e => e.IsActive).ToListAsync(), "Id", "FullName");
-            ViewBag.Services = await _context.Services.Where(s => s.IsActive).ToListAsync();
-            ViewBag.Products = await _context.Products.Where(p => p.IsActive && p.StockQuantity > 0).ToListAsync();
+            ViewBag.Customers = new SelectList(
+                await _context.Customers.Where(c => c.IsActive).OrderBy(c => c.FullName).ToListAsync(),
+                "Id", "FullName");
+            ViewBag.Employees = new SelectList(
+                await _context.Employees.Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync(),
+                "Id", "FullName");
+            ViewBag.Services = await _context.Services
+                .Where(s => s.IsActive)
+                .OrderBy(s => s.Category).ThenBy(s => s.Name)
+                .ToListAsync();
+            ViewBag.Products = await _context.Products
+                .Where(p => p.IsActive && p.StockQuantity > 0)
+                .OrderBy(p => p.Name)
+                .ToListAsync();
         }
     }
 }
