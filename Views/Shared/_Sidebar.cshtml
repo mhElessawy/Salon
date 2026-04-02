@@ -14,7 +14,7 @@
         => controllers.Any(c => ctrl == c.ToLower());
 
     bool shiftsOpen   = IsGroupOpen("shifts");
-    bool salesOpen    = IsGroupOpen("sales", "appointments", "services", "inventory");
+    bool salesOpen    = IsGroupOpen("sales", "appointments", "services", "servicecategories", "inventory");
     bool hrOpen       = IsGroupOpen("employees", "salaries", "advances", "attendance");
     bool financeOpen  = IsGroupOpen("expenses", "reports");
     bool settingsOpen = IsGroupOpen("settings");
@@ -82,9 +82,21 @@
             </a>
             <ul class="submenu @(salesOpen ? "show" : "")">
                 <li>
-                    <a href="@Url.Action("Index", "Sales")" class="@IsActive("Sales")">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span>المبيعات / الكاشير</span>
+                    <a href="@Url.Action("Index", "Sales")" class="@IsActive("Sales","Index")">
+                        <i class="fas fa-file-invoice"></i>
+                        <span>الفواتير</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("CreateService", "Sales")" class="@IsActive("Sales","CreateService")">
+                        <i class="fas fa-cut" style="color:#F7941D"></i>
+                        <span>فاتورة خدمات</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("CreateProduct", "Sales")" class="@IsActive("Sales","CreateProduct")">
+                        <i class="fas fa-box" style="color:#28a745"></i>
+                        <span>فاتورة منتجات</span>
                     </a>
                 </li>
                 <li>
@@ -97,6 +109,12 @@
                     <a href="@Url.Action("Index", "Services")" class="@IsActive("Services")">
                         <i class="fas fa-cut"></i>
                         <span>الخدمات</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("Index", "ServiceCategories")" class="@IsActive("ServiceCategories")">
+                        <i class="fas fa-tags"></i>
+                        <span>فئات الخدمات</span>
                     </a>
                 </li>
                 <li>

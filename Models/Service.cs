@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Salon.Models
 {
@@ -22,7 +23,10 @@ namespace Salon.Models
         public int? DurationMinutes { get; set; }
 
         [Display(Name = "الفئة")]
-        public string? Category { get; set; }
+        public int? ServiceCategoryId { get; set; }
+
+        [ForeignKey("ServiceCategoryId")]
+        public ServiceCategory? ServiceCategory { get; set; }
 
         public bool IsActive { get; set; } = true;
 

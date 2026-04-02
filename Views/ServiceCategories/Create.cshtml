@@ -1,0 +1,76 @@
+@model Salon.Models.ServiceCategory
+@{
+    ViewData["Title"] = "إضافة فئة خدمة";
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-plus-circle me-2"></i>إضافة فئة خدمة جديدة</h1>
+</div>
+
+<div class="card" style="max-width:600px">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div class="row g-3">
+                <div class="col-12">
+                    <label asp-for="Name" class="form-label"></label>
+                    <input asp-for="Name" class="form-control" placeholder="مثال: حلاقة، مساج، عناية بالبشرة..." />
+                    <span asp-validation-for="Name" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Icon" class="form-label"></label>
+                    <input asp-for="Icon" class="form-control" placeholder="fas fa-cut" id="iconInput" />
+                    <small class="text-muted">أيقونة من <a href="https://fontawesome.com/icons" target="_blank">Font Awesome</a></small>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Color" class="form-label"></label>
+                    <div class="d-flex gap-2">
+                        <input asp-for="Color" type="color" class="form-control form-control-color" style="width:50px" id="colorInput" />
+                        <input type="text" id="colorText" class="form-control" value="@(Model.Color ?? "#F7941D")" placeholder="#F7941D" />
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">معاينة</label>
+                    <div class="d-flex align-items-center gap-3 p-3 rounded border">
+                        <div id="previewIcon" class="rounded-circle d-flex align-items-center justify-content-center"
+                             style="width:48px;height:48px;background-color:#F7941D20;color:#F7941D;font-size:20px;">
+                            <i id="previewIconClass" class="fas fa-cut"></i>
+                        </div>
+                        <span id="previewName" class="fw-bold">اسم الفئة</span>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label asp-for="Description" class="form-label"></label>
+                    <textarea asp-for="Description" class="form-control" rows="2" placeholder="وصف اختياري للفئة"></textarea>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary me-2"><i class="fas fa-save me-1"></i> حفظ</button>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const colorInput  = document.getElementById('colorInput');
+    const colorText   = document.getElementById('colorText');
+    const iconInput   = document.getElementById('iconInput');
+    const previewIcon = document.getElementById('previewIcon');
+    const previewIconClass = document.getElementById('previewIconClass');
+    const nameInput   = document.querySelector('input[name="Name"]');
+
+    function updatePreview() {
+        const color = colorText.value || '#F7941D';
+        previewIcon.style.backgroundColor = color + '20';
+        previewIcon.style.color = color;
+        previewIconClass.className = iconInput.value || 'fas fa-cut';
+    }
+
+    colorInput.addEventListener('input', () => { colorText.value = colorInput.value; updatePreview(); });
+    colorText.addEventListener('input', () => { colorInput.value = colorText.value; updatePreview(); });
+    iconInput.addEventListener('input', updatePreview);
+    nameInput.addEventListener('input', () => { document.getElementById('previewName').textContent = nameInput.value || 'اسم الفئة'; });
+</script>
+}

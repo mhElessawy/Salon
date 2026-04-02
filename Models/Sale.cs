@@ -41,6 +41,9 @@ namespace Salon.Models
         [Display(Name = "طريقة الدفع")]
         public string PaymentMethod { get; set; } = "نقدي";
 
+        [Display(Name = "نوع الفاتورة")]
+        public string SaleType { get; set; } = "خدمة"; // "خدمة" أو "منتجات"
+
         [Display(Name = "الحالة")]
         public string Status { get; set; } = "مكتمل";
 

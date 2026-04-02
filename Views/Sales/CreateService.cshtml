@@ -1,0 +1,407 @@
+@model Salon.Models.Sale
+@{
+    ViewData["Title"] = "فاتورة خدمات";
+    var categories = ViewBag.ServiceCategories as List<Salon.Models.ServiceCategory> ?? new();
+    var uncategorized = ViewBag.UncategorizedServices as List<Salon.Models.Service> ?? new();
+}
+
+@section Styles {
+<style>
+.pos-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 16px;
+    align-items: start;
+}
+.pos-right { position: sticky; top: 70px; }
+.items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.item-card {
+    background: #fff;
+    border: 1.5px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 10px;
+    cursor: pointer;
+    transition: all .18s;
+    text-align: center;
+}
+.item-card:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(247,148,29,.15);
+}
+.item-card .ic-icon { font-size: 24px; margin-bottom: 6px; }
+.item-card .ic-name { font-size: 13px; font-weight: 600; color: var(--text-dark); margin-bottom: 4px; line-height: 1.3; }
+.item-card .ic-price { font-size: 13px; font-weight: 700; color: var(--primary); }
+.item-card .ic-meta { font-size: 11px; color: #6c757d; margin-top: 2px; }
+.cat-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 4px 6px;
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: 10px;
+    margin-top: 4px;
+    font-weight: 700;
+    font-size: 14px;
+}
+.cat-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+.invoice-card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 16px rgba(0,0,0,.09);
+    overflow: hidden;
+}
+.invoice-header {
+    background: var(--primary);
+    color: #fff;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.invoice-header .inv-title { font-size: 16px; font-weight: 700; }
+.invoice-header .inv-num { font-size: 13px; opacity: .9; }
+.invoice-items { min-height: 180px; max-height: 300px; overflow-y: auto; }
+.invoice-items table { width: 100%; font-size: 13px; }
+.invoice-items thead th { background: #f8f9fa; padding: 8px 10px; font-size: 12px; color: #6c757d; }
+.invoice-items tbody td { padding: 7px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+.invoice-empty { text-align: center; padding: 40px 20px; color: #adb5bd; }
+.qty-control { display: flex; align-items: center; gap: 4px; }
+.qty-btn {
+    width: 24px; height: 24px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: #f8f9fa;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0; line-height: 1;
+}
+.qty-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+.qty-input { width: 36px; text-align: center; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; padding: 2px; }
+.btn-remove-item { background: none; border: none; color: #dc3545; cursor: pointer; font-size: 14px; padding: 2px 5px; border-radius: 4px; }
+.btn-remove-item:hover { background: #fce4ec; }
+.invoice-totals { padding: 12px 16px; border-top: 1px solid var(--border-color); background: #fafafa; }
+.total-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; font-size: 14px; }
+.total-row.net { font-size: 16px; font-weight: 700; color: var(--primary); border-top: 2px solid var(--border-color); padding-top: 10px; margin-top: 4px; }
+.discount-input { width: 90px; text-align: center; border: 1px dashed #ccc; border-radius: 6px; padding: 3px 6px; font-size: 13px; background: #fff; }
+.discount-input:focus { outline: none; border-color: var(--primary); }
+.btn-save-invoice { width: 100%; padding: 14px; background: var(--primary); color: #fff; border: none; font-size: 16px; font-weight: 700; cursor: pointer; transition: background .2s; }
+.btn-save-invoice:hover { background: var(--primary-dark); }
+.btn-save-invoice:disabled { background: #adb5bd; cursor: not-allowed; }
+.info-top-bar { background: #fff; border-radius: 12px; box-shadow: var(--card-shadow); padding: 16px 20px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.search-box { margin-bottom: 14px; }
+@@media (max-width: 992px) { .pos-wrapper { grid-template-columns: 1fr; } .pos-right { position: static; } .info-top-bar { grid-template-columns: 1fr 1fr; } }
+@@media (max-width: 576px) { .info-top-bar { grid-template-columns: 1fr; } .items-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+}
+
+<div class="page-header d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 style="font-size:20px;"><i class="fas fa-cut me-2" style="color:var(--primary)"></i>فاتورة خدمات</h1>
+        <small class="text-muted">حلاقة، مساج، وجميع خدمات الصالون</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="@Url.Action("CreateProduct")" class="btn btn-outline-success btn-sm">
+            <i class="fas fa-box me-1"></i> فاتورة منتجات
+        </a>
+        <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-list me-1"></i> قائمة الفواتير
+        </a>
+    </div>
+</div>
+
+<form asp-action="CreateService" method="post" id="posForm">
+    @Html.AntiForgeryToken()
+    <input asp-for="InvoiceNumber" type="hidden" />
+    <input asp-for="SaleType" type="hidden" value="خدمة" />
+    <div id="hiddenItems"></div>
+
+    <div class="info-top-bar">
+        <div>
+            <label class="form-label">رقم الفاتورة</label>
+            <input type="text" class="form-control form-control-sm" value="@Model.InvoiceNumber" readonly />
+        </div>
+        <div>
+            <label class="form-label">العميل</label>
+            <select name="CustomerId" asp-items="@ViewBag.Customers" class="form-select form-select-sm">
+                <option value="">👤 زائر</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label">الموظف المنفذ <span class="text-danger">*</span></label>
+            <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select form-select-sm" required>
+                <option value="">-- اختر الموظف --</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="pos-wrapper">
+
+        <div class="pos-left">
+            <div class="card mb-0">
+                <div class="card-body p-3">
+                    <div class="search-box">
+                        <input type="text" id="serviceSearch" class="form-control form-control-sm"
+                               placeholder="بحث في الخدمات..." oninput="filterServices(this.value)" />
+                    </div>
+
+                    <div id="servicesContainer">
+                        @foreach (var cat in categories)
+                        {
+                            if (cat.Services.Any())
+                            {
+                                <div class="cat-header" style="color:@(cat.Color ?? "#F7941D")">
+                                    <span class="cat-dot" style="background:@(cat.Color ?? "#F7941D")"></span>
+                                    <i class="@(cat.Icon ?? "fas fa-tag")"></i>
+                                    @cat.Name
+                                    <span class="badge ms-auto" style="background:@(cat.Color ?? "#F7941D");font-size:11px">@cat.Services.Count</span>
+                                </div>
+                                <div class="items-grid">
+                                    @foreach (var svc in cat.Services.OrderBy(s => s.Name))
+                                    {
+                                        <div class="item-card service-item"
+                                             data-name="@svc.Name.ToLower()"
+                                             onclick="addItem(@svc.Id, '@Html.Raw(svc.Name.Replace("'","\\\'"))', @svc.Price.ToString("F3"))">
+                                            <div class="ic-icon" style="color:@(cat.Color ?? "var(--primary)")">
+                                                <i class="@(cat.Icon ?? "fas fa-cut")"></i>
+                                            </div>
+                                            <div class="ic-name">@svc.Name</div>
+                                            <div class="ic-price">@svc.Price.ToString("N3") د.ك</div>
+                                            @if (svc.DurationMinutes.HasValue)
+                                            {
+                                                <div class="ic-meta"><i class="fas fa-clock me-1"></i>@svc.DurationMinutes دقيقة</div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        }
+
+                        @if (uncategorized.Any())
+                        {
+                            <div class="cat-header">
+                                <span class="cat-dot" style="background:#6c757d"></span>
+                                <i class="fas fa-tag"></i>
+                                خدمات أخرى
+                            </div>
+                            <div class="items-grid">
+                                @foreach (var svc in uncategorized)
+                                {
+                                    <div class="item-card service-item"
+                                         data-name="@svc.Name.ToLower()"
+                                         onclick="addItem(@svc.Id, '@Html.Raw(svc.Name.Replace("'","\\\'"))', @svc.Price.ToString("F3"))">
+                                        <div class="ic-icon" style="color:var(--primary)"><i class="fas fa-cut"></i></div>
+                                        <div class="ic-name">@svc.Name</div>
+                                        <div class="ic-price">@svc.Price.ToString("N3") د.ك</div>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @if (!categories.Any(c => c.Services.Any()) && !uncategorized.Any())
+                        {
+                            <div class="text-center text-muted py-5">
+                                <i class="fas fa-cut fa-3x mb-3 opacity-25"></i>
+                                <p>لا توجد خدمات مسجلة</p>
+                                <a href="@Url.Action("Create","Services")" class="btn btn-sm btn-outline-primary">إضافة خدمة</a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pos-right">
+            <div class="invoice-card">
+
+                <div class="invoice-header">
+                    <div class="inv-title"><i class="fas fa-file-invoice me-2"></i>فاتورة خدمات</div>
+                    <div class="inv-num">@Model.InvoiceNumber</div>
+                </div>
+
+                <div class="px-3 pt-3 pb-2 border-bottom">
+                    <label class="form-label" style="font-size:13px;">طريقة الدفع</label>
+                    <select asp-for="PaymentMethod" class="form-select form-select-sm">
+                        <option>نقدي</option>
+                        <option>بطاقة</option>
+                        <option>تحويل بنكي</option>
+                    </select>
+                </div>
+
+                <div class="invoice-items">
+                    <table id="invoiceTable">
+                        <thead>
+                            <tr>
+                                <th>الخدمة</th>
+                                <th>الكمية</th>
+                                <th>السعر</th>
+                                <th>الإجمالي</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoiceBody">
+                            <tr id="emptyRow">
+                                <td colspan="5" class="invoice-empty">
+                                    <i class="fas fa-hand-point-right fa-2x mb-2 d-block"></i>
+                                    اختر خدمة من القائمة
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="invoice-totals">
+                    <div class="total-row">
+                        <span>الإجمالي:</span>
+                        <span id="subtotalDisplay">0.000 د.ك</span>
+                    </div>
+                    <div class="total-row">
+                        <span>الخصم:</span>
+                        <input type="number" name="Discount" id="discountInput" class="discount-input"
+                               value="0" step="0.001" min="0" oninput="recalc()" />
+                    </div>
+                    <div class="total-row net">
+                        <span>الصافي:</span>
+                        <span id="netDisplay">0.000 د.ك</span>
+                    </div>
+                </div>
+
+                <div class="p-3 border-top">
+                    <label class="form-label" style="font-size:13px;">ملاحظات</label>
+                    <textarea name="Notes" class="form-control form-control-sm mb-3" rows="2"></textarea>
+                    <button type="submit" class="btn-save-invoice" id="saveBtn" disabled>
+                        <i class="fas fa-print me-2"></i> حفظ الفاتورة
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    let invoiceItems = [];
+    let rowCounter = 0;
+
+    function addItem(id, name, price) {
+        price = parseFloat(price) || 0;
+        const existing = invoiceItems.find(i => i.id === id);
+        if (existing) {
+            existing.qty++;
+            existing.total = existing.qty * existing.price;
+            updateRow(existing);
+        } else {
+            const item = { rowId: ++rowCounter, id, name, price, qty: 1, total: price };
+            invoiceItems.push(item);
+            renderRow(item);
+        }
+        document.getElementById('emptyRow').style.display = 'none';
+        recalc();
+        document.getElementById('saveBtn').disabled = false;
+    }
+
+    function renderRow(item) {
+        const tr = document.createElement('tr');
+        tr.id = 'row-' + item.rowId;
+        tr.innerHTML = buildHtml(item);
+        document.getElementById('invoiceBody').appendChild(tr);
+    }
+
+    function updateRow(item) {
+        const tr = document.getElementById('row-' + item.rowId);
+        if (tr) tr.innerHTML = buildHtml(item);
+    }
+
+    function buildHtml(item) {
+        return `
+            <td>${item.name}</td>
+            <td>
+                <div class="qty-control">
+                    <button type="button" class="qty-btn" onclick="changeQty(${item.rowId}, -1)">−</button>
+                    <input type="number" class="qty-input" value="${item.qty}" min="1"
+                           onchange="setQty(${item.rowId}, this.value)" />
+                    <button type="button" class="qty-btn" onclick="changeQty(${item.rowId}, 1)">+</button>
+                </div>
+            </td>
+            <td>${item.price.toFixed(3)}</td>
+            <td><strong>${item.total.toFixed(3)}</strong></td>
+            <td><button type="button" class="btn-remove-item" onclick="removeItem(${item.rowId})"><i class="fas fa-times"></i></button></td>
+        `;
+    }
+
+    function changeQty(rowId, delta) {
+        const item = invoiceItems.find(i => i.rowId === rowId);
+        if (!item) return;
+        const n = item.qty + delta;
+        if (n < 1) { removeItem(rowId); return; }
+        item.qty = n;
+        item.total = item.qty * item.price;
+        updateRow(item);
+        recalc();
+    }
+
+    function setQty(rowId, val) {
+        const item = invoiceItems.find(i => i.rowId === rowId);
+        if (!item) return;
+        item.qty = Math.max(1, parseInt(val) || 1);
+        item.total = item.qty * item.price;
+        updateRow(item);
+        recalc();
+    }
+
+    function removeItem(rowId) {
+        invoiceItems = invoiceItems.filter(i => i.rowId !== rowId);
+        const tr = document.getElementById('row-' + rowId);
+        if (tr) tr.remove();
+        if (invoiceItems.length === 0) {
+            document.getElementById('emptyRow').style.display = '';
+            document.getElementById('saveBtn').disabled = true;
+        }
+        recalc();
+    }
+
+    function recalc() {
+        const subtotal = invoiceItems.reduce((s, i) => s + i.total, 0);
+        const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+        const net = Math.max(0, subtotal - discount);
+        document.getElementById('subtotalDisplay').textContent = subtotal.toFixed(3) + ' د.ك';
+        document.getElementById('netDisplay').textContent = net.toFixed(3) + ' د.ك';
+    }
+
+    function filterServices(q) {
+        q = q.toLowerCase().trim();
+        document.querySelectorAll('.service-item').forEach(card => {
+            const name = card.dataset.name || '';
+            card.style.display = (!q || name.includes(q)) ? '' : 'none';
+        });
+    }
+
+    document.getElementById('posForm').addEventListener('submit', function(e) {
+        if (invoiceItems.length === 0) { e.preventDefault(); return; }
+        const container = document.getElementById('hiddenItems');
+        container.innerHTML = '';
+        invoiceItems.forEach(function(item) {
+            container.innerHTML += `
+                <input type="hidden" name="itemIds"    value="${item.id}" />
+                <input type="hidden" name="itemNames"  value="${item.name}" />
+                <input type="hidden" name="itemPrices" value="${item.price}" />
+                <input type="hidden" name="itemQtys"   value="${item.qty}" />
+            `;
+        });
+    });
+</script>
+}

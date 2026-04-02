@@ -6,7 +6,7 @@
 <div class="page-header">
     <h1><i class="fas fa-plus-circle me-2"></i>إضافة خدمة جديدة</h1>
 </div>
-<div class="card">
+<div class="card" style="max-width:700px">
     <div class="card-body">
         <form asp-action="Create" method="post">
             @Html.AntiForgeryToken()
@@ -17,17 +17,19 @@
                     <span asp-validation-for="Name" class="text-danger small"></span>
                 </div>
                 <div class="col-md-6">
-                    <label asp-for="Category" class="form-label"></label>
-                    <input asp-for="Category" class="form-control" />
+                    <label asp-for="ServiceCategoryId" class="form-label"></label>
+                    <select asp-for="ServiceCategoryId" asp-items="ViewBag.Categories" class="form-select">
+                        <option value="">-- اختر الفئة --</option>
+                    </select>
                 </div>
                 <div class="col-md-4">
                     <label asp-for="Price" class="form-label"></label>
-                    <input asp-for="Price" type="number" step="0.001" class="form-control" />
+                    <input asp-for="Price" type="number" step="0.001" min="0" class="form-control" />
                     <span asp-validation-for="Price" class="text-danger small"></span>
                 </div>
                 <div class="col-md-4">
                     <label asp-for="DurationMinutes" class="form-label"></label>
-                    <input asp-for="DurationMinutes" type="number" class="form-control" />
+                    <input asp-for="DurationMinutes" type="number" min="0" class="form-control" />
                 </div>
                 <div class="col-12">
                     <label asp-for="Description" class="form-label"></label>
