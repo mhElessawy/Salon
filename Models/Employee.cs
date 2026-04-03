@@ -44,6 +44,9 @@ namespace Salon.Models
         [Display(Name = "نوع العقد")]
         public string? ContractType { get; set; }
 
+        [Display(Name = "القسم")]
+        public string? Department { get; set; } // "حلاقة" | "مساج"
+
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
 

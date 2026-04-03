@@ -85,6 +85,34 @@
                     </div>
                     <span asp-validation-for="Role" class="text-danger small"></span>
                 </div>
+
+                @* القسم - يظهر عند اختيار Cashier أو Employee *@
+                <div class="col-12" id="deptSection">
+                    <label class="form-label">القسم <small class="text-muted">(للكاشير والموظف)</small></label>
+                    <div class="d-flex gap-3">
+                        @foreach (var d in new[] { ("حلاقة","fas fa-cut","#F7941D"), ("مساج","fas fa-spa","#17a2b8"), ("الكل","fas fa-layer-group","#6c757d") })
+                        {
+                            <div>
+                                <input type="radio" name="UserDepartment" id="dept_@d.Item1" value="@d.Item1"
+                                       class="btn-check" @(Model.UserDepartment == d.Item1 || (d.Item1 == "الكل" && Model.UserDepartment == null) ? "checked" : "") />
+                                <label class="btn btn-outline-secondary d-flex flex-column align-items-center gap-1 px-4 py-2"
+                                       for="dept_@d.Item1" style="font-size:13px;">
+                                    <i class="@d.Item2" style="font-size:18px;color:@d.Item3"></i>
+                                    @d.Item1
+                                </label>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                @* الموظف المرتبط - يظهر عند اختيار Employee *@
+                <div class="col-12" id="empLinkSection" style="display:none">
+                    <label asp-for="LinkedEmployeeId" class="form-label"></label>
+                    <select asp-for="LinkedEmployeeId" asp-items="ViewBag.Employees" class="form-select">
+                        <option value="">-- اختر الموظف المرتبط --</option>
+                    </select>
+                    <small class="text-muted">اختر الموظف الذي سيُنشئ هذا المستخدم فواتيره باسمه فقط</small>
+                </div>
             </div>
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary me-2"><i class="fas fa-save me-1"></i> إنشاء المستخدم</button>
@@ -100,5 +128,12 @@ function togglePass(id) {
     const inp = document.getElementById(id);
     inp.type = inp.type === 'password' ? 'text' : 'password';
 }
+function updateSections() {
+    const role = document.querySelector('input[name="Role"]:checked')?.value ?? '';
+    document.getElementById('deptSection').style.display = (role === 'Cashier' || role === 'Employee') ? '' : 'none';
+    document.getElementById('empLinkSection').style.display = role === 'Employee' ? '' : 'none';
+}
+document.querySelectorAll('input[name="Role"]').forEach(r => r.addEventListener('change', updateSections));
+updateSections();
 </script>
 }

@@ -9,11 +9,14 @@
         <h1><i class="fas fa-file-invoice me-2"></i>الفواتير</h1>
         <p>إجمالي اليوم: <strong>@ViewBag.TotalSales?.ToString("N3") د.ك</strong></p>
     </div>
-    <div class="d-flex gap-2">
-        <a href="@Url.Action("CreateService")" class="btn btn-warning">
-            <i class="fas fa-cut me-1"></i> فاتورة خدمات
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="@Url.Action("CreateBarber")" class="btn btn-warning btn-sm">
+            <i class="fas fa-cut me-1"></i> فاتورة حلاقة
         </a>
-        <a href="@Url.Action("CreateProduct")" class="btn btn-success">
+        <a href="@Url.Action("CreateMassage")" class="btn btn-info btn-sm">
+            <i class="fas fa-spa me-1"></i> فاتورة مساج
+        </a>
+        <a href="@Url.Action("CreateProduct")" class="btn btn-success btn-sm">
             <i class="fas fa-box me-1"></i> فاتورة منتجات
         </a>
     </div>
@@ -27,8 +30,9 @@
             <label class="form-label mb-0">النوع:</label>
             <select name="type" class="form-select" style="max-width:160px;">
                 <option value="">الكل</option>
-                <option value="خدمة" @(filterType == "خدمة" ? "selected" : "")>فواتير خدمات</option>
-                <option value="منتجات" @(filterType == "منتجات" ? "selected" : "")>فواتير منتجات</option>
+                <option value="حلاقة"   @(filterType == "حلاقة"   ? "selected" : "")>فواتير حلاقة (PAR)</option>
+                <option value="مساج"    @(filterType == "مساج"    ? "selected" : "")>فواتير مساج (MAS)</option>
+                <option value="منتجات"  @(filterType == "منتجات"  ? "selected" : "")>فواتير منتجات (PRD)</option>
             </select>
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> بحث</button>
             @if (!string.IsNullOrEmpty(filterType))
@@ -66,13 +70,17 @@
                         <tr>
                             <td><strong>@s.InvoiceNumber</strong></td>
                             <td>
-                                @if (s.SaleType == "خدمة")
+                                @if (s.SaleType == "حلاقة")
                                 {
-                                    <span class="badge" style="background:#F7941D"><i class="fas fa-cut me-1"></i>خدمة</span>
+                                    <span class="badge" style="background:#F7941D"><i class="fas fa-cut me-1"></i>PAR</span>
+                                }
+                                else if (s.SaleType == "مساج")
+                                {
+                                    <span class="badge bg-info"><i class="fas fa-spa me-1"></i>MAS</span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-success"><i class="fas fa-box me-1"></i>منتجات</span>
+                                    <span class="badge bg-success"><i class="fas fa-box me-1"></i>PRD</span>
                                 }
                             </td>
                             <td>@(s.Customer?.FullName ?? "زائر")</td>

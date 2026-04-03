@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
@@ -42,6 +43,7 @@ namespace Salon.Controllers
         // ===== إضافة مستخدم =====
         public async Task<IActionResult> Create()
         {
+            await PopulateUserDropdowns();
             ViewBag.Roles = await _roleManager.Roles.Select(r => r.Name).ToListAsync();
             return View(new CreateUserViewModel());
         }
@@ -62,7 +64,9 @@ namespace Salon.Controllers
                 FullName = model.FullName,
                 EmailConfirmed = true,
                 IsActive = true,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.Now,
+                UserDepartment = model.UserDepartment,
+                LinkedEmployeeId = model.LinkedEmployeeId
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
@@ -76,6 +80,7 @@ namespace Salon.Controllers
             foreach (var error in result.Errors)
                 ModelState.AddModelError(string.Empty, error.Description);
 
+            await PopulateUserDropdowns();
             ViewBag.Roles = await _roleManager.Roles.Select(r => r.Name).ToListAsync();
             return View(model);
         }
@@ -93,9 +98,12 @@ namespace Salon.Controllers
                 FullName = user.FullName,
                 Email = user.Email!,
                 Role = roles.FirstOrDefault() ?? "Cashier",
-                IsActive = user.IsActive
+                IsActive = user.IsActive,
+                UserDepartment = user.UserDepartment,
+                LinkedEmployeeId = user.LinkedEmployeeId
             };
 
+            await PopulateUserDropdowns();
             ViewBag.Roles = await _roleManager.Roles.Select(r => r.Name).ToListAsync();
             return View(model);
         }
@@ -105,6 +113,7 @@ namespace Salon.Controllers
         {
             if (!ModelState.IsValid)
             {
+                await PopulateUserDropdowns();
                 ViewBag.Roles = await _roleManager.Roles.Select(r => r.Name).ToListAsync();
                 return View(model);
             }
@@ -116,6 +125,8 @@ namespace Salon.Controllers
             user.Email = model.Email;
             user.UserName = model.Email;
             user.IsActive = model.IsActive;
+            user.UserDepartment = model.UserDepartment;
+            user.LinkedEmployeeId = model.LinkedEmployeeId;
 
             var updateResult = await _userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)
@@ -228,6 +239,13 @@ namespace Salon.Controllers
         }
 
         // ===== تعطيل مستخدم =====
+        private async Task PopulateUserDropdowns()
+        {
+            ViewBag.Employees = new SelectList(
+                await _context.Employees.Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync(),
+                "Id", "FullName");
+        }
+
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Deactivate(string id)
         {

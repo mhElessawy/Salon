@@ -12,10 +12,18 @@
         <form asp-action="Create" method="post">
             @Html.AntiForgeryToken()
             <div class="row g-3">
-                <div class="col-12">
+                <div class="col-md-8">
                     <label asp-for="Name" class="form-label"></label>
-                    <input asp-for="Name" class="form-control" placeholder="مثال: حلاقة، مساج، عناية بالبشرة..." />
+                    <input asp-for="Name" class="form-control" placeholder="مثال: حلاقة رجالي، مساج استرخاء..." />
                     <span asp-validation-for="Name" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Department" class="form-label"></label>
+                    <select asp-for="Department" class="form-select">
+                        <option value="">-- عام --</option>
+                        <option value="حلاقة">✂️ حلاقة</option>
+                        <option value="مساج">💆 مساج</option>
+                    </select>
                 </div>
                 <div class="col-md-6">
                     <label asp-for="Icon" class="form-label"></label>

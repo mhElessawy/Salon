@@ -28,6 +28,12 @@ namespace Salon.Models
         [Required(ErrorMessage = "الدور مطلوب")]
         [Display(Name = "الدور / الصلاحية")]
         public string Role { get; set; } = "Cashier";
+
+        [Display(Name = "القسم")]
+        public string? UserDepartment { get; set; } // "حلاقة" | "مساج" | "الكل"
+
+        [Display(Name = "الموظف المرتبط")]
+        public int? LinkedEmployeeId { get; set; }
     }
 
     public class EditUserViewModel
@@ -49,6 +55,12 @@ namespace Salon.Models
 
         [Display(Name = "الحالة")]
         public bool IsActive { get; set; } = true;
+
+        [Display(Name = "القسم")]
+        public string? UserDepartment { get; set; }
+
+        [Display(Name = "الموظف المرتبط")]
+        public int? LinkedEmployeeId { get; set; }
     }
 
     public class AdminChangePasswordViewModel

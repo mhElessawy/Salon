@@ -65,6 +65,34 @@
                         }
                     </div>
                 </div>
+                @* القسم *@
+                <div class="col-12" id="deptSection">
+                    <label class="form-label">القسم <small class="text-muted">(للكاشير والموظف)</small></label>
+                    <div class="d-flex gap-3 flex-wrap">
+                        @foreach (var d in new[] { ("حلاقة","fas fa-cut","#F7941D"), ("مساج","fas fa-spa","#17a2b8"), ("الكل","fas fa-layer-group","#6c757d") })
+                        {
+                            <div>
+                                <input type="radio" name="UserDepartment" id="dept_@d.Item1" value="@d.Item1"
+                                       class="btn-check" @(Model.UserDepartment == d.Item1 ? "checked" : "") />
+                                <label class="btn btn-outline-secondary d-flex flex-column align-items-center gap-1 px-4 py-2"
+                                       for="dept_@d.Item1" style="font-size:13px;">
+                                    <i class="@d.Item2" style="font-size:18px;color:@d.Item3"></i>
+                                    @d.Item1
+                                </label>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                @* الموظف المرتبط *@
+                <div class="col-12" id="empLinkSection">
+                    <label asp-for="LinkedEmployeeId" class="form-label"></label>
+                    <select asp-for="LinkedEmployeeId" asp-items="ViewBag.Employees" class="form-select">
+                        <option value="">-- لا يوجد ربط --</option>
+                    </select>
+                    <small class="text-muted">إذا كان الدور "موظف" سيُنشئ فواتير باسمه فقط</small>
+                </div>
+
                 <div class="col-12">
                     <label asp-for="IsActive" class="form-label d-block">الحالة</label>
                     <div class="form-check form-switch">
@@ -73,6 +101,15 @@
                     </div>
                 </div>
             </div>
+            <script>
+            function updateSections() {
+                const role = document.querySelector('input[name="Role"]:checked')?.value ?? '';
+                document.getElementById('deptSection').style.display = (role==='Cashier'||role==='Employee') ? '' : 'none';
+                document.getElementById('empLinkSection').style.display = role === 'Employee' ? '' : 'none';
+            }
+            document.querySelectorAll('input[name="Role"]').forEach(r => r.addEventListener('change', updateSections));
+            updateSections();
+            </script>
             <div class="mt-4 d-flex gap-2">
                 <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> حفظ</button>
                 <a href="@Url.Action("Permissions", new { id = Model.Id })" class="btn btn-outline-primary">

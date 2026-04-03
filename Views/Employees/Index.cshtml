@@ -25,6 +25,7 @@
                     <tr>
                         <th>#</th>
                         <th>الاسم</th>
+                        <th>القسم</th>
                         <th>المسمى الوظيفي</th>
                         <th>الهاتف</th>
                         <th>الراتب</th>
@@ -42,6 +43,17 @@
                         <tr>
                             <td>@e.Id</td>
                             <td><strong>@e.FullName</strong></td>
+                            <td>
+                                @if (e.Department == "حلاقة")
+                                {
+                                    <span class="badge" style="background:#F7941D"><i class="fas fa-cut me-1"></i>حلاقة</span>
+                                }
+                                else if (e.Department == "مساج")
+                                {
+                                    <span class="badge bg-info"><i class="fas fa-spa me-1"></i>مساج</span>
+                                }
+                                else { <span class="text-muted">-</span> }
+                            </td>
                             <td>@(e.JobTitle ?? "-")</td>
                             <td>@(e.Phone ?? "-")</td>
                             <td>@e.BasicSalary.ToString("N3") د.ك</td>

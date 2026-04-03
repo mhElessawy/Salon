@@ -7,7 +7,8 @@ namespace Salon.Models
         {
             ("Dashboard",         "لوحة التحكم",        "fas fa-th-large",         "عام"),
             ("Customers",         "العملاء",            "fas fa-users",            "عام"),
-            ("ServiceInvoice",    "فاتورة الخدمات",     "fas fa-cut",              "المبيعات"),
+            ("BarberInvoice",     "فاتورة الحلاقة",     "fas fa-cut",              "المبيعات"),
+            ("MassageInvoice",    "فاتورة المساج",      "fas fa-spa",              "المبيعات"),
             ("ProductInvoice",    "فاتورة المنتجات",    "fas fa-box",              "المبيعات"),
             ("Appointments",      "المواعيد",           "fas fa-calendar-check",   "المبيعات"),
             ("Services",          "الخدمات",            "fas fa-concierge-bell",   "المبيعات"),

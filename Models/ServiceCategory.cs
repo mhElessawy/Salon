@@ -19,6 +19,9 @@ namespace Salon.Models
         [Display(Name = "اللون")]
         public string? Color { get; set; } = "#F7941D";
 
+        [Display(Name = "القسم")]
+        public string? Department { get; set; } // "حلاقة" | "مساج"
+
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
