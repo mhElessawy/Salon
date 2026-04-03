@@ -1,0 +1,85 @@
+@model Salon.Models.EditUserViewModel
+@{
+    ViewData["Title"] = "تعديل المستخدم";
+    var roles = ViewBag.Roles as List<string> ?? new();
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-user-edit me-2"></i>تعديل بيانات المستخدم</h1>
+</div>
+
+<div class="card" style="max-width:600px">
+    <div class="card-body">
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <input asp-for="Id" type="hidden" />
+            <div class="row g-3">
+                <div class="col-12">
+                    <label asp-for="FullName" class="form-label"></label>
+                    <input asp-for="FullName" class="form-control" />
+                    <span asp-validation-for="FullName" class="text-danger small"></span>
+                </div>
+                <div class="col-12">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" type="email" class="form-control" />
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+                <div class="col-12">
+                    <label asp-for="Role" class="form-label"></label>
+                    <div class="row g-2">
+                        @foreach (var role in roles)
+                        {
+                            var roleAr = role switch
+                            {
+                                "Admin"    => "مدير النظام",
+                                "Manager"  => "مدير",
+                                "Cashier"  => "كاشير",
+                                "Employee" => "موظف",
+                                _          => role
+                            };
+                            var roleIcon = role switch
+                            {
+                                "Admin"    => "fas fa-crown",
+                                "Manager"  => "fas fa-user-tie",
+                                "Cashier"  => "fas fa-cash-register",
+                                "Employee" => "fas fa-user",
+                                _          => "fas fa-user"
+                            };
+                            var roleColor = role switch
+                            {
+                                "Admin"    => "#dc3545",
+                                "Manager"  => "#ffc107",
+                                "Cashier"  => "#0dcaf0",
+                                "Employee" => "#6c757d",
+                                _          => "#6c757d"
+                            };
+                            <div class="col-6 col-md-3">
+                                <input type="radio" name="Role" id="role_@role" value="@role"
+                                       class="btn-check" @(Model.Role == role ? "checked" : "") />
+                                <label class="btn btn-outline-secondary w-100 d-flex flex-column align-items-center gap-1 py-3"
+                                       for="role_@role" style="font-size:13px;">
+                                    <i class="@roleIcon" style="font-size:20px;color:@roleColor"></i>
+                                    @roleAr
+                                </label>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label asp-for="IsActive" class="form-label d-block">الحالة</label>
+                    <div class="form-check form-switch">
+                        <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" />
+                        <label asp-for="IsActive" class="form-check-label">المستخدم نشط</label>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> حفظ</button>
+                <a href="@Url.Action("Permissions", new { id = Model.Id })" class="btn btn-outline-primary">
+                    <i class="fas fa-key me-1"></i> الصلاحيات
+                </a>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>

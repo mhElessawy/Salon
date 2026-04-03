@@ -9,7 +9,23 @@
     <link rel="stylesheet" href="~/css/salon.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
 </head>
+@inject Microsoft.AspNetCore.Identity.UserManager<Salon.Models.ApplicationUser> LayoutUserManager
 <body>
+@{
+    var layoutUser = await LayoutUserManager.GetUserAsync(User);
+    var layoutFullName = layoutUser?.FullName ?? User.Identity?.Name?.Split('@').FirstOrDefault() ?? "المستخدم";
+    var layoutRoles = layoutUser != null ? await LayoutUserManager.GetRolesAsync(layoutUser) : new List<string>();
+    var layoutRole = layoutRoles.FirstOrDefault() ?? "";
+    var layoutRoleAr = layoutRole switch
+    {
+        "Admin"    => "مدير النظام",
+        "Manager"  => "مدير",
+        "Cashier"  => "كاشير",
+        "Employee" => "موظف",
+        _          => layoutRole
+    };
+    var layoutInitial = layoutFullName.FirstOrDefault().ToString().ToUpper();
+}
     <!-- Overlay for mobile sidebar -->
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
@@ -24,7 +40,7 @@
                         <i class="fas fa-bars"></i>
                     </button>
                     <div class="topbar-greeting">
-                        مرحباً، <strong>@(User.Identity?.Name?.Split('@').FirstOrDefault() ?? "المستخدم")</strong>
+                        مرحباً، <strong>@layoutFullName</strong>
                     </div>
                 </div>
                 <div class="topbar-left">
@@ -35,15 +51,35 @@
                         <i class="fas fa-bell"></i>
                         <span class="notif-badge">9</span>
                     </div>
-                    <button class="lang-switch-btn">EN</button>
-                    <div class="topbar-user">
-                        <div>
-                            <div style="font-size:13px; font-weight:600;">@(User.Identity?.Name?.Split('@').FirstOrDefault())</div>
-                            <div class="user-role">admin</div>
+                    <div class="dropdown">
+                        <div class="topbar-user" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor:pointer">
+                            <div>
+                                <div style="font-size:13px; font-weight:600;">@layoutFullName</div>
+                                <div class="user-role">@layoutRoleAr</div>
+                            </div>
+                            <div class="user-avatar">@layoutInitial</div>
                         </div>
-                        <div class="user-avatar">
-                            @(User.Identity?.Name?.FirstOrDefault().ToString().ToUpper() ?? "A")
-                        </div>
+                        <ul class="dropdown-menu dropdown-menu-start shadow">
+                            <li>
+                                <a class="dropdown-item" href="@Url.Action("ChangePassword","Account")">
+                                    <i class="fas fa-key me-2 text-warning"></i> تغيير كلمة المرور
+                                </a>
+                            </li>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <li>
+                                    <a class="dropdown-item" href="@Url.Action("Index","Users")">
+                                        <i class="fas fa-user-shield me-2 text-danger"></i> إدارة المستخدمين
+                                    </a>
+                                </li>
+                            }
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="@Url.Action("Logout","Account")">
+                                    <i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج
+                                </a>
+                            </li>
+                        </ul>
                     </div>
                     <div style="font-size:15px; font-weight:700; color:#1a1a2e;">
                         <i class="fas fa-wifi" style="color:var(--primary); margin-left:6px;"></i>
