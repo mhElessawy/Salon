@@ -50,12 +50,16 @@ namespace Salon.Controllers
                 if (existing == null) return NotFound();
 
                 existing.Name = employee.Name;
+                existing.FullName = employee.FullName;
                 existing.Phone = employee.Phone;
                 existing.Nationality = employee.Nationality;
                 existing.JobTitle = employee.JobTitle;
+                existing.Department = employee.Department;
                 existing.Salary = employee.Salary;
                 existing.Commission = employee.Commission;
                 existing.HireDate = employee.HireDate;
+                existing.ResidencyExpiry = employee.ResidencyExpiry;
+                existing.IsActive = employee.IsActive;
                 existing.ServiceType = employee.ServiceType;
 
                 return RedirectToAction(nameof(Index));
