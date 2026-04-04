@@ -454,6 +454,18 @@ a {
         color: #fff;
     }
 
+.connected-btn {
+    background: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: default;
+    white-space: nowrap;
+}
+
 /* =============================================
    PAGE CONTENT
    ============================================= */

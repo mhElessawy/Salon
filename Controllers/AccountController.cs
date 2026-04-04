@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Salon.Models;
 
@@ -7,88 +5,34 @@ namespace Salon.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly UserManager<ApplicationUser> _userManager;
-
-        public AccountController(SignInManager<ApplicationUser> signInManager,
-                                  UserManager<ApplicationUser> userManager)
+        public IActionResult Login()
         {
-            _signInManager = signInManager;
-            _userManager = userManager;
-        }
-
-        [HttpGet]
-        [AllowAnonymous]
-        public IActionResult Login(string? returnUrl = null)
-        {
-            if (User.Identity?.IsAuthenticated == true)
-                return RedirectToAction("Index", "Dashboard");
-
-            ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
 
         [HttpPost]
-        [AllowAnonymous]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
+        public IActionResult Login(LoginViewModel model)
         {
-            ViewData["ReturnUrl"] = returnUrl;
-
             if (!ModelState.IsValid)
                 return View(model);
 
-            var result = await _signInManager.PasswordSignInAsync(
-                model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
-
-            if (result.Succeeded)
+            // TODO: Replace with real authentication
+            if (model.Email == "admin@salon.com" && model.Password == "admin123")
             {
-                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                    return Redirect(returnUrl);
+                HttpContext.Session.SetString("IsLoggedIn", "true");
+                HttpContext.Session.SetString("Email", model.Email);
                 return RedirectToAction("Index", "Dashboard");
             }
 
-            ModelState.AddModelError(string.Empty, "البريد الإلكتروني أو كلمة المرور غير صحيحة");
+            ModelState.AddModelError("", "البريد الإلكتروني أو كلمة المرور غير صحيحة");
             return View(model);
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Logout()
+        public IActionResult Logout()
         {
-            await _signInManager.SignOutAsync();
-            return RedirectToAction("Login", "Account");
+            HttpContext.Session.Clear();
+            return RedirectToAction("Login");
         }
-
-        // ===== تغيير كلمة المرور الخاصة بالمستخدم =====
-        [Authorize]
-        [HttpGet]
-        public IActionResult ChangePassword() => View(new ChangePasswordViewModel());
-
-        [Authorize]
-        [HttpPost, ValidateAntiForgeryToken]
-        [ActionName("ChangePassword")]
-        public async Task<IActionResult> ChangePasswordPost(ChangePasswordViewModel model)
-        {
-            if (!ModelState.IsValid) return View(model);
-
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null) return RedirectToAction("Login");
-
-            var result = await _userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
-            if (result.Succeeded)
-            {
-                await _signInManager.RefreshSignInAsync(user);
-                TempData["Success"] = "تم تغيير كلمة المرور بنجاح";
-                return RedirectToAction("Index", "Dashboard");
-            }
-
-            foreach (var error in result.Errors)
-                ModelState.AddModelError(string.Empty, error.Description);
-
-            return View(model);
-        }
-
-        [AllowAnonymous]
-        public IActionResult AccessDenied() => View();
     }
 }

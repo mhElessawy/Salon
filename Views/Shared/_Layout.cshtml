@@ -1,53 +1,161 @@
-﻿
+﻿@inject Microsoft.AspNetCore.Identity.UserManager<Salon.Models.ApplicationUser> LayoutUserManager
+@{
+    var layoutUser = await LayoutUserManager.GetUserAsync(User);
+    var layoutFullName = layoutUser?.FullName ?? User.Identity?.Name?.Split('@').FirstOrDefault() ?? "المستخدم";
+    var layoutRoles = layoutUser != null ? await LayoutUserManager.GetRolesAsync(layoutUser) : new List<string>();
+    var layoutRole = layoutRoles.FirstOrDefault() ?? "";
+    var layoutRoleAr = layoutRole switch
+    {
+        "Admin" => "مدير النظام",
+        "Manager" => "مدير",
+        "Cashier" => "كاشير",
+        "Employee" => "موظف",
+        _ => layoutRole
+    };
+    var layoutInitial = layoutFullName.FirstOrDefault().ToString().ToUpper();
+}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Salon</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/Salon.styles.css" asp-append-version="true" />
+    <title>@ViewData["Title"] - نظام معهد موس</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/salon.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Salon</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Employee" asp-action="Index">الموظفين</a>
-                        </li>
-                    </ul>
+    <!-- Overlay for mobile sidebar -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+    <div class="app-wrapper">
+        @await Html.PartialAsync("_Sidebar")
+
+        <div class="main-content">
+            <header class="topbar">
+                <div class="topbar-right">
+                    <!-- Hamburger button (mobile only) -->
+                    <button class="hamburger-btn d-lg-none" onclick="toggleSidebar()" title="القائمة">
+                        <i class="fas fa-bars"></i>
+                    </button>
+
+                    <!-- Logout button -->
+                    <a href="@Url.Action("Logout", "Account")" class="logout-btn" title="تسجيل الخروج">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </a>
+
+                    @* قائمة المستخدم المنسدلة *@
+                    <div class="dropdown">
+                        <div class="topbar-user" role="button"
+                             data-bs-toggle="dropdown" data-bs-offset="0,4"
+                             aria-expanded="false">
+                            <div>
+                                <div style="font-size:13px; font-weight:600; line-height:1.2">@layoutFullName</div>
+                                <div class="user-role">@layoutRoleAr</div>
+                            </div>
+                            <div class="user-avatar">@layoutInitial</div>
+                        </div>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-1" style="min-width:200px">
+                            <li>
+                                <a class="dropdown-item py-2" href="@Url.Action("ChangePassword", "Account")">
+                                    <i class="fas fa-key me-2" style="color:#F7941D"></i> تغيير كلمة المرور
+                                </a>
+                            </li>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <li>
+                                    <a class="dropdown-item py-2" href="@Url.Action("Index", "Users")">
+                                        <i class="fas fa-user-shield me-2 text-danger"></i> إدارة المستخدمين
+                                    </a>
+                                </li>
+                            }
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li>
+                                <a class="dropdown-item py-2 text-danger" href="@Url.Action("Logout", "Account")">
+                                    <i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Notification bell -->
+                    <div class="notif-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="notif-badge">9</span>
+                    </div>
+
+                    <!-- Language switch -->
+                    <button class="lang-switch-btn">EN</button>
                 </div>
+
+                <div class="topbar-left">
+                    <div class="topbar-greeting">
+                        مرحباً، <strong>@layoutFullName</strong>
+                    </div>
+
+                    <div style="font-size:15px; font-weight:700; color:#1a1a2e;">
+                        <i class="fas fa-wifi" style="color:var(--primary); margin-left:6px;"></i>
+                        نظام معهد موس
+                    </div>
+
+                    <button class="connected-btn">
+                        <i class="fas fa-signal me-1"></i> متصل
+                    </button>
+                </div>
+            </header>
+
+            <div class="page-content">
+                @if (TempData["Success"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+                @RenderBody()
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
+        </div>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - Salon - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Mobile sidebar
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.getElementById('sidebarOverlay').classList.toggle('show');
+        }
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('show');
+            document.getElementById('sidebarOverlay').classList.remove('show');
+        }
+
+        // Dropdown submenu
+        function toggleMenu(el) {
+            const li = el.closest('.has-submenu');
+            const submenu = li.querySelector('.submenu');
+            const isOpen = li.classList.contains('open');
+
+            // أغلق باقي القوائم
+            document.querySelectorAll('.has-submenu.open').forEach(function(item) {
+                if (item !== li) {
+                    item.classList.remove('open');
+                    item.querySelector('.submenu').classList.remove('show');
+                }
+            });
+
+            // افتح / أغلق الحالية
+            li.classList.toggle('open', !isOpen);
+            submenu.classList.toggle('show', !isOpen);
+        }
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

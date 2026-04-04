@@ -1,70 +1,55 @@
 @model Salon.Models.LoginViewModel
+
 @{
     ViewData["Title"] = "تسجيل الدخول";
-    Layout = "_AuthLayout";
+    Layout = null;
 }
 
-<div class="auth-page">
-    <div class="auth-card">
-        <div class="lang-toggle">
-            <button class="lang-btn">English <i class="fas fa-language"></i></button>
-        </div>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تسجيل الدخول - Salon</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="bg-light">
+    <div class="container">
+        <div class="row justify-content-center align-items-center" style="min-height: 100vh;">
+            <div class="col-md-4">
+                <div class="card shadow">
+                    <div class="card-body p-4">
+                        <h3 class="text-center mb-4">صالون</h3>
+                        <h5 class="text-center text-muted mb-4">تسجيل الدخول</h5>
 
-        <div class="auth-logo">
-            <i class="fas fa-cut"></i>
-        </div>
+                        <form asp-action="Login" asp-controller="Account" method="post">
+                            @Html.AntiForgeryToken()
+                            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-        <h1>نظام معهد موس</h1>
-        <p class="subtitle">قم بتسجيل الدخول للوصول إلى لوحة التحكم</p>
+                            <div class="mb-3">
+                                <label asp-for="Email" class="form-label"></label>
+                                <input asp-for="Email" class="form-control" type="email" autofocus placeholder="example@email.com" />
+                                <span asp-validation-for="Email" class="text-danger small"></span>
+                            </div>
 
-        @if (!ViewData.ModelState.IsValid)
-        {
-            <div class="alert alert-danger">
-                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-                {
-                    <div>@error.ErrorMessage</div>
-                }
-            </div>
-        }
+                            <div class="mb-4">
+                                <label asp-for="Password" class="form-label"></label>
+                                <input asp-for="Password" class="form-control" type="password" />
+                                <span asp-validation-for="Password" class="text-danger small"></span>
+                            </div>
 
-        <form asp-action="Login" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
-
-            <div class="mb-3">
-                <label asp-for="Email" class="form-label">البريد الإلكتروني</label>
-                <input asp-for="Email" class="form-control" placeholder="example@email.com" autocomplete="email" />
-            </div>
-
-            <div class="mb-4">
-                <label asp-for="Password" class="form-label">كلمة المرور</label>
-                <div class="password-input-wrapper">
-                    <input asp-for="Password" type="password" class="form-control" id="passwordInput" placeholder="••••••••" autocomplete="current-password" />
-                    <button type="button" class="password-toggle" onclick="togglePassword()">
-                        <i class="fas fa-eye" id="eyeIcon"></i>
-                    </button>
+                            <button type="submit" class="btn btn-primary w-100">دخول</button>
+                        </form>
+                    </div>
                 </div>
             </div>
-
-            <button type="submit" class="btn-primary-orange">تسجيل الدخول</button>
-        </form>
-
-        <a href="#" class="forgot-link">نسيت كلمة المرور؟</a>
+        </div>
     </div>
-</div>
 
-@section Scripts {
-<script>
-    function togglePassword() {
-        const input = document.getElementById('passwordInput');
-        const icon = document.getElementById('eyeIcon');
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.classList.replace('fa-eye', 'fa-eye-slash');
-        } else {
-            input.type = 'password';
-            icon.classList.replace('fa-eye-slash', 'fa-eye');
-        }
-    }
-</script>
-}
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+</body>
+</html>

@@ -4,9 +4,10 @@ namespace Salon.Models
 {
     public class LoginViewModel
     {
-        [Required(ErrorMessage = "اسم المستخدم مطلوب")]
-        [Display(Name = "اسم المستخدم")]
-        public string Username { get; set; } = string.Empty;
+        [Required(ErrorMessage = "البريد الإلكتروني مطلوب")]
+        [EmailAddress(ErrorMessage = "صيغة البريد الإلكتروني غير صحيحة")]
+        [Display(Name = "البريد الإلكتروني")]
+        public string Email { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "كلمة المرور مطلوبة")]
         [DataType(DataType.Password)]
