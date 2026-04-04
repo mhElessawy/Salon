@@ -9,10 +9,10 @@ namespace Salon.Models
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public bool IsActive { get; set; } = true;
 
-        /// <summary>ÇáŞÓã: "ÍáÇŞÉ" | "ãÓÇÌ" | "Çáßá" | null (Admin/Manager)</summary>
+        /// <summary>Ø§Ù„Ù‚Ø³Ù…: "Ø­Ù„Ø§Ù‚Ø©" | "Ù…Ø³Ø§Ø¬" | "Ø§Ù„ÙƒÙ„" | null (Admin/Manager)</summary>
         public string? UserDepartment { get; set; }
 
-        /// <summary>ÑÈØ ÇáãÓÊÎÏã ÈÓÌá ãæÙİ (ááãÓÊÎÏãíä ãä äæÚ Employee)</summary>
+        /// <summary>Ø±Ø¨Ø· Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø¨Ø³Ø¬Ù„ Ù…ÙˆØ¸Ù (Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† Ù…Ù† Ù†ÙˆØ¹ Employee)</summary>
         public int? LinkedEmployeeId { get; set; }
     }
 }

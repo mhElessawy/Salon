@@ -1,4 +1,4 @@
-﻿namespace Salon.Models
+namespace Salon.Models
 {
     /// <summary>قائمة الشاشات/الوحدات في النظام لاستخدامها في إدارة الصلاحيات</summary>
     public static class AppModules

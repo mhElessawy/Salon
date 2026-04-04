@@ -8,9 +8,9 @@ namespace Salon.Data
     {
         public static async Task InitializeAsync(IServiceProvider serviceProvider)
         {
-            var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-            var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
+            var userManager  = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var roleManager  = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            var context      = serviceProvider.GetRequiredService<ApplicationDbContext>();
 
             // Create roles
             string[] roles = { "Admin", "Manager", "Cashier", "Employee" };
@@ -27,11 +27,11 @@ namespace Salon.Data
             {
                 adminUser = new ApplicationUser
                 {
-                    UserName = adminEmail,
-                    Email = adminEmail,
-                    FullName = "بداح العجمي",
+                    UserName     = adminEmail,
+                    Email        = adminEmail,
+                    FullName     = "بداح العجمي",
                     EmailConfirmed = true,
-                    IsActive = true,
+                    IsActive     = true,
                     UserDepartment = null  // Admin sees all
                 };
                 var result = await userManager.CreateAsync(adminUser, "Admin@123");
@@ -45,19 +45,19 @@ namespace Salon.Data
                 context.ServiceCategories.AddRange(
                     new ServiceCategory
                     {
-                        Name = "حلاقة",
+                        Name       = "حلاقة",
                         Department = "حلاقة",
-                        Icon = "fas fa-cut",
-                        Color = "#F7941D",
-                        IsActive = true
+                        Icon       = "fas fa-cut",
+                        Color      = "#F7941D",
+                        IsActive   = true
                     },
                     new ServiceCategory
                     {
-                        Name = "مساج",
+                        Name       = "مساج",
                         Department = "مساج",
-                        Icon = "fas fa-spa",
-                        Color = "#17a2b8",
-                        IsActive = true
+                        Icon       = "fas fa-spa",
+                        Color      = "#17a2b8",
+                        IsActive   = true
                     }
                 );
                 await context.SaveChangesAsync();

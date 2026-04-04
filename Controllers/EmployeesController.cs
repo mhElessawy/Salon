@@ -1,94 +1,100 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Salon.Data;
 using Salon.Models;
 
 namespace Salon.Controllers
 {
-    public class EmployeeController : Controller
+    [Authorize]
+    public class EmployeesController : Controller
     {
-        private static List<Employee> _employees = new();
-        private static int _nextId = 1;
+        private readonly ApplicationDbContext _context;
 
-        public IActionResult Index()
+        public EmployeesController(ApplicationDbContext context)
         {
-            return View(_employees);
+            _context = context;
         }
 
-        public IActionResult Create()
+        public async Task<IActionResult> Index(string? search)
         {
-            return View();
+            var query = _context.Employees.Where(e => e.IsActive);
+            if (!string.IsNullOrEmpty(search))
+                query = query.Where(e => e.FullName.Contains(search) || (e.Phone != null && e.Phone.Contains(search)));
+
+            var employees = await query.OrderByDescending(e => e.CreatedAt).ToListAsync();
+            ViewBag.Search = search;
+            return View(employees);
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Create(Employee employee)
+        public IActionResult Create() => View(new Employee());
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(Employee model)
         {
             if (ModelState.IsValid)
             {
-                employee.Id = _nextId++;
-                _employees.Add(employee);
+                model.CreatedAt = DateTime.Now;
+                _context.Employees.Add(model);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "تم إضافة الموظف بنجاح";
                 return RedirectToAction(nameof(Index));
             }
-            return View(employee);
+            return View(model);
         }
 
-        public IActionResult Edit(int id)
+        public async Task<IActionResult> Edit(int id)
         {
-            var employee = _employees.FirstOrDefault(e => e.Id == id);
+            var employee = await _context.Employees.FindAsync(id);
             if (employee == null) return NotFound();
             return View(employee);
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Edit(int id, Employee employee)
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, Employee model)
         {
-            if (id != employee.Id) return NotFound();
-
+            if (id != model.Id) return NotFound();
             if (ModelState.IsValid)
             {
-                var existing = _employees.FirstOrDefault(e => e.Id == id);
-                if (existing == null) return NotFound();
-
-                existing.Name = employee.Name;
-                existing.FullName = employee.FullName;
-                existing.Phone = employee.Phone;
-                existing.Nationality = employee.Nationality;
-                existing.JobTitle = employee.JobTitle;
-                existing.Department = employee.Department;
-                existing.Salary = employee.Salary;
-                existing.Commission = employee.Commission;
-                existing.HireDate = employee.HireDate;
-                existing.ResidencyExpiry = employee.ResidencyExpiry;
-                existing.IsActive = employee.IsActive;
-                existing.ServiceType = employee.ServiceType;
-
+                _context.Update(model);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "تم تعديل بيانات الموظف بنجاح";
                 return RedirectToAction(nameof(Index));
             }
-            return View(employee);
+            return View(model);
         }
 
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Details(int id)
         {
-            var employee = _employees.FirstOrDefault(e => e.Id == id);
+            var employee = await _context.Employees
+                .Include(e => e.Attendances)
+                .Include(e => e.Salaries)
+                .Include(e => e.Advances)
+                .FirstOrDefaultAsync(e => e.Id == id);
             if (employee == null) return NotFound();
             return View(employee);
         }
 
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public IActionResult DeleteConfirmed(int id)
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
         {
-            var employee = _employees.FirstOrDefault(e => e.Id == id);
+            var employee = await _context.Employees.FindAsync(id);
             if (employee != null)
-                _employees.Remove(employee);
+            {
+                employee.IsActive = false;
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "تم حذف الموظف بنجاح";
+            }
             return RedirectToAction(nameof(Index));
         }
 
-        public IActionResult Details(int id)
+        public async Task<IActionResult> Licenses()
         {
-            var employee = _employees.FirstOrDefault(e => e.Id == id);
-            if (employee == null) return NotFound();
-            return View(employee);
+            var employees = await _context.Employees
+                .Where(e => e.IsActive && e.ResidencyExpiry != null)
+                .OrderBy(e => e.ResidencyExpiry)
+                .ToListAsync();
+            return View(employees);
         }
     }
 }

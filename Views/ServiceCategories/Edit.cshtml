@@ -1,4 +1,4 @@
-﻿@model Salon.Models.ServiceCategory
+@model Salon.Models.ServiceCategory
 @{
     ViewData["Title"] = "تعديل فئة الخدمة";
 }
@@ -63,24 +63,24 @@
 </div>
 
 @section Scripts {
-    <script>
-        const colorInput  = document.getElementById('colorInput');
-        const colorText   = document.getElementById('colorText');
-        const iconInput   = document.getElementById('iconInput');
-        const previewIcon = document.getElementById('previewIcon');
-        const previewIconClass = document.getElementById('previewIconClass');
-        const nameInput   = document.querySelector('input[name="Name"]');
+<script>
+    const colorInput  = document.getElementById('colorInput');
+    const colorText   = document.getElementById('colorText');
+    const iconInput   = document.getElementById('iconInput');
+    const previewIcon = document.getElementById('previewIcon');
+    const previewIconClass = document.getElementById('previewIconClass');
+    const nameInput   = document.querySelector('input[name="Name"]');
 
-        function updatePreview() {
-            const color = colorText.value || '#F7941D';
-            previewIcon.style.backgroundColor = color + '20';
-            previewIcon.style.color = color;
-            previewIconClass.className = iconInput.value || 'fas fa-cut';
-        }
+    function updatePreview() {
+        const color = colorText.value || '#F7941D';
+        previewIcon.style.backgroundColor = color + '20';
+        previewIcon.style.color = color;
+        previewIconClass.className = iconInput.value || 'fas fa-cut';
+    }
 
-        colorInput.addEventListener('input', () => { colorText.value = colorInput.value; updatePreview(); });
-        colorText.addEventListener('input', () => { colorInput.value = colorText.value; updatePreview(); });
-        iconInput.addEventListener('input', updatePreview);
-        nameInput.addEventListener('input', () => { document.getElementById('previewName').textContent = nameInput.value || 'اسم الفئة'; });
-    </script>
+    colorInput.addEventListener('input', () => { colorText.value = colorInput.value; updatePreview(); });
+    colorText.addEventListener('input', () => { colorInput.value = colorText.value; updatePreview(); });
+    iconInput.addEventListener('input', updatePreview);
+    nameInput.addEventListener('input', () => { document.getElementById('previewName').textContent = nameInput.value || 'اسم الفئة'; });
+</script>
 }

@@ -1,4 +1,4 @@
-﻿@model IEnumerable<Salon.Models.ApplicationUser>
+@model IEnumerable<Salon.Models.ApplicationUser>
 @{
     ViewData["Title"] = "إدارة المستخدمين";
     var userRoles = ViewBag.UserRoles as List<(Salon.Models.ApplicationUser User, string Role)> ?? new();
@@ -48,19 +48,19 @@
                     {
                         var roleColor = role switch
                         {
-                            "Admin" => "danger",
-                            "Manager" => "warning",
-                            "Cashier" => "info",
+                            "Admin"    => "danger",
+                            "Manager"  => "warning",
+                            "Cashier"  => "info",
                             "Employee" => "secondary",
-                            _ => "secondary"
+                            _          => "secondary"
                         };
                         var roleAr = role switch
                         {
-                            "Admin" => "مدير النظام",
-                            "Manager" => "مدير",
-                            "Cashier" => "كاشير",
+                            "Admin"    => "مدير النظام",
+                            "Manager"  => "مدير",
+                            "Cashier"  => "كاشير",
                             "Employee" => "موظف",
-                            _ => role
+                            _          => role
                         };
                         <tr class="@(!user.IsActive ? "table-secondary opacity-75" : "")">
                             <td>

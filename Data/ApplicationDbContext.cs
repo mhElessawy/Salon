@@ -68,7 +68,9 @@ namespace Salon.Data
                 .Property(e => e.Amount)
                 .HasColumnType("decimal(18,3)");
 
-         
+            builder.Entity<Employee>()
+                .Property(e => e.BasicSalary)
+                .HasColumnType("decimal(18,3)");
 
             builder.Entity<Salary>()
                 .Property(s => s.BasicSalary)

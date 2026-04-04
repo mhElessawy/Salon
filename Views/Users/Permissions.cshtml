@@ -1,90 +1,36 @@
-﻿@{
+@{
     ViewData["Title"] = "صلاحيات المستخدم";
-    var userId = ViewBag.UserId as string ?? "";
-    var userName = ViewBag.UserFullName as string ?? "";
-    var userRole = ViewBag.UserRole as string ?? "";
-    var isAdmin = (bool)(ViewBag.IsAdmin ?? false);
-    var permSet = ViewBag.PermSet as Dictionary<string, bool> ?? new();
-    var modules = ViewBag.Modules as List<(string Key, string NameAr, string Icon, string Group)>
+    var userId     = ViewBag.UserId as string ?? "";
+    var userName   = ViewBag.UserFullName as string ?? "";
+    var userRole   = ViewBag.UserRole as string ?? "";
+    var isAdmin    = (bool)(ViewBag.IsAdmin ?? false);
+    var permSet    = ViewBag.PermSet as Dictionary<string, bool> ?? new();
+    var modules    = ViewBag.Modules as List<(string Key, string NameAr, string Icon, string Group)>
                      ?? new();
-    var groups = modules.GroupBy(m => m.Group);
+    var groups     = modules.GroupBy(m => m.Group);
 
     var roleAr = userRole switch
     {
-        "Admin" => "مدير النظام",
-        "Manager" => "مدير",
-        "Cashier" => "كاشير",
+        "Admin"    => "مدير النظام",
+        "Manager"  => "مدير",
+        "Cashier"  => "كاشير",
         "Employee" => "موظف",
-        _ => userRole
+        _          => userRole
     };
 }
 
 @section Styles {
-    <style>
-        .perm-card {
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 20px;
-        }
-
-        .perm-group-header {
-            background: #f8f9fa;
-            padding: 12px 18px;
-            font-weight: 700;
-            font-size: 14px;
-            border-bottom: 2px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .perm-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 18px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-            .perm-row:last-child {
-                border-bottom: none;
-            }
-
-        .perm-label {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-        }
-
-            .perm-label i {
-                width: 20px;
-                text-align: center;
-                color: var(--primary);
-            }
-
-        .form-switch .form-check-input {
-            width: 3em;
-            height: 1.5em;
-            cursor: pointer;
-        }
-
-            .form-switch .form-check-input:checked {
-                background-color: var(--primary);
-                border-color: var(--primary);
-            }
-
-        .select-all-bar {
-            background: var(--primary);
-            color: #fff;
-            padding: 10px 18px;
-            border-radius: 10px;
-            margin-bottom: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-    </style>
+<style>
+.perm-card { border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+.perm-group-header { background: #f8f9fa; padding: 12px 18px; font-weight: 700; font-size: 14px; border-bottom: 2px solid var(--border-color); display: flex; align-items: center; gap: 8px; }
+.perm-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid #f0f0f0; }
+.perm-row:last-child { border-bottom: none; }
+.perm-label { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.perm-label i { width: 20px; text-align: center; color: var(--primary); }
+.form-switch .form-check-input { width: 3em; height: 1.5em; cursor: pointer; }
+.form-switch .form-check-input:checked { background-color: var(--primary); border-color: var(--primary); }
+.select-all-bar { background: var(--primary); color: #fff; padding: 10px 18px; border-radius: 10px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+</style>
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -130,9 +76,7 @@ else
                     @group.Key
                     <small class="text-muted me-auto">(@group.Count() شاشة)</small>
                     <button type="button" class="btn btn-sm btn-outline-primary py-0"
-                            onclick="setGroup('@group.Key', true)" style="font-size:12px">
-                        كل المجموعة
-                    </button>
+                            onclick="setGroup('@group.Key', true)" style="font-size:12px">كل المجموعة</button>
                 </div>
                 @foreach (var mod in group)
                 {
@@ -166,37 +110,37 @@ else
 }
 
 @section Scripts {
-    <script>
-        document.querySelectorAll('.perm-toggle').forEach(cb => {
-            cb.addEventListener('change', function() {
-                const label = document.getElementById('label_' + this.value);
-                if (label) {
-                    label.textContent = this.checked ? 'مسموح' : 'محظور';
-                    label.style.color  = this.checked ? 'var(--primary)' : '#adb5bd';
-                }
-            });
+<script>
+    document.querySelectorAll('.perm-toggle').forEach(cb => {
+        cb.addEventListener('change', function() {
+            const label = document.getElementById('label_' + this.value);
+            if (label) {
+                label.textContent = this.checked ? 'مسموح' : 'محظور';
+                label.style.color  = this.checked ? 'var(--primary)' : '#adb5bd';
+            }
         });
+    });
 
-        function setAll(val) {
-            document.querySelectorAll('.perm-toggle').forEach(cb => {
-                cb.checked = val;
-                const label = document.getElementById('label_' + cb.value);
-                if (label) {
-                    label.textContent = val ? 'مسموح' : 'محظور';
-                    label.style.color  = val ? 'var(--primary)' : '#adb5bd';
-                }
-            });
-        }
+    function setAll(val) {
+        document.querySelectorAll('.perm-toggle').forEach(cb => {
+            cb.checked = val;
+            const label = document.getElementById('label_' + cb.value);
+            if (label) {
+                label.textContent = val ? 'مسموح' : 'محظور';
+                label.style.color  = val ? 'var(--primary)' : '#adb5bd';
+            }
+        });
+    }
 
-        function setGroup(groupName, val) {
-            document.querySelectorAll(`[data-group="${groupName}"] .perm-toggle`).forEach(cb => {
-                cb.checked = val;
-                const label = document.getElementById('label_' + cb.value);
-                if (label) {
-                    label.textContent = val ? 'مسموح' : 'محظور';
-                    label.style.color  = val ? 'var(--primary)' : '#adb5bd';
-                }
-            });
-        }
-    </script>
+    function setGroup(groupName, val) {
+        document.querySelectorAll(`[data-group="${groupName}"] .perm-toggle`).forEach(cb => {
+            cb.checked = val;
+            const label = document.getElementById('label_' + cb.value);
+            if (label) {
+                label.textContent = val ? 'مسموح' : 'محظور';
+                label.style.color  = val ? 'var(--primary)' : '#adb5bd';
+            }
+        });
+    }
+</script>
 }

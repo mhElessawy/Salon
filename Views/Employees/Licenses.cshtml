@@ -34,7 +34,7 @@
                         <tr>
                             <td><strong>@e.FullName</strong></td>
                             <td>@(e.Nationality ?? "-")</td>
-                            
+                            <td>@(e.IdNumber ?? "-")</td>
                             <td>@(e.ResidencyExpiry?.ToString("yyyy/MM/dd") ?? "-")</td>
                             <td>
                                 @if (e.ResidencyExpiry.HasValue)

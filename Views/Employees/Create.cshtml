@@ -1,90 +1,88 @@
 @model Salon.Models.Employee
-
 @{
     ViewData["Title"] = "إضافة موظف";
 }
 
-<h2 class="mb-4">إضافة موظف جديد</h2>
+<div class="page-header">
+    <h1><i class="fas fa-user-plus me-2"></i>إضافة موظف جديد</h1>
+</div>
 
-<div class="row">
-    <div class="col-md-6">
-        <form asp-action="Create" dir="rtl">
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-
-            <div class="mb-3">
-                <label asp-for="Name" class="form-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="Phone" class="form-label"></label>
-                <input asp-for="Phone" class="form-control" />
-                <span asp-validation-for="Phone" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="Nationality" class="form-label"></label>
-                <input asp-for="Nationality" class="form-control" />
-                <span asp-validation-for="Nationality" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="JobTitle" class="form-label"></label>
-                <input asp-for="JobTitle" class="form-control" />
-                <span asp-validation-for="JobTitle" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="Salary" class="form-label"></label>
-                <input asp-for="Salary" class="form-control" type="number" min="0" step="0.01" />
-                <span asp-validation-for="Salary" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="Commission" class="form-label"></label>
-                <div class="input-group">
-                    <input asp-for="Commission" class="form-control" type="number" min="0" max="100" step="0.5" />
-                    <span class="input-group-text">%</span>
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="FullName" class="form-label"></label>
+                    <input asp-for="FullName" class="form-control" />
+                    <span asp-validation-for="FullName" class="text-danger small"></span>
                 </div>
-                <span asp-validation-for="Commission" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="HireDate" class="form-label"></label>
-                <input asp-for="HireDate" class="form-control" type="date" />
-                <span asp-validation-for="HireDate" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">نوع الخدمة</label>
-                <div class="d-flex gap-3">
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" asp-for="ServiceType" value="@Salon.Models.ServiceType.Haircut" id="haircut" />
-                        <label class="form-check-label" for="haircut">حلاقة</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" asp-for="ServiceType" value="@Salon.Models.ServiceType.Massage" id="massage" />
-                        <label class="form-check-label" for="massage">مساج</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" asp-for="ServiceType" value="@Salon.Models.ServiceType.Both" id="both" />
-                        <label class="form-check-label" for="both">حلاقة + مساج</label>
-                    </div>
+                <div class="col-md-4">
+                    <label asp-for="JobTitle" class="form-label"></label>
+                    <input asp-for="JobTitle" class="form-control" />
                 </div>
-                <span asp-validation-for="ServiceType" class="text-danger"></span>
+                <div class="col-md-2">
+                    <label asp-for="Department" class="form-label"></label>
+                    <select asp-for="Department" class="form-select">
+                        <option value="">-- اختر --</option>
+                        <option value="حلاقة">✂️ حلاقة</option>
+                        <option value="مساج">💆 مساج</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Phone" class="form-label"></label>
+                    <input asp-for="Phone" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="BasicSalary" class="form-label"></label>
+                    <input asp-for="BasicSalary" type="number" step="0.001" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="HireDate" class="form-label"></label>
+                    <input asp-for="HireDate" type="date" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="BirthDate" class="form-label"></label>
+                    <input asp-for="BirthDate" type="date" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Nationality" class="form-label"></label>
+                    <input asp-for="Nationality" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="IdNumber" class="form-label"></label>
+                    <input asp-for="IdNumber" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="ResidencyExpiry" class="form-label"></label>
+                    <input asp-for="ResidencyExpiry" type="date" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ContractType" class="form-label"></label>
+                    <select asp-for="ContractType" class="form-select">
+                        <option value="">-- اختر --</option>
+                        <option>دوام كامل</option>
+                        <option>دوام جزئي</option>
+                        <option>عقد مؤقت</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label asp-for="Notes" class="form-label"></label>
+                    <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                </div>
             </div>
-
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary">حفظ</button>
-                <a asp-action="Index" class="btn btn-outline-secondary">إلغاء</a>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-save me-1"></i> حفظ
+                </button>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-right me-1"></i> رجوع
+                </a>
             </div>
         </form>
     </div>
 </div>
-
-@section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
-}

@@ -137,16 +137,13 @@ namespace Salon.Controllers
                     for (int i = 0; i < itemNames.Length; i++)
                     {
                         if (string.IsNullOrEmpty(itemNames[i])) continue;
-                        var qty = itemQtys?[i] ?? 1;
-                        var price = itemPrices?[i] ?? 0;
-                        var id = itemIds?[i] ?? 0;
-                        var item = new SaleItem
+                        var qty   = itemQtys?[i]   ?? 1;
+                        var price = itemPrices?[i]  ?? 0;
+                        var id    = itemIds?[i]     ?? 0;
+                        var item  = new SaleItem
                         {
-                            SaleId = model.Id,
-                            ItemName = itemNames[i],
-                            Quantity = qty,
-                            Price = price,
-                            Total = qty * price
+                            SaleId = model.Id, ItemName = itemNames[i],
+                            Quantity = qty, Price = price, Total = qty * price
                         };
                         if (id > 0)
                         {
@@ -273,16 +270,13 @@ namespace Salon.Controllers
                     for (int i = 0; i < itemNames.Length; i++)
                     {
                         if (string.IsNullOrEmpty(itemNames[i])) continue;
-                        var qty = itemQtys?[i] ?? 1;
+                        var qty   = itemQtys?[i]  ?? 1;
                         var price = itemPrices?[i] ?? 0;
-                        var id = itemIds?[i] ?? 0;
-                        var item = new SaleItem
+                        var id    = itemIds?[i]    ?? 0;
+                        var item  = new SaleItem
                         {
-                            SaleId = model.Id,
-                            ItemName = itemNames[i],
-                            Quantity = qty,
-                            Price = price,
-                            Total = qty * price
+                            SaleId = model.Id, ItemName = itemNames[i],
+                            Quantity = qty, Price = price, Total = qty * price
                         };
                         if (id > 0) item.ServiceId = id;
                         _context.SaleItems.Add(item);
@@ -297,7 +291,7 @@ namespace Salon.Controllers
                 return RedirectToAction(nameof(Index), new { type = dept });
             }
 
-            var user = await _userManager.GetUserAsync(User);
+            var user  = await _userManager.GetUserAsync(User);
             var roles = await _userManager.GetRolesAsync(user!);
             await PopulateDeptDropdowns(dept, user, roles.FirstOrDefault() ?? "");
 

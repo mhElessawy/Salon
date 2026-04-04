@@ -30,30 +30,9 @@
             <label class="form-label mb-0">النوع:</label>
             <select name="type" class="form-select" style="max-width:160px;">
                 <option value="">الكل</option>
-                @if (filterType == "حلاقة")
-                {
-                    <option value="حلاقة" selected>فواتير حلاقة (PAR)</option>
-                }
-                else
-                {
-                    <option value="حلاقة">فواتير حلاقة (PAR)</option>
-                }
-                @if (filterType == "مساج")
-                {
-                    <option value="مساج" selected>فواتير مساج (MAS)</option>
-                }
-                else
-                {
-                    <option value="مساج">فواتير مساج (MAS)</option>
-                }
-                @if (filterType == "منتجات")
-                {
-                    <option value="منتجات" selected>فواتير منتجات (PRD)</option>
-                }
-                else
-                {
-                    <option value="منتجات">فواتير منتجات (PRD)</option>
-                }
+                @if (filterType == "حلاقة") { <option value="حلاقة" selected>فواتير حلاقة (PAR)</option> } else { <option value="حلاقة">فواتير حلاقة (PAR)</option> }
+                @if (filterType == "مساج")   { <option value="مساج" selected>فواتير مساج (MAS)</option>   } else { <option value="مساج">فواتير مساج (MAS)</option>   }
+                @if (filterType == "منتجات") { <option value="منتجات" selected>فواتير منتجات (PRD)</option> } else { <option value="منتجات">فواتير منتجات (PRD)</option> }
             </select>
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> بحث</button>
             @if (!string.IsNullOrEmpty(filterType))

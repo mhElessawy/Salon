@@ -1,4 +1,4 @@
-﻿@model Salon.Models.CreateUserViewModel
+@model Salon.Models.CreateUserViewModel
 @{
     ViewData["Title"] = "إضافة مستخدم";
     var roles = ViewBag.Roles as List<string> ?? new();
@@ -50,27 +50,27 @@
                         {
                             var roleAr = role switch
                             {
-                                "Admin" => "مدير النظام",
-                                "Manager" => "مدير",
-                                "Cashier" => "كاشير",
+                                "Admin"    => "مدير النظام",
+                                "Manager"  => "مدير",
+                                "Cashier"  => "كاشير",
                                 "Employee" => "موظف",
-                                _ => role
+                                _          => role
                             };
                             var roleIcon = role switch
                             {
-                                "Admin" => "fas fa-crown",
-                                "Manager" => "fas fa-user-tie",
-                                "Cashier" => "fas fa-cash-register",
+                                "Admin"    => "fas fa-crown",
+                                "Manager"  => "fas fa-user-tie",
+                                "Cashier"  => "fas fa-cash-register",
                                 "Employee" => "fas fa-user",
-                                _ => "fas fa-user"
+                                _          => "fas fa-user"
                             };
                             var roleColor = role switch
                             {
-                                "Admin" => "#dc3545",
-                                "Manager" => "#ffc107",
-                                "Cashier" => "#0dcaf0",
+                                "Admin"    => "#dc3545",
+                                "Manager"  => "#ffc107",
+                                "Cashier"  => "#0dcaf0",
                                 "Employee" => "#6c757d",
-                                _ => "#6c757d"
+                                _          => "#6c757d"
                             };
                             <div class="col-6 col-md-3">
                                 <input type="radio" name="Role" id="role_@role" value="@role"
@@ -90,7 +90,7 @@
                 <div class="col-12" id="deptSection">
                     <label class="form-label">القسم <small class="text-muted">(للكاشير والموظف)</small></label>
                     <div class="d-flex gap-3">
-                        @foreach (var d in new[] { ("حلاقة", "fas fa-cut", "#F7941D"), ("مساج", "fas fa-spa", "#17a2b8"), ("الكل", "fas fa-layer-group", "#6c757d") })
+                        @foreach (var d in new[] { ("حلاقة","fas fa-cut","#F7941D"), ("مساج","fas fa-spa","#17a2b8"), ("الكل","fas fa-layer-group","#6c757d") })
                         {
                             <div>
                                 <input type="radio" name="UserDepartment" id="dept_@d.Item1" value="@d.Item1"
@@ -123,17 +123,17 @@
 </div>
 
 @section Scripts {
-    <script>
-        function togglePass(id) {
-            const inp = document.getElementById(id);
-            inp.type = inp.type === 'password' ? 'text' : 'password';
-        }
-        function updateSections() {
-            const role = document.querySelector('input[name="Role"]:checked')?.value ?? '';
-            document.getElementById('deptSection').style.display = (role === 'Cashier' || role === 'Employee') ? '' : 'none';
-            document.getElementById('empLinkSection').style.display = role === 'Employee' ? '' : 'none';
-        }
-        document.querySelectorAll('input[name="Role"]').forEach(r => r.addEventListener('change', updateSections));
-        updateSections();
-    </script>
+<script>
+function togglePass(id) {
+    const inp = document.getElementById(id);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+function updateSections() {
+    const role = document.querySelector('input[name="Role"]:checked')?.value ?? '';
+    document.getElementById('deptSection').style.display = (role === 'Cashier' || role === 'Employee') ? '' : 'none';
+    document.getElementById('empLinkSection').style.display = role === 'Employee' ? '' : 'none';
+}
+document.querySelectorAll('input[name="Role"]').forEach(r => r.addEventListener('change', updateSections));
+updateSections();
+</script>
 }
