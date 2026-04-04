@@ -20,7 +20,11 @@ else
             <tr>
                 <th>الاسم</th>
                 <th>رقم الهاتف</th>
+                <th>الجنسية</th>
+                <th>المسمى الوظيفي</th>
+                <th>الراتب</th>
                 <th>العمولة (%)</th>
+                <th>تاريخ التعيين</th>
                 <th>نوع الخدمة</th>
                 <th>الإجراءات</th>
             </tr>
@@ -31,7 +35,11 @@ else
                 <tr>
                     <td>@emp.Name</td>
                     <td>@emp.Phone</td>
+                    <td>@emp.Nationality</td>
+                    <td>@emp.JobTitle</td>
+                    <td>@emp.Salary.ToString("N0")</td>
                     <td>@emp.Commission%</td>
+                    <td>@emp.HireDate.ToString("yyyy/MM/dd")</td>
                     <td>
                         @switch (emp.ServiceType)
                         {

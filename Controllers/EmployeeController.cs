@@ -51,7 +51,11 @@ namespace Salon.Controllers
 
                 existing.Name = employee.Name;
                 existing.Phone = employee.Phone;
+                existing.Nationality = employee.Nationality;
+                existing.JobTitle = employee.JobTitle;
+                existing.Salary = employee.Salary;
                 existing.Commission = employee.Commission;
+                existing.HireDate = employee.HireDate;
                 existing.ServiceType = employee.ServiceType;
 
                 return RedirectToAction(nameof(Index));

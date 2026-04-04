@@ -15,8 +15,20 @@
             <dt class="col-sm-4">رقم الهاتف</dt>
             <dd class="col-sm-8">@Model.Phone</dd>
 
+            <dt class="col-sm-4">الجنسية</dt>
+            <dd class="col-sm-8">@Model.Nationality</dd>
+
+            <dt class="col-sm-4">المسمى الوظيفي</dt>
+            <dd class="col-sm-8">@Model.JobTitle</dd>
+
+            <dt class="col-sm-4">الراتب</dt>
+            <dd class="col-sm-8">@Model.Salary.ToString("N0")</dd>
+
             <dt class="col-sm-4">العمولة</dt>
             <dd class="col-sm-8">@Model.Commission%</dd>
+
+            <dt class="col-sm-4">تاريخ التعيين</dt>
+            <dd class="col-sm-8">@Model.HireDate.ToString("yyyy/MM/dd")</dd>
 
             <dt class="col-sm-4">نوع الخدمة</dt>
             <dd class="col-sm-8">
