@@ -1,0 +1,41 @@
+@model Salon.Models.Employee
+
+@{
+    ViewData["Title"] = "حذف موظف";
+}
+
+<h2 class="mb-4 text-danger">تأكيد الحذف</h2>
+
+<div class="alert alert-warning" dir="rtl">
+    هل أنت متأكد من حذف الموظف <strong>@Model.Name</strong>؟
+</div>
+
+<div class="card" style="max-width: 400px;" dir="rtl">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-4">الاسم</dt>
+            <dd class="col-sm-8">@Model.Name</dd>
+
+            <dt class="col-sm-4">العمولة</dt>
+            <dd class="col-sm-8">@Model.Commission%</dd>
+
+            <dt class="col-sm-4">نوع الخدمة</dt>
+            <dd class="col-sm-8">
+                @switch (Model.ServiceType)
+                {
+                    case Salon.Models.ServiceType.Haircut: <text>حلاقة</text> break;
+                    case Salon.Models.ServiceType.Massage: <text>مساج</text> break;
+                    case Salon.Models.ServiceType.Both: <text>حلاقة + مساج</text> break;
+                }
+            </dd>
+        </dl>
+    </div>
+</div>
+
+<form asp-action="Delete" method="post" class="mt-3">
+    <input type="hidden" asp-for="Id" />
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-danger">نعم، احذف</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">إلغاء</a>
+    </div>
+</form>
