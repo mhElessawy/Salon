@@ -3,7 +3,7 @@
     ViewData["Title"] = "كاشير - فاتورة جديدة";
     var services = ViewBag.Services as List<Salon.Models.Service> ?? new();
     var products = ViewBag.Products as List<Salon.Models.Product> ?? new();
-    var serviceGroups = services.GroupBy(s => s.Category ?? "عام").OrderBy(g => g.Key);
+    var serviceGroups = services.GroupBy(s => s.ServiceCategory?.Name ?? "عام").OrderBy(g => g.Key);
 }
 
 @section Styles {
