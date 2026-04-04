@@ -1,0 +1,20 @@
+@{
+    ViewData["Title"] = "لوحة التحكم";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>لوحة التحكم</h2>
+    <span class="text-muted">أهلاً، @Context.Session.GetString("Username")</span>
+</div>
+
+<div class="row g-4" dir="rtl">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">الموظفين</h5>
+                <p class="card-text display-6">0</p>
+                <a asp-controller="Employee" asp-action="Index" class="btn btn-light btn-sm">عرض الكل</a>
+            </div>
+        </div>
+    </div>
+</div>
