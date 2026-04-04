@@ -1,0 +1,307 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using Salon.Data;
+using Salon.Models;
+
+namespace Salon.Controllers
+{
+    [Authorize]
+    public class SalesController : Controller
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
+
+        public SalesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        {
+            _context = context;
+            _userManager = userManager;
+        }
+
+        // ===== قائمة الفواتير =====
+        public async Task<IActionResult> Index(string? date, string? type)
+        {
+            DateTime filterDate = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
+            var nextDay = filterDate.AddDays(1);
+
+            var query = _context.Sales
+                .Include(s => s.Customer)
+                .Include(s => s.Employee)
+                .Include(s => s.SaleItems)
+                .Where(s => s.SaleDate >= filterDate && s.SaleDate < nextDay);
+
+            if (!string.IsNullOrEmpty(type))
+                query = query.Where(s => s.SaleType == type);
+
+            var sales = await query.OrderByDescending(s => s.SaleDate).ToListAsync();
+
+            ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
+            ViewBag.FilterType = type;
+            ViewBag.TotalSales = sales.Sum(s => s.NetAmount);
+            return View(sales);
+        }
+
+        // ===== فاتورة حلاقة (PAR-) =====
+        public async Task<IActionResult> CreateBarber()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(user!);
+            var role = roles.FirstOrDefault() ?? "";
+
+            // كاشير مساج لا يملك صلاحية فواتير الحلاقة
+            if (role == "Cashier" && user!.UserDepartment == "مساج")
+                return Forbid();
+
+            await PopulateDeptDropdowns("حلاقة", user, role);
+            var sale = new Sale
+            {
+                InvoiceNumber = await GenerateInvoiceNumber("PAR"),
+                SaleDate = DateTime.Now,
+                SaleType = "حلاقة"
+            };
+            return View(sale);
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        [ActionName("CreateBarber")]
+        public async Task<IActionResult> CreateBarberPost(
+            Sale model, int[]? itemIds, string[]? itemNames,
+            decimal[]? itemPrices, int[]? itemQtys)
+        {
+            model.SaleType = "حلاقة";
+            return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "حلاقة");
+        }
+
+        // ===== فاتورة مساج (MAS-) =====
+        public async Task<IActionResult> CreateMassage()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(user!);
+            var role = roles.FirstOrDefault() ?? "";
+
+            // كاشير حلاقة لا يملك صلاحية فواتير المساج
+            if (role == "Cashier" && user!.UserDepartment == "حلاقة")
+                return Forbid();
+
+            await PopulateDeptDropdowns("مساج", user, role);
+            var sale = new Sale
+            {
+                InvoiceNumber = await GenerateInvoiceNumber("MAS"),
+                SaleDate = DateTime.Now,
+                SaleType = "مساج"
+            };
+            return View(sale);
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        [ActionName("CreateMassage")]
+        public async Task<IActionResult> CreateMassagePost(
+            Sale model, int[]? itemIds, string[]? itemNames,
+            decimal[]? itemPrices, int[]? itemQtys)
+        {
+            model.SaleType = "مساج";
+            return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "مساج");
+        }
+
+        // ===== فاتورة مبيعات منتجات (PRD-) =====
+        public async Task<IActionResult> CreateProduct()
+        {
+            await PopulateProductDropdowns();
+            var sale = new Sale
+            {
+                InvoiceNumber = await GenerateInvoiceNumber("PRD"),
+                SaleDate = DateTime.Now,
+                SaleType = "منتجات"
+            };
+            return View(sale);
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        [ActionName("CreateProduct")]
+        public async Task<IActionResult> CreateProductPost(
+            Sale model, int[]? itemIds, string[]? itemNames,
+            decimal[]? itemPrices, int[]? itemQtys)
+        {
+            model.SaleType = "منتجات";
+            if (ModelState.IsValid)
+            {
+                model.TotalAmount = 0;
+                model.SaleDate = DateTime.Now;
+                _context.Sales.Add(model);
+                await _context.SaveChangesAsync();
+
+                if (itemNames != null)
+                {
+                    for (int i = 0; i < itemNames.Length; i++)
+                    {
+                        if (string.IsNullOrEmpty(itemNames[i])) continue;
+                        var qty = itemQtys?[i] ?? 1;
+                        var price = itemPrices?[i] ?? 0;
+                        var id = itemIds?[i] ?? 0;
+                        var item = new SaleItem
+                        {
+                            SaleId = model.Id,
+                            ItemName = itemNames[i],
+                            Quantity = qty,
+                            Price = price,
+                            Total = qty * price
+                        };
+                        if (id > 0)
+                        {
+                            item.ProductId = id;
+                            var product = await _context.Products.FindAsync(id);
+                            if (product != null)
+                                product.StockQuantity = Math.Max(0, product.StockQuantity - qty);
+                        }
+                        _context.SaleItems.Add(item);
+                        model.TotalAmount += item.Total;
+                    }
+                }
+                model.NetAmount = model.TotalAmount - model.Discount;
+                await _context.SaveChangesAsync();
+                TempData["Success"] = $"تم إنشاء فاتورة المنتجات {model.InvoiceNumber} بنجاح";
+                return RedirectToAction(nameof(Index), new { type = "منتجات" });
+            }
+            await PopulateProductDropdowns();
+            return View(model);
+        }
+
+        public async Task<IActionResult> Details(int id)
+        {
+            var sale = await _context.Sales
+                .Include(s => s.Customer)
+                .Include(s => s.Employee)
+                .Include(s => s.SaleItems).ThenInclude(i => i.Service)
+                .Include(s => s.SaleItems).ThenInclude(i => i.Product)
+                .FirstOrDefaultAsync(s => s.Id == id);
+            if (sale == null) return NotFound();
+            return View(sale);
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var sale = await _context.Sales.Include(s => s.SaleItems).FirstOrDefaultAsync(s => s.Id == id);
+            if (sale != null)
+            {
+                foreach (var item in sale.SaleItems.Where(i => i.ProductId != null))
+                {
+                    var product = await _context.Products.FindAsync(item.ProductId);
+                    if (product != null)
+                        product.StockQuantity += item.Quantity;
+                }
+                sale.Status = "ملغي";
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "تم إلغاء الفاتورة";
+            }
+            return RedirectToAction(nameof(Index));
+        }
+
+        // ===== Helpers =====
+
+        private async Task<string> GenerateInvoiceNumber(string prefix)
+        {
+            var last = await _context.Sales
+                .Where(s => s.InvoiceNumber.StartsWith(prefix + "-"))
+                .OrderByDescending(s => s.Id)
+                .Select(s => s.InvoiceNumber)
+                .FirstOrDefaultAsync();
+
+            int seq = 1;
+            if (last != null)
+            {
+                var parts = last.Split('-');
+                if (parts.Length == 2 && int.TryParse(parts[1], out var n))
+                    seq = n + 1;
+            }
+            return $"{prefix}-{seq:D4}";
+        }
+
+        private async Task PopulateDeptDropdowns(string dept, ApplicationUser? user, string role)
+        {
+            // العملاء
+            ViewBag.Customers = new SelectList(
+                await _context.Customers.Where(c => c.IsActive).OrderBy(c => c.FullName).ToListAsync(),
+                "Id", "FullName");
+
+            // الخدمات مصنّفة حسب القسم
+            ViewBag.ServiceCategories = await _context.ServiceCategories
+                .Include(c => c.Services.Where(s => s.IsActive))
+                .Where(c => c.IsActive && c.Department == dept)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+
+            // الموظفون حسب الدور
+            bool isEmployee = role == "Employee";
+            ViewBag.IsEmployee = isEmployee;
+            ViewBag.LinkedEmployeeId = user?.LinkedEmployeeId;
+
+            var empQuery = _context.Employees.Where(e => e.IsActive && e.Department == dept);
+
+            if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
+                empQuery = empQuery.Where(e => e.Id == user.LinkedEmployeeId!.Value);
+
+            ViewBag.Employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+        }
+
+        private async Task PopulateProductDropdowns()
+        {
+            ViewBag.Customers = new SelectList(
+                await _context.Customers.Where(c => c.IsActive).OrderBy(c => c.FullName).ToListAsync(),
+                "Id", "FullName");
+            ViewBag.Products = await _context.Products
+                .Where(p => p.IsActive && p.StockQuantity > 0)
+                .OrderBy(p => p.Name)
+                .ToListAsync();
+        }
+
+        private async Task<IActionResult> SaveServiceInvoice(
+            Sale model, int[]? itemIds, string[]? itemNames,
+            decimal[]? itemPrices, int[]? itemQtys, string dept)
+        {
+            if (ModelState.IsValid)
+            {
+                model.TotalAmount = 0;
+                model.SaleDate = DateTime.Now;
+                _context.Sales.Add(model);
+                await _context.SaveChangesAsync();
+
+                if (itemNames != null)
+                {
+                    for (int i = 0; i < itemNames.Length; i++)
+                    {
+                        if (string.IsNullOrEmpty(itemNames[i])) continue;
+                        var qty = itemQtys?[i] ?? 1;
+                        var price = itemPrices?[i] ?? 0;
+                        var id = itemIds?[i] ?? 0;
+                        var item = new SaleItem
+                        {
+                            SaleId = model.Id,
+                            ItemName = itemNames[i],
+                            Quantity = qty,
+                            Price = price,
+                            Total = qty * price
+                        };
+                        if (id > 0) item.ServiceId = id;
+                        _context.SaleItems.Add(item);
+                        model.TotalAmount += item.Total;
+                    }
+                }
+                model.NetAmount = model.TotalAmount - model.Discount;
+                await _context.SaveChangesAsync();
+
+                var actionName = dept == "حلاقة" ? "CreateBarber" : "CreateMassage";
+                TempData["Success"] = $"تم إنشاء الفاتورة {model.InvoiceNumber} بنجاح";
+                return RedirectToAction(nameof(Index), new { type = dept });
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(user!);
+            await PopulateDeptDropdowns(dept, user, roles.FirstOrDefault() ?? "");
+
+            return dept == "حلاقة" ? View("CreateBarber", model) : View("CreateMassage", model);
+        }
+    }
+}

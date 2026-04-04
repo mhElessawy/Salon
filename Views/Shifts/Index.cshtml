@@ -1,0 +1,107 @@
+@model IEnumerable<Salon.Models.Shift>
+@{
+    ViewData["Title"] = "إدارة الشفتات";
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="fas fa-clock me-2"></i>إدارة الشفتات</h1>
+        <p>متابعة الشفتات اليومية</p>
+    </div>
+    <a href="@Url.Action("Create")" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i> فتح شفت جديد
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>اسم الشفت</th>
+                        <th>التاريخ</th>
+                        <th>وقت البداية</th>
+                        <th>وقت النهاية</th>
+                        <th>الكاشير</th>
+                        <th>رصيد الفتح</th>
+                        <th>رصيد الإغلاق</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="10" class="text-center text-muted py-4">لا توجد شفتات مسجلة</td></tr>
+                    }
+                    @foreach (var s in Model)
+                    {
+                        <tr>
+                            <td>@s.Id</td>
+                            <td><strong>@s.Name</strong></td>
+                            <td>@s.ShiftDate.ToString("yyyy/MM/dd")</td>
+                            <td>@s.StartTime.ToString(@"hh\:mm")</td>
+                            <td>@(s.EndTime?.ToString(@"hh\:mm") ?? "-")</td>
+                            <td>@(s.CashierName ?? "-")</td>
+                            <td>@s.OpeningBalance.ToString("N3") د.ك</td>
+                            <td>@(s.ClosingBalance?.ToString("N3") + " د.ك" ?? "-")</td>
+                            <td>
+                                <span class="badge @(s.Status == "مغلق" ? "bg-secondary" : "bg-success")">@s.Status</span>
+                            </td>
+                            <td>
+                                @if (s.Status == "مفتوح")
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            onclick="showCloseModal(@s.Id)">
+                                        <i class="fas fa-lock"></i> إغلاق
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Close Modal -->
+<div class="modal fade" id="closeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إغلاق الشفت</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="Close" method="post" id="closeForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" id="closeShiftId" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">رصيد الإغلاق</label>
+                        <input type="number" name="closingBalance" step="0.001" class="form-control" value="0" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ملاحظات</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger">إغلاق الشفت</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function showCloseModal(id) {
+    document.getElementById('closeShiftId').value = id;
+    new bootstrap.Modal(document.getElementById('closeModal')).show();
+}
+</script>
+}

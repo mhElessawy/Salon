@@ -1,0 +1,42 @@
+@{
+    ViewData["Title"] = "إضافة سلفة";
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-plus-circle me-2"></i>إضافة سلفة موظف</h1>
+</div>
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">الموظف</label>
+                    <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select">
+                        <option value="">-- اختر الموظف --</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">المبلغ</label>
+                    <input type="number" name="Amount" step="0.001" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">التاريخ</label>
+                    <input type="date" name="AdvanceDate" value="@DateTime.Today.ToString("yyyy-MM-dd")" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">السبب</label>
+                    <input type="text" name="Reason" class="form-control" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">ملاحظات</label>
+                    <textarea name="Notes" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary me-2"><i class="fas fa-save me-1"></i> حفظ</button>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>

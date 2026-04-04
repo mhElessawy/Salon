@@ -1,0 +1,71 @@
+@model Salon.Models.Sale
+@{
+    ViewData["Title"] = "تفاصيل الفاتورة";
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="fas fa-file-invoice me-2"></i>فاتورة رقم: @Model.InvoiceNumber</h1>
+        <p>@Model.SaleDate.ToString("yyyy/MM/dd hh:mm tt")</p>
+    </div>
+    <div>
+        <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">معلومات الفاتورة</div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr><th>العميل:</th><td>@(Model.Customer?.FullName ?? "زائر")</td></tr>
+                    <tr><th>الموظف:</th><td>@(Model.Employee?.FullName ?? "-")</td></tr>
+                    <tr><th>طريقة الدفع:</th><td>@Model.PaymentMethod</td></tr>
+                    <tr><th>الحالة:</th><td>
+                        <span class="badge @(Model.Status == "مكتمل" ? "bg-success" : "bg-danger")">@Model.Status</span>
+                    </td></tr>
+                    <tr><th>الإجمالي:</th><td>@Model.TotalAmount.ToString("N3") د.ك</td></tr>
+                    <tr><th>الخصم:</th><td>@Model.Discount.ToString("N3") د.ك</td></tr>
+                    <tr><th>الصافي:</th><td><strong>@Model.NetAmount.ToString("N3") د.ك</strong></td></tr>
+                </table>
+                @if (!string.IsNullOrEmpty(Model.Notes))
+                {
+                    <hr /><strong>ملاحظات:</strong>
+                    <p class="text-muted mt-1">@Model.Notes</p>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">البنود</div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead>
+                        <tr><th>#</th><th>البيان</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr>
+                    </thead>
+                    <tbody>
+                        @{ int i = 1; }
+                        @foreach (var item in Model.SaleItems)
+                        {
+                            <tr>
+                                <td>@(i++)</td>
+                                <td>@item.ItemName</td>
+                                <td>@item.Quantity</td>
+                                <td>@item.Price.ToString("N3") د.ك</td>
+                                <td>@item.Total.ToString("N3") د.ك</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" class="text-end fw-bold">الصافي:</td>
+                            <td><strong>@Model.NetAmount.ToString("N3") د.ك</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,68 @@
+@model Salon.Models.Appointment
+@{
+    ViewData["Title"] = "إضافة موعد";
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-calendar-plus me-2"></i>إضافة موعد جديد</h1>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">العميل</label>
+                    <select name="CustomerId" asp-items="@ViewBag.Customers" class="form-select">
+                        <option value="">-- اختر العميل --</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">الموظف</label>
+                    <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select">
+                        <option value="">-- اختر الموظف --</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="AppointmentDate" class="form-label"></label>
+                    <input asp-for="AppointmentDate" type="datetime-local" class="form-control" />
+                    <span asp-validation-for="AppointmentDate" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Status" class="form-label"></label>
+                    <select asp-for="Status" class="form-select">
+                        <option>مجدول</option>
+                        <option>مؤكد</option>
+                        <option>مكتمل</option>
+                        <option>ملغي</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">الخدمات</label>
+                    <div class="row g-2">
+                        @foreach (var service in ViewBag.Services as List<Salon.Models.Service> ?? new())
+                        {
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input type="checkbox" name="serviceIds" value="@service.Id" class="form-check-input" id="svc@(service.Id)" />
+                                    <label class="form-check-label" for="svc@(service.Id)">
+                                        @service.Name - @service.Price.ToString("N3") د.ك
+                                    </label>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label asp-for="Notes" class="form-label"></label>
+                    <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary me-2"><i class="fas fa-save me-1"></i> حفظ</button>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>

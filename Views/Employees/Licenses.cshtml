@@ -1,0 +1,66 @@
+@model IEnumerable<Salon.Models.Employee>
+@{
+    ViewData["Title"] = "التراخيص والإقامات";
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-file-contract me-2"></i>التراخيص والإقامات</h1>
+    <p>متابعة انتهاء الإقامات للموظفين</p>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>الموظف</th>
+                        <th>الجنسية</th>
+                        <th>رقم الهوية</th>
+                        <th>تاريخ انتهاء الإقامة</th>
+                        <th>الأيام المتبقية</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="6" class="text-center text-muted py-4">لا توجد بيانات</td></tr>
+                    }
+                    @foreach (var e in Model)
+                    {
+                        var daysLeft = e.ResidencyExpiry.HasValue ? (e.ResidencyExpiry.Value - DateTime.Today).Days : 0;
+                        var statusClass = daysLeft < 0 ? "danger" : daysLeft < 30 ? "warning" : "success";
+                        <tr>
+                            <td><strong>@e.FullName</strong></td>
+                            <td>@(e.Nationality ?? "-")</td>
+                            
+                            <td>@(e.ResidencyExpiry?.ToString("yyyy/MM/dd") ?? "-")</td>
+                            <td>
+                                @if (e.ResidencyExpiry.HasValue)
+                                {
+                                    <span class="badge bg-@statusClass">@daysLeft يوم</span>
+                                }
+                                else { <span>-</span> }
+                            </td>
+                            <td>
+                                @if (daysLeft < 0)
+                                {
+                                    <span class="badge bg-danger">منتهي</span>
+                                }
+                                else if (daysLeft < 30)
+                                {
+                                    <span class="badge bg-warning text-dark">قريب من الانتهاء</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">سارٍ</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

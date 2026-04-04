@@ -1,0 +1,17 @@
+@{
+    ViewData["Title"] = "تسجيل الخروج";
+    Layout = "_AuthLayout";
+}
+
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-logo">
+            <i class="fas fa-check"></i>
+        </div>
+        <h1>تم تسجيل الخروج</h1>
+        <p class="subtitle">تم تسجيل خروجك بنجاح من النظام</p>
+        <a href="@Url.Action("Login", "Account")" class="btn-primary-orange d-block text-center" style="text-decoration:none;">
+            <i class="fas fa-sign-in-alt me-2"></i> تسجيل الدخول مجدداً
+        </a>
+    </div>
+</div>

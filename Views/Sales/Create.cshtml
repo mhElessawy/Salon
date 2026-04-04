@@ -1,0 +1,702 @@
+@model Salon.Models.Sale
+@{
+    ViewData["Title"] = "كاشير - فاتورة جديدة";
+    var services = ViewBag.Services as List<Salon.Models.Service> ?? new();
+    var products = ViewBag.Products as List<Salon.Models.Product> ?? new();
+    // FIX: Use a valid property for grouping, e.g., "Category" instead of "Group"
+    var serviceGroups = services.GroupBy(s => s.ServiceCategory!.Name ?? "عام").OrderBy(g => g.Key);
+}
+
+@section Styles {
+    <style>
+        /* ===== POS LAYOUT ===== */
+        .pos-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: 16px;
+            align-items: start;
+        }
+        /* اللوحة اليسرى: الاختيارات */
+        .pos-left {
+        }
+        /* اللوحة اليمنى: الفاتورة */
+        .pos-right {
+            position: sticky;
+            top: 70px;
+        }
+
+        /* تبويبات الخدمات / المنتجات */
+        .pos-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .pos-tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid var(--border-color);
+            background: #fff;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #495057;
+            transition: all .2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+            .pos-tab-btn.active {
+                border-color: var(--primary);
+                background: var(--primary);
+                color: #fff;
+            }
+
+            .pos-tab-btn:not(.active):hover {
+                border-color: var(--primary);
+                color: var(--primary);
+            }
+
+        .pos-panel {
+            display: none;
+        }
+
+            .pos-panel.active {
+                display: block;
+            }
+
+        /* بطاقات الخدمات */
+        .service-category {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            padding: 6px 4px 4px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 8px;
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .item-card {
+            background: #fff;
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 10px;
+            cursor: pointer;
+            transition: all .18s;
+            text-align: center;
+        }
+
+            .item-card:hover {
+                border-color: var(--primary);
+                background: var(--primary-light);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(247,148,29,.15);
+            }
+
+            .item-card .ic-icon {
+                font-size: 22px;
+                margin-bottom: 6px;
+            }
+
+            .item-card.service-card .ic-icon {
+                color: var(--primary);
+            }
+
+            .item-card.product-card .ic-icon {
+                color: #28a745;
+            }
+
+            .item-card .ic-name {
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--text-dark);
+                margin-bottom: 4px;
+                line-height: 1.3;
+            }
+
+            .item-card .ic-price {
+                font-size: 13px;
+                font-weight: 700;
+                color: var(--primary);
+            }
+
+            .item-card .ic-stock {
+                font-size: 11px;
+                color: #6c757d;
+                margin-top: 2px;
+            }
+
+        /* ===== الفاتورة (اليمين) ===== */
+        .invoice-card {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 2px 16px rgba(0,0,0,.09);
+            overflow: hidden;
+        }
+
+        .invoice-header {
+            background: var(--primary);
+            color: #fff;
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+            .invoice-header .inv-num {
+                font-size: 13px;
+                opacity: .9;
+            }
+
+            .invoice-header .inv-title {
+                font-size: 16px;
+                font-weight: 700;
+            }
+
+        .invoice-meta {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+            .invoice-meta select,
+            .invoice-meta .form-select {
+                font-size: 13px;
+            }
+
+        .invoice-items {
+            padding: 0;
+            min-height: 180px;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+            .invoice-items table {
+                width: 100%;
+                font-size: 13px;
+            }
+
+            .invoice-items thead th {
+                background: #f8f9fa;
+                padding: 8px 12px;
+                font-size: 12px;
+                color: #6c757d;
+            }
+
+            .invoice-items tbody td {
+                padding: 8px 10px;
+                border-bottom: 1px solid #f0f0f0;
+                vertical-align: middle;
+            }
+
+            .invoice-items .item-name-cell {
+                max-width: 140px;
+            }
+
+            .invoice-items .item-name-badge {
+                display: inline-block;
+                background: var(--primary-light);
+                color: var(--primary);
+                border-radius: 4px;
+                padding: 2px 6px;
+                font-size: 10px;
+                margin-bottom: 2px;
+            }
+
+                .invoice-items .item-name-badge.product {
+                    background: #e8f5e9;
+                    color: #28a745;
+                }
+
+        .invoice-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #adb5bd;
+        }
+
+        .qty-control {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .qty-btn {
+            width: 24px;
+            height: 24px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: #f8f9fa;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            line-height: 1;
+        }
+
+            .qty-btn:hover {
+                background: var(--primary);
+                color: #fff;
+                border-color: var(--primary);
+            }
+
+        .qty-input {
+            width: 36px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 13px;
+            padding: 2px;
+        }
+
+        .btn-remove-item {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px 5px;
+            border-radius: 4px;
+        }
+
+            .btn-remove-item:hover {
+                background: #fce4ec;
+            }
+
+        /* الإجماليات */
+        .invoice-totals {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-color);
+            background: #fafafa;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            font-size: 14px;
+        }
+
+            .total-row.net {
+                font-size: 16px;
+                font-weight: 700;
+                color: var(--primary);
+                border-top: 2px solid var(--border-color);
+                padding-top: 10px;
+                margin-top: 4px;
+            }
+
+        .discount-input {
+            width: 90px;
+            text-align: center;
+            border: 1px dashed #ccc;
+            border-radius: 6px;
+            padding: 3px 6px;
+            font-size: 13px;
+            background: #fff;
+        }
+
+            .discount-input:focus {
+                outline: none;
+                border-color: var(--primary);
+            }
+
+        /* زر الحفظ */
+        .btn-save-invoice {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .2s;
+        }
+
+            .btn-save-invoice:hover {
+                background: var(--primary-dark);
+            }
+
+            .btn-save-invoice:disabled {
+                background: #adb5bd;
+                cursor: not-allowed;
+            }
+
+        /* المعلومات الأساسية */
+        .info-top-bar {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        @@media (max-width: 992px) {
+            .pos-wrapper
+
+        {
+            grid-template-columns: 1fr;
+        }
+
+        .info-top-bar {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .pos-right {
+            position: static;
+        }
+
+        }
+        @@media (max-width: 576px) {
+            .info-top-bar
+
+        {
+            grid-template-columns: 1fr;
+        }
+
+        .items-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        }</style>
+}
+
+<div class="page-header d-flex justify-content-between align-items-center mb-3">
+    <h1 style="font-size:20px;"><i class="fas fa-cash-register me-2"></i>الكاشير — فاتورة جديدة</h1>
+    <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-list me-1"></i> قائمة الفواتير
+    </a>
+</div>
+
+<form asp-action="Create" method="post" id="posForm">
+    @Html.AntiForgeryToken()
+
+    @* حقول مخفية للبيانات *@
+    <input asp-for="InvoiceNumber" type="hidden" />
+    <div id="hiddenItems"></div>
+
+    @* شريط المعلومات العلوي *@
+    <div class="info-top-bar">
+        <div>
+            <label class="form-label">رقم الفاتورة</label>
+            <input type="text" class="form-control form-control-sm" value="@Model.InvoiceNumber" readonly />
+        </div>
+        <div>
+            <label class="form-label">العميل</label>
+            <select name="CustomerId" asp-items="@ViewBag.Customers" class="form-select form-select-sm">
+                <option value="">👤 زائر</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label">الموظف المنفذ</label>
+            <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select form-select-sm">
+                <option value="">-- اختر الموظف --</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label">طريقة الدفع</label>
+            <select asp-for="PaymentMethod" class="form-select form-select-sm">
+                <option>نقدي</option>
+                <option>بطاقة</option>
+                <option>تحويل بنكي</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="pos-wrapper">
+
+        @* اللوحة اليسرى *@
+        <div class="pos-left">
+
+            @* تبويبات *@
+            <div class="pos-tabs">
+                <button type="button" class="pos-tab-btn active" id="tab-services" onclick="switchTab('services')">
+                    <i class="fas fa-cut"></i> الخدمات
+                    <span class="badge bg-white text-primary ms-1">@services.Count</span>
+                </button>
+                <button type="button" class="pos-tab-btn" id="tab-products" onclick="switchTab('products')">
+                    <i class="fas fa-box"></i> المنتجات
+                    <span class="badge bg-white text-success ms-1">@products.Count</span>
+                </button>
+            </div>
+
+            @* قسم الخدمات *@
+            <div class="pos-panel active" id="panel-services">
+                @if (!services.Any())
+                {
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-cut fa-2x mb-2"></i>
+                        <p>لا توجد خدمات مسجلة</p>
+                        <a href="@Url.Action("Create", "Services")" class="btn btn-sm btn-outline-primary">إضافة خدمة</a>
+                    </div>
+                }
+                @foreach (var group in serviceGroups)
+                {
+                    <div class="service-category">
+                        <i class="fas fa-tag me-1"></i>@group.Key
+                    </div>
+                    <div class="items-grid">
+                        @foreach (var svc in group)
+                        {
+                            <div class="item-card service-card"
+                                 onclick="addItem('service', @svc.Id, '@Html.Raw(svc.Name.Replace("'", "\\\'"))', @svc.Price.ToString("F3"))">
+                                <div class="ic-icon"><i class="fas fa-cut"></i></div>
+                                <div class="ic-name">@svc.Name</div>
+                                <div class="ic-price">@svc.Price.ToString("N3") د.ك</div>
+                                @if (svc.DurationMinutes.HasValue)
+                                {
+                                    <div class="ic-stock"><i class="fas fa-clock me-1"></i>@svc.DurationMinutes دقيقة</div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            @* قسم المنتجات *@
+            <div class="pos-panel" id="panel-products">
+                @if (!products.Any())
+                {
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-box-open fa-2x mb-2"></i>
+                        <p>لا توجد منتجات متاحة في المخزون</p>
+                        <a href="@Url.Action("Create", "Inventory")" class="btn btn-sm btn-outline-success">إضافة منتج</a>
+                    </div>
+                }
+                <div class="items-grid">
+                    @foreach (var prod in products)
+                    {
+                        <div class="item-card product-card"
+                             onclick="addItem('product', @prod.Id, '@Html.Raw(prod.Name.Replace("'", "\\\'"))', @prod.SalePrice.ToString("F3"), @prod.StockQuantity)">
+                            <div class="ic-icon"><i class="fas fa-box"></i></div>
+                            <div class="ic-name">@prod.Name</div>
+                            <div class="ic-price">@prod.SalePrice.ToString("N3") د.ك</div>
+                            <div class="ic-stock">
+                                <i class="fas fa-warehouse me-1"></i>
+                                متاح: @prod.StockQuantity @prod.Unit
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+        </div>
+
+        @* اللوحة اليمنى: الفاتورة *@
+        <div class="pos-right">
+            <div class="invoice-card">
+
+                <div class="invoice-header">
+                    <div class="inv-title"><i class="fas fa-file-invoice me-2"></i>الفاتورة</div>
+                    <div class="inv-num" id="invNumDisplay">@Model.InvoiceNumber</div>
+                </div>
+
+                <div class="invoice-items">
+                    <table id="invoiceTable">
+                        <thead>
+                            <tr>
+                                <th>البيان</th>
+                                <th>الكمية</th>
+                                <th>السعر</th>
+                                <th>الإجمالي</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoiceBody">
+                            <tr id="emptyInvoiceRow">
+                                <td colspan="5" class="invoice-empty">
+                                    <i class="fas fa-hand-point-right fa-2x mb-2 d-block"></i>
+                                    اختر خدمة أو منتجاً من اليسار
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="invoice-totals">
+                    <div class="total-row">
+                        <span>الإجمالي:</span>
+                        <span id="subtotalDisplay">0.000 د.ك</span>
+                    </div>
+                    <div class="total-row">
+                        <span>الخصم:</span>
+                        <input type="number" name="Discount" id="discountInput" class="discount-input"
+                               value="0" step="0.001" min="0" oninput="recalc()" placeholder="0.000" />
+                    </div>
+                    <div class="total-row net">
+                        <span>الصافي:</span>
+                        <span id="netDisplay">0.000 د.ك</span>
+                    </div>
+                </div>
+
+                <div class="p-3 border-top">
+                    <label class="form-label" style="font-size:13px;">ملاحظات</label>
+                    <textarea name="Notes" class="form-control form-control-sm mb-3" rows="2"></textarea>
+                    <button type="submit" class="btn-save-invoice" id="saveBtn" disabled>
+                        <i class="fas fa-print me-2"></i> حفظ وطباعة الفاتورة
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        // بيانات البنود في الذاكرة
+        let invoiceItems = [];
+        let rowCounter = 0;
+
+        // ===== تبديل التبويبات =====
+        function switchTab(tab) {
+            document.querySelectorAll('.pos-tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.pos-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            document.getElementById('panel-' + tab).classList.add('active');
+        }
+
+        // ===== إضافة بند =====
+        function addItem(type, id, name, price, maxStock) {
+            price = parseFloat(price) || 0;
+
+            // تحقق هل البند موجود مسبقاً
+            const existing = invoiceItems.find(i => i.type === type && i.id === id);
+            if (existing) {
+                if (type === 'product' && existing.qty >= (maxStock || 999)) {
+                    alert('لا يوجد مخزون كافٍ!');
+                    return;
+                }
+                existing.qty++;
+                existing.total = existing.qty * existing.price;
+                updateRow(existing);
+            } else {
+                const item = { rowId: ++rowCounter, type, id, name, price, qty: 1, total: price, maxStock: maxStock || 999 };
+                invoiceItems.push(item);
+                renderRow(item);
+            }
+
+            document.getElementById('emptyInvoiceRow').style.display = 'none';
+            recalc();
+            updateSaveBtn();
+        }
+
+        // ===== رسم صف =====
+        function renderRow(item) {
+            const tbody = document.getElementById('invoiceBody');
+            const tr = document.createElement('tr');
+            tr.id = 'row-' + item.rowId;
+            tr.innerHTML = buildRowHtml(item);
+            tbody.appendChild(tr);
+        }
+
+        function updateRow(item) {
+            const tr = document.getElementById('row-' + item.rowId);
+            if (tr) tr.innerHTML = buildRowHtml(item);
+        }
+
+        function buildRowHtml(item) {
+            const badge = item.type === 'service'
+                ? `<span class="item-name-badge">خدمة</span>`
+                : `<span class="item-name-badge product">منتج</span>`;
+            return `
+                <td class="item-name-cell">${badge}<br/>${item.name}</td>
+                <td>
+                    <div class="qty-control">
+                        <button type="button" class="qty-btn" onclick="changeQty(${item.rowId}, -1)">−</button>
+                        <input type="number" class="qty-input" value="${item.qty}" min="1" max="${item.maxStock}"
+                               onchange="setQty(${item.rowId}, this.value)" />
+                        <button type="button" class="qty-btn" onclick="changeQty(${item.rowId}, 1)">+</button>
+                    </div>
+                </td>
+                <td>${item.price.toFixed(3)}</td>
+                <td><strong>${item.total.toFixed(3)}</strong></td>
+                <td><button type="button" class="btn-remove-item" onclick="removeItem(${item.rowId})"><i class="fas fa-times"></i></button></td>
+            `;
+        }
+
+        // ===== تغيير الكمية =====
+        function changeQty(rowId, delta) {
+            const item = invoiceItems.find(i => i.rowId === rowId);
+            if (!item) return;
+            const newQty = item.qty + delta;
+            if (newQty < 1) { removeItem(rowId); return; }
+            if (item.type === 'product' && newQty > item.maxStock) { alert('لا يوجد مخزون كافٍ!'); return; }
+            item.qty = newQty;
+            item.total = item.qty * item.price;
+            updateRow(item);
+            recalc();
+        }
+
+        function setQty(rowId, val) {
+            const item = invoiceItems.find(i => i.rowId === rowId);
+            if (!item) return;
+            let qty = parseInt(val) || 1;
+            if (item.type === 'product' && qty > item.maxStock) { qty = item.maxStock; }
+            item.qty = Math.max(1, qty);
+            item.total = item.qty * item.price;
+            updateRow(item);
+            recalc();
+        }
+
+        // ===== حذف بند =====
+        function removeItem(rowId) {
+            invoiceItems = invoiceItems.filter(i => i.rowId !== rowId);
+            const tr = document.getElementById('row-' + rowId);
+            if (tr) tr.remove();
+            if (invoiceItems.length === 0)
+                document.getElementById('emptyInvoiceRow').style.display = '';
+            recalc();
+            updateSaveBtn();
+        }
+
+        // ===== حساب الإجماليات =====
+        function recalc() {
+            const subtotal = invoiceItems.reduce((s, i) => s + i.total, 0);
+            const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+            const net = Math.max(0, subtotal - discount);
+            document.getElementById('subtotalDisplay').textContent = subtotal.toFixed(3) + ' د.ك';
+            document.getElementById('netDisplay').textContent = net.toFixed(3) + ' د.ك';
+        }
+
+        function updateSaveBtn() {
+            document.getElementById('saveBtn').disabled = invoiceItems.length === 0;
+        }
+
+        // ===== إرسال النموذج: حقن الحقول المخفية =====
+        document.getElementById('posForm').addEventListener('submit', function(e) {
+            if (invoiceItems.length === 0) { e.preventDefault(); return; }
+
+            const container = document.getElementById('hiddenItems');
+            container.innerHTML = '';
+            invoiceItems.forEach(function(item) {
+                container.innerHTML += `
+                    <input type="hidden" name="itemTypes"  value="${item.type}" />
+                    <input type="hidden" name="itemIds"    value="${item.id}" />
+                    <input type="hidden" name="itemNames"  value="${item.name}" />
+                    <input type="hidden" name="itemPrices" value="${item.price}" />
+                    <input type="hidden" name="itemQtys"   value="${item.qty}" />
+                `;
+            });
+        });
+    </script>
+}

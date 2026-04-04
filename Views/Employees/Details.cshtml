@@ -1,0 +1,76 @@
+@model Salon.Models.Employee
+
+@{
+    ViewData["Title"] = "تفاصيل الموظف";
+}
+
+<h2 class="mb-4">تفاصيل الموظف</h2>
+
+<div class="card" style="max-width: 500px;" dir="rtl">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-5">الاسم</dt>
+            <dd class="col-sm-7">@Model.Name</dd>
+
+            <dt class="col-sm-5">الاسم الكامل</dt>
+            <dd class="col-sm-7">@Model.FullName</dd>
+
+            <dt class="col-sm-5">رقم الهاتف</dt>
+            <dd class="col-sm-7">@Model.Phone</dd>
+
+            <dt class="col-sm-5">الجنسية</dt>
+            <dd class="col-sm-7">@Model.Nationality</dd>
+
+            <dt class="col-sm-5">المسمى الوظيفي</dt>
+            <dd class="col-sm-7">@Model.JobTitle</dd>
+
+            <dt class="col-sm-5">القسم</dt>
+            <dd class="col-sm-7">@Model.Department</dd>
+
+            <dt class="col-sm-5">الراتب</dt>
+            <dd class="col-sm-7">@Model.Salary.ToString("N0")</dd>
+
+            <dt class="col-sm-5">العمولة</dt>
+            <dd class="col-sm-7">@Model.Commission%</dd>
+
+            <dt class="col-sm-5">تاريخ التعيين</dt>
+            <dd class="col-sm-7">@Model.HireDate.ToString("yyyy/MM/dd")</dd>
+
+            <dt class="col-sm-5">تاريخ انتهاء الإقامة</dt>
+            <dd class="col-sm-7">@(Model.ResidencyExpiry.HasValue? Model.ResidencyExpiry.Value.ToString("yyyy/MM/dd") : "-")</dd>
+
+            <dt class="col-sm-5">نوع الخدمة</dt>
+            <dd class="col-sm-7">
+                @switch (Model.ServiceType)
+                {
+                    case Salon.Models.ServiceType.Haircut:
+                        <span class="badge bg-primary">حلاقة</span>
+                        break;
+                    case Salon.Models.ServiceType.Massage:
+                        <span class="badge bg-success">مساج</span>
+                        break;
+                    case Salon.Models.ServiceType.Both:
+                        <span class="badge bg-warning text-dark">حلاقة + مساج</span>
+                        break;
+                }
+            </dd>
+
+            <dt class="col-sm-5">الحالة</dt>
+            <dd class="col-sm-7">
+                @if (Model.IsActive)
+                {
+                    <span class="badge bg-success">نشط</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">غير نشط</span>
+                }
+            </dd>
+        </dl>
+    </div>
+</div>
+
+<div class="d-flex gap-2 mt-3">
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">تعديل</a>
+    <a asp-action="Index" class="btn btn-outline-secondary">رجوع</a>
+</div>

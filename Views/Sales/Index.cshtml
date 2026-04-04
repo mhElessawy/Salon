@@ -1,0 +1,115 @@
+@model IEnumerable<Salon.Models.Sale>
+@{
+    ViewData["Title"] = "الفواتير";
+    var filterType = ViewBag.FilterType as string;
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="fas fa-file-invoice me-2"></i>الفواتير</h1>
+        <p>إجمالي اليوم: <strong>@ViewBag.TotalSales?.ToString("N3") د.ك</strong></p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="@Url.Action("CreateBarber")" class="btn btn-warning btn-sm">
+            <i class="fas fa-cut me-1"></i> فاتورة حلاقة
+        </a>
+        <a href="@Url.Action("CreateMassage")" class="btn btn-info btn-sm">
+            <i class="fas fa-spa me-1"></i> فاتورة مساج
+        </a>
+        <a href="@Url.Action("CreateProduct")" class="btn btn-success btn-sm">
+            <i class="fas fa-box me-1"></i> فاتورة منتجات
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+            <label class="form-label mb-0">التاريخ:</label>
+            <input type="date" name="date" value="@ViewBag.FilterDate" class="form-control" style="max-width:180px;" />
+            <label class="form-label mb-0">النوع:</label>
+            <select name="type" class="form-select" style="max-width:160px;">
+                <option value="">الكل</option>
+                <option value="حلاقة" selected="@(filterType == "حلاقة")">فواتير حلاقة (PAR)</option>
+                <option value="مساج" selected="@(filterType == "مساج")">فواتير مساج (MAS)</option>
+                <option value="منتجات" selected="@(filterType == "منتجات")">فواتير منتجات (PRD)</option>
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> بحث</button>
+            @if (!string.IsNullOrEmpty(filterType))
+            {
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">إلغاء الفلتر</a>
+            }
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>رقم الفاتورة</th>
+                        <th>النوع</th>
+                        <th>العميل</th>
+                        <th>الموظف</th>
+                        <th>التاريخ</th>
+                        <th>الصافي</th>
+                        <th>الدفع</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="9" class="text-center text-muted py-4">لا توجد فواتير في هذا اليوم</td></tr>
+                    }
+                    @foreach (var s in Model)
+                    {
+                        <tr>
+                            <td><strong>@s.InvoiceNumber</strong></td>
+                            <td>
+                                @if (s.SaleType == "حلاقة")
+                                {
+                                    <span class="badge" style="background:#F7941D"><i class="fas fa-cut me-1"></i>PAR</span>
+                                }
+                                else if (s.SaleType == "مساج")
+                                {
+                                    <span class="badge bg-info"><i class="fas fa-spa me-1"></i>MAS</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success"><i class="fas fa-box me-1"></i>PRD</span>
+                                }
+                            </td>
+                            <td>@(s.Customer?.FullName ?? "زائر")</td>
+                            <td>@(s.Employee?.FullName ?? "-")</td>
+                            <td>@s.SaleDate.ToString("yyyy/MM/dd hh:mm tt")</td>
+                            <td><strong>@s.NetAmount.ToString("N3") د.ك</strong></td>
+                            <td>@s.PaymentMethod</td>
+                            <td>
+                                <span class="badge @(s.Status == "مكتمل" ? "bg-success" : "bg-danger")">@s.Status</span>
+                            </td>
+                            <td>
+                                <a href="@Url.Action("Details", new { id = s.Id })" class="btn btn-sm btn-outline-primary me-1">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                @if (s.Status != "ملغي")
+                                {
+                                    <form asp-action="Delete" asp-route-id="@s.Id" method="post" style="display:inline"
+                                          onsubmit="return confirm('هل تريد إلغاء هذه الفاتورة؟')">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

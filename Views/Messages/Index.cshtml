@@ -1,0 +1,66 @@
+@model IEnumerable<Salon.Models.Message>
+@{
+    ViewData["Title"] = "الرسائل";
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="fas fa-envelope me-2"></i>الرسائل</h1>
+    </div>
+    <a href="@Url.Action("Create")" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i> رسالة جديدة
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>الموضوع</th>
+                        <th>المرسل</th>
+                        <th>التاريخ</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="5" class="text-center text-muted py-4">لا توجد رسائل</td></tr>
+                    }
+                    @foreach (var m in Model)
+                    {
+                        <tr class="@(!m.IsRead ? "fw-bold" : "")">
+                            <td>
+                                @if (m.IsBroadcast)
+                                {
+                                    <span class="badge bg-info me-1">للجميع</span>
+                                }
+                                @m.Subject
+                            </td>
+                            <td>@m.SenderId</td>
+                            <td>@m.SentAt.ToString("yyyy/MM/dd hh:mm")</td>
+                            <td>
+                                @if (!m.IsRead)
+                                {
+                                    <span class="badge bg-warning text-dark">جديدة</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">مقروءة</span>
+                                }
+                            </td>
+                            <td>
+                                <a href="@Url.Action("Read", new { id = m.Id })" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i> قراءة
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

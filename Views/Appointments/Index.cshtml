@@ -1,0 +1,79 @@
+@model IEnumerable<Salon.Models.Appointment>
+@{
+    ViewData["Title"] = "المواعيد";
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="fas fa-calendar-check me-2"></i>المواعيد</h1>
+        <p>إدارة مواعيد العملاء</p>
+    </div>
+    <a href="@Url.Action("Create")" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i> إضافة موعد
+    </a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="d-flex gap-2 align-items-center">
+            <label class="form-label mb-0">التاريخ:</label>
+            <input type="date" name="date" value="@ViewBag.FilterDate" class="form-control" style="max-width:200px;" />
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>العميل</th>
+                        <th>الموظف</th>
+                        <th>التاريخ والوقت</th>
+                        <th>الخدمات</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="7" class="text-center text-muted py-4">لا توجد مواعيد في هذا اليوم</td></tr>
+                    }
+                    @foreach (var a in Model)
+                    {
+                        <tr>
+                            <td>@a.Id</td>
+                            <td><strong>@(a.Customer?.FullName ?? "-")</strong></td>
+                            <td>@(a.Employee?.FullName ?? "-")</td>
+                            <td>@a.AppointmentDate.ToString("yyyy/MM/dd hh:mm tt")</td>
+                            <td>
+                                @string.Join(", ", a.AppointmentServices.Select(s => s.Service?.Name ?? ""))
+                            </td>
+                            <td>
+                                <span class="badge @(a.Status == "مكتمل" ? "bg-success" : a.Status == "ملغي" ? "bg-danger" : "bg-warning text-dark")">
+                                    @a.Status
+                                </span>
+                            </td>
+                            <td>
+                                <a href="@Url.Action("Edit", new { id = a.Id })" class="btn btn-sm btn-outline-warning me-1">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form asp-action="Delete" asp-route-id="@a.Id" method="post" style="display:inline"
+                                      onsubmit="return confirm('هل تريد حذف هذا الموعد؟')">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

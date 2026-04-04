@@ -1,0 +1,71 @@
+@model IEnumerable<Salon.Models.Attendance>
+@{
+    ViewData["Title"] = "الحضور والانصراف";
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="fas fa-calendar-alt me-2"></i>الحضور والانصراف</h1>
+    </div>
+    <a href="@Url.Action("Create")" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i> تسجيل حضور
+    </a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="d-flex gap-2 align-items-center">
+            <label class="form-label mb-0">التاريخ:</label>
+            <input type="date" name="date" value="@ViewBag.FilterDate" class="form-control" style="max-width:200px;" />
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>الموظف</th>
+                        <th>التاريخ</th>
+                        <th>وقت الحضور</th>
+                        <th>وقت الانصراف</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="6" class="text-center text-muted py-4">لا توجد سجلات حضور في هذا اليوم</td></tr>
+                    }
+                    @foreach (var a in Model)
+                    {
+                        <tr>
+                            <td><strong>@(a.Employee?.FullName ?? "-")</strong></td>
+                            <td>@a.AttendanceDate.ToString("yyyy/MM/dd")</td>
+                            <td>@(a.CheckIn?.ToString(@"hh\:mm") ?? "-")</td>
+                            <td>@(a.CheckOut?.ToString(@"hh\:mm") ?? "-")</td>
+                            <td>
+                                <span class="badge @(a.Status == "حاضر" ? "bg-success" : a.Status == "غائب" ? "bg-danger" : "bg-warning text-dark")">
+                                    @a.Status
+                                </span>
+                            </td>
+                            <td>
+                                <form asp-action="Delete" asp-route-id="@a.Id" method="post" style="display:inline"
+                                      onsubmit="return confirm('هل تريد حذف سجل الحضور؟')">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,63 @@
+@model IEnumerable<Salon.Models.Shift>
+@{
+    ViewData["Title"] = "تقارير الشفتات";
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-file-alt me-2"></i>تقارير الشفتات</h1>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="d-flex gap-2 align-items-center">
+            <label class="form-label mb-0">التاريخ:</label>
+            <input type="date" name="date" value="@ViewBag.FilterDate" class="form-control" style="max-width:200px;" />
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>الشفت</th>
+                        <th>الكاشير</th>
+                        <th>البداية</th>
+                        <th>النهاية</th>
+                        <th>رصيد الفتح</th>
+                        <th>رصيد الإغلاق</th>
+                        <th>الفرق</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model)
+                    {
+                        var diff = (s.ClosingBalance ?? 0) - s.OpeningBalance;
+                        <tr>
+                            <td>@s.Name</td>
+                            <td>@(s.CashierName ?? "-")</td>
+                            <td>@s.StartTime.ToString(@"hh\:mm")</td>
+                            <td>@(s.EndTime?.ToString(@"hh\:mm") ?? "-")</td>
+                            <td>@s.OpeningBalance.ToString("N3") د.ك</td>
+                            <td>@(s.ClosingBalance?.ToString("N3") + " د.ك" ?? "-")</td>
+                            <td class="@(diff >= 0 ? "text-success" : "text-danger")">
+                                @(s.ClosingBalance.HasValue ? diff.ToString("N3") + " د.ك" : "-")
+                            </td>
+                            <td>
+                                <span class="badge @(s.Status == "مغلق" ? "bg-secondary" : "bg-success")">@s.Status</span>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="8" class="text-center text-muted py-4">لا توجد شفتات في هذا اليوم</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
