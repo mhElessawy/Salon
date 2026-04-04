@@ -16,9 +16,9 @@
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
                     <div class="mb-3">
-                        <label asp-for="Username" class="form-label"></label>
-                        <input asp-for="Username" class="form-control" autofocus />
-                        <span asp-validation-for="Username" class="text-danger small"></span>
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control" type="email" autofocus placeholder="example@email.com" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-4">

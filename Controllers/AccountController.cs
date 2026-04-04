@@ -18,14 +18,14 @@ namespace Salon.Controllers
                 return View(model);
 
             // TODO: Replace with real authentication
-            if (model.Username == "admin" && model.Password == "admin123")
+            if (model.Email == "admin@salon.com" && model.Password == "admin123")
             {
                 HttpContext.Session.SetString("IsLoggedIn", "true");
-                HttpContext.Session.SetString("Username", model.Username);
+                HttpContext.Session.SetString("Email", model.Email);
                 return RedirectToAction("Index", "Dashboard");
             }
 
-            ModelState.AddModelError("", "اسم المستخدم أو كلمة المرور غير صحيحة");
+            ModelState.AddModelError("", "البريد الإلكتروني أو كلمة المرور غير صحيحة");
             return View(model);
         }
 
