@@ -6,9 +6,15 @@ using Salon.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add EF Core with SQL Server
+// Add EF Core - Use SQLite on Linux, SQL Server on Windows
+var connStr = builder.Configuration.GetConnectionString("DefaultConnection")!;
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    if (connStr.StartsWith("Data Source=") || connStr.EndsWith(".db"))
+        options.UseSqlite(connStr);
+    else
+        options.UseSqlServer(connStr);
+});
 
 // Add Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
