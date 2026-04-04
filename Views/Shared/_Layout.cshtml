@@ -39,21 +39,13 @@
                     <button class="hamburger-btn d-lg-none" onclick="toggleSidebar()" title="القائمة">
                         <i class="fas fa-bars"></i>
                     </button>
-                    <div class="topbar-greeting">
-                        مرحباً، <strong>@layoutFullName</strong>
-                    </div>
-                </div>
-                <div class="topbar-left">
+
+                    <!-- Logout button -->
                     <a href="@Url.Action("Logout", "Account")" class="logout-btn" title="تسجيل الخروج">
                         <i class="fas fa-sign-out-alt"></i>
                     </a>
-                    <div class="notif-btn">
-                        <i class="fas fa-bell"></i>
-                        <span class="notif-badge">9</span>
-                    </div>
-                    <button class="lang-switch-btn">EN</button>
 
-                    @* قائمة المستخدم المنسدلة - نفس تصميم topbar-user الأصلي *@
+                    @* قائمة المستخدم المنسدلة *@
                     <div class="dropdown">
                         <div class="topbar-user" role="button"
                              data-bs-toggle="dropdown" data-bs-offset="0,4"
@@ -87,10 +79,29 @@
                         </ul>
                     </div>
 
+                    <!-- Notification bell -->
+                    <div class="notif-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="notif-badge">9</span>
+                    </div>
+
+                    <!-- Language switch -->
+                    <button class="lang-switch-btn">EN</button>
+                </div>
+
+                <div class="topbar-left">
+                    <div class="topbar-greeting">
+                        مرحباً، <strong>@layoutFullName</strong>
+                    </div>
+
                     <div style="font-size:15px; font-weight:700; color:#1a1a2e;">
                         <i class="fas fa-wifi" style="color:var(--primary); margin-left:6px;"></i>
                         نظام معهد موس
                     </div>
+
+                    <button class="connected-btn">
+                        <i class="fas fa-signal me-1"></i> متصل
+                    </button>
                 </div>
             </header>
 
