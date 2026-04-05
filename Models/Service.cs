@@ -22,6 +22,13 @@ namespace Salon.Models
         [Display(Name = "المدة (دقائق)")]
         public int? DurationMinutes { get; set; }
 
+        [Display(Name = "نوع الخدمة")]
+        public string? ServiceType { get; set; }
+
+        [Display(Name = "العمولة")]
+        [DataType(DataType.Currency)]
+        public decimal Commission { get; set; }
+
         [Display(Name = "الفئة")]
         public int? ServiceCategoryId { get; set; }
 

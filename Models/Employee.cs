@@ -10,6 +10,13 @@ namespace Salon.Models
         [Display(Name = "الاسم الكامل")]
         public string FullName { get; set; } = string.Empty;
 
+        // Alias للتوافق مع الكود القديم
+        [Display(Name = "الاسم")]
+        public string? Name { get; set; }
+
+        [Display(Name = "العمولة (%)")]
+        public decimal Commission { get; set; }
+
         [Display(Name = "رقم الهاتف")]
         public string? Phone { get; set; }
 
