@@ -39,15 +39,22 @@
                     <label asp-for="Email" class="form-label"></label>
                     <input asp-for="Email" class="form-control" />
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label asp-for="BasicSalary" class="form-label"></label>
                     <input asp-for="BasicSalary" type="number" step="0.001" class="form-control" />
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <label asp-for="Commission" class="form-label"></label>
+                    <div class="input-group">
+                        <input asp-for="Commission" type="number" step="0.01" min="0" max="100" class="form-control" placeholder="0" />
+                        <span class="input-group-text">%</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
                     <label asp-for="HireDate" class="form-label"></label>
                     <input asp-for="HireDate" type="date" class="form-control" />
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label asp-for="BirthDate" class="form-label"></label>
                     <input asp-for="BirthDate" type="date" class="form-control" />
                 </div>
@@ -62,15 +69,6 @@
                 <div class="col-md-4">
                     <label asp-for="ResidencyExpiry" class="form-label"></label>
                     <input asp-for="ResidencyExpiry" type="date" class="form-control" />
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="ContractType" class="form-label"></label>
-                    <select asp-for="ContractType" class="form-select">
-                        <option value="">-- اختر --</option>
-                        <option>دوام كامل</option>
-                        <option>دوام جزئي</option>
-                        <option>عقد مؤقت</option>
-                    </select>
                 </div>
                 <div class="col-12">
                     <label asp-for="Notes" class="form-label"></label>
