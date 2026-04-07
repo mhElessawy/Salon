@@ -34,6 +34,10 @@
                     <input type="number" name="BasicSalary" id="basicSalary" step="0.001" class="form-control" value="0" oninput="calcNet()" />
                 </div>
                 <div class="col-md-3">
+                    <label class="form-label">العمولة (%)</label>
+                    <input type="number" id="commissionDisplay" step="0.01" class="form-control" value="0" readonly style="background:#fff8e1;" />
+                </div>
+                <div class="col-md-3">
                     <label class="form-label">البدلات</label>
                     <input type="number" name="Allowances" step="0.001" class="form-control" value="0" oninput="calcNet()" />
                 </div>
@@ -43,7 +47,7 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">السلف المخصومة</label>
-                    <input type="number" name="AdvanceDeducted" step="0.001" class="form-control" value="0" oninput="calcNet()" />
+                    <input type="number" name="AdvanceDeducted" id="advanceDeducted" step="0.001" class="form-control" value="0" oninput="calcNet()" />
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">الصافي</label>
@@ -70,6 +74,25 @@ function calcNet() {
     const ded = parseFloat(document.querySelector('[name="Deductions"]').value) || 0;
     const adv = parseFloat(document.querySelector('[name="AdvanceDeducted"]').value) || 0;
     document.getElementById('netSalary').value = (basic + allow - ded - adv).toFixed(3);
+}
+
+function loadSalary(select) {
+    const empId = select.value;
+    if (!empId) {
+        document.querySelector('[name="BasicSalary"]').value = 0;
+        document.getElementById('commissionDisplay').value = 0;
+        document.getElementById('advanceDeducted').value = 0;
+        calcNet();
+        return;
+    }
+    fetch('/Salaries/GetEmployeeDetails?id=' + empId)
+        .then(r => r.json())
+        .then(data => {
+            document.querySelector('[name="BasicSalary"]').value = data.salary;
+            document.getElementById('commissionDisplay').value = data.commission;
+            document.getElementById('advanceDeducted').value = data.advances;
+            calcNet();
+        });
 }
 </script>
 }

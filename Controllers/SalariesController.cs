@@ -38,6 +38,24 @@ namespace Salon.Controllers
             return View(new Salary { Year = DateTime.Today.Year, Month = DateTime.Today.Month });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetEmployeeDetails(int id)
+        {
+            var employee = await _context.Employees.FindAsync(id);
+            if (employee == null) return NotFound();
+
+            var totalAdvances = await _context.EmployeeAdvances
+                .Where(a => a.EmployeeId == id && a.Status == "موافق عليها" && a.PaidDate == null)
+                .SumAsync(a => a.Amount);
+
+            return Json(new
+            {
+                salary = employee.Salary,
+                commission = employee.Commission,
+                advances = totalAdvances
+            });
+        }
+
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Salary model)
         {
