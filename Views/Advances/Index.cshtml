@@ -23,7 +23,9 @@
                 <thead>
                     <tr>
                         <th>الموظف</th>
-                        <th>المبلغ</th>
+                        <th>المبلغ الأصلي</th>
+                        <th>المخصوم</th>
+                        <th>المتبقي</th>
                         <th>التاريخ</th>
                         <th>السبب</th>
                         <th>الحالة</th>
@@ -40,6 +42,27 @@
                         <tr>
                             <td><strong>@(a.Employee?.FullName ?? "-")</strong></td>
                             <td>@a.Amount.ToString("N3") د.ك</td>
+                            <td>
+                                @if (a.DeductedAmount > 0)
+                                {
+                                    <span class="text-danger">@a.DeductedAmount.ToString("N3") د.ك</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @{var remaining = a.Amount - a.DeductedAmount;}
+                                @if (remaining > 0)
+                                {
+                                    <span class="text-warning fw-bold">@remaining.ToString("N3") د.ك</span>
+                                }
+                                else
+                                {
+                                    <span class="text-success">مسدد بالكامل</span>
+                                }
+                            </td>
                             <td>@a.AdvanceDate.ToString("yyyy/MM/dd")</td>
                             <td>@(a.Reason ?? "-")</td>
                             <td>

@@ -449,6 +449,9 @@ namespace Salon.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal>("DeductedAmount")
+                        .HasColumnType("decimal(18,3)");
+
                     b.Property<int>("EmployeeId")
                         .HasColumnType("int");
 

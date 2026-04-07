@@ -96,6 +96,10 @@ namespace Salon.Data
                 .Property(a => a.Amount)
                 .HasColumnType("decimal(18,3)");
 
+            builder.Entity<EmployeeAdvance>()
+                .Property(a => a.DeductedAmount)
+                .HasColumnType("decimal(18,3)");
+
             builder.Entity<Shift>()
                 .Property(s => s.OpeningBalance)
                 .HasColumnType("decimal(18,3)");

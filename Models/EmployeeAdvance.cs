@@ -29,6 +29,9 @@ namespace Salon.Models
         [Display(Name = "الحالة")]
         public string Status { get; set; } = "معلق";
 
+        [Display(Name = "المبلغ المخصوم")]
+        public decimal DeductedAmount { get; set; } = 0;
+
         [Display(Name = "تاريخ السداد")]
         [DataType(DataType.Date)]
         public DateTime? PaidDate { get; set; }

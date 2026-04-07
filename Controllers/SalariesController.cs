@@ -44,9 +44,10 @@ namespace Salon.Controllers
             var employee = await _context.Employees.FindAsync(id);
             if (employee == null) return NotFound();
 
-            var totalAdvances = await _context.EmployeeAdvances
+            var pendingAdvances = await _context.EmployeeAdvances
                 .Where(a => a.EmployeeId == id && a.Status == "موافق عليها" && a.PaidDate == null)
-                .SumAsync(a => a.Amount);
+                .ToListAsync();
+            var totalAdvances = pendingAdvances.Sum(a => a.Amount - a.DeductedAmount);
 
             return Json(new
             {
@@ -81,7 +82,7 @@ namespace Salon.Controllers
                 salary.Status = "مصروف";
                 salary.PaidDate = DateTime.Today;
 
-                // خصم مبلغ السلف المخصومة من سلف الموظف المعتمدة (FIFO)
+                // خصم مبلغ السلف المخصومة من سلف الموظف المعتمدة (FIFO) مع الحفاظ على المبلغ الأصلي
                 if (salary.AdvanceDeducted > 0)
                 {
                     var advances = await _context.EmployeeAdvances
@@ -94,14 +95,17 @@ namespace Salon.Controllers
                     {
                         if (remaining <= 0) break;
 
-                        if (advance.Amount <= remaining)
+                        decimal advanceRemaining = advance.Amount - advance.DeductedAmount;
+                        if (advanceRemaining <= remaining)
                         {
-                            remaining -= advance.Amount;
+                            remaining -= advanceRemaining;
+                            advance.DeductedAmount = advance.Amount;
                             advance.PaidDate = DateTime.Today;
+                            advance.Status = "مسددة";
                         }
                         else
                         {
-                            advance.Amount -= remaining;
+                            advance.DeductedAmount += remaining;
                             remaining = 0;
                         }
                     }
