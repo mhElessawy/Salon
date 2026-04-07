@@ -80,6 +80,33 @@ namespace Salon.Controllers
             {
                 salary.Status = "مصروف";
                 salary.PaidDate = DateTime.Today;
+
+                // خصم مبلغ السلف المخصومة من سلف الموظف المعتمدة (FIFO)
+                if (salary.AdvanceDeducted > 0)
+                {
+                    var advances = await _context.EmployeeAdvances
+                        .Where(a => a.EmployeeId == salary.EmployeeId && a.Status == "موافق عليها" && a.PaidDate == null)
+                        .OrderBy(a => a.AdvanceDate)
+                        .ToListAsync();
+
+                    decimal remaining = salary.AdvanceDeducted;
+                    foreach (var advance in advances)
+                    {
+                        if (remaining <= 0) break;
+
+                        if (advance.Amount <= remaining)
+                        {
+                            remaining -= advance.Amount;
+                            advance.PaidDate = DateTime.Today;
+                        }
+                        else
+                        {
+                            advance.Amount -= remaining;
+                            remaining = 0;
+                        }
+                    }
+                }
+
                 await _context.SaveChangesAsync();
                 TempData["Success"] = "تم صرف الراتب بنجاح";
             }
