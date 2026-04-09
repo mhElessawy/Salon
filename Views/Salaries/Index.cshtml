@@ -29,7 +29,7 @@
             <div class="col-auto">
                 <label class="form-label mb-1">السنة</label>
                 <select name="year" class="form-select" style="min-width:110px;">
-                    @for (int y = DateTime.Today.Year; y >= DateTime.Today.Year - 3; y--)
+                    @foreach (int y in ViewBag.Years)
                     {
                         <option value="@y" @(y == currentYear ? "selected" : "")>@y</option>
                     }

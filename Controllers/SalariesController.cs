@@ -40,6 +40,12 @@ namespace Salon.Controllers
                 await _context.Employees.Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync(),
                 "Id", "FullName");
 
+            // كل السنوات الموجودة في قاعدة البيانات + السنة الحالية
+            var dbYears = await _context.Salaries.Select(s => s.Year).Distinct().ToListAsync();
+            if (!dbYears.Contains(DateTime.Today.Year))
+                dbYears.Add(DateTime.Today.Year);
+            ViewBag.Years = dbYears.OrderByDescending(yr => yr).ToList();
+
             return View(salaries);
         }
 
