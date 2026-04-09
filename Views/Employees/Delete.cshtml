@@ -7,35 +7,20 @@
 <h2 class="mb-4 text-danger">تأكيد الحذف</h2>
 
 <div class="alert alert-warning" dir="rtl">
-    هل أنت متأكد من حذف الموظف <strong>@Model.Name</strong>؟
+    هل أنت متأكد من حذف الموظف <strong>@Model.FullName</strong>؟
 </div>
 
 <div class="card" style="max-width: 400px;" dir="rtl">
     <div class="card-body">
         <dl class="row mb-0">
             <dt class="col-sm-4">الاسم</dt>
-            <dd class="col-sm-8">@Model.Name</dd>
+            <dd class="col-sm-8">@Model.FullName</dd>
 
             <dt class="col-sm-4">العمولة</dt>
             <dd class="col-sm-8">@Model.Commission%</dd>
 
             <dt class="col-sm-4">نوع الخدمة</dt>
-            <dd class="col-sm-8">
-                @switch (Model.ServiceType)
-                {
-                    case Salon.Models.ServiceType.Haircut:
-                        <text>حلاقة</text>
-                        break;
-                    case Salon.Models.ServiceType.Massage:
-
-                        <text>مساج</text>
-                        break;
-                    case Salon.Models.ServiceType.Both:
-
-                        <text>حلاقة + مساج</text>
-                        break;
-                }
-            </dd>
+            <dd class="col-sm-8">@Model.Department</dd>
         </dl>
     </div>
 </div>

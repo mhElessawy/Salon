@@ -34,6 +34,10 @@
                     <input type="number" name="BasicSalary" id="basicSalary" step="0.001" class="form-control" value="0" oninput="calcNet()" />
                 </div>
                 <div class="col-md-3">
+                    <label class="form-label">العمولة (%)</label>
+                    <input type="number" id="commissionDisplay" step="0.01" class="form-control" value="0" readonly style="background:#fff8e1;" />
+                </div>
+                <div class="col-md-3">
                     <label class="form-label">البدلات</label>
                     <input type="number" name="Allowances" step="0.001" class="form-control" value="0" oninput="calcNet()" />
                 </div>
@@ -42,8 +46,9 @@
                     <input type="number" name="Deductions" step="0.001" class="form-control" value="0" oninput="calcNet()" />
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">السلف المخصومة</label>
-                    <input type="number" name="AdvanceDeducted" step="0.001" class="form-control" value="0" oninput="calcNet()" />
+                    <label class="form-label">السلف المخصومة <span id="maxAdvanceLabel" class="text-muted small"></span></label>
+                    <input type="number" name="AdvanceDeducted" id="advanceDeducted" step="0.001" class="form-control" value="0" oninput="validateAndCalc()" />
+                    <div id="advanceError" class="text-danger small d-none">لا يمكن أن تتجاوز إجمالي السلف</div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">الصافي</label>
@@ -63,13 +68,56 @@
 </div>
 
 @section Scripts {
-<script>
-function calcNet() {
-    const basic = parseFloat(document.querySelector('[name="BasicSalary"]').value) || 0;
-    const allow = parseFloat(document.querySelector('[name="Allowances"]').value) || 0;
-    const ded = parseFloat(document.querySelector('[name="Deductions"]').value) || 0;
-    const adv = parseFloat(document.querySelector('[name="AdvanceDeducted"]').value) || 0;
-    document.getElementById('netSalary').value = (basic + allow - ded - adv).toFixed(3);
-}
-</script>
+    <script>
+        let maxAdvances = 0;
+
+        function calcNet() {
+            const basic = parseFloat(document.querySelector('[name="BasicSalary"]').value) || 0;
+            const allow = parseFloat(document.querySelector('[name="Allowances"]').value) || 0;
+            const ded = parseFloat(document.querySelector('[name="Deductions"]').value) || 0;
+            const adv = parseFloat(document.querySelector('[name="AdvanceDeducted"]').value) || 0;
+            document.getElementById('netSalary').value = (basic + allow - ded - adv).toFixed(3);
+        }
+
+        function validateAndCalc() {
+            const advInput = document.getElementById('advanceDeducted');
+            const advErr = document.getElementById('advanceError');
+            const submitBtn = document.querySelector('[type="submit"]');
+            const val = parseFloat(advInput.value) || 0;
+
+            if (val > maxAdvances) {
+                advErr.classList.remove('d-none');
+                submitBtn.disabled = true;
+            } else {
+                advErr.classList.add('d-none');
+                submitBtn.disabled = false;
+            }
+            calcNet();
+        }
+
+        function loadSalary(select) {
+            const empId = select.value;
+            if (!empId) {
+                document.querySelector('[name="BasicSalary"]').value = 0;
+                document.getElementById('commissionDisplay').value = 0;
+                document.getElementById('advanceDeducted').value = 0;
+                document.getElementById('maxAdvanceLabel').textContent = '';
+                maxAdvances = 0;
+                calcNet();
+                return;
+            }
+            fetch('/Salaries/GetEmployeeDetails?id=' + empId)
+                .then(r => r.json())
+                .then(data => {
+                    maxAdvances = data.advances;
+                    document.querySelector('[name="BasicSalary"]').value = data.salary;
+                    document.getElementById('commissionDisplay').value = data.commission;
+                    document.getElementById('advanceDeducted').value = data.advances;
+                    document.getElementById('maxAdvanceLabel').textContent = '(الحد الأقصى: ' + data.advances.toFixed(3) + ')';
+                    document.getElementById('advanceError').classList.add('d-none');
+                    document.querySelector('[type="submit"]').disabled = false;
+                    calcNet();
+                });
+        }
+    </script>
 }
