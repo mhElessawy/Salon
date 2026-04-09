@@ -1,0 +1,161 @@
+@model IEnumerable<Salon.Models.EmployeeAdvance>
+@{
+    ViewData["Title"] = "تقرير السلف";
+    decimal totalReceived = Model.Sum(a => a.Amount);
+    decimal totalPaid     = Model.Sum(a => a.AmountPaid);
+    decimal totalRemain   = totalReceived - totalPaid;
+    var grouped = Model.GroupBy(a => a.Employee?.FullName ?? "-").OrderBy(g => g.Key);
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="fas fa-file-invoice-dollar me-2"></i>تقرير السلف</h1>
+        <p>استلام وسداد سلف الموظفين</p>
+    </div>
+    <button onclick="window.print()" class="btn btn-outline-secondary">
+        <i class="fas fa-print me-1"></i> طباعة
+    </button>
+</div>
+
+<div class="card mb-3 no-print">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label mb-1">من تاريخ</label>
+                <input type="date" name="dateFrom" value="@ViewBag.DateFrom" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1">إلى تاريخ</label>
+                <input type="date" name="dateTo" value="@ViewBag.DateTo" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-1">الموظف</label>
+                <select name="employeeId" class="form-select">
+                    <option value="">-- الكل --</option>
+                    @foreach (SelectListItem emp in ViewBag.Employees)
+                    {
+                        <option value="@emp.Value" @(emp.Value == ViewBag.EmployeeId?.ToString() ? "selected" : "")>@emp.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1">الحالة</label>
+                <select name="status" class="form-select">
+                    <option value="">-- الكل --</option>
+                    @foreach (var st in new[] { "معلق", "موافق عليها", "مدفوعة جزئياً", "مسددة" })
+                    {
+                        <option value="@st" @(ViewBag.Status == st ? "selected" : "")>@st</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-search me-1"></i> بحث</button>
+                <a href="@Url.Action("Report")" class="btn btn-outline-secondary ms-1">إعادة تعيين</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="card border-danger">
+            <div class="card-body text-center">
+                <div class="text-muted small mb-1"><i class="fas fa-arrow-down text-danger me-1"></i> إجمالي الاستلام</div>
+                <div class="fs-4 fw-bold text-danger">@totalReceived.ToString("N3") <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-success">
+            <div class="card-body text-center">
+                <div class="text-muted small mb-1"><i class="fas fa-arrow-up text-success me-1"></i> إجمالي السداد</div>
+                <div class="fs-4 fw-bold text-success">@totalPaid.ToString("N3") <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-warning">
+            <div class="card-body text-center">
+                <div class="text-muted small mb-1"><i class="fas fa-clock text-warning me-1"></i> إجمالي المتبقي</div>
+                <div class="fs-4 fw-bold text-warning">@totalRemain.ToString("N3") <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="card"><div class="card-body text-center text-muted py-5">لا توجد سلف في هذه الفترة</div></div>
+}
+else
+{
+    @foreach (var group in grouped)
+    {
+        decimal gReceived = group.Sum(a => a.Amount);
+        decimal gPaid     = group.Sum(a => a.AmountPaid);
+        decimal gRemain   = gReceived - gPaid;
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong><i class="fas fa-user me-2"></i>@group.Key</strong>
+                <div class="d-flex gap-3 small">
+                    <span class="text-danger">استلام: <strong>@gReceived.ToString("N3")</strong> د.ك</span>
+                    <span class="text-success">سداد: <strong>@gPaid.ToString("N3")</strong> د.ك</span>
+                    <span class="text-warning">متبقي: <strong>@gRemain.ToString("N3")</strong> د.ك</span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>تاريخ الاستلام</th>
+                            <th class="text-danger">مبلغ السلفة (استلام)</th>
+                            <th>تاريخ السداد</th>
+                            <th class="text-success">المسدد (دفع)</th>
+                            <th class="text-warning">المتبقي</th>
+                            <th>السبب</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in group)
+                        {
+                            decimal rem = a.Amount - a.AmountPaid;
+                            string badgeClass = a.Status == "مسددة"          ? "bg-success" :
+                                               a.Status == "مدفوعة جزئياً" ? "bg-info text-dark" :
+                                               a.Status == "موافق عليها"    ? "bg-primary" : "bg-warning text-dark";
+                            <tr>
+                                <td>@a.AdvanceDate.ToString("yyyy/MM/dd")</td>
+                                <td class="text-danger fw-bold">@a.Amount.ToString("N3") د.ك</td>
+                                <td>@(a.PaidDate?.ToString("yyyy/MM/dd") ?? "-")</td>
+                                <td class="text-success fw-bold">@a.AmountPaid.ToString("N3") د.ك</td>
+                                <td class="@(rem > 0 ? "text-danger fw-bold" : "text-muted")">@rem.ToString("N3") د.ك</td>
+                                <td>@(a.Reason ?? "-")</td>
+                                <td><span class="badge @badgeClass">@a.Status</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td>الإجمالي</td>
+                            <td class="text-danger">@gReceived.ToString("N3") د.ك</td>
+                            <td></td>
+                            <td class="text-success">@gPaid.ToString("N3") د.ك</td>
+                            <td class="text-warning">@gRemain.ToString("N3") د.ك</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    }
+}
+
+@section Styles {
+<style>
+@@media print {
+    .no-print, nav, .sidebar, .topbar { display: none !important; }
+    .card { break-inside: avoid; }
+}
+</style>
+}
