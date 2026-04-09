@@ -29,6 +29,12 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
+// التحقق من SecurityStamp في كل طلب (يضمن طرد الجلسة القديمة فوراً)
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+{
+    options.ValidationInterval = TimeSpan.Zero;
+});
+
 // Cookie configuration
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -37,6 +43,12 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Account/AccessDenied";
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
     options.SlidingExpiration = true;
+    // إعادة التوجيه لصفحة اللوجن عند انتهاء الجلسة أو الطرد
+    options.Events.OnRedirectToLogin = ctx =>
+    {
+        ctx.Response.Redirect(ctx.RedirectUri);
+        return Task.CompletedTask;
+    };
 });
 
 // Add session

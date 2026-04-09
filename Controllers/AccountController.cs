@@ -38,11 +38,14 @@ namespace Salon.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            var result = await _signInManager.PasswordSignInAsync(
-                model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
-
-            if (result.Succeeded)
+            // التحقق من المستخدم وكلمة المرور يدوياً
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
             {
+                // تغيير SecurityStamp يُبطل كل الجلسات الأخرى فوراً
+                await _userManager.UpdateSecurityStampAsync(user);
+                await _signInManager.SignInAsync(user, model.RememberMe);
+
                 if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                     return Redirect(returnUrl);
                 return RedirectToAction("Index", "Dashboard");
