@@ -23,7 +23,9 @@
                 <thead>
                     <tr>
                         <th>الموظف</th>
-                        <th>المبلغ</th>
+                        <th>المبلغ الأصلي</th>
+                        <th>المدفوع</th>
+                        <th>المتبقي</th>
                         <th>التاريخ</th>
                         <th>السبب</th>
                         <th>الحالة</th>
@@ -33,19 +35,30 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="6" class="text-center text-muted py-4">لا توجد سلف مسجلة</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted py-4">لا توجد سلف مسجلة</td></tr>
                     }
                     @foreach (var a in Model)
                     {
+                        decimal remaining = a.Amount - a.AmountPaid;
                         <tr>
                             <td><strong>@(a.Employee?.FullName ?? "-")</strong></td>
                             <td>@a.Amount.ToString("N3") د.ك</td>
+                            <td class="text-success">@a.AmountPaid.ToString("N3") د.ك</td>
+                            <td class="@(remaining > 0 ? "text-danger fw-bold" : "text-muted")">
+                                @remaining.ToString("N3") د.ك
+                            </td>
                             <td>@a.AdvanceDate.ToString("yyyy/MM/dd")</td>
                             <td>@(a.Reason ?? "-")</td>
                             <td>
-                                <span class="badge @(a.Status == "مسددة" ? "bg-success" : a.Status == "موافق عليها" ? "bg-primary" : "bg-warning text-dark")">
-                                    @a.Status
-                                </span>
+                                @{
+                                    var badgeClass = a.Status switch {
+                                        "مسددة"          => "bg-success",
+                                        "مدفوعة جزئياً" => "bg-info text-dark",
+                                        "موافق عليها"    => "bg-primary",
+                                        _                => "bg-warning text-dark"
+                                    };
+                                }
+                                <span class="badge @badgeClass">@a.Status</span>
                             </td>
                             <td>
                                 @if (a.Status == "معلق")
@@ -56,6 +69,13 @@
                                             <i class="fas fa-check"></i> موافقة
                                         </button>
                                     </form>
+                                }
+                                @if (a.Status != "مسددة")
+                                {
+                                    <a href="@Url.Action("PayDirect", new { id = a.Id })"
+                                       class="btn btn-sm btn-outline-primary me-1" title="سداد مباشر">
+                                        <i class="fas fa-hand-holding-usd"></i> سداد
+                                    </a>
                                 }
                                 <form asp-action="Delete" asp-route-id="@a.Id" method="post" style="display:inline"
                                       onsubmit="return confirm('هل تريد حذف السلفة؟')">

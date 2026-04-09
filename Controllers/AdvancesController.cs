@@ -62,6 +62,38 @@ namespace Salon.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        [HttpGet]
+        public async Task<IActionResult> PayDirect(int id)
+        {
+            var advance = await _context.EmployeeAdvances
+                .Include(a => a.Employee)
+                .FirstOrDefaultAsync(a => a.Id == id);
+            if (advance == null) return NotFound();
+            return View(advance);
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> PayDirect(int id, decimal payAmount)
+        {
+            var advance = await _context.EmployeeAdvances.FindAsync(id);
+            if (advance == null) return NotFound();
+
+            decimal maxPayable = advance.Amount - advance.AmountPaid;
+            payAmount = Math.Min(payAmount, maxPayable);
+
+            advance.AmountPaid += payAmount;
+            advance.PaidDate = DateTime.Today;
+
+            if (advance.AmountPaid >= advance.Amount)
+                advance.Status = "مسددة";
+            else
+                advance.Status = "مدفوعة جزئياً";
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = $"تم تسجيل دفعة {payAmount:N3} د.ك — المتبقي: {advance.Amount - advance.AmountPaid:N3} د.ك";
+            return RedirectToAction(nameof(Index));
+        }
+
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {

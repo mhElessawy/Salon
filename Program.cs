@@ -91,6 +91,14 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
         context.Database.EnsureCreated();
+
+        // إضافة عمود AmountPaid إذا لم يكن موجوداً (للقواعد القديمة)
+        var isSqlite = context.Database.ProviderName?.Contains("Sqlite") == true;
+        var alterSql = isSqlite
+            ? "ALTER TABLE EmployeeAdvances ADD COLUMN AmountPaid REAL NOT NULL DEFAULT 0"
+            : "IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EmployeeAdvances' AND COLUMN_NAME='AmountPaid') ALTER TABLE EmployeeAdvances ADD AmountPaid DECIMAL(18,3) NOT NULL DEFAULT 0";
+        try { context.Database.ExecuteSqlRaw(alterSql); } catch { /* العمود موجود بالفعل */ }
+
         await SeedData.InitializeAsync(services);
     }
     catch (Exception ex)

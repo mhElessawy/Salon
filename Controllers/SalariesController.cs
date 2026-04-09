@@ -61,11 +61,11 @@ namespace Salon.Controllers
             var employee = await _context.Employees.FindAsync(employeeId);
             if (employee == null) return NotFound();
 
-            // جمع كل السلف غير المخصومة (معلق أو موافق عليها)
+            // مجموع المتبقي من السلف غير المسددة
             var pendingAdvances = await _context.EmployeeAdvances
                 .Where(a => a.EmployeeId == employeeId &&
-                            (a.Status == "معلق" || a.Status == "موافق عليها"))
-                .SumAsync(a => (decimal?)a.Amount) ?? 0;
+                            (a.Status == "معلق" || a.Status == "موافق عليها" || a.Status == "مدفوعة جزئياً"))
+                .SumAsync(a => (decimal?)(a.Amount - a.AmountPaid)) ?? 0;
 
             // التحقق من وجود راتب مسبق لنفس الشهر والسنة
             var alreadyPaid = await _context.Salaries.AnyAsync(s =>
@@ -117,6 +117,35 @@ namespace Salon.Controllers
             {
                 salary.Status = "مصروف";
                 salary.PaidDate = DateTime.Today;
+
+                // تسوية السلف المخصومة من الراتب
+                if (salary.AdvanceDeducted > 0)
+                {
+                    var advances = await _context.EmployeeAdvances
+                        .Where(a => a.EmployeeId == salary.EmployeeId &&
+                                    (a.Status == "معلق" || a.Status == "موافق عليها"))
+                        .OrderBy(a => a.AdvanceDate)
+                        .ToListAsync();
+
+                    decimal remaining = salary.AdvanceDeducted;
+                    foreach (var adv in advances)
+                    {
+                        if (remaining <= 0) break;
+                        decimal canPay = Math.Min(adv.Amount - adv.AmountPaid, remaining);
+                        adv.AmountPaid += canPay;
+                        remaining -= canPay;
+                        if (adv.AmountPaid >= adv.Amount)
+                        {
+                            adv.Status = "مسددة";
+                            adv.PaidDate = DateTime.Today;
+                        }
+                        else
+                        {
+                            adv.Status = "مدفوعة جزئياً";
+                        }
+                    }
+                }
+
                 await _context.SaveChangesAsync();
                 TempData["Success"] = "تم صرف الراتب بنجاح";
             }

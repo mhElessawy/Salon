@@ -33,6 +33,13 @@ namespace Salon.Models
         [DataType(DataType.Date)]
         public DateTime? PaidDate { get; set; }
 
+        [Display(Name = "المبلغ المدفوع")]
+        [DataType(DataType.Currency)]
+        public decimal AmountPaid { get; set; } = 0;
+
+        // حسابي — لا يُخزن في قاعدة البيانات
+        public decimal Remaining => Amount - AmountPaid;
+
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
 
