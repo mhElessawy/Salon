@@ -38,6 +38,23 @@ namespace Salon.Controllers
             return View(new Salary { Year = DateTime.Today.Year, Month = DateTime.Today.Month });
         }
 
+        // يُستخدم من JavaScript لجلب راتب الموظف وسلفه المعلق
+        public async Task<IActionResult> GetEmployeeInfo(int employeeId, int month, int year)
+        {
+            var employee = await _context.Employees.FindAsync(employeeId);
+            if (employee == null) return NotFound();
+
+            var pendingAdvances = await _context.EmployeeAdvances
+                .Where(a => a.EmployeeId == employeeId && a.Status == "معلق")
+                .SumAsync(a => (decimal?)a.Amount) ?? 0;
+
+            return Json(new
+            {
+                basicSalary = employee.BasicSalary,
+                advanceDeducted = pendingAdvances
+            });
+        }
+
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Salary model)
         {
