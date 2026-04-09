@@ -224,6 +224,12 @@
                         <span>سلف الموظفين</span>
                     </a>
                 </li>
+                <li>
+                    <a href="@Url.Action("Report", "Advances")" class="@IsActive("Advances","Report")">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <span>تقرير السلف</span>
+                    </a>
+                </li>
                 }
                 @if (canSee("Attendance"))
                 {
