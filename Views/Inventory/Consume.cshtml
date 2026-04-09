@@ -1,0 +1,41 @@
+@model Salon.Models.StockMovement
+@{ ViewData["Title"] = "استهلاك منتج"; }
+
+<div class="page-header"><h1><i class="fas fa-user-tag me-2"></i>استهلاك منتج (موظف)</h1></div>
+<div class="row justify-content-center"><div class="col-md-6">
+<div class="card"><div class="card-body">
+    <form asp-action="Consume" method="post">
+        @Html.AntiForgeryToken()
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">المنتج</label>
+                <select name="ProductId" asp-items="@ViewBag.Products" class="form-select" required>
+                    <option value="">-- اختر المنتج --</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">الموظف</label>
+                <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select" required>
+                    <option value="">-- اختر الموظف --</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">الكمية</label>
+                <input name="Quantity" type="number" min="1" value="1" class="form-control" required />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">التاريخ</label>
+                <input name="MovementDate" type="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-12">
+                <label class="form-label">ملاحظات</label>
+                <input name="Notes" class="form-control" placeholder="سبب الاستهلاك..." />
+            </div>
+        </div>
+        <div class="mt-4">
+            <button type="submit" class="btn btn-warning me-2"><i class="fas fa-check me-1"></i> تأكيد الاستهلاك</button>
+            <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
+        </div>
+    </form>
+</div></div>
+</div></div>

@@ -1,0 +1,38 @@
+@model Salon.Models.Supplier
+@{ ViewData["Title"] = "تعديل مورد"; }
+
+<div class="page-header"><h1><i class="fas fa-truck me-2"></i>تعديل بيانات المورد</h1></div>
+<div class="card"><div class="card-body">
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input asp-for="Id" type="hidden" />
+        <input asp-for="CreatedAt" type="hidden" />
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger small"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="Phone" class="form-label"></label>
+                <input asp-for="Phone" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Address" class="form-label"></label>
+                <input asp-for="Address" class="form-control" />
+            </div>
+            <div class="col-12">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary me-2"><i class="fas fa-save me-1"></i> حفظ</button>
+            <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
+        </div>
+    </form>
+</div></div>

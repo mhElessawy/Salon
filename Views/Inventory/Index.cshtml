@@ -1,35 +1,28 @@
 @model IEnumerable<Salon.Models.Product>
-@{
-    ViewData["Title"] = "المخزون";
-}
+@{ ViewData["Title"] = "المنتجات"; }
 
 <div class="page-header d-flex justify-content-between align-items-center">
-    <div>
-        <h1><i class="fas fa-boxes me-2"></i>المخزون</h1>
-        <p>إدارة المنتجات والمخزون</p>
-    </div>
-    <a href="@Url.Action("Create")" class="btn btn-primary">
-        <i class="fas fa-plus me-1"></i> إضافة منتج
-    </a>
+    <div><h1><i class="fas fa-boxes me-2"></i>المنتجات</h1></div>
+    <a href="@Url.Action("Create")" class="btn btn-primary"><i class="fas fa-plus me-1"></i> إضافة منتج</a>
 </div>
 
 <div class="card">
     <div class="card-body">
         <form method="get" class="search-bar mb-3">
-            <input type="text" name="search" value="@ViewBag.Search" class="form-control" placeholder="بحث بالاسم أو الباركود..." />
+            <input type="text" name="search" value="@ViewBag.Search" class="form-control" placeholder="بحث بالاسم..." />
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i></button>
         </form>
         <div class="table-responsive">
-            <table class="table">
+            <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th>#</th>
                         <th>اسم المنتج</th>
+                        <th>المورد</th>
                         <th>الفئة</th>
+                        <th>سعر الشراء</th>
                         <th>سعر البيع</th>
                         <th>الكمية</th>
                         <th>تاريخ الانتهاء</th>
-                        <th>الحالة</th>
                         <th>الإجراءات</th>
                     </tr>
                 </thead>
@@ -40,34 +33,24 @@
                     }
                     @foreach (var p in Model)
                     {
-                        var isExpiring = p.ExpiryDate.HasValue && p.ExpiryDate.Value <= DateTime.Today.AddDays(30);
-                        var isLowStock = p.StockQuantity <= p.MinStockLevel;
+                        bool isLowStock  = p.StockQuantity <= p.MinStockLevel;
+                        bool isExpiring  = p.ExpiryDate.HasValue && p.ExpiryDate.Value <= DateTime.Today.AddDays(30);
                         <tr class="@(isExpiring ? "table-warning" : "")">
-                            <td>@p.Id</td>
                             <td><strong>@p.Name</strong></td>
+                            <td>@(p.Supplier?.Name ?? "-")</td>
                             <td>@(p.Category ?? "-")</td>
+                            <td>@p.PurchasePrice.ToString("N3") د.ك</td>
                             <td>@p.SalePrice.ToString("N3") د.ك</td>
                             <td>
-                                <span class="badge @(isLowStock ? "bg-danger" : "bg-success")">
-                                    @p.StockQuantity @p.Unit
-                                </span>
+                                <span class="badge @(isLowStock ? "bg-danger" : "bg-success")">@p.StockQuantity</span>
                             </td>
                             <td>@(p.ExpiryDate?.ToString("yyyy/MM/dd") ?? "-")</td>
                             <td>
-                                @if (isExpiring) { <span class="badge bg-warning text-dark">قريب من الانتهاء</span> }
-                                else if (isLowStock) { <span class="badge bg-danger">مخزون منخفض</span> }
-                                else { <span class="badge bg-success">جيد</span> }
-                            </td>
-                            <td>
-                                <a href="@Url.Action("Edit", new { id = p.Id })" class="btn btn-sm btn-outline-warning me-1">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form asp-action="Delete" asp-route-id="@p.Id" method="post" style="display:inline"
-                                      onsubmit="return confirm('هل تريد حذف هذا المنتج؟')">
+                                <a href="@Url.Action("Movements", new { productId = p.Id })" class="btn btn-sm btn-outline-info me-1" title="سجل الحركات"><i class="fas fa-history"></i></a>
+                                <a href="@Url.Action("Edit", new { id = p.Id })" class="btn btn-sm btn-outline-warning me-1"><i class="fas fa-edit"></i></a>
+                                <form asp-action="Delete" asp-route-id="@p.Id" method="post" style="display:inline" onsubmit="return confirm('حذف المنتج؟')">
                                     @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
                                 </form>
                             </td>
                         </tr>

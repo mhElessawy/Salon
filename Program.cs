@@ -92,12 +92,52 @@ using (var scope = app.Services.CreateScope())
         var context = services.GetRequiredService<ApplicationDbContext>();
         context.Database.EnsureCreated();
 
-        // إضافة عمود AmountPaid إذا لم يكن موجوداً (للقواعد القديمة)
         var isSqlite = context.Database.ProviderName?.Contains("Sqlite") == true;
-        var alterSql = isSqlite
-            ? "ALTER TABLE EmployeeAdvances ADD COLUMN AmountPaid REAL NOT NULL DEFAULT 0"
-            : "IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EmployeeAdvances' AND COLUMN_NAME='AmountPaid') ALTER TABLE EmployeeAdvances ADD AmountPaid DECIMAL(18,3) NOT NULL DEFAULT 0";
-        try { context.Database.ExecuteSqlRaw(alterSql); } catch { /* العمود موجود بالفعل */ }
+
+        // ترقية قاعدة البيانات الموجودة (إضافة أعمدة/جداول جديدة)
+        void TryExec(string sql) { try { context.Database.ExecuteSqlRaw(sql); } catch { } }
+
+        if (isSqlite)
+        {
+            TryExec("ALTER TABLE EmployeeAdvances ADD COLUMN AmountPaid REAL NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Products ADD COLUMN SupplierId INTEGER NULL");
+            TryExec("ALTER TABLE Products ADD COLUMN OpeningQuantity INTEGER NOT NULL DEFAULT 0");
+            TryExec(@"CREATE TABLE IF NOT EXISTS Suppliers (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name TEXT NOT NULL,
+                Phone TEXT,
+                Email TEXT,
+                Address TEXT,
+                Notes TEXT,
+                IsActive INTEGER NOT NULL DEFAULT 1,
+                CreatedAt TEXT NOT NULL DEFAULT (datetime('now')))");
+            TryExec(@"CREATE TABLE IF NOT EXISTS StockMovements (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ProductId INTEGER NOT NULL,
+                MovementType TEXT NOT NULL DEFAULT 'استلام',
+                Quantity INTEGER NOT NULL,
+                UnitPrice REAL NOT NULL DEFAULT 0,
+                EmployeeId INTEGER NULL,
+                SupplierId INTEGER NULL,
+                Notes TEXT,
+                MovementDate TEXT NOT NULL DEFAULT (date('now')),
+                CreatedAt TEXT NOT NULL DEFAULT (datetime('now')))");
+        }
+        else
+        {
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EmployeeAdvances' AND COLUMN_NAME='AmountPaid') ALTER TABLE EmployeeAdvances ADD AmountPaid DECIMAL(18,3) NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Products' AND COLUMN_NAME='SupplierId') ALTER TABLE Products ADD SupplierId INT NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Products' AND COLUMN_NAME='OpeningQuantity') ALTER TABLE Products ADD OpeningQuantity INT NOT NULL DEFAULT 0");
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='Suppliers')
+                CREATE TABLE Suppliers (Id INT IDENTITY PRIMARY KEY, Name NVARCHAR(200) NOT NULL,
+                Phone NVARCHAR(50), Email NVARCHAR(200), Address NVARCHAR(500), Notes NVARCHAR(MAX),
+                IsActive BIT NOT NULL DEFAULT 1, CreatedAt DATETIME NOT NULL DEFAULT GETDATE())");
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='StockMovements')
+                CREATE TABLE StockMovements (Id INT IDENTITY PRIMARY KEY, ProductId INT NOT NULL,
+                MovementType NVARCHAR(50) NOT NULL DEFAULT N'استلام', Quantity INT NOT NULL,
+                UnitPrice DECIMAL(18,3) NOT NULL DEFAULT 0, EmployeeId INT NULL, SupplierId INT NULL,
+                Notes NVARCHAR(MAX), MovementDate DATE NOT NULL DEFAULT GETDATE(), CreatedAt DATETIME NOT NULL DEFAULT GETDATE())");
+        }
 
         await SeedData.InitializeAsync(services);
     }

@@ -1,0 +1,71 @@
+@model Salon.Models.StockMovement
+@{ ViewData["Title"] = "إضافة / إهلاك كمية"; }
+
+<div class="page-header"><h1><i class="fas fa-exchange-alt me-2"></i>إضافة / إهلاك كمية</h1></div>
+<div class="row justify-content-center"><div class="col-md-7">
+<div class="card"><div class="card-body">
+    <form asp-action="StockAdjust" method="post">
+        @Html.AntiForgeryToken()
+        <div class="row g-3">
+            <div class="col-md-12">
+                <label class="form-label">نوع العملية</label>
+                <div class="d-flex gap-3">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="MovementType" value="استلام" id="typeReceive" checked />
+                        <label class="form-check-label text-success fw-bold" for="typeReceive"><i class="fas fa-plus-circle me-1"></i> إضافة كمية (استلام)</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="MovementType" value="إهلاك" id="typeDepr" />
+                        <label class="form-check-label text-danger fw-bold" for="typeDepr"><i class="fas fa-minus-circle me-1"></i> إهلاك كمية</label>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">المنتج</label>
+                <select name="ProductId" asp-items="@ViewBag.Products" class="form-select" required>
+                    <option value="">-- اختر المنتج --</option>
+                </select>
+                <span asp-validation-for="ProductId" class="text-danger small"></span>
+            </div>
+            <div class="col-md-6" id="supplierRow">
+                <label class="form-label">المورد (للاستلام)</label>
+                <select name="SupplierId" asp-items="@ViewBag.Suppliers" class="form-select">
+                    <option value="">-- اختياري --</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">الكمية</label>
+                <input name="Quantity" type="number" min="1" value="1" class="form-control" required />
+                <span asp-validation-for="Quantity" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">سعر الوحدة (اختياري)</label>
+                <input name="UnitPrice" type="number" step="0.001" min="0" value="0" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">التاريخ</label>
+                <input name="MovementDate" type="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-12">
+                <label class="form-label">ملاحظات</label>
+                <input name="Notes" class="form-control" placeholder="سبب الإهلاك أو رقم الشحنة..." />
+            </div>
+        </div>
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary me-2"><i class="fas fa-save me-1"></i> حفظ</button>
+            <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
+        </div>
+    </form>
+</div></div>
+</div></div>
+
+@section Scripts {
+<script>
+document.querySelectorAll('[name="MovementType"]').forEach(r => {
+    r.addEventListener('change', () => {
+        document.getElementById('supplierRow').style.display =
+            r.value === 'استلام' ? '' : 'none';
+    });
+});
+</script>
+}
