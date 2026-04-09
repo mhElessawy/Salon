@@ -29,6 +29,12 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
+// «· Õﬁﬁ „‰ SecurityStamp ›Ì ﬂ· ÿ·» (Ì÷„‰ ÿ—œ «·Ã·”… «·ﬁœÌ„… ›Ê—«)
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+{
+    options.ValidationInterval = TimeSpan.Zero;
+});
+
 // Cookie configuration
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -37,6 +43,12 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Account/AccessDenied";
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
     options.SlidingExpiration = true;
+    // ≈⁄«œ… «· ÊÃÌÂ ·’›Õ… «··ÊÃ‰ ⁄‰œ «‰ Â«¡ «·Ã·”… √Ê «·ÿ—œ
+    options.Events.OnRedirectToLogin = ctx =>
+    {
+        ctx.Response.Redirect(ctx.RedirectUri);
+        return Task.CompletedTask;
+    };
 });
 
 // Add session
