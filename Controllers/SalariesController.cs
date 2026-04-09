@@ -44,14 +44,23 @@ namespace Salon.Controllers
             var employee = await _context.Employees.FindAsync(employeeId);
             if (employee == null) return NotFound();
 
+            // جمع كل السلف غير المخصومة (معلق أو موافق عليها)
             var pendingAdvances = await _context.EmployeeAdvances
-                .Where(a => a.EmployeeId == employeeId && a.Status == "معلق")
+                .Where(a => a.EmployeeId == employeeId &&
+                            (a.Status == "معلق" || a.Status == "موافق عليها"))
                 .SumAsync(a => (decimal?)a.Amount) ?? 0;
+
+            // التحقق من وجود راتب مسبق لنفس الشهر والسنة
+            var alreadyPaid = await _context.Salaries.AnyAsync(s =>
+                s.EmployeeId == employeeId &&
+                s.Month == month &&
+                s.Year == year);
 
             return Json(new
             {
                 basicSalary = employee.BasicSalary,
-                advanceDeducted = pendingAdvances
+                advanceDeducted = pendingAdvances,
+                alreadyPaid
             });
         }
 

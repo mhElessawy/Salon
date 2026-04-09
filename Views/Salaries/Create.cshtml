@@ -17,6 +17,10 @@
                     <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select" id="employeeSelect" onchange="loadSalary()">
                         <option value="">-- اختر الموظف --</option>
                     </select>
+                    <div id="alreadyPaidAlert" class="alert alert-danger mt-2 py-2 d-none">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        <strong>تنبيه:</strong> تم صرف راتب هذا الموظف لهذا الشهر مسبقاً
+                    </div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">الشهر</label>
@@ -78,16 +82,31 @@ async function loadSalary() {
     const empId = document.getElementById('employeeSelect').value;
     const month = document.getElementById('monthSelect').value;
     const year  = document.getElementById('yearInput').value;
+    const alert = document.getElementById('alreadyPaidAlert');
+    const submitBtn = document.querySelector('button[type="submit"]');
 
-    if (!empId) return;
+    if (!empId) {
+        alert.classList.add('d-none');
+        return;
+    }
 
     try {
         const res = await fetch(`/Salaries/GetEmployeeInfo?employeeId=${empId}&month=${month}&year=${year}`);
         if (!res.ok) return;
         const data = await res.json();
-        document.getElementById('basicSalary').value    = data.basicSalary.toFixed(3);
+
+        document.getElementById('basicSalary').value     = data.basicSalary.toFixed(3);
         document.getElementById('advanceDeducted').value = data.advanceDeducted.toFixed(3);
         calcNet();
+
+        // إظهار تحذير إذا الشهر مدفوع مسبقاً
+        if (data.alreadyPaid) {
+            alert.classList.remove('d-none');
+            submitBtn.disabled = true;
+        } else {
+            alert.classList.add('d-none');
+            submitBtn.disabled = false;
+        }
     } catch (e) {
         console.error('خطأ في جلب بيانات الموظف', e);
     }
