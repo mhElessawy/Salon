@@ -17,18 +17,35 @@ namespace Salon.Controllers
             _context = context;
         }
 
-        public async Task<IActionResult> Index(int? year, int? month)
+        public async Task<IActionResult> Index(int? year, int? month, int? employeeId)
         {
             int y = year ?? DateTime.Today.Year;
-            int m = month ?? DateTime.Today.Month;
 
-            var salaries = await _context.Salaries
+            var query = _context.Salaries
                 .Include(s => s.Employee)
-                .Where(s => s.Year == y && s.Month == m)
-                .ToListAsync();
+                .Where(s => s.Year == y);
+
+            if (month.HasValue)
+                query = query.Where(s => s.Month == month.Value);
+
+            if (employeeId.HasValue)
+                query = query.Where(s => s.EmployeeId == employeeId.Value);
+
+            var salaries = await query.OrderBy(s => s.Month).ThenBy(s => s.Employee!.FullName).ToListAsync();
 
             ViewBag.Year = y;
-            ViewBag.Month = m;
+            ViewBag.Month = month;           // nullable — null = كل الأشهر
+            ViewBag.EmployeeId = employeeId; // nullable — null = الكل
+            ViewBag.Employees = new SelectList(
+                await _context.Employees.Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync(),
+                "Id", "FullName");
+
+            // كل السنوات الموجودة في قاعدة البيانات + السنة الحالية
+            var dbYears = await _context.Salaries.Select(s => s.Year).Distinct().ToListAsync();
+            if (!dbYears.Contains(DateTime.Today.Year))
+                dbYears.Add(DateTime.Today.Year);
+            ViewBag.Years = dbYears.OrderByDescending(yr => yr).ToList();
+
             return View(salaries);
         }
 
