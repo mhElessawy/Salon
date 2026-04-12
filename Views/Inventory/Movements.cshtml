@@ -1,0 +1,71 @@
+﻿@model IEnumerable<Salon.Models.StockMovement>
+@{ ViewData["Title"] = "سجل حركات المخزون"; }
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div><h1><i class="fas fa-history me-2"></i>سجل حركات المخزون</h1></div>
+    <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع للمنتجات</a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+            <select name="productId" class="form-select" style="min-width:200px;">
+                <option value="">-- كل المنتجات --</option>
+                @foreach (SelectListItem p in ViewBag.Products)
+                {
+                    var isSelected = p.Value == ViewBag.ProductId?.ToString();
+                    <option value="@p.Value" selected="@(isSelected ? "selected" : null)">@p.Text</option>
+                }
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> بحث</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>المنتج</th>
+                        <th>النوع</th>
+                        <th>الكمية</th>
+                        <th>سعر الوحدة</th>
+                        <th>الموظف</th>
+                        <th>المورد</th>
+                        <th>ملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="8" class="text-center text-muted py-4">لا توجد حركات مسجلة</td></tr>
+                    }
+                    @foreach (var m in Model)
+                    {
+                        string typeClass = m.MovementType switch {
+                            "استلام"  => "bg-success",
+                            "إهلاك"  => "bg-danger",
+                            "بيع"    => "bg-primary",
+                            "استهلاك"=> "bg-warning text-dark",
+                            _        => "bg-secondary"
+                        };
+                        string qtySign = (m.MovementType == "استلام") ? "+" : "-";
+                        <tr>
+                            <td>@m.MovementDate.ToString("yyyy/MM/dd")</td>
+                            <td><strong>@(m.Product?.Name ?? "-")</strong></td>
+                            <td><span class="badge @typeClass">@m.MovementType</span></td>
+                            <td class="fw-bold">@qtySign@m.Quantity</td>
+                            <td>@(m.UnitPrice > 0 ? m.UnitPrice.ToString("N3") + " د.ك" : "-")</td>
+                            <td>@(m.Employee?.FullName ?? "-")</td>
+                            <td>@(m.Supplier?.Name ?? "-")</td>
+                            <td>@(m.Notes ?? "-")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

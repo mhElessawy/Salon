@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
@@ -18,7 +19,10 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> Index(string? search)
         {
-            var query = _context.Employees.Where(e => e.IsActive);
+            var query = _context.Employees
+                .Include(e => e.DepartmentNav)
+                .Where(e => e.IsActive);
+
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(e => e.FullName.Contains(search) || (e.Phone != null && e.Phone.Contains(search)));
 
@@ -27,7 +31,18 @@ namespace Salon.Controllers
             return View(employees);
         }
 
-        public IActionResult Create() => View(new Employee());
+        private async Task LoadDepartments(int? selectedId = null)
+        {
+            ViewBag.Departments = new SelectList(
+                await _context.Departments.Where(d => d.IsActive).OrderBy(d => d.Name).ToListAsync(),
+                "Id", "Name", selectedId);
+        }
+
+        public async Task<IActionResult> Create()
+        {
+            await LoadDepartments();
+            return View(new Employee());
+        }
 
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Employee model)
@@ -40,6 +55,7 @@ namespace Salon.Controllers
                 TempData["Success"] = "تم إضافة الموظف بنجاح";
                 return RedirectToAction(nameof(Index));
             }
+            await LoadDepartments(model.DepartmentId);
             return View(model);
         }
 
@@ -47,6 +63,7 @@ namespace Salon.Controllers
         {
             var employee = await _context.Employees.FindAsync(id);
             if (employee == null) return NotFound();
+            await LoadDepartments(employee.DepartmentId);
             return View(employee);
         }
 
@@ -61,12 +78,14 @@ namespace Salon.Controllers
                 TempData["Success"] = "تم تعديل بيانات الموظف بنجاح";
                 return RedirectToAction(nameof(Index));
             }
+            await LoadDepartments(model.DepartmentId);
             return View(model);
         }
 
         public async Task<IActionResult> Details(int id)
         {
             var employee = await _context.Employees
+                .Include(e => e.DepartmentNav)
                 .Include(e => e.Attendances)
                 .Include(e => e.Salaries)
                 .Include(e => e.Advances)

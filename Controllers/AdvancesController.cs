@@ -17,6 +17,34 @@ namespace Salon.Controllers
             _context = context;
         }
 
+        public async Task<IActionResult> Report(int? employeeId, DateTime? dateFrom, DateTime? dateTo, string? status)
+        {
+            dateFrom ??= new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            dateTo ??= DateTime.Today;
+
+            var query = _context.EmployeeAdvances.Include(a => a.Employee).AsQueryable();
+
+            query = query.Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate <= dateTo);
+
+            if (employeeId.HasValue)
+                query = query.Where(a => a.EmployeeId == employeeId.Value);
+
+            if (!string.IsNullOrEmpty(status))
+                query = query.Where(a => a.Status == status);
+
+            var advances = await query.OrderBy(a => a.Employee!.FullName).ThenBy(a => a.AdvanceDate).ToListAsync();
+
+            ViewBag.DateFrom = dateFrom.Value.ToString("yyyy-MM-dd");
+            ViewBag.DateTo = dateTo.Value.ToString("yyyy-MM-dd");
+            ViewBag.EmployeeId = employeeId;
+            ViewBag.Status = status;
+            ViewBag.Employees = new SelectList(
+                await _context.Employees.Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync(),
+                "Id", "FullName");
+
+            return View(advances);
+        }
+
         public async Task<IActionResult> Index(string? search)
         {
             var query = _context.EmployeeAdvances.Include(a => a.Employee).AsQueryable();

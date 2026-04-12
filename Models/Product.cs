@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Salon.Models
 {
@@ -10,11 +11,14 @@ namespace Salon.Models
         [Display(Name = "اسم المنتج")]
         public string Name { get; set; } = string.Empty;
 
-        [Display(Name = "الباركود")]
-        public string? Barcode { get; set; }
-
         [Display(Name = "الفئة")]
         public string? Category { get; set; }
+
+        [Display(Name = "المورد")]
+        public int? SupplierId { get; set; }
+
+        [ForeignKey("SupplierId")]
+        public Supplier? Supplier { get; set; }
 
         [Display(Name = "سعر الشراء")]
         [DataType(DataType.Currency)]
@@ -23,6 +27,9 @@ namespace Salon.Models
         [Display(Name = "سعر البيع")]
         [DataType(DataType.Currency)]
         public decimal SalePrice { get; set; }
+
+        [Display(Name = "الكمية الافتتاحية")]
+        public int OpeningQuantity { get; set; }
 
         [Display(Name = "الكمية في المخزون")]
         public int StockQuantity { get; set; }
@@ -34,15 +41,17 @@ namespace Salon.Models
         [DataType(DataType.Date)]
         public DateTime? ExpiryDate { get; set; }
 
-        [Display(Name = "الوحدة")]
-        public string? Unit { get; set; }
-
         [Display(Name = "الملاحظات")]
         public string? Notes { get; set; }
+
+        // محتفظ بيه للتوافق مع الكود القديم
+        public string? Barcode { get; set; }
+        public string? Unit { get; set; }
 
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public ICollection<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
+        public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
     }
 }

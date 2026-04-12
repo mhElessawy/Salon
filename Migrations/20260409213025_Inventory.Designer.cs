@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Salon.Data;
 
@@ -11,9 +12,11 @@ using Salon.Data;
 namespace Salon.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260409213025_Inventory")]
+    partial class Inventory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -373,32 +376,6 @@ namespace Salon.Migrations
                     b.ToTable("Customers");
                 });
 
-            modelBuilder.Entity("Salon.Models.Department", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Departments");
-                });
-
             modelBuilder.Entity("Salon.Models.Employee", b =>
                 {
                     b.Property<int>("Id")
@@ -422,8 +399,8 @@ namespace Salon.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("DepartmentId")
-                        .HasColumnType("int");
+                    b.Property<string>("Department")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(max)");
@@ -444,9 +421,6 @@ namespace Salon.Migrations
                     b.Property<string>("JobTitle")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Name")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Nationality")
                         .HasColumnType("nvarchar(max)");
 
@@ -460,8 +434,6 @@ namespace Salon.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("DepartmentId");
 
                     b.ToTable("Employees");
                 });
@@ -1110,15 +1082,6 @@ namespace Salon.Migrations
                     b.Navigation("Employee");
                 });
 
-            modelBuilder.Entity("Salon.Models.Employee", b =>
-                {
-                    b.HasOne("Salon.Models.Department", "DepartmentNav")
-                        .WithMany("Employees")
-                        .HasForeignKey("DepartmentId");
-
-                    b.Navigation("DepartmentNav");
-                });
-
             modelBuilder.Entity("Salon.Models.EmployeeAdvance", b =>
                 {
                     b.HasOne("Salon.Models.Employee", "Employee")
@@ -1241,11 +1204,6 @@ namespace Salon.Migrations
                     b.Navigation("Appointments");
 
                     b.Navigation("Sales");
-                });
-
-            modelBuilder.Entity("Salon.Models.Department", b =>
-                {
-                    b.Navigation("Employees");
                 });
 
             modelBuilder.Entity("Salon.Models.Employee", b =>
