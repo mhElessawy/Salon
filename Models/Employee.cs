@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Salon.Models
 {
@@ -52,7 +53,14 @@ namespace Salon.Models
         public string? ContractType { get; set; }
 
         [Display(Name = "القسم")]
-        public string? Department { get; set; } // "حلاقة" | "مساج"
+        public int? DepartmentId { get; set; }
+
+        [ForeignKey("DepartmentId")]
+        public Department? DepartmentNav { get; set; }
+
+        // محتفظ للتوافق مع الكود القديم — يُقرأ من DepartmentNav
+        [NotMapped]
+        public string? Department => DepartmentNav?.Name;
 
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }

@@ -1,8 +1,6 @@
 @model Salon.Models.Employee
 @{
     ViewData["Title"] = "تعديل بيانات الموظف";
-    var knownDepts = new[] { "", "حلاقة", "مساج", "إدارة", "محاسبة", "نظافة", "أمن" };
-    bool isCustom  = !string.IsNullOrEmpty(Model.Department) && !knownDepts.Contains(Model.Department);
 }
 
 <div class="page-header">
@@ -26,25 +24,16 @@
                     <input asp-for="JobTitle" class="form-control" />
                 </div>
                 <div class="col-md-4">
-                    <label asp-for="Department" class="form-label"></label>
-                    <select asp-for="Department" class="form-select" id="deptSelect" onchange="toggleCustomDept()">
-                        <option value="">-- اختر --</option>
-                        <option value="حلاقة">✂️ حلاقة</option>
-                        <option value="مساج">💆 مساج</option>
-                        <option value="إدارة">🏢 إدارة</option>
-                        <option value="محاسبة">💼 محاسبة</option>
-                        <option value="نظافة">🧹 نظافة</option>
-                        <option value="أمن">🔒 أمن</option>
-                        @if (isCustom)
-                        {
-                            <option value="@Model.Department" selected>@Model.Department</option>
-                        }
-                        <option value="أخرى">✏️ أخرى (اكتب)</option>
-                    </select>
-                </div>
-                <div class="col-md-4" id="customDeptRow" style="display:none">
-                    <label class="form-label">اسم القسم</label>
-                    <input type="text" id="customDept" class="form-control" placeholder="اكتب اسم القسم..." />
+                    <label asp-for="DepartmentId" class="form-label">القسم</label>
+                    <div class="input-group">
+                        <select asp-for="DepartmentId" asp-items="@ViewBag.Departments" class="form-select">
+                            <option value="">-- اختر القسم --</option>
+                        </select>
+                        <a href="@Url.Action("Index","Departments")" target="_blank"
+                           class="btn btn-outline-secondary" title="إدارة الأقسام">
+                            <i class="fas fa-cog"></i>
+                        </a>
+                    </div>
                 </div>
                 <div class="col-md-6">
                     <label asp-for="Phone" class="form-label"></label>
@@ -101,23 +90,3 @@
         </form>
     </div>
 </div>
-
-@section Scripts {
-<script>
-function toggleCustomDept() {
-    const sel = document.getElementById('deptSelect');
-    const row = document.getElementById('customDeptRow');
-    row.style.display = sel.value === 'أخرى' ? '' : 'none';
-}
-
-document.querySelector('form').addEventListener('submit', function () {
-    const sel    = document.getElementById('deptSelect');
-    const custom = document.getElementById('customDept');
-    if (sel.value === 'أخرى' && custom.value.trim()) {
-        const opt = new Option(custom.value.trim(), custom.value.trim(), true, true);
-        sel.add(opt);
-        sel.value = custom.value.trim();
-    }
-});
-</script>
-}

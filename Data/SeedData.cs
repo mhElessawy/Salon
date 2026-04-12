@@ -39,6 +39,20 @@ namespace Salon.Data
                     await userManager.AddToRoleAsync(adminUser, "Admin");
             }
 
+            // Seed default departments
+            if (!await context.Departments.AnyAsync())
+            {
+                context.Departments.AddRange(
+                    new Department { Name = "حلاقة",   Description = "قسم الحلاقة" },
+                    new Department { Name = "مساج",    Description = "قسم المساج" },
+                    new Department { Name = "إدارة",   Description = "الإدارة العامة" },
+                    new Department { Name = "محاسبة",  Description = "القسم المالي" },
+                    new Department { Name = "نظافة",   Description = "قسم النظافة" },
+                    new Department { Name = "أمن",     Description = "قسم الأمن" }
+                );
+                await context.SaveChangesAsync();
+            }
+
             // Seed two default service categories (Barber + Massage)
             if (!await context.ServiceCategories.AnyAsync())
             {

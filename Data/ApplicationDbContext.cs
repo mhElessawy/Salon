@@ -21,6 +21,7 @@ namespace Salon.Data
         public DbSet<SaleItem> SaleItems { get; set; }
         public DbSet<Expense> Expenses { get; set; }
         public DbSet<Product> Products { get; set; }
+        public DbSet<Department> Departments { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<StockMovement> StockMovements { get; set; }
         public DbSet<Shift> Shifts { get; set; }
