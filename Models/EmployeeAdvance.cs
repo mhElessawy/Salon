@@ -32,6 +32,10 @@ namespace Salon.Models
         [Display(Name = "المبلغ المخصوم")]
         public decimal DeductedAmount { get; set; } = 0;
 
+        // Alias for DeductedAmount - for backward compatibility
+        [NotMapped]
+        public decimal AmountPaid { get => DeductedAmount; set => DeductedAmount = value; }
+
         [Display(Name = "تاريخ السداد")]
         [DataType(DataType.Date)]
         public DateTime? PaidDate { get; set; }
