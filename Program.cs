@@ -49,6 +49,7 @@ builder.Services.AddSession(options =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 
 builder.Services.AddControllersWithViews();
 

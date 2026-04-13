@@ -21,7 +21,7 @@
     bool salesOpen    = IsGroupOpen("sales", "appointments", "services", "servicecategories", "inventory");
     bool hrOpen       = IsGroupOpen("employees", "salaries", "advances", "attendance");
     bool financeOpen  = IsGroupOpen("expenses", "reports");
-    bool settingsOpen = IsGroupOpen("settings", "users");
+    bool settingsOpen = IsGroupOpen("settings", "users", "audit");
 }
 
 <nav class="sidebar" id="sidebar">
@@ -298,7 +298,7 @@
         }
 
         @* الإعدادات *@
-        @if (canSee("Settings") || canSee("Users"))
+        @if (canSee("Settings") || canSee("Users") || canSee("Audit"))
         {
         <li class="has-submenu @(settingsOpen ? "open" : "")">
             <a href="#" class="submenu-toggle @(settingsOpen ? "active-parent" : "")"
@@ -314,6 +314,15 @@
                     <a href="@Url.Action("Index", "Users")" class="@IsActive("Users")">
                         <i class="fas fa-user-shield" style="color:#dc3545"></i>
                         <span>المستخدمين والصلاحيات</span>
+                    </a>
+                </li>
+                }
+                @if (canSee("Audit"))
+                {
+                <li>
+                    <a href="@Url.Action("Index", "Audit")" class="@IsActive("Audit")">
+                        <i class="fas fa-history" style="color:#6f42c1"></i>
+                        <span>سجل الأنشطة</span>
                     </a>
                 </li>
                 }

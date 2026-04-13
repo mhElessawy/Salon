@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -11,10 +12,12 @@ namespace Salon.Controllers
     public class SalariesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuditService _audit;
 
-        public SalariesController(ApplicationDbContext context)
+        public SalariesController(ApplicationDbContext context, IAuditService audit)
         {
             _context = context;
+            _audit = audit;
         }
 
         public async Task<IActionResult> Index(int? year, int? month)
@@ -76,6 +79,12 @@ namespace Salon.Controllers
                 model.CreatedAt = DateTime.Now;
                 _context.Salaries.Add(model);
                 await _context.SaveChangesAsync();
+
+                var emp = await _context.Employees.FindAsync(model.EmployeeId);
+                await _audit.LogAsync("إضافة", "الرواتب",
+                    $"إضافة راتب شهر {model.Month}/{model.Year} للموظف: {emp?.FullName ?? model.EmployeeId.ToString()} صافي: {model.NetSalary:N3} د.ك",
+                    model.Id);
+
                 TempData["Success"] = "تم إضافة راتب الموظف بنجاح";
                 return RedirectToAction(nameof(Index));
             }
@@ -86,13 +95,12 @@ namespace Salon.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Pay(int id)
         {
-            var salary = await _context.Salaries.FindAsync(id);
+            var salary = await _context.Salaries.Include(s => s.Employee).FirstOrDefaultAsync(s => s.Id == id);
             if (salary != null)
             {
                 salary.Status = "مصروف";
                 salary.PaidDate = DateTime.Today;
 
-                // خصم مبلغ السلف المخصومة من سلف الموظف المعتمدة (FIFO) مع الحفاظ على المبلغ الأصلي
                 if (salary.AdvanceDeducted > 0)
                 {
                     var advances = await _context.EmployeeAdvances
@@ -122,6 +130,11 @@ namespace Salon.Controllers
                 }
 
                 await _context.SaveChangesAsync();
+
+                await _audit.LogAsync("صرف", "الرواتب",
+                    $"صرف راتب شهر {salary.Month}/{salary.Year} للموظف: {salary.Employee?.FullName ?? salary.EmployeeId.ToString()} بمبلغ {salary.NetSalary:N3} د.ك",
+                    salary.Id);
+
                 TempData["Success"] = "تم صرف الراتب بنجاح";
             }
             return RedirectToAction(nameof(Index));
@@ -130,11 +143,20 @@ namespace Salon.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-            var salary = await _context.Salaries.FindAsync(id);
+            var salary = await _context.Salaries.Include(s => s.Employee).FirstOrDefaultAsync(s => s.Id == id);
             if (salary != null)
             {
+                string empName = salary.Employee?.FullName ?? salary.EmployeeId.ToString();
+                int month = salary.Month;
+                int year = salary.Year;
+
                 _context.Salaries.Remove(salary);
                 await _context.SaveChangesAsync();
+
+                await _audit.LogAsync("حذف", "الرواتب",
+                    $"حذف راتب شهر {month}/{year} للموظف: {empName}",
+                    id);
+
                 TempData["Success"] = "تم حذف سجل الراتب بنجاح";
             }
             return RedirectToAction(nameof(Index));

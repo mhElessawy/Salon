@@ -24,6 +24,7 @@ namespace Salon.Models
             ("Messages",          "الرسائل",            "fas fa-envelope",         "عام"),
             ("Settings",          "الإعدادات",          "fas fa-cog",              "الإدارة"),
             ("Users",             "المستخدمين",         "fas fa-user-shield",      "الإدارة"),
+            ("Audit",             "سجل الأنشطة",        "fas fa-history",          "الإدارة"),
         };
     }
 }

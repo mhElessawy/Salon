@@ -116,6 +116,22 @@ namespace Salon.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("Salon.Models.AuditLog", b =>
+                {
+                    b.Property<int>("Id").ValueGeneratedOnAdd().HasColumnType("int");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.Property<string>("UserId").IsRequired().HasColumnType("nvarchar(max)");
+                    b.Property<string>("UserName").IsRequired().HasColumnType("nvarchar(max)");
+                    b.Property<string>("Action").IsRequired().HasColumnType("nvarchar(max)");
+                    b.Property<string>("Module").IsRequired().HasColumnType("nvarchar(max)");
+                    b.Property<string>("Description").HasColumnType("nvarchar(max)");
+                    b.Property<int?>("EntityId").HasColumnType("int");
+                    b.Property<string>("IpAddress").HasColumnType("nvarchar(max)");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("datetime2");
+                    b.HasKey("Id");
+                    b.ToTable("AuditLogs");
+                });
+
             modelBuilder.Entity("Salon.Models.Appointment", b =>
                 {
                     b.Property<int>("Id").ValueGeneratedOnAdd().HasColumnType("int");

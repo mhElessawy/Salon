@@ -30,6 +30,7 @@ namespace Salon.Data
         public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<Department> Departments { get; set; }
         public DbSet<StockMovement> StockMovements { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
