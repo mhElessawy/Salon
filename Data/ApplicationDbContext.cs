@@ -27,6 +27,7 @@ namespace Salon.Data
         public DbSet<EmployeeAdvance> EmployeeAdvances { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<UserPermission> UserPermissions { get; set; }
+        public DbSet<Supplier> Suppliers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
