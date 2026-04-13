@@ -223,6 +223,7 @@ namespace Salon.Migrations
                     b.Property<string>("Notes").HasColumnType("nvarchar(max)");
                     b.Property<DateTime?>("PaidDate").HasColumnType("datetime2");
                     b.Property<string>("Reason").HasColumnType("nvarchar(max)");
+                    b.Property<string>("PaymentMethod").IsRequired().HasColumnType("nvarchar(max)");
                     b.Property<string>("Status").IsRequired().HasColumnType("nvarchar(max)");
                     b.HasKey("Id");
                     b.HasIndex("EmployeeId");

@@ -26,6 +26,9 @@ namespace Salon.Models
         [Display(Name = "السبب")]
         public string? Reason { get; set; }
 
+        [Display(Name = "طريقة الدفع")]
+        public string PaymentMethod { get; set; } = "نقدي";
+
         [Display(Name = "الحالة")]
         public string Status { get; set; } = "معلق";
 

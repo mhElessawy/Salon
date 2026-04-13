@@ -24,9 +24,17 @@
                     <label class="form-label">التاريخ</label>
                     <input type="date" name="AdvanceDate" value="@DateTime.Today.ToString("yyyy-MM-dd")" class="form-control" />
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label class="form-label">السبب</label>
                     <input type="text" name="Reason" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">طريقة الدفع</label>
+                    <select name="PaymentMethod" class="form-select">
+                        <option value="نقدي">نقدي</option>
+                        <option value="تحويل بنكي">تحويل بنكي</option>
+                        <option value="شيك">شيك</option>
+                    </select>
                 </div>
                 <div class="col-12">
                     <label class="form-label">ملاحظات</label>
