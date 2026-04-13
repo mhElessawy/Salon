@@ -76,6 +76,13 @@ namespace Salon.Data
                 .HasColumnName("BasicSalary")
                 .HasColumnType("decimal(18,3)");
 
+            builder.Entity<Employee>()
+                .HasOne(e => e.DepartmentRef)
+                .WithMany(d => d.Employees)
+                .HasForeignKey(e => e.DepartmentId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+
             builder.Entity<Salary>()
                 .Property(s => s.BasicSalary)
                 .HasColumnType("decimal(18,3)");

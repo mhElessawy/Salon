@@ -454,7 +454,12 @@ namespace Salon.Migrations
                     b.Property<DateTime?>("ResidencyExpiry")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
 
                     b.ToTable("Employees");
                 });
@@ -1098,6 +1103,16 @@ namespace Salon.Migrations
                     b.Navigation("Employee");
                 });
 
+            modelBuilder.Entity("Salon.Models.Employee", b =>
+                {
+                    b.HasOne("Salon.Models.Department", "DepartmentRef")
+                        .WithMany("Employees")
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("DepartmentRef");
+                });
+
             modelBuilder.Entity("Salon.Models.EmployeeAdvance", b =>
                 {
                     b.HasOne("Salon.Models.Employee", "Employee")
@@ -1188,6 +1203,11 @@ namespace Salon.Migrations
                     b.Navigation("Appointments");
 
                     b.Navigation("Sales");
+                });
+
+            modelBuilder.Entity("Salon.Models.Department", b =>
+                {
+                    b.Navigation("Employees");
                 });
 
             modelBuilder.Entity("Salon.Models.Employee", b =>

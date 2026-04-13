@@ -62,5 +62,11 @@ namespace Salon.Models
         [Required(ErrorMessage = "نوع الخدمة مطلوب")]
         [Display(Name = "نوع الخدمة")]
         public ServiceType ServiceType { get; set; }
+
+        [Display(Name = "القسم")]
+        public int? DepartmentId { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Schema.ForeignKey("DepartmentId")]
+        public Department? DepartmentRef { get; set; }
     }
 }
