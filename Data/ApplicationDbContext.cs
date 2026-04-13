@@ -28,6 +28,8 @@ namespace Salon.Data
         public DbSet<Message> Messages { get; set; }
         public DbSet<UserPermission> UserPermissions { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
+        public DbSet<Department> Departments { get; set; }
+        public DbSet<StockMovement> StockMovements { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
