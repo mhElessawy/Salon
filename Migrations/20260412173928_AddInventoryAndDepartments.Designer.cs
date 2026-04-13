@@ -12,8 +12,8 @@ using Salon.Data;
 namespace Salon.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260412173034_updateEmpV2")]
-    partial class updateEmpV2
+    [Migration("20260412173928_AddInventoryAndDepartments")]
+    partial class AddInventoryAndDepartments
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
