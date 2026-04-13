@@ -62,6 +62,16 @@ namespace Salon.Controllers
         {
             if (ModelState.IsValid)
             {
+                bool alreadyExists = await _context.Salaries
+                    .AnyAsync(s => s.EmployeeId == model.EmployeeId && s.Month == model.Month && s.Year == model.Year);
+
+                if (alreadyExists)
+                {
+                    ModelState.AddModelError("", "تم تسجيل راتب هذا الموظف لهذا الشهر مسبقًا");
+                    ViewBag.Employees = new SelectList(await _context.Employees.Where(e => e.IsActive).ToListAsync(), "Id", "FullName");
+                    return View(model);
+                }
+
                 model.NetSalary = model.BasicSalary + model.Allowances - model.Deductions - model.AdvanceDeducted;
                 model.CreatedAt = DateTime.Now;
                 _context.Salaries.Add(model);
