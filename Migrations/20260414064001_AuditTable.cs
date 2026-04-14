@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Salon.Migrations
 {
-    public partial class AddAuditLogs : Migration
+    public partial class AuditTable : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
