@@ -19,12 +19,15 @@ namespace Salon.Models
         [Display(Name = "العنوان")]
         public string? Address { get; set; }
 
+        [Display(Name = "الشخص المسؤول")]
+        public string? ContactPerson { get; set; }
+
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
 
+        [Display(Name = "نشط")]
         public bool IsActive { get; set; } = true;
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-        public ICollection<Product> Products { get; set; } = new List<Product>();
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 }

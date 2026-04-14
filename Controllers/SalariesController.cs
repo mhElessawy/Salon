@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -11,41 +12,26 @@ namespace Salon.Controllers
     public class SalariesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuditService _audit;
 
-        public SalariesController(ApplicationDbContext context)
+        public SalariesController(ApplicationDbContext context, IAuditService audit)
         {
             _context = context;
+            _audit = audit;
         }
 
-        public async Task<IActionResult> Index(int? year, int? month, int? employeeId)
+        public async Task<IActionResult> Index(int? year, int? month)
         {
             int y = year ?? DateTime.Today.Year;
+            int m = month ?? DateTime.Today.Month;
 
-            var query = _context.Salaries
+            var salaries = await _context.Salaries
                 .Include(s => s.Employee)
-                .Where(s => s.Year == y);
-
-            if (month.HasValue)
-                query = query.Where(s => s.Month == month.Value);
-
-            if (employeeId.HasValue)
-                query = query.Where(s => s.EmployeeId == employeeId.Value);
-
-            var salaries = await query.OrderBy(s => s.Month).ThenBy(s => s.Employee!.FullName).ToListAsync();
+                .Where(s => s.Year == y && s.Month == m)
+                .ToListAsync();
 
             ViewBag.Year = y;
-            ViewBag.Month = month;           // nullable — null = كل الأشهر
-            ViewBag.EmployeeId = employeeId; // nullable — null = الكل
-            ViewBag.Employees = new SelectList(
-                await _context.Employees.Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync(),
-                "Id", "FullName");
-
-            // كل السنوات الموجودة في قاعدة البيانات + السنة الحالية
-            var dbYears = await _context.Salaries.Select(s => s.Year).Distinct().ToListAsync();
-            if (!dbYears.Contains(DateTime.Today.Year))
-                dbYears.Add(DateTime.Today.Year);
-            ViewBag.Years = dbYears.OrderByDescending(yr => yr).ToList();
-
+            ViewBag.Month = m;
             return View(salaries);
         }
 
@@ -55,29 +41,22 @@ namespace Salon.Controllers
             return View(new Salary { Year = DateTime.Today.Year, Month = DateTime.Today.Month });
         }
 
-        // يُستخدم من JavaScript لجلب راتب الموظف وسلفه المعلق
-        public async Task<IActionResult> GetEmployeeInfo(int employeeId, int month, int year)
+        [HttpGet]
+        public async Task<IActionResult> GetEmployeeDetails(int id)
         {
-            var employee = await _context.Employees.FindAsync(employeeId);
+            var employee = await _context.Employees.FindAsync(id);
             if (employee == null) return NotFound();
 
-            // مجموع المتبقي من السلف غير المسددة
             var pendingAdvances = await _context.EmployeeAdvances
-                .Where(a => a.EmployeeId == employeeId &&
-                            (a.Status == "معلق" || a.Status == "موافق عليها" || a.Status == "مدفوعة جزئياً"))
-                .SumAsync(a => (decimal?)(a.Amount - a.AmountPaid)) ?? 0;
-
-            // التحقق من وجود راتب مسبق لنفس الشهر والسنة
-            var alreadyPaid = await _context.Salaries.AnyAsync(s =>
-                s.EmployeeId == employeeId &&
-                s.Month == month &&
-                s.Year == year);
+                .Where(a => a.EmployeeId == id && a.Status == "موافق عليها" && a.PaidDate == null)
+                .ToListAsync();
+            var totalAdvances = pendingAdvances.Sum(a => a.Amount - a.DeductedAmount);
 
             return Json(new
             {
-                basicSalary = employee.BasicSalary,
-                advanceDeducted = pendingAdvances,
-                alreadyPaid
+                salary = employee.BasicSalary,
+                commission = employee.Commission,
+                advances = totalAdvances
             });
         }
 
@@ -86,14 +65,12 @@ namespace Salon.Controllers
         {
             if (ModelState.IsValid)
             {
-                // منع تكرار الراتب لنفس الموظف في نفس الشهر والسنة
-                var exists = await _context.Salaries.AnyAsync(s =>
-                    s.EmployeeId == model.EmployeeId &&
-                    s.Month == model.Month &&
-                    s.Year == model.Year);
-                if (exists)
+                bool alreadyExists = await _context.Salaries
+                    .AnyAsync(s => s.EmployeeId == model.EmployeeId && s.Month == model.Month && s.Year == model.Year);
+
+                if (alreadyExists)
                 {
-                    ModelState.AddModelError("", "تم صرف راتب هذا الموظف لهذا الشهر مسبقاً");
+                    ModelState.AddModelError("", "تم تسجيل راتب هذا الموظف لهذا الشهر مسبقًا");
                     ViewBag.Employees = new SelectList(await _context.Employees.Where(e => e.IsActive).ToListAsync(), "Id", "FullName");
                     return View(model);
                 }
@@ -102,6 +79,12 @@ namespace Salon.Controllers
                 model.CreatedAt = DateTime.Now;
                 _context.Salaries.Add(model);
                 await _context.SaveChangesAsync();
+
+                var emp = await _context.Employees.FindAsync(model.EmployeeId);
+                await _audit.LogAsync("إضافة", "الرواتب",
+                    $"إضافة راتب شهر {model.Month}/{model.Year} للموظف: {emp?.FullName ?? model.EmployeeId.ToString()} صافي: {model.NetSalary:N3} د.ك",
+                    model.Id);
+
                 TempData["Success"] = "تم إضافة راتب الموظف بنجاح";
                 return RedirectToAction(nameof(Index));
             }
@@ -112,41 +95,46 @@ namespace Salon.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Pay(int id)
         {
-            var salary = await _context.Salaries.FindAsync(id);
+            var salary = await _context.Salaries.Include(s => s.Employee).FirstOrDefaultAsync(s => s.Id == id);
             if (salary != null)
             {
                 salary.Status = "مصروف";
                 salary.PaidDate = DateTime.Today;
 
-                // تسوية السلف المخصومة من الراتب
                 if (salary.AdvanceDeducted > 0)
                 {
                     var advances = await _context.EmployeeAdvances
-                        .Where(a => a.EmployeeId == salary.EmployeeId &&
-                                    (a.Status == "معلق" || a.Status == "موافق عليها"))
+                        .Where(a => a.EmployeeId == salary.EmployeeId && a.Status == "موافق عليها" && a.PaidDate == null)
                         .OrderBy(a => a.AdvanceDate)
                         .ToListAsync();
 
                     decimal remaining = salary.AdvanceDeducted;
-                    foreach (var adv in advances)
+                    foreach (var advance in advances)
                     {
                         if (remaining <= 0) break;
-                        decimal canPay = Math.Min(adv.Amount - adv.AmountPaid, remaining);
-                        adv.AmountPaid += canPay;
-                        remaining -= canPay;
-                        if (adv.AmountPaid >= adv.Amount)
+
+                        decimal advanceRemaining = advance.Amount - advance.DeductedAmount;
+                        if (advanceRemaining <= remaining)
                         {
-                            adv.Status = "مسددة";
-                            adv.PaidDate = DateTime.Today;
+                            remaining -= advanceRemaining;
+                            advance.DeductedAmount = advance.Amount;
+                            advance.PaidDate = DateTime.Today;
+                            advance.Status = "مسددة";
                         }
                         else
                         {
-                            adv.Status = "مدفوعة جزئياً";
+                            advance.DeductedAmount += remaining;
+                            remaining = 0;
                         }
                     }
                 }
 
                 await _context.SaveChangesAsync();
+
+                await _audit.LogAsync("صرف", "الرواتب",
+                    $"صرف راتب شهر {salary.Month}/{salary.Year} للموظف: {salary.Employee?.FullName ?? salary.EmployeeId.ToString()} بمبلغ {salary.NetSalary:N3} د.ك",
+                    salary.Id);
+
                 TempData["Success"] = "تم صرف الراتب بنجاح";
             }
             return RedirectToAction(nameof(Index));
@@ -155,11 +143,20 @@ namespace Salon.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-            var salary = await _context.Salaries.FindAsync(id);
+            var salary = await _context.Salaries.Include(s => s.Employee).FirstOrDefaultAsync(s => s.Id == id);
             if (salary != null)
             {
+                string empName = salary.Employee?.FullName ?? salary.EmployeeId.ToString();
+                int month = salary.Month;
+                int year = salary.Year;
+
                 _context.Salaries.Remove(salary);
                 await _context.SaveChangesAsync();
+
+                await _audit.LogAsync("حذف", "الرواتب",
+                    $"حذف راتب شهر {month}/{year} للموظف: {empName}",
+                    id);
+
                 TempData["Success"] = "تم حذف سجل الراتب بنجاح";
             }
             return RedirectToAction(nameof(Index));

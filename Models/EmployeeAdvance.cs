@@ -26,19 +26,22 @@ namespace Salon.Models
         [Display(Name = "السبب")]
         public string? Reason { get; set; }
 
+        [Display(Name = "طريقة الدفع")]
+        public string PaymentMethod { get; set; } = "نقدي";
+
         [Display(Name = "الحالة")]
         public string Status { get; set; } = "معلق";
+
+        [Display(Name = "المبلغ المخصوم")]
+        public decimal DeductedAmount { get; set; } = 0;
+
+        // Alias for DeductedAmount - for backward compatibility
+        [NotMapped]
+        public decimal AmountPaid { get => DeductedAmount; set => DeductedAmount = value; }
 
         [Display(Name = "تاريخ السداد")]
         [DataType(DataType.Date)]
         public DateTime? PaidDate { get; set; }
-
-        [Display(Name = "المبلغ المدفوع")]
-        [DataType(DataType.Currency)]
-        public decimal AmountPaid { get; set; } = 0;
-
-        // حسابي — لا يُخزن في قاعدة البيانات
-        public decimal Remaining => Amount - AmountPaid;
 
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }

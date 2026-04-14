@@ -13,7 +13,9 @@ namespace Salon.Models
         [Display(Name = "الوصف")]
         public string? Description { get; set; }
 
+        [Display(Name = "نشط")]
         public bool IsActive { get; set; } = true;
+
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public ICollection<Employee> Employees { get; set; } = new List<Employee>();

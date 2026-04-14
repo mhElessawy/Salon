@@ -12,8 +12,8 @@ using Salon.Data;
 namespace Salon.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260403133111_UserPerm")]
-    partial class UserPerm
+    [Migration("20260413182004_Advanced")]
+    partial class Advanced
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -190,6 +190,9 @@ namespace Salon.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("LinkedEmployeeId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
 
@@ -218,6 +221,9 @@ namespace Salon.Migrations
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
+
+                    b.Property<string>("UserDepartment")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
@@ -370,6 +376,32 @@ namespace Salon.Migrations
                     b.ToTable("Customers");
                 });
 
+            modelBuilder.Entity("Salon.Models.Department", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Departments");
+                });
+
             modelBuilder.Entity("Salon.Models.Employee", b =>
                 {
                     b.Property<int>("Id")
@@ -379,16 +411,23 @@ namespace Salon.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("BasicSalary")
-                        .HasColumnType("decimal(18,3)");
+                        .HasColumnType("decimal(18,3")
+                        .HasColumnName("BasicSalary");
 
                     b.Property<DateTime?>("BirthDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<decimal>("Commission")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("ContractType")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(max)");
@@ -409,6 +448,9 @@ namespace Salon.Migrations
                     b.Property<string>("JobTitle")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Nationality")
                         .HasColumnType("nvarchar(max)");
 
@@ -422,6 +464,8 @@ namespace Salon.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
 
                     b.ToTable("Employees");
                 });
@@ -443,6 +487,9 @@ namespace Salon.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal>("DeductedAmount")
+                        .HasColumnType("decimal(18,3)");
+
                     b.Property<int>("EmployeeId")
                         .HasColumnType("int");
 
@@ -451,6 +498,10 @@ namespace Salon.Migrations
 
                     b.Property<DateTime?>("PaidDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Reason")
                         .HasColumnType("nvarchar(max)");
@@ -572,6 +623,9 @@ namespace Salon.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("OpeningQuantity")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("PurchasePrice")
                         .HasColumnType("decimal(18,3)");
 
@@ -581,10 +635,15 @@ namespace Salon.Migrations
                     b.Property<int>("StockQuantity")
                         .HasColumnType("int");
 
+                    b.Property<int?>("SupplierId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Unit")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SupplierId");
 
                     b.ToTable("Products");
                 });
@@ -787,6 +846,9 @@ namespace Salon.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Department")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
@@ -848,6 +910,91 @@ namespace Salon.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Shifts");
+                });
+
+            modelBuilder.Entity("Salon.Models.StockMovement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("EmployeeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("MovementDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("MovementType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("StockMovements");
+                });
+
+            modelBuilder.Entity("Salon.Models.Supplier", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContactPerson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Suppliers");
                 });
 
             modelBuilder.Entity("Salon.Models.UserPermission", b =>
@@ -974,6 +1121,15 @@ namespace Salon.Migrations
                     b.Navigation("Employee");
                 });
 
+            modelBuilder.Entity("Salon.Models.Employee", b =>
+                {
+                    b.HasOne("Salon.Models.Department", "DepartmentNav")
+                        .WithMany("Employees")
+                        .HasForeignKey("DepartmentId");
+
+                    b.Navigation("DepartmentNav");
+                });
+
             modelBuilder.Entity("Salon.Models.EmployeeAdvance", b =>
                 {
                     b.HasOne("Salon.Models.Employee", "Employee")
@@ -983,6 +1139,15 @@ namespace Salon.Migrations
                         .IsRequired();
 
                     b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("Salon.Models.Product", b =>
+                {
+                    b.HasOne("Salon.Models.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId");
+
+                    b.Navigation("Supplier");
                 });
 
             modelBuilder.Entity("Salon.Models.Salary", b =>
@@ -1043,6 +1208,29 @@ namespace Salon.Migrations
                     b.Navigation("ServiceCategory");
                 });
 
+            modelBuilder.Entity("Salon.Models.StockMovement", b =>
+                {
+                    b.HasOne("Salon.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId");
+
+                    b.HasOne("Salon.Models.Product", "Product")
+                        .WithMany("StockMovements")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Salon.Models.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId");
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Supplier");
+                });
+
             modelBuilder.Entity("Salon.Models.UserPermission", b =>
                 {
                     b.HasOne("Salon.Models.ApplicationUser", "User")
@@ -1066,6 +1254,11 @@ namespace Salon.Migrations
                     b.Navigation("Sales");
                 });
 
+            modelBuilder.Entity("Salon.Models.Department", b =>
+                {
+                    b.Navigation("Employees");
+                });
+
             modelBuilder.Entity("Salon.Models.Employee", b =>
                 {
                     b.Navigation("Advances");
@@ -1078,6 +1271,8 @@ namespace Salon.Migrations
             modelBuilder.Entity("Salon.Models.Product", b =>
                 {
                     b.Navigation("SaleItems");
+
+                    b.Navigation("StockMovements");
                 });
 
             modelBuilder.Entity("Salon.Models.Sale", b =>

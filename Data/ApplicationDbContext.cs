@@ -21,15 +21,16 @@ namespace Salon.Data
         public DbSet<SaleItem> SaleItems { get; set; }
         public DbSet<Expense> Expenses { get; set; }
         public DbSet<Product> Products { get; set; }
-        public DbSet<Department> Departments { get; set; }
-        public DbSet<Supplier> Suppliers { get; set; }
-        public DbSet<StockMovement> StockMovements { get; set; }
         public DbSet<Shift> Shifts { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
         public DbSet<Salary> Salaries { get; set; }
         public DbSet<EmployeeAdvance> EmployeeAdvances { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<UserPermission> UserPermissions { get; set; }
+        public DbSet<Supplier> Suppliers { get; set; }
+        public DbSet<Department> Departments { get; set; }
+        public DbSet<StockMovement> StockMovements { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -67,17 +68,21 @@ namespace Salon.Data
                 .Property(p => p.SalePrice)
                 .HasColumnType("decimal(18,3)");
 
-            builder.Entity<StockMovement>()
-                .Property(s => s.UnitPrice)
-                .HasColumnType("decimal(18,3)");
-
             builder.Entity<Expense>()
                 .Property(e => e.Amount)
                 .HasColumnType("decimal(18,3)");
 
             builder.Entity<Employee>()
                 .Property(e => e.BasicSalary)
+                .HasColumnName("BasicSalary")
                 .HasColumnType("decimal(18,3)");
+
+            builder.Entity<Employee>()
+                .HasOne(e => e.DepartmentRef)
+                .WithMany(d => d.Employees)
+                .HasForeignKey(e => e.DepartmentId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
 
             builder.Entity<Salary>()
                 .Property(s => s.BasicSalary)
@@ -104,11 +109,8 @@ namespace Salon.Data
                 .HasColumnType("decimal(18,3)");
 
             builder.Entity<EmployeeAdvance>()
-                .Property(a => a.AmountPaid)
+                .Property(a => a.DeductedAmount)
                 .HasColumnType("decimal(18,3)");
-
-            builder.Entity<EmployeeAdvance>()
-                .Ignore(a => a.Remaining);
 
             builder.Entity<Shift>()
                 .Property(s => s.OpeningBalance)

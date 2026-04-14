@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -11,38 +12,12 @@ namespace Salon.Controllers
     public class AdvancesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuditService _audit;
 
-        public AdvancesController(ApplicationDbContext context)
+        public AdvancesController(ApplicationDbContext context, IAuditService audit)
         {
             _context = context;
-        }
-
-        public async Task<IActionResult> Report(int? employeeId, DateTime? dateFrom, DateTime? dateTo, string? status)
-        {
-            dateFrom ??= new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-            dateTo ??= DateTime.Today;
-
-            var query = _context.EmployeeAdvances.Include(a => a.Employee).AsQueryable();
-
-            query = query.Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate <= dateTo);
-
-            if (employeeId.HasValue)
-                query = query.Where(a => a.EmployeeId == employeeId.Value);
-
-            if (!string.IsNullOrEmpty(status))
-                query = query.Where(a => a.Status == status);
-
-            var advances = await query.OrderBy(a => a.Employee!.FullName).ThenBy(a => a.AdvanceDate).ToListAsync();
-
-            ViewBag.DateFrom = dateFrom.Value.ToString("yyyy-MM-dd");
-            ViewBag.DateTo = dateTo.Value.ToString("yyyy-MM-dd");
-            ViewBag.EmployeeId = employeeId;
-            ViewBag.Status = status;
-            ViewBag.Employees = new SelectList(
-                await _context.Employees.Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync(),
-                "Id", "FullName");
-
-            return View(advances);
+            _audit = audit;
         }
 
         public async Task<IActionResult> Index(string? search)
@@ -70,6 +45,12 @@ namespace Salon.Controllers
                 model.CreatedAt = DateTime.Now;
                 _context.EmployeeAdvances.Add(model);
                 await _context.SaveChangesAsync();
+
+                var emp = await _context.Employees.FindAsync(model.EmployeeId);
+                await _audit.LogAsync("إضافة", "السلف",
+                    $"إضافة سلفة للموظف: {emp?.FullName ?? model.EmployeeId.ToString()} بمبلغ {model.Amount:N3} د.ك",
+                    model.Id);
+
                 TempData["Success"] = "تم إضافة السلفة بنجاح";
                 return RedirectToAction(nameof(Index));
             }
@@ -80,56 +61,37 @@ namespace Salon.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Approve(int id)
         {
-            var advance = await _context.EmployeeAdvances.FindAsync(id);
+            var advance = await _context.EmployeeAdvances.Include(a => a.Employee).FirstOrDefaultAsync(a => a.Id == id);
             if (advance != null)
             {
                 advance.Status = "موافق عليها";
                 await _context.SaveChangesAsync();
+
+                await _audit.LogAsync("موافقة", "السلف",
+                    $"الموافقة على سلفة الموظف: {advance.Employee?.FullName ?? advance.EmployeeId.ToString()} بمبلغ {advance.Amount:N3} د.ك",
+                    advance.Id);
+
                 TempData["Success"] = "تم الموافقة على السلفة بنجاح";
             }
-            return RedirectToAction(nameof(Index));
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> PayDirect(int id)
-        {
-            var advance = await _context.EmployeeAdvances
-                .Include(a => a.Employee)
-                .FirstOrDefaultAsync(a => a.Id == id);
-            if (advance == null) return NotFound();
-            return View(advance);
-        }
-
-        [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> PayDirect(int id, decimal payAmount)
-        {
-            var advance = await _context.EmployeeAdvances.FindAsync(id);
-            if (advance == null) return NotFound();
-
-            decimal maxPayable = advance.Amount - advance.AmountPaid;
-            payAmount = Math.Min(payAmount, maxPayable);
-
-            advance.AmountPaid += payAmount;
-            advance.PaidDate = DateTime.Today;
-
-            if (advance.AmountPaid >= advance.Amount)
-                advance.Status = "مسددة";
-            else
-                advance.Status = "مدفوعة جزئياً";
-
-            await _context.SaveChangesAsync();
-            TempData["Success"] = $"تم تسجيل دفعة {payAmount:N3} د.ك — المتبقي: {advance.Amount - advance.AmountPaid:N3} د.ك";
             return RedirectToAction(nameof(Index));
         }
 
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-            var advance = await _context.EmployeeAdvances.FindAsync(id);
+            var advance = await _context.EmployeeAdvances.Include(a => a.Employee).FirstOrDefaultAsync(a => a.Id == id);
             if (advance != null)
             {
+                string empName = advance.Employee?.FullName ?? advance.EmployeeId.ToString();
+                decimal amount = advance.Amount;
+
                 _context.EmployeeAdvances.Remove(advance);
                 await _context.SaveChangesAsync();
+
+                await _audit.LogAsync("حذف", "السلف",
+                    $"حذف سلفة الموظف: {empName} بمبلغ {amount:N3} د.ك",
+                    id);
+
                 TempData["Success"] = "تم حذف السلفة بنجاح";
             }
             return RedirectToAction(nameof(Index));

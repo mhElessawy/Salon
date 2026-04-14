@@ -408,7 +408,8 @@ namespace Salon.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("BasicSalary")
-                        .HasColumnType("decimal(18,3)");
+                        .HasColumnType("decimal(18,3")
+                        .HasColumnName("BasicSalary");
 
                     b.Property<DateTime?>("BirthDate")
                         .HasColumnType("datetime2");
@@ -480,11 +481,11 @@ namespace Salon.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,3)");
 
-                    b.Property<decimal>("AmountPaid")
-                        .HasColumnType("decimal(18,3)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<decimal>("DeductedAmount")
+                        .HasColumnType("decimal(18,3)");
 
                     b.Property<int>("EmployeeId")
                         .HasColumnType("int");
@@ -494,6 +495,10 @@ namespace Salon.Migrations
 
                     b.Property<DateTime?>("PaidDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Reason")
                         .HasColumnType("nvarchar(max)");
@@ -938,7 +943,7 @@ namespace Salon.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("UnitPrice")
-                        .HasColumnType("decimal(18,3)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -960,6 +965,9 @@ namespace Salon.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContactPerson")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
@@ -1133,7 +1141,7 @@ namespace Salon.Migrations
             modelBuilder.Entity("Salon.Models.Product", b =>
                 {
                     b.HasOne("Salon.Models.Supplier", "Supplier")
-                        .WithMany("Products")
+                        .WithMany()
                         .HasForeignKey("SupplierId");
 
                     b.Navigation("Supplier");
@@ -1279,11 +1287,6 @@ namespace Salon.Migrations
             modelBuilder.Entity("Salon.Models.ServiceCategory", b =>
                 {
                     b.Navigation("Services");
-                });
-
-            modelBuilder.Entity("Salon.Models.Supplier", b =>
-                {
-                    b.Navigation("Products");
                 });
 #pragma warning restore 612, 618
         }
