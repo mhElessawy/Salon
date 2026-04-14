@@ -63,10 +63,16 @@ namespace Salon.Models
         [Display(Name = "نوع الخدمة")]
         public ServiceType ServiceType { get; set; }
 
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
         [Display(Name = "القسم")]
         public int? DepartmentId { get; set; }
 
         [System.ComponentModel.DataAnnotations.Schema.ForeignKey("DepartmentId")]
         public Department? DepartmentRef { get; set; }
+
+        public ICollection<Attendance>? Attendances { get; set; }
+        public ICollection<Salary>? Salaries { get; set; }
+        public ICollection<EmployeeAdvance>? Advances { get; set; }
     }
 }
