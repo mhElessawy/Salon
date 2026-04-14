@@ -77,12 +77,30 @@ namespace Salon.Data
                 .HasColumnName("BasicSalary")
                 .HasColumnType("decimal(18,3)");
 
-            builder.Entity<Department>()
-                .HasMany(d => d.Employees)
-                .WithOne()
-                .HasForeignKey(e => e.DepartmentId)
-                .OnDelete(DeleteBehavior.SetNull)
-                .IsRequired(false);
+            // Configure Employee→Department using reflection so it works
+            // regardless of the navigation property name (DepartmentRef, DepartmentNav, etc.)
+            var deptNavProp = typeof(Employee)
+                .GetProperties()
+                .FirstOrDefault(p => p.PropertyType == typeof(Department));
+
+            if (deptNavProp != null)
+            {
+                builder.Entity<Employee>()
+                    .HasOne<Department>(deptNavProp.Name)
+                    .WithMany(d => d.Employees)
+                    .HasForeignKey(e => e.DepartmentId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .IsRequired(false);
+            }
+            else
+            {
+                builder.Entity<Department>()
+                    .HasMany(d => d.Employees)
+                    .WithOne()
+                    .HasForeignKey(e => e.DepartmentId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .IsRequired(false);
+            }
 
             builder.Entity<Salary>()
                 .Property(s => s.BasicSalary)
