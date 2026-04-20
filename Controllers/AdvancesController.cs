@@ -28,10 +28,11 @@ namespace Salon.Controllers
 
             var advances = await advancesQuery.OrderByDescending(a => a.AdvanceDate).ToListAsync();
 
-            var employeeIds = advances.Select(a => a.EmployeeId).Distinct().ToList();
+            // subquery to avoid EF Core generating CTE (WITH) syntax error on SQL Server
+            var employeeIdsSubquery = advancesQuery.Select(a => a.EmployeeId).Distinct();
 
             var salaryDeductions = await _context.Salaries
-                .Where(s => employeeIds.Contains(s.EmployeeId) && s.AdvanceDeducted > 0)
+                .Where(s => employeeIdsSubquery.Contains(s.EmployeeId) && s.AdvanceDeducted > 0)
                 .OrderByDescending(s => s.Year).ThenByDescending(s => s.Month)
                 .ToListAsync();
 
