@@ -54,21 +54,24 @@ namespace Salon.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetEmployeeDetails(int id)
+        public async Task<IActionResult> GetEmployeeInfo(int employeeId, int month, int year)
         {
-            var employee = await _context.Employees.FindAsync(id);
+            var employee = await _context.Employees.FindAsync(employeeId);
             if (employee == null) return NotFound();
 
             var pendingAdvances = await _context.EmployeeAdvances
-                .Where(a => a.EmployeeId == id && a.Status == "موافق عليها" && a.PaidDate == null)
+                .Where(a => a.EmployeeId == employeeId && a.Status == "موافق عليها" && a.PaidDate == null)
                 .ToListAsync();
             var totalAdvances = pendingAdvances.Sum(a => a.Amount - a.DeductedAmount);
 
+            bool alreadyPaid = await _context.Salaries
+                .AnyAsync(s => s.EmployeeId == employeeId && s.Month == month && s.Year == year);
+
             return Json(new
             {
-                salary = employee.BasicSalary,
-                commission = employee.Commission,
-                advances = totalAdvances
+                basicSalary = employee.BasicSalary,
+                advanceDeducted = totalAdvances,
+                alreadyPaid
             });
         }
 
