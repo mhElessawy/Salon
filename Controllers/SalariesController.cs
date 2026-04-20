@@ -20,18 +20,30 @@ namespace Salon.Controllers
             _audit = audit;
         }
 
-        public async Task<IActionResult> Index(int? year, int? month)
+        public async Task<IActionResult> Index(int? year, int? month, int? employeeId)
         {
             int y = year ?? DateTime.Today.Year;
-            int m = month ?? DateTime.Today.Month;
 
-            var salaries = await _context.Salaries
-                .Include(s => s.Employee)
-                .Where(s => s.Year == y && s.Month == m)
-                .ToListAsync();
+            var query = _context.Salaries.Include(s => s.Employee).Where(s => s.Year == y);
+
+            if (month.HasValue)
+                query = query.Where(s => s.Month == month.Value);
+
+            if (employeeId.HasValue)
+                query = query.Where(s => s.EmployeeId == employeeId.Value);
+
+            var salaries = await query.OrderBy(s => s.Month).ThenBy(s => s.Employee!.FullName).ToListAsync();
+
+            int minYear = await _context.Salaries.AnyAsync() ? await _context.Salaries.MinAsync(s => s.Year) : DateTime.Today.Year;
+            var years = Enumerable.Range(minYear, DateTime.Today.Year - minYear + 2).ToList();
 
             ViewBag.Year = y;
-            ViewBag.Month = m;
+            ViewBag.Month = month;
+            ViewBag.EmployeeId = employeeId;
+            ViewBag.Years = years;
+            ViewBag.Employees = (await _context.Employees.Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync())
+                .Select(e => new SelectListItem { Value = e.Id.ToString(), Text = e.FullName }).ToList();
+
             return View(salaries);
         }
 
