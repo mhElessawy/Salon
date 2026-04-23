@@ -20,18 +20,30 @@ namespace Salon.Controllers
             _audit = audit;
         }
 
-        public async Task<IActionResult> Index(int? year, int? month)
+        public async Task<IActionResult> Index(int? year, int? month, int? employeeId)
         {
             int y = year ?? DateTime.Today.Year;
-            int m = month ?? DateTime.Today.Month;
 
-            var salaries = await _context.Salaries
-                .Include(s => s.Employee)
-                .Where(s => s.Year == y && s.Month == m)
-                .ToListAsync();
+            var query = _context.Salaries.Include(s => s.Employee).Where(s => s.Year == y);
+
+            if (month.HasValue)
+                query = query.Where(s => s.Month == month.Value);
+
+            if (employeeId.HasValue)
+                query = query.Where(s => s.EmployeeId == employeeId.Value);
+
+            var salaries = await query.OrderBy(s => s.Month).ThenBy(s => s.Employee!.FullName).ToListAsync();
+
+            int minYear = await _context.Salaries.AnyAsync() ? await _context.Salaries.MinAsync(s => s.Year) : DateTime.Today.Year;
+            var years = Enumerable.Range(minYear, DateTime.Today.Year - minYear + 2).ToList();
 
             ViewBag.Year = y;
-            ViewBag.Month = m;
+            ViewBag.Month = month;
+            ViewBag.EmployeeId = employeeId;
+            ViewBag.Years = years;
+            ViewBag.Employees = (await _context.Employees.Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync())
+                .Select(e => new SelectListItem { Value = e.Id.ToString(), Text = e.FullName }).ToList();
+
             return View(salaries);
         }
 
@@ -42,21 +54,24 @@ namespace Salon.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetEmployeeDetails(int id)
+        public async Task<IActionResult> GetEmployeeInfo(int employeeId, int month, int year)
         {
-            var employee = await _context.Employees.FindAsync(id);
+            var employee = await _context.Employees.FindAsync(employeeId);
             if (employee == null) return NotFound();
 
             var pendingAdvances = await _context.EmployeeAdvances
-                .Where(a => a.EmployeeId == id && a.Status == "موافق عليها" && a.PaidDate == null)
+                .Where(a => a.EmployeeId == employeeId && a.Status == "موافق عليها" && a.PaidDate == null)
                 .ToListAsync();
             var totalAdvances = pendingAdvances.Sum(a => a.Amount - a.DeductedAmount);
 
+            bool alreadyPaid = await _context.Salaries
+                .AnyAsync(s => s.EmployeeId == employeeId && s.Month == month && s.Year == year);
+
             return Json(new
             {
-                salary = employee.BasicSalary,
-                commission = employee.Commission,
-                advances = totalAdvances
+                basicSalary = employee.BasicSalary,
+                advanceDeducted = totalAdvances,
+                alreadyPaid
             });
         }
 

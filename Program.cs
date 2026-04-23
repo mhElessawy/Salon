@@ -29,7 +29,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-// «· Õﬁﬁ „‰ SecurityStamp ›Ì ﬂ· ÿ·» (Ì÷„‰ ÿ—œ «·Ã·”… «·ﬁœÌ„… ›Ê—«)
+// ?????? ?? SecurityStamp ?? ?? ??? (???? ??? ?????? ??????? ?????)
 builder.Services.Configure<SecurityStampValidatorOptions>(options =>
 {
     options.ValidationInterval = TimeSpan.Zero;
@@ -43,7 +43,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Account/AccessDenied";
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
     options.SlidingExpiration = true;
-    // ≈⁄«œ… «· ÊÃÌÂ ·’›Õ… «··ÊÃ‰ ⁄‰œ «‰ Â«¡ «·Ã·”… √Ê «·ÿ—œ
+    // ????? ??????? ????? ?????? ??? ?????? ?????? ?? ?????
     options.Events.OnRedirectToLogin = ctx =>
     {
         ctx.Response.Redirect(ctx.RedirectUri);
@@ -61,6 +61,7 @@ builder.Services.AddSession(options =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 
 builder.Services.AddControllersWithViews();
 
@@ -94,7 +95,7 @@ using (var scope = app.Services.CreateScope())
 
         var isSqlite = context.Database.ProviderName?.Contains("Sqlite") == true;
 
-        //  —ﬁÌ… ﬁ«⁄œ… «·»Ì«‰«  «·„ÊÃÊœ… (≈÷«›… √⁄„œ…/Ãœ«Ê· ÃœÌœ…)
+        // ????? ????? ???????? ???????? (????? ?????/????? ?????)
         void TryExec(string sql) { try { context.Database.ExecuteSqlRaw(sql); } catch { } }
 
         if (isSqlite)
@@ -114,7 +115,7 @@ using (var scope = app.Services.CreateScope())
             TryExec(@"CREATE TABLE IF NOT EXISTS StockMovements (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 ProductId INTEGER NOT NULL,
-                MovementType TEXT NOT NULL DEFAULT '«” ·«„',
+                MovementType TEXT NOT NULL DEFAULT '??????',
                 Quantity INTEGER NOT NULL,
                 UnitPrice REAL NOT NULL DEFAULT 0,
                 EmployeeId INTEGER NULL,
@@ -134,7 +135,7 @@ using (var scope = app.Services.CreateScope())
                 IsActive BIT NOT NULL DEFAULT 1, CreatedAt DATETIME NOT NULL DEFAULT GETDATE())");
             TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='StockMovements')
                 CREATE TABLE StockMovements (Id INT IDENTITY PRIMARY KEY, ProductId INT NOT NULL,
-                MovementType NVARCHAR(50) NOT NULL DEFAULT N'«” ·«„', Quantity INT NOT NULL,
+                MovementType NVARCHAR(50) NOT NULL DEFAULT N'??????', Quantity INT NOT NULL,
                 UnitPrice DECIMAL(18,3) NOT NULL DEFAULT 0, EmployeeId INT NULL, SupplierId INT NULL,
                 Notes NVARCHAR(MAX), MovementDate DATE NOT NULL DEFAULT GETDATE(), CreatedAt DATETIME NOT NULL DEFAULT GETDATE())");
         }

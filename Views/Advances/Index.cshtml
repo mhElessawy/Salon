@@ -1,101 +1,259 @@
-@model IEnumerable<Salon.Models.EmployeeAdvance>
+@model IEnumerable<Salon.Models.EmployeeAdvanceSummaryViewModel>
 @{
     ViewData["Title"] = "سلف الموظفين";
+    string[] arabicMonths = { "", "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+                               "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر" };
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
-        <h1><i class="fas fa-dollar-sign me-2"></i>سلف الموظفين</h1>
+        <h1><i class="fas fa-hand-holding-usd me-2"></i>سلف الموظفين</h1>
+        <p>ملخص السلف لكل موظف</p>
     </div>
     <a href="@Url.Action("Create")" class="btn btn-primary">
         <i class="fas fa-plus me-1"></i> إضافة سلفة
     </a>
 </div>
 
-<div class="card">
-    <div class="card-body">
-        <form method="get" class="search-bar mb-3">
-            <input type="text" name="search" value="@ViewBag.Search" class="form-control" placeholder="بحث باسم الموظف..." />
-            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i></button>
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-2">
+            <input type="text" name="search" value="@ViewBag.Search" class="form-control" placeholder="بحث باسم الموظف..." style="max-width:300px;" />
+            <button type="submit" class="btn btn-primary"><i class="fas fa-search me-1"></i> بحث</button>
+            @if (!string.IsNullOrEmpty(ViewBag.Search as string))
+            {
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary">إعادة تعيين</a>
+            }
         </form>
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>الموظف</th>
-                        <th>المبلغ الأصلي</th>
-                        <th>المخصوم</th>
-                        <th>المتبقي</th>
-                        <th>التاريخ</th>
-                        <th>السبب</th>
-                        <th>طريقة الدفع</th>
-                        <th>الحالة</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (!Model.Any())
-                    {
-                        <tr><td colspan="6" class="text-center text-muted py-4">لا توجد سلف مسجلة</td></tr>
-                    }
-                    @foreach (var a in Model)
-                    {
-                        <tr>
-                            <td><strong>@(a.Employee?.FullName ?? "-")</strong></td>
-                            <td>@a.Amount.ToString("N3") د.ك</td>
-                            <td>
-                                @if (a.DeductedAmount > 0)
-                                {
-                                    <span class="text-danger">@a.DeductedAmount.ToString("N3") د.ك</span>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">-</span>
-                                }
-                            </td>
-                            <td>
-                                @{
-                                    var remaining = a.Amount - a.DeductedAmount;
-                                }
-                                @if (remaining > 0)
-                                {
-                                    <span class="text-warning fw-bold">@remaining.ToString("N3") د.ك</span>
-                                }
-                                else
-                                {
-                                    <span class="text-success">مسدد بالكامل</span>
-                                }
-                            </td>
-                            <td>@a.AdvanceDate.ToString("yyyy/MM/dd")</td>
-                            <td>@(a.Reason ?? "-")</td>
-                            <td><span class="badge bg-secondary">@a.PaymentMethod</span></td>
-                            <td>
-                                <span class="badge @(a.Status == "مسددة" ? "bg-success" : a.Status == "موافق عليها" ? "bg-primary" : "bg-warning text-dark")">
-                                    @a.Status
-                                </span>
-                            </td>
-                            <td>
-                                @if (a.Status == "معلق")
-                                {
-                                    <form asp-action="Approve" asp-route-id="@a.Id" method="post" style="display:inline">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-success me-1">
-                                            <i class="fas fa-check"></i> موافقة
-                                        </button>
-                                    </form>
-                                }
-                                <button type="button" class="btn btn-sm btn-outline-danger"
-                                        onclick="confirmDelete(@a.Id, '@(a.Employee?.FullName ?? "")')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
     </div>
 </div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle me-2"></i> لا توجد سلف مسجلة
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var summary in Model)
+        {
+            var cardId = "emp-" + summary.Employee.Id;
+            var hasRemaining = summary.TotalRemaining > 0;
+
+            <div class="col-md-6 col-xl-4">
+                <div class="card h-100 shadow-sm border-0" style="cursor:pointer;"
+                     onclick="toggleDetails('@cardId')" title="اضغط لعرض التفاصيل">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="fw-bold mb-0">@summary.Employee.FullName</h5>
+                                <small class="text-muted">@summary.Advances.Count سلفة</small>
+                            </div>
+                            <span class="badge @(hasRemaining ? "bg-warning text-dark" : "bg-success") fs-6">
+                                @(hasRemaining ? "لديه رصيد" : "مسدد")
+                            </span>
+                        </div>
+                        <div class="row text-center g-2">
+                            <div class="col-4">
+                                <div class="bg-light rounded p-2">
+                                    <div class="small text-muted">إجمالي السلف</div>
+                                    <div class="fw-bold text-primary">@summary.TotalAmount.ToString("N3")</div>
+                                    <div class="small text-muted">د.ك</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="bg-light rounded p-2">
+                                    <div class="small text-muted">المدفوع</div>
+                                    <div class="fw-bold text-success">@summary.TotalDeducted.ToString("N3")</div>
+                                    <div class="small text-muted">د.ك</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="bg-light rounded p-2">
+                                    <div class="small text-muted">المتبقي</div>
+                                    <div class="fw-bold @(hasRemaining ? "text-danger" : "text-success")">
+                                        @summary.TotalRemaining.ToString("N3")
+                                    </div>
+                                    <div class="small text-muted">د.ك</div>
+                                </div>
+                            </div>
+                        </div>
+                        @if (summary.TotalAmount > 0)
+                        {
+                            var pct = (int)Math.Min(100, summary.TotalDeducted / summary.TotalAmount * 100);
+                            <div class="mt-3">
+                                <div class="d-flex justify-content-between small text-muted mb-1">
+                                    <span>نسبة السداد</span>
+                                    <span>@pct%</span>
+                                </div>
+                                <div class="progress" style="height:6px;">
+                                    <div class="progress-bar @(pct == 100 ? "bg-success" : "bg-warning")"
+                                         style="width:@pct%"></div>
+                                </div>
+                            </div>
+                        }
+                        <div class="mt-2 text-center">
+                            <small class="text-muted" id="toggle-hint-@cardId">
+                                <i class="fas fa-chevron-down me-1"></i> اضغط لعرض التفاصيل
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- تفاصيل الموظف -->
+            <div class="col-12 d-none" id="@cardId">
+                <div class="card border-primary shadow">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="fas fa-list me-2"></i>تفاصيل سلف: <strong>@summary.Employee.FullName</strong>
+                        </h6>
+                        <button type="button" class="btn btn-sm btn-outline-light"
+                                onclick="event.stopPropagation(); toggleDetails('@cardId')">
+                            <i class="fas fa-times"></i> إغلاق
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <!-- جدول السلف -->
+                            <div class="col-lg-7">
+                                <h6 class="fw-bold border-bottom pb-2">
+                                    <i class="fas fa-money-bill-wave me-1 text-primary"></i> السلف
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>التاريخ</th>
+                                                <th>المبلغ</th>
+                                                <th>المخصوم</th>
+                                                <th>المتبقي</th>
+                                                <th>الحالة</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var adv in summary.Advances)
+                                            {
+                                                var remaining = adv.Amount - adv.DeductedAmount;
+                                                <tr>
+                                                    <td>@adv.AdvanceDate.ToString("yyyy/MM/dd")</td>
+                                                    <td class="fw-bold">@adv.Amount.ToString("N3") <small class="text-muted">د.ك</small></td>
+                                                    <td>
+                                                        @if (adv.DeductedAmount > 0)
+                                                        {
+                                                            <span class="text-success">@adv.DeductedAmount.ToString("N3") <small class="text-muted">د.ك</small></span>
+                                                        }
+                                                        else
+                                                        {
+
+                                                            <span class="text-muted">-</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        @if (remaining > 0)
+                                                        {
+                                                            <span class="text-danger fw-bold">@remaining.ToString("N3") <small class="text-muted">د.ك</small></span>
+                                                        }
+                                                        else
+                                                        {
+
+                                                            <span class="badge bg-success">مسدد</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge @(adv.Status == "مسددة" ? "bg-success" : adv.Status == "موافق عليها" ? "bg-primary" : "bg-warning text-dark")">
+                                                            @adv.Status
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        @if (adv.Status == "معلق")
+                                                        {
+                                                            <form asp-action="Approve" asp-route-id="@adv.Id" method="post" style="display:inline"
+                                                                  onclick="event.stopPropagation()">
+                                                                @Html.AntiForgeryToken()
+                                                                <button type="submit" class="btn btn-xs btn-success" title="موافقة">
+                                                                    <i class="fas fa-check"></i>
+                                                                </button>
+                                                            </form>
+                                                        }
+                                                        <button type="button" class="btn btn-xs btn-outline-danger"
+                                                                onclick="event.stopPropagation(); confirmDelete(@adv.Id, '@summary.Employee.FullName')"
+                                                                title="حذف">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                @if (!string.IsNullOrEmpty(adv.Reason))
+                                                {
+                                                    <tr class="table-light">
+                                                        <td colspan="6" class="small text-muted py-1">
+                                                            <i class="fas fa-comment me-1"></i>@adv.Reason
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- خصومات الرواتب -->
+                            <div class="col-lg-5">
+                                <h6 class="fw-bold border-bottom pb-2">
+                                    <i class="fas fa-calendar-check me-1 text-success"></i> المدفوعات من الرواتب
+                                </h6>
+                                @if (!summary.SalaryDeductions.Any())
+                                {
+                                    <p class="text-muted text-center py-3">
+                                        <i class="fas fa-info-circle me-1"></i> لا توجد مدفوعات بعد
+                                    </p>
+                                }
+                                else
+                                {
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>الشهر</th>
+                                                    <th>المخصوم</th>
+                                                    <th>تاريخ الصرف</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var sal in summary.SalaryDeductions)
+                                                {
+                                                    <tr>
+                                                        <td>@arabicMonths[sal.Month] @sal.Year</td>
+                                                        <td class="fw-bold text-success">
+                                                            @sal.Amount.ToString("N3") <small class="text-muted">د.ك</small>
+                                                        </td>
+                                                        <td>@(sal.PaidDate.HasValue? sal.PaidDate.Value.ToString("yyyy/MM/dd") : "-")</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                            <tfoot class="table-light fw-bold">
+                                                <tr>
+                                                    <td>الإجمالي</td>
+                                                    <td class="text-success">
+                                                        @summary.SalaryDeductions.Sum(s => s.Amount).ToString("N3") <small class="text-muted">د.ك</small>
+                                                    </td>
+                                                    <td></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
 
 <!-- Modal تأكيد الحذف -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
@@ -123,10 +281,34 @@
 
 @section Scripts {
     <script>
+        function toggleDetails(cardId) {
+            const detailRow = document.getElementById(cardId);
+            const hint = document.getElementById('toggle-hint-' + cardId);
+            const isHidden = detailRow.classList.contains('d-none');
+
+            detailRow.classList.toggle('d-none', !isHidden);
+
+            if (hint) {
+                hint.innerHTML = isHidden
+                    ? '<i class="fas fa-chevron-up me-1"></i> اضغط للإخفاء'
+                    : '<i class="fas fa-chevron-down me-1"></i> اضغط لعرض التفاصيل';
+            }
+
+            if (isHidden) {
+                setTimeout(() => detailRow.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+            }
+        }
+
         function confirmDelete(id, empName) {
             document.getElementById('deleteEmpName').textContent = empName;
             document.getElementById('deleteForm').action = '/Advances/Delete/' + id;
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
     </script>
+    <style>
+        .btn-xs {
+            padding: 0.15rem 0.4rem;
+            font-size: 0.75rem;
+        }
+    </style>
 }

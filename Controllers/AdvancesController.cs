@@ -22,13 +22,41 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> Index(string? search)
         {
-            var query = _context.EmployeeAdvances.Include(a => a.Employee).AsQueryable();
+            var advancesQuery = _context.EmployeeAdvances.Include(a => a.Employee).AsQueryable();
             if (!string.IsNullOrEmpty(search))
-                query = query.Where(a => a.Employee != null && a.Employee.FullName.Contains(search));
+                advancesQuery = advancesQuery.Where(a => a.Employee != null && a.Employee.FullName.Contains(search));
 
-            var advances = await query.OrderByDescending(a => a.AdvanceDate).ToListAsync();
+            var advances = await advancesQuery.OrderByDescending(a => a.AdvanceDate).ToListAsync();
+
+            // subquery to avoid EF Core generating CTE (WITH) syntax error on SQL Server
+            var employeeIdsSubquery = advancesQuery.Select(a => a.EmployeeId).Distinct();
+
+            var salaryDeductions = await _context.Salaries
+                .Where(s => employeeIdsSubquery.Contains(s.EmployeeId) && s.AdvanceDeducted > 0)
+                .OrderByDescending(s => s.Year).ThenByDescending(s => s.Month)
+                .ToListAsync();
+
+            var summaries = advances
+                .GroupBy(a => a.Employee)
+                .Select(g => new EmployeeAdvanceSummaryViewModel
+                {
+                    Employee = g.Key!,
+                    Advances = g.OrderByDescending(a => a.AdvanceDate).ToList(),
+                    SalaryDeductions = salaryDeductions
+                        .Where(s => s.EmployeeId == g.Key!.Id)
+                        .Select(s => new SalaryAdvanceDeduction
+                        {
+                            Month = s.Month,
+                            Year = s.Year,
+                            Amount = s.AdvanceDeducted,
+                            PaidDate = s.PaidDate
+                        }).ToList()
+                })
+                .OrderBy(s => s.Employee.FullName)
+                .ToList();
+
             ViewBag.Search = search;
-            return View(advances);
+            return View(summaries);
         }
 
         public async Task<IActionResult> Create()
