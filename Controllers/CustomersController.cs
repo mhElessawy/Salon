@@ -32,6 +32,13 @@ namespace Salon.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Customer model)
         {
+            if (!string.IsNullOrEmpty(model.Phone))
+            {
+                var phoneExists = await _context.Customers.AnyAsync(c => c.Phone == model.Phone);
+                if (phoneExists)
+                    ModelState.AddModelError("Phone", "رقم الهاتف مستخدم بالفعل لعميل آخر");
+            }
+
             if (ModelState.IsValid)
             {
                 model.CreatedAt = DateTime.Now;
@@ -54,6 +61,14 @@ namespace Salon.Controllers
         public async Task<IActionResult> Edit(int id, Customer model)
         {
             if (id != model.Id) return NotFound();
+
+            if (!string.IsNullOrEmpty(model.Phone))
+            {
+                var phoneExists = await _context.Customers.AnyAsync(c => c.Phone == model.Phone && c.Id != id);
+                if (phoneExists)
+                    ModelState.AddModelError("Phone", "رقم الهاتف مستخدم بالفعل لعميل آخر");
+            }
+
             if (ModelState.IsValid)
             {
                 _context.Update(model);

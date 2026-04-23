@@ -13,61 +13,88 @@
     </a>
 </div>
 
-<div class="card">
-    <div class="card-body">
-        <form method="get" class="search-bar mb-3">
+<div class="card mb-4">
+    <div class="card-body py-2">
+        <form method="get" class="search-bar">
             <input type="text" name="search" value="@ViewBag.Search" class="form-control" placeholder="بحث بالاسم أو الهاتف..." />
             <button type="submit" class="btn btn-primary btn-sm">
                 <i class="fas fa-search"></i> بحث
             </button>
         </form>
-
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>الاسم الكامل</th>
-                        <th>الهاتف</th>
-                        <th>البريد الإلكتروني</th>
-                        <th>تاريخ الميلاد</th>
-                        <th>تاريخ الإضافة</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (!Model.Any())
-                    {
-                        <tr><td colspan="7" class="text-center text-muted py-4">لا توجد بيانات</td></tr>
-                    }
-                    @foreach (var c in Model)
-                    {
-                        <tr>
-                            <td>@c.Id</td>
-                            <td><strong>@c.FullName</strong></td>
-                            <td>@(c.Phone ?? "-")</td>
-                            <td>@(c.Email ?? "-")</td>
-                            <td>@(c.BirthDate?.ToString("yyyy/MM/dd") ?? "-")</td>
-                            <td>@c.CreatedAt.ToString("yyyy/MM/dd")</td>
-                            <td>
-                                <a href="@Url.Action("Details", new { id = c.Id })" class="btn btn-sm btn-outline-primary me-1">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="@Url.Action("Edit", new { id = c.Id })" class="btn btn-sm btn-outline-warning me-1">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form asp-action="Delete" asp-route-id="@c.Id" method="post" style="display:inline"
-                                      onsubmit="return confirm('هل تريد حذف هذا العميل؟')">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
     </div>
 </div>
+
+@if (!Model.Any())
+{
+    <div class="text-center text-muted py-5">
+        <i class="fas fa-users fa-3x mb-3 opacity-50 d-block"></i>
+        <p class="fs-5">لا توجد بيانات</p>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var c in Model)
+        {
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="card h-100 customer-card shadow-sm">
+                    <div class="card-body text-center pt-4">
+                        <div class="customer-avatar mx-auto mb-3">
+                            @c.FullName.Substring(0, 1)
+                        </div>
+                        <h5 class="card-title mb-1 fw-bold">@c.FullName</h5>
+                        @if (!string.IsNullOrEmpty(c.Gender))
+                        {
+                            <span class="badge rounded-pill mb-2"
+                                  style="background-color: var(--primary-light); color: var(--primary);">
+                                @c.Gender
+                            </span>
+                        }
+                        <div class="customer-info mt-3">
+                            @if (!string.IsNullOrEmpty(c.Phone))
+                            {
+                                <div class="info-item">
+                                    <i class="fas fa-phone"></i>
+                                    <span>@c.Phone</span>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(c.Email))
+                            {
+                                <div class="info-item">
+                                    <i class="fas fa-envelope"></i>
+                                    <span class="text-truncate" style="max-width:150px">@c.Email</span>
+                                </div>
+                            }
+                            @if (c.BirthDate.HasValue)
+                            {
+                                <div class="info-item">
+                                    <i class="fas fa-birthday-cake"></i>
+                                    <span>@c.BirthDate.Value.ToString("yyyy/MM/dd")</span>
+                                </div>
+                            }
+                            <div class="info-item text-muted">
+                                <i class="fas fa-calendar-plus"></i>
+                                <span>@c.CreatedAt.ToString("yyyy/MM/dd")</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0 d-flex justify-content-center gap-2 pb-3">
+                        <a href="@Url.Action("Details", new { id = c.Id })" class="btn btn-sm btn-outline-primary" title="التفاصيل">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="@Url.Action("Edit", new { id = c.Id })" class="btn btn-sm btn-outline-warning" title="تعديل">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <form asp-action="Delete" asp-route-id="@c.Id" method="post" style="display:inline"
+                              onsubmit="return confirm('هل تريد حذف هذا العميل؟')">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

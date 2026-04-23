@@ -935,3 +935,51 @@ a {
 .sidebar-overlay.show {
     display: block;
 }
+
+/* =============================================
+   CUSTOMER CARDS
+   ============================================= */
+.customer-card {
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.customer-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+.customer-avatar {
+    width: 70px;
+    height: 70px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.customer-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.info-item i {
+    color: var(--primary);
+    width: 16px;
+    text-align: center;
+    font-size: 13px;
+}
