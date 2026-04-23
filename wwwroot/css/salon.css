@@ -983,3 +983,19 @@ a {
     text-align: center;
     font-size: 13px;
 }
+
+/* =============================================
+   DELETE CONFIRMATION MODAL
+   ============================================= */
+.delete-icon-wrap {
+    width: 80px;
+    height: 80px;
+    background: #fce4ec;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    font-size: 32px;
+    color: #dc3545;
+}
