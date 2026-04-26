@@ -19,6 +19,11 @@
     box-sizing: border-box;
 }
 
+html, body {
+    overflow-x: hidden;
+    max-width: 100%;
+}
+
 body {
     font-family: 'Segoe UI', 'Cairo', 'Tajawal', Arial, sans-serif;
     background-color: #f5f6fa;
@@ -910,19 +915,16 @@ a {
         transition: transform 0.3s ease;
         position: fixed;
         width: min(260px, 82vw);
-        padding-top: 10px;
     }
 
         .sidebar.show {
             transform: translateX(0);
         }
 
-    .sidebar-brand {
-        padding-top: 8px;
-    }
-
     .main-content {
         margin-right: 0;
+        max-width: 100%;
+        overflow-x: hidden;
     }
 }
 
@@ -936,7 +938,25 @@ a {
     }
 
     .page-content {
-        padding: 16px;
+        padding: 12px;
+    }
+
+    .topbar {
+        padding: 0 12px;
+    }
+
+    .topbar-greeting,
+    .connected-btn,
+    .lang-switch-btn {
+        display: none !important;
+    }
+
+    .topbar-left {
+        gap: 6px;
+    }
+
+    .topbar-right {
+        gap: 8px;
     }
 }
 
@@ -964,30 +984,30 @@ a {
     }
 
 /* =============================================
-   SIDEBAR CLOSE BUTTON (Mobile)
+   SIDEBAR CLOSE BUTTON (Mobile - floating fixed)
    ============================================= */
 .sidebar-close-btn {
-    position: absolute;
-    top: 14px;
-    left: 14px;
-    width: 40px;
-    height: 40px;
+    display: none;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    width: 44px;
+    height: 44px;
     background: #dc3545;
     border: none;
     color: #fff;
-    font-size: 20px;
+    font-size: 22px;
     cursor: pointer;
     border-radius: 50%;
-    display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 6px rgba(220,53,69,0.4);
-    z-index: 10;
+    box-shadow: 0 3px 10px rgba(220,53,69,0.5);
+    z-index: 1060;
+    touch-action: manipulation;
 }
 
-    .sidebar-close-btn:hover {
-        background: #c82333;
-        color: #fff;
+    .sidebar-close-btn.show {
+        display: flex;
     }
 
 /* Prevent body scroll when sidebar is open on mobile */
