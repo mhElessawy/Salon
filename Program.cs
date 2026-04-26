@@ -109,9 +109,11 @@ using (var scope = app.Services.CreateScope())
                 Phone TEXT,
                 Email TEXT,
                 Address TEXT,
+                ContactPerson TEXT,
                 Notes TEXT,
                 IsActive INTEGER NOT NULL DEFAULT 1,
                 CreatedAt TEXT NOT NULL DEFAULT (datetime('now')))");
+            TryExec("ALTER TABLE Suppliers ADD COLUMN ContactPerson TEXT");
             TryExec(@"CREATE TABLE IF NOT EXISTS StockMovements (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 ProductId INTEGER NOT NULL,
@@ -131,8 +133,9 @@ using (var scope = app.Services.CreateScope())
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Products' AND COLUMN_NAME='OpeningQuantity') ALTER TABLE Products ADD OpeningQuantity INT NOT NULL DEFAULT 0");
             TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='Suppliers')
                 CREATE TABLE Suppliers (Id INT IDENTITY PRIMARY KEY, Name NVARCHAR(200) NOT NULL,
-                Phone NVARCHAR(50), Email NVARCHAR(200), Address NVARCHAR(500), Notes NVARCHAR(MAX),
-                IsActive BIT NOT NULL DEFAULT 1, CreatedAt DATETIME NOT NULL DEFAULT GETDATE())");
+                Phone NVARCHAR(50), Email NVARCHAR(200), Address NVARCHAR(500), ContactPerson NVARCHAR(MAX),
+                Notes NVARCHAR(MAX), IsActive BIT NOT NULL DEFAULT 1, CreatedAt DATETIME NOT NULL DEFAULT GETDATE())");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Suppliers' AND COLUMN_NAME='ContactPerson') ALTER TABLE Suppliers ADD ContactPerson NVARCHAR(MAX) NULL");
             TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='StockMovements')
                 CREATE TABLE StockMovements (Id INT IDENTITY PRIMARY KEY, ProductId INT NOT NULL,
                 MovementType NVARCHAR(50) NOT NULL DEFAULT N'??????', Quantity INT NOT NULL,
