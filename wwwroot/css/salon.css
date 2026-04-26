@@ -909,11 +909,17 @@ a {
         box-shadow: -4px 0 20px rgba(0,0,0,0.15);
         transition: transform 0.3s ease;
         position: fixed;
+        width: min(260px, 82vw);
+        padding-top: 10px;
     }
 
         .sidebar.show {
             transform: translateX(0);
         }
+
+    .sidebar-brand {
+        padding-top: 8px;
+    }
 
     .main-content {
         margin-right: 0;
@@ -962,25 +968,32 @@ a {
    ============================================= */
 .sidebar-close-btn {
     position: absolute;
-    top: 12px;
-    left: 12px;
-    width: 32px;
-    height: 32px;
-    background: none;
+    top: 14px;
+    left: 14px;
+    width: 40px;
+    height: 40px;
+    background: #dc3545;
     border: none;
-    color: var(--text-muted);
-    font-size: 18px;
+    color: #fff;
+    font-size: 20px;
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 2px 6px rgba(220,53,69,0.4);
+    z-index: 10;
 }
 
     .sidebar-close-btn:hover {
-        background: #f8f9fa;
-        color: #dc3545;
+        background: #c82333;
+        color: #fff;
     }
+
+/* Prevent body scroll when sidebar is open on mobile */
+body.sidebar-open {
+    overflow: hidden;
+}
 
 /* =============================================
    SIDEBAR OVERLAY (Mobile)
@@ -989,8 +1002,10 @@ a {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.45);
-    z-index: 999;
+    background: rgba(0,0,0,0.5);
+    z-index: 1049;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
 }
 
     .sidebar-overlay.show {
