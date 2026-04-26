@@ -1048,15 +1048,49 @@ a {
 /* =============================================
    DELETE CONFIRMATION MODAL
    ============================================= */
+.delete-modal-red {
+    background: #dc3545;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
 .delete-icon-wrap {
     width: 80px;
     height: 80px;
-    background: #fce4ec;
+    background: rgba(255, 255, 255, 0.2);
+    border: 3px solid rgba(255, 255, 255, 0.5);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto;
     font-size: 32px;
+    color: #fff;
+}
+
+.delete-confirm-btn {
+    background: #fff;
     color: #dc3545;
+    border: none;
+    border-radius: 10px;
+    min-width: 120px;
+}
+
+.delete-confirm-btn:hover {
+    background: #f8f9fa;
+    color: #c82333;
+}
+
+.delete-cancel-btn {
+    background: transparent;
+    color: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: 10px;
+    min-width: 120px;
+}
+
+.delete-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border-color: #fff;
 }
