@@ -918,6 +918,31 @@ a {
     .main-content {
         margin-right: 0;
     }
+
+    /* Hide left section of topbar on tablet/mobile */
+    .topbar-left {
+        display: none;
+    }
+
+    /* Reduce topbar padding */
+    .topbar {
+        padding: 0 14px;
+    }
+
+    /* Hide language switch button */
+    .lang-switch-btn {
+        display: none;
+    }
+
+    /* Compact user dropdown - hide name/role text, show avatar only */
+    .topbar-user > div:first-child {
+        display: none;
+    }
+
+    .topbar-user {
+        padding: 5px 8px;
+        gap: 0;
+    }
 }
 
 @media (max-width: 576px) {
@@ -931,6 +956,62 @@ a {
 
     .page-content {
         padding: 16px;
+    }
+
+    /* Topbar compact on mobile */
+    .topbar {
+        padding: 0 10px;
+    }
+
+    .topbar-right {
+        gap: 6px;
+    }
+
+    /* Smaller icon buttons on mobile */
+    .logout-btn,
+    .notif-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 15px;
+    }
+
+    /* Table scroll on mobile */
+    .card-body {
+        overflow-x: auto;
+    }
+
+    /* Wrap card headers on small screens */
+    .card-header {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* Search bar wrap */
+    .search-bar {
+        flex-wrap: wrap;
+    }
+
+    .search-bar .form-control {
+        max-width: 100%;
+        flex: 1;
+    }
+
+    /* Page header font size */
+    .page-header h1 {
+        font-size: 20px;
+    }
+
+    /* Auth card padding on small screens */
+    .auth-card {
+        padding: 28px 20px;
+        margin: 12px;
+        max-width: calc(100% - 24px);
+    }
+
+    /* Remove connected button text overflow */
+    .connected-btn {
+        font-size: 11px;
+        padding: 5px 10px;
     }
 }
 
