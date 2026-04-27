@@ -158,10 +158,10 @@
             });
         }
 
-        // Close sidebar when tapping a menu link on mobile
+        // Close sidebar when tapping a real page link on mobile (not submenu toggles)
         document.querySelectorAll('.sidebar-menu a[href]').forEach(function(link) {
             link.addEventListener('click', function() {
-                if (window.innerWidth < 992) closeSidebar();
+                if (window.innerWidth < 992 && !this.classList.contains('submenu-toggle')) closeSidebar();
             });
         });
 
