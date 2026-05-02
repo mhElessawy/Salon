@@ -18,11 +18,12 @@
         => controllers.Any(c => ctrl == c.ToLower());
 
     bool shiftsOpen    = IsGroupOpen("shifts");
-    bool salesOpen     = IsGroupOpen("sales", "appointments", "services", "servicecategories");
+    bool salesOpen     = IsGroupOpen("sales", "appointments");
+    bool defsOpen      = IsGroupOpen("services", "servicecategories", "departments");
     bool inventoryOpen = IsGroupOpen("inventory", "suppliers");
     bool hrOpen        = IsGroupOpen("employees", "salaries", "advances", "attendance");
-    bool financeOpen  = IsGroupOpen("expenses", "reports");
-    bool settingsOpen = IsGroupOpen("settings", "users");
+    bool financeOpen   = IsGroupOpen("expenses", "reports");
+    bool settingsOpen  = IsGroupOpen("settings", "users");
 }
 
 <nav class="sidebar" id="sidebar">
@@ -89,8 +90,7 @@
         @* المبيعات *@
         @{
             bool hasSalesGroup = canSee("BarberInvoice") || canSee("MassageInvoice") ||
-                                 canSee("ProductInvoice") || canSee("Appointments") ||
-                                 canSee("Services") || canSee("ServiceCategories");
+                                 canSee("ProductInvoice") || canSee("Appointments");
         }
         @if (hasSalesGroup)
         {
@@ -147,11 +147,29 @@
                     </a>
                 </li>
                 }
+            </ul>
+        </li>
+        }
+
+        @* التعريفات *@
+        @{
+            bool hasDefsGroup = canSee("Services") || canSee("ServiceCategories") || canSee("Departments");
+        }
+        @if (hasDefsGroup)
+        {
+        <li class="has-submenu @(defsOpen ? "open" : "")">
+            <a href="#" class="submenu-toggle @(defsOpen ? "active-parent" : "")"
+               onclick="toggleMenu(this); return false;">
+                <i class="fas fa-book-open"></i>
+                <span>التعريفات</span>
+                <i class="fas fa-chevron-left arrow-icon"></i>
+            </a>
+            <ul class="submenu @(defsOpen ? "show" : "")">
                 @if (canSee("Services"))
                 {
                 <li>
                     <a href="@Url.Action("Index", "Services")" class="@IsActive("Services")">
-                        <i class="fas fa-cut"></i>
+                        <i class="fas fa-concierge-bell"></i>
                         <span>الخدمات</span>
                     </a>
                 </li>
@@ -162,6 +180,15 @@
                     <a href="@Url.Action("Index", "ServiceCategories")" class="@IsActive("ServiceCategories")">
                         <i class="fas fa-tags"></i>
                         <span>فئات الخدمات</span>
+                    </a>
+                </li>
+                }
+                @if (canSee("Departments"))
+                {
+                <li>
+                    <a href="@Url.Action("Index", "Departments")" class="@IsActive("Departments")">
+                        <i class="fas fa-sitemap"></i>
+                        <span>الأقسام</span>
                     </a>
                 </li>
                 }
@@ -247,12 +274,6 @@
                     <a href="@Url.Action("Index", "Employees")" class="@IsActive("Employees","Index")">
                         <i class="fas fa-id-badge"></i>
                         <span>الموظفين</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="@Url.Action("Index", "Departments")" class="@IsActive("Departments")">
-                        <i class="fas fa-sitemap"></i>
-                        <span>الأقسام</span>
                     </a>
                 </li>
                 <li>
