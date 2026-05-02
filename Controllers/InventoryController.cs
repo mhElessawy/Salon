@@ -243,6 +243,39 @@ namespace Salon.Controllers
             return View(model);
         }
 
+        // ===== تقرير استهلاك الموظفين =====
+        public async Task<IActionResult> ConsumeReport(int? employeeId, int? productId,
+            DateTime? dateFrom, DateTime? dateTo)
+        {
+            var query = _context.StockMovements
+                .Include(m => m.Product)
+                .Include(m => m.Employee)
+                .Where(m => m.MovementType == "استهلاك")
+                .AsQueryable();
+
+            if (employeeId.HasValue) query = query.Where(m => m.EmployeeId == employeeId.Value);
+            if (productId.HasValue)  query = query.Where(m => m.ProductId  == productId.Value);
+            if (dateFrom.HasValue)   query = query.Where(m => m.MovementDate >= dateFrom.Value);
+            if (dateTo.HasValue)     query = query.Where(m => m.MovementDate <= dateTo.Value);
+
+            var movements = await query
+                .OrderBy(m => m.Employee != null ? m.Employee.FullName : "")
+                .ThenByDescending(m => m.MovementDate)
+                .ToListAsync();
+
+            ViewBag.Employees = new SelectList(
+                await _context.Employees.Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync(),
+                "Id", "FullName", employeeId);
+            ViewBag.Products = new SelectList(
+                await _context.Products.Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync(),
+                "Id", "Name", productId);
+            ViewBag.EmployeeId = employeeId;
+            ViewBag.ProductId  = productId;
+            ViewBag.DateFrom   = dateFrom?.ToString("yyyy-MM-dd") ?? "";
+            ViewBag.DateTo     = dateTo?.ToString("yyyy-MM-dd")   ?? "";
+            return View(movements);
+        }
+
         // ===== سجل الحركات =====
         public async Task<IActionResult> Movements(int? productId)
         {
