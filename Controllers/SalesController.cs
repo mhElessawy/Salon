@@ -143,6 +143,23 @@ namespace Salon.Controllers
                     return View(model);
                 }
 
+                // التحقق من الكميات أولاً قبل الخصم
+                for (int i = 0; i < itemNames.Length; i++)
+                {
+                    if (string.IsNullOrEmpty(itemNames[i])) continue;
+                    var id  = itemIds?[i] ?? 0;
+                    var qty = itemQtys?[i] ?? 1;
+                    if (id <= 0) continue;
+                    var product = await _context.Products.FindAsync(id);
+                    if (product == null || product.StockQuantity < qty)
+                    {
+                        var available = product?.StockQuantity ?? 0;
+                        TempData["Error"] = $"لا يوجد مخزون كافٍ للمنتج «{itemNames[i]}». المتاح: {available}، المطلوب: {qty}";
+                        await PopulateProductDropdowns();
+                        return View(model);
+                    }
+                }
+
                 for (int i = 0; i < itemNames.Length; i++)
                 {
                     if (string.IsNullOrEmpty(itemNames[i])) continue;
@@ -154,7 +171,7 @@ namespace Salon.Controllers
                     var product = await _context.Products.FindAsync(id);
                     if (product != null)
                     {
-                        product.StockQuantity = Math.Max(0, product.StockQuantity - qty);
+                        product.StockQuantity -= qty;
                         _context.StockMovements.Add(new StockMovement
                         {
                             ProductId    = id,
@@ -175,6 +192,26 @@ namespace Salon.Controllers
             // ===== بيع لعميل =====
             if (ModelState.IsValid)
             {
+                // التحقق من الكميات أولاً قبل إنشاء الفاتورة
+                if (itemNames != null)
+                {
+                    for (int i = 0; i < itemNames.Length; i++)
+                    {
+                        if (string.IsNullOrEmpty(itemNames[i])) continue;
+                        var id  = itemIds?[i] ?? 0;
+                        var qty = itemQtys?[i] ?? 1;
+                        if (id <= 0) continue;
+                        var product = await _context.Products.FindAsync(id);
+                        if (product == null || product.StockQuantity < qty)
+                        {
+                            var available = product?.StockQuantity ?? 0;
+                            TempData["Error"] = $"لا يوجد مخزون كافٍ للمنتج «{itemNames[i]}». المتاح: {available}، المطلوب: {qty}";
+                            await PopulateProductDropdowns();
+                            return View(model);
+                        }
+                    }
+                }
+
                 model.TotalAmount = 0;
                 model.SaleDate = DateTime.Now;
                 _context.Sales.Add(model);
@@ -198,7 +235,7 @@ namespace Salon.Controllers
                             item.ProductId = id;
                             var product = await _context.Products.FindAsync(id);
                             if (product != null)
-                                product.StockQuantity = Math.Max(0, product.StockQuantity - qty);
+                                product.StockQuantity -= qty;
                         }
                         _context.SaleItems.Add(item);
                         model.TotalAmount += item.Total;
