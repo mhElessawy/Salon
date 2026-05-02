@@ -241,9 +241,9 @@
         currentMode = mode;
         document.getElementById('transactionTypeField').value = mode;
 
-        const form        = document.getElementById('posForm');
-        const btnSell     = document.getElementById('btnSell');
-        const btnConsume  = document.getElementById('btnConsume');
+        const form         = document.getElementById('posForm');
+        const btnSell      = document.getElementById('btnSell');
+        const btnConsume   = document.getElementById('btnConsume');
         const slotCustomer = document.getElementById('slotCustomer');
         const slotEmployee = document.getElementById('slotEmployee');
         const slotPayment  = document.getElementById('slotPayment');
@@ -278,12 +278,20 @@
                 saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> حفظ الفاتورة';
             }
         }
+
+        // Update effective prices for items already in the invoice
+        invoiceItems.forEach(function(item) {
+            item.price = mode === 'استهلاك' ? 0 : item.originalPrice;
+            item.total = item.qty * item.price;
+            updateRow(item);
+        });
         recalc();
     }
 
     function addItem(id, name, price, maxStock) {
-        price    = parseFloat(price)    || 0;
-        maxStock = parseInt(maxStock)   || 0;
+        const originalPrice = parseFloat(price) || 0;
+        const effectivePrice = currentMode === 'استهلاك' ? 0 : originalPrice;
+        maxStock = parseInt(maxStock) || 0;
 
         const existing = invoiceItems.find(i => i.id === id);
         if (existing) {
@@ -292,7 +300,7 @@
             existing.total = existing.qty * existing.price;
             updateRow(existing);
         } else {
-            const item = { rowId: ++rowCounter, id, name, price, qty: 1, total: price, maxStock };
+            const item = { rowId: ++rowCounter, id, name, originalPrice, price: effectivePrice, qty: 1, total: effectivePrice, maxStock };
             invoiceItems.push(item);
             renderRow(item);
         }
@@ -318,6 +326,9 @@
     }
 
     function buildHtml(item) {
+        const isFree    = currentMode === 'استهلاك';
+        const priceCell = isFree ? '<span class="badge bg-success">مجاني</span>' : item.price.toFixed(3);
+        const totalCell = isFree ? '-' : `<strong>${item.total.toFixed(3)}</strong>`;
         return `
             <td>${item.name}</td>
             <td>
@@ -329,8 +340,8 @@
                 </div>
                 <small style="color:#6c757d;font-size:10px">متاح: ${item.maxStock}</small>
             </td>
-            <td>${item.price.toFixed(3)}</td>
-            <td><strong>${item.total.toFixed(3)}</strong></td>
+            <td>${priceCell}</td>
+            <td>${totalCell}</td>
             <td><button type="button" class="btn-remove-item" onclick="removeItem(${item.rowId})"><i class="fas fa-times"></i></button></td>
         `;
     }
@@ -370,11 +381,17 @@
     }
 
     function recalc() {
-        const subtotal = invoiceItems.reduce((s, i) => s + i.total, 0);
-        const discount = currentMode === 'استهلاك' ? 0 : (parseFloat(document.getElementById('discountInput').value) || 0);
-        const net = Math.max(0, subtotal - discount);
-        document.getElementById('subtotalDisplay').textContent = subtotal.toFixed(3) + ' د.ك';
-        document.getElementById('netDisplay').textContent      = net.toFixed(3)      + ' د.ك';
+        if (currentMode === 'استهلاك') {
+            const count = invoiceItems.reduce((s, i) => s + i.qty, 0);
+            document.getElementById('subtotalDisplay').textContent = count + ' قطعة';
+            document.getElementById('netDisplay').textContent      = 'مجاني';
+        } else {
+            const subtotal = invoiceItems.reduce((s, i) => s + i.total, 0);
+            const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+            const net = Math.max(0, subtotal - discount);
+            document.getElementById('subtotalDisplay').textContent = subtotal.toFixed(3) + ' د.ك';
+            document.getElementById('netDisplay').textContent      = net.toFixed(3)      + ' د.ك';
+        }
     }
 
     function filterProducts(q) {
