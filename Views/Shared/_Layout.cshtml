@@ -27,7 +27,11 @@
 </head>
 <body>
     <!-- Overlay for mobile sidebar -->
-    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <!-- Floating close button (mobile only) -->
+    <button class="sidebar-close-btn d-lg-none" id="sidebarCloseBtn" aria-label="إغلاق القائمة">
+        <i class="fas fa-times"></i>
+    </button>
 
     <div class="app-wrapper">
         @await Html.PartialAsync("_Sidebar")
@@ -128,14 +132,38 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Mobile sidebar
+        var sidebar = document.getElementById('sidebar');
+        var overlay = document.getElementById('sidebarOverlay');
+        var closeBtn = document.getElementById('sidebarCloseBtn');
+
         function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('show');
-            document.getElementById('sidebarOverlay').classList.toggle('show');
+            var isOpen = sidebar.classList.toggle('show');
+            overlay.classList.toggle('show', isOpen);
+            if (closeBtn) closeBtn.classList.toggle('show', isOpen);
+            document.body.classList.toggle('sidebar-open', isOpen);
         }
         function closeSidebar() {
-            document.getElementById('sidebar').classList.remove('show');
-            document.getElementById('sidebarOverlay').classList.remove('show');
+            sidebar.classList.remove('show');
+            overlay.classList.remove('show');
+            if (closeBtn) closeBtn.classList.remove('show');
+            document.body.classList.remove('sidebar-open');
         }
+
+        if (overlay) overlay.addEventListener('click', closeSidebar);
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeSidebar);
+            closeBtn.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                closeSidebar();
+            });
+        }
+
+        // Close sidebar when tapping a menu link on mobile
+        document.querySelectorAll('.sidebar-menu a[href]').forEach(function(link) {
+            link.addEventListener('click', function() {
+                if (window.innerWidth < 992) closeSidebar();
+            });
+        });
 
         // Dropdown submenu
         function toggleMenu(el) {

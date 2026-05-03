@@ -18,10 +18,12 @@
         => controllers.Any(c => ctrl == c.ToLower());
 
     bool shiftsOpen = IsGroupOpen("shifts");
-    bool salesOpen = IsGroupOpen("sales", "appointments", "services", "servicecategories", "inventory");
+    bool salesOpen = IsGroupOpen("sales", "appointments");
+    bool defsOpen = IsGroupOpen("services", "servicecategories", "departments");
+    bool inventoryOpen = IsGroupOpen("inventory", "suppliers");
     bool hrOpen = IsGroupOpen("employees", "salaries", "advances", "attendance");
     bool financeOpen = IsGroupOpen("expenses", "reports");
-    bool settingsOpen = IsGroupOpen("settings", "users", "audit");
+    bool settingsOpen = IsGroupOpen("settings", "users");
 }
 
 <nav class="sidebar" id="sidebar">
@@ -88,8 +90,7 @@
         @* المبيعات *@
         @{
             bool hasSalesGroup = canSee("BarberInvoice") || canSee("MassageInvoice") ||
-            canSee("ProductInvoice") || canSee("Appointments") ||
-            canSee("Services") || canSee("ServiceCategories") || canSee("Inventory");
+            canSee("ProductInvoice") || canSee("Appointments");
         }
         @if (hasSalesGroup)
         {
@@ -146,11 +147,29 @@
                             </a>
                         </li>
                     }
+                </ul>
+            </li>
+        }
+
+        @* التعريفات *@
+        @{
+            bool hasDefsGroup = canSee("Services") || canSee("ServiceCategories") || canSee("Departments");
+        }
+        @if (hasDefsGroup)
+        {
+            <li class="has-submenu @(defsOpen ? "open" : "")">
+                <a href="#" class="submenu-toggle @(defsOpen ? "active-parent" : "")"
+                   onclick="toggleMenu(this); return false;">
+                    <i class="fas fa-book-open"></i>
+                    <span>التعريفات</span>
+                    <i class="fas fa-chevron-left arrow-icon"></i>
+                </a>
+                <ul class="submenu @(defsOpen ? "show" : "")">
                     @if (canSee("Services"))
                     {
                         <li>
                             <a href="@Url.Action("Index", "Services")" class="@IsActive("Services")">
-                                <i class="fas fa-cut"></i>
+                                <i class="fas fa-concierge-bell"></i>
                                 <span>الخدمات</span>
                             </a>
                         </li>
@@ -164,15 +183,72 @@
                             </a>
                         </li>
                     }
-                    @if (canSee("Inventory"))
+                    @if (canSee("Departments"))
                     {
                         <li>
-                            <a href="@Url.Action("Index", "Inventory")" class="@IsActive("Inventory")">
-                                <i class="fas fa-boxes"></i>
-                                <span>المخزون</span>
+                            <a href="@Url.Action("Index", "Departments")" class="@IsActive("Departments")">
+                                <i class="fas fa-sitemap"></i>
+                                <span>الأقسام</span>
                             </a>
                         </li>
                     }
+                </ul>
+            </li>
+        }
+
+        @* المخزن *@
+        @if (canSee("Inventory"))
+        {
+            <li class="has-submenu @(inventoryOpen ? "open" : "")">
+                <a href="#" class="submenu-toggle @(inventoryOpen ? "active-parent" : "")"
+                   onclick="toggleMenu(this); return false;">
+                    <i class="fas fa-warehouse"></i>
+                    <span>المخزن</span>
+                    <i class="fas fa-chevron-left arrow-icon"></i>
+                </a>
+                <ul class="submenu @(inventoryOpen ? "show" : "")">
+                    <li>
+                        <a href="@Url.Action("Index", "Suppliers")" class="@IsActive("Suppliers")">
+                            <i class="fas fa-truck"></i>
+                            <span>الموردين</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="@Url.Action("Index", "Inventory")" class="@IsActive("Inventory", "Index")">
+                            <i class="fas fa-boxes"></i>
+                            <span>المنتجات</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="@Url.Action("StockAdjust", "Inventory")" class="@IsActive("Inventory", "StockAdjust")">
+                            <i class="fas fa-exchange-alt"></i>
+                            <span>إضافة / إهلاك كمية</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="@Url.Action("SellProduct", "Inventory")" class="@IsActive("Inventory", "SellProduct")">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span>بيع منتج</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="@Url.Action("Consume", "Inventory")" class="@IsActive("Inventory", "Consume")">
+                            <i class="fas fa-user-tag"></i>
+                            <span>استهلاك موظف</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="@Url.Action("Movements", "Inventory")" class="@IsActive("Inventory", "Movements")">
+                            <i class="fas fa-history"></i>
+                            <span>سجل الحركات</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="@Url.Action("ConsumeReport", "Inventory")" class="@IsActive("Inventory", "ConsumeReport")">
+                            <i class="fas fa-file-alt" style="color:#6f42c1"></i>
+                            <span>تقرير الاستهلاك</span>
+                        </a>
+                    </li>
                 </ul>
             </li>
         }
@@ -222,6 +298,12 @@
                             <a href="@Url.Action("Index", "Advances")" class="@IsActive("Advances")">
                                 <i class="fas fa-hand-holding-usd"></i>
                                 <span>سلف الموظفين</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Report", "Advances")" class="@IsActive("Advances", "Report")">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                                <span>تقرير السلف</span>
                             </a>
                         </li>
                     }
@@ -298,7 +380,7 @@
         }
 
         @* الإعدادات *@
-        @if (canSee("Settings") || canSee("Users") || canSee("Audit"))
+        @if (canSee("Settings") || canSee("Users"))
         {
             <li class="has-submenu @(settingsOpen ? "open" : "")">
                 <a href="#" class="submenu-toggle @(settingsOpen ? "active-parent" : "")"
@@ -314,15 +396,6 @@
                             <a href="@Url.Action("Index", "Users")" class="@IsActive("Users")">
                                 <i class="fas fa-user-shield" style="color:#dc3545"></i>
                                 <span>المستخدمين والصلاحيات</span>
-                            </a>
-                        </li>
-                    }
-                    @if (canSee("Audit"))
-                    {
-                        <li>
-                            <a href="@Url.Action("Index", "Audit")" class="@IsActive("Audit")">
-                                <i class="fas fa-history" style="color:#6f42c1"></i>
-                                <span>سجل الأنشطة</span>
                             </a>
                         </li>
                     }

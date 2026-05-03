@@ -122,11 +122,96 @@ namespace Salon.Controllers
         [ActionName("CreateProduct")]
         public async Task<IActionResult> CreateProductPost(
             Sale model, int[]? itemIds, string[]? itemNames,
-            decimal[]? itemPrices, int[]? itemQtys)
+            decimal[]? itemPrices, int[]? itemQtys,
+            string? transactionType, int? employeeRecipientId)
         {
             model.SaleType = "منتجات";
+
+            // ===== استهلاك موظف =====
+            if (transactionType == "استهلاك")
+            {
+                if (!employeeRecipientId.HasValue)
+                {
+                    TempData["Error"] = "يرجى اختيار الموظف";
+                    await PopulateProductDropdowns();
+                    return View(model);
+                }
+                if (itemNames == null || itemNames.Length == 0)
+                {
+                    TempData["Error"] = "يرجى اختيار منتج واحد على الأقل";
+                    await PopulateProductDropdowns();
+                    return View(model);
+                }
+
+                // التحقق من الكميات أولاً قبل الخصم
+                for (int i = 0; i < itemNames.Length; i++)
+                {
+                    if (string.IsNullOrEmpty(itemNames[i])) continue;
+                    var id = itemIds?[i] ?? 0;
+                    var qty = itemQtys?[i] ?? 1;
+                    if (id <= 0) continue;
+                    var product = await _context.Products.FindAsync(id);
+                    if (product == null || product.StockQuantity < qty)
+                    {
+                        var available = product?.StockQuantity ?? 0;
+                        TempData["Error"] = $"لا يوجد مخزون كافٍ للمنتج «{itemNames[i]}». المتاح: {available}، المطلوب: {qty}";
+                        await PopulateProductDropdowns();
+                        return View(model);
+                    }
+                }
+
+                for (int i = 0; i < itemNames.Length; i++)
+                {
+                    if (string.IsNullOrEmpty(itemNames[i])) continue;
+                    var qty = itemQtys?[i] ?? 1;
+                    var price = itemPrices?[i] ?? 0;
+                    var id = itemIds?[i] ?? 0;
+                    if (id <= 0) continue;
+
+                    var product = await _context.Products.FindAsync(id);
+                    if (product != null)
+                    {
+                        product.StockQuantity -= qty;
+                        _context.StockMovements.Add(new StockMovement
+                        {
+                            ProductId = id,
+                            MovementType = "استهلاك",
+                            Quantity = qty,
+                            UnitPrice = price,
+                            EmployeeId = employeeRecipientId,
+                            Notes = model.Notes,
+                            MovementDate = DateTime.Today
+                        });
+                    }
+                }
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "تم تسجيل الاستهلاك بنجاح";
+                return RedirectToAction("Movements", "Inventory");
+            }
+
+            // ===== بيع لعميل =====
             if (ModelState.IsValid)
             {
+                // التحقق من الكميات أولاً قبل إنشاء الفاتورة
+                if (itemNames != null)
+                {
+                    for (int i = 0; i < itemNames.Length; i++)
+                    {
+                        if (string.IsNullOrEmpty(itemNames[i])) continue;
+                        var id = itemIds?[i] ?? 0;
+                        var qty = itemQtys?[i] ?? 1;
+                        if (id <= 0) continue;
+                        var product = await _context.Products.FindAsync(id);
+                        if (product == null || product.StockQuantity < qty)
+                        {
+                            var available = product?.StockQuantity ?? 0;
+                            TempData["Error"] = $"لا يوجد مخزون كافٍ للمنتج «{itemNames[i]}». المتاح: {available}، المطلوب: {qty}";
+                            await PopulateProductDropdowns();
+                            return View(model);
+                        }
+                    }
+                }
+
                 model.TotalAmount = 0;
                 model.SaleDate = DateTime.Now;
                 _context.Sales.Add(model);
@@ -153,7 +238,7 @@ namespace Salon.Controllers
                             item.ProductId = id;
                             var product = await _context.Products.FindAsync(id);
                             if (product != null)
-                                product.StockQuantity = Math.Max(0, product.StockQuantity - qty);
+                                product.StockQuantity -= qty;
                         }
                         _context.SaleItems.Add(item);
                         model.TotalAmount += item.Total;
@@ -238,7 +323,7 @@ namespace Salon.Controllers
             ViewBag.IsEmployee = isEmployee;
             ViewBag.LinkedEmployeeId = user?.LinkedEmployeeId;
 
-            var empQuery = _context.Employees.Where(e => e.IsActive && e.DepartmentNav!.Name == dept);
+            var empQuery = _context.Employees.Where(e => e.IsActive && e.Department == dept);
 
             if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
                 empQuery = empQuery.Where(e => e.Id == user.LinkedEmployeeId!.Value);
@@ -250,6 +335,9 @@ namespace Salon.Controllers
         {
             ViewBag.Customers = new SelectList(
                 await _context.Customers.Where(c => c.IsActive).OrderBy(c => c.FullName).ToListAsync(),
+                "Id", "FullName");
+            ViewBag.Employees = new SelectList(
+                await _context.Employees.Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync(),
                 "Id", "FullName");
             ViewBag.Products = await _context.Products
                 .Where(p => p.IsActive && p.StockQuantity > 0)

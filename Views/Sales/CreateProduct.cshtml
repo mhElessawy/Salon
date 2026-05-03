@@ -5,55 +5,361 @@
 }
 
 @section Styles {
-<style>
-.pos-wrapper { display: grid; grid-template-columns: 1fr 420px; gap: 16px; align-items: start; }
-.pos-right { position: sticky; top: 70px; }
-.items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-bottom: 16px; }
-.item-card { background: #fff; border: 1.5px solid var(--border-color); border-radius: 10px; padding: 12px 10px; cursor: pointer; transition: all .18s; text-align: center; }
-.item-card:hover { border-color: #28a745; background: #f0fff4; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(40,167,69,.15); }
-.item-card.low-stock { border-color: #ffc107; }
-.item-card .ic-icon { font-size: 24px; margin-bottom: 6px; color: #28a745; }
-.item-card .ic-name { font-size: 13px; font-weight: 600; color: var(--text-dark); margin-bottom: 4px; line-height: 1.3; }
-.item-card .ic-price { font-size: 13px; font-weight: 700; color: #28a745; }
-.item-card .ic-stock { font-size: 11px; color: #6c757d; margin-top: 2px; }
-.invoice-card { background: #fff; border-radius: 14px; box-shadow: 0 2px 16px rgba(0,0,0,.09); overflow: hidden; }
-.invoice-header { background: #28a745; color: #fff; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; }
-.invoice-header .inv-title { font-size: 16px; font-weight: 700; }
-.invoice-header .inv-num { font-size: 13px; opacity: .9; }
-.invoice-items { min-height: 180px; max-height: 300px; overflow-y: auto; }
-.invoice-items table { width: 100%; font-size: 13px; }
-.invoice-items thead th { background: #f8f9fa; padding: 8px 10px; font-size: 12px; color: #6c757d; }
-.invoice-items tbody td { padding: 7px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
-.invoice-empty { text-align: center; padding: 40px 20px; color: #adb5bd; }
-.qty-control { display: flex; align-items: center; gap: 4px; }
-.qty-btn { width: 24px; height: 24px; border: 1px solid var(--border-color); border-radius: 4px; background: #f8f9fa; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; }
-.qty-btn:hover { background: #28a745; color: #fff; border-color: #28a745; }
-.qty-input { width: 36px; text-align: center; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; padding: 2px; }
-.btn-remove-item { background: none; border: none; color: #dc3545; cursor: pointer; font-size: 14px; padding: 2px 5px; border-radius: 4px; }
-.btn-remove-item:hover { background: #fce4ec; }
-.invoice-totals { padding: 12px 16px; border-top: 1px solid var(--border-color); background: #fafafa; }
-.total-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; font-size: 14px; }
-.total-row.net { font-size: 16px; font-weight: 700; color: #28a745; border-top: 2px solid var(--border-color); padding-top: 10px; margin-top: 4px; }
-.discount-input { width: 90px; text-align: center; border: 1px dashed #ccc; border-radius: 6px; padding: 3px 6px; font-size: 13px; background: #fff; }
-.discount-input:focus { outline: none; border-color: #28a745; }
-.btn-save-invoice { width: 100%; padding: 14px; background: #28a745; color: #fff; border: none; font-size: 16px; font-weight: 700; cursor: pointer; transition: background .2s; }
-.btn-save-invoice:hover { background: #218838; }
-.btn-save-invoice:disabled { background: #adb5bd; cursor: not-allowed; }
-.info-top-bar { background: #fff; border-radius: 12px; box-shadow: var(--card-shadow); padding: 16px 20px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-@@media (max-width: 992px) { .pos-wrapper { grid-template-columns: 1fr; } .pos-right { position: static; } .info-top-bar { grid-template-columns: 1fr 1fr; } }
-@@media (max-width: 576px) { .info-top-bar { grid-template-columns: 1fr; } .items-grid { grid-template-columns: repeat(2, 1fr); } }
-</style>
+    <style>
+        .pos-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: 16px;
+            align-items: start;
+        }
+
+        .pos-right {
+            position: sticky;
+            top: 70px;
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .item-card {
+            background: #fff;
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 10px;
+            cursor: pointer;
+            transition: all .18s;
+            text-align: center;
+        }
+
+            .item-card:hover {
+                border-color: #28a745;
+                background: #f0fff4;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(40,167,69,.15);
+            }
+
+            .item-card.low-stock {
+                border-color: #ffc107;
+            }
+
+            .item-card .ic-icon {
+                font-size: 24px;
+                margin-bottom: 6px;
+                color: #28a745;
+            }
+
+            .item-card .ic-name {
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--text-dark);
+                margin-bottom: 4px;
+                line-height: 1.3;
+            }
+
+            .item-card .ic-price {
+                font-size: 13px;
+                font-weight: 700;
+                color: #28a745;
+            }
+
+            .item-card .ic-stock {
+                font-size: 11px;
+                color: #6c757d;
+                margin-top: 2px;
+            }
+
+        .invoice-card {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 2px 16px rgba(0,0,0,.09);
+            overflow: hidden;
+        }
+
+        .invoice-header {
+            background: #28a745;
+            color: #fff;
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background .3s;
+        }
+
+            .invoice-header .inv-title {
+                font-size: 16px;
+                font-weight: 700;
+            }
+
+            .invoice-header .inv-num {
+                font-size: 13px;
+                opacity: .9;
+            }
+
+        .invoice-items {
+            min-height: 180px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+            .invoice-items table {
+                width: 100%;
+                font-size: 13px;
+            }
+
+            .invoice-items thead th {
+                background: #f8f9fa;
+                padding: 8px 10px;
+                font-size: 12px;
+                color: #6c757d;
+            }
+
+            .invoice-items tbody td {
+                padding: 7px 10px;
+                border-bottom: 1px solid #f0f0f0;
+                vertical-align: middle;
+            }
+
+        .invoice-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #adb5bd;
+        }
+
+        .qty-control {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .qty-btn {
+            width: 24px;
+            height: 24px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: #f8f9fa;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            line-height: 1;
+        }
+
+            .qty-btn:hover {
+                background: #28a745;
+                color: #fff;
+                border-color: #28a745;
+            }
+
+        .qty-input {
+            width: 36px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 13px;
+            padding: 2px;
+        }
+
+        .btn-remove-item {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px 5px;
+            border-radius: 4px;
+        }
+
+            .btn-remove-item:hover {
+                background: #fce4ec;
+            }
+
+        .invoice-totals {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-color);
+            background: #fafafa;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            font-size: 14px;
+        }
+
+            .total-row.net {
+                font-size: 16px;
+                font-weight: 700;
+                color: #28a745;
+                border-top: 2px solid var(--border-color);
+                padding-top: 10px;
+                margin-top: 4px;
+                transition: color .3s;
+            }
+
+        .discount-input {
+            width: 90px;
+            text-align: center;
+            border: 1px dashed #ccc;
+            border-radius: 6px;
+            padding: 3px 6px;
+            font-size: 13px;
+            background: #fff;
+        }
+
+            .discount-input:focus {
+                outline: none;
+                border-color: #28a745;
+            }
+
+        .btn-save-invoice {
+            width: 100%;
+            padding: 14px;
+            background: #28a745;
+            color: #fff;
+            border: none;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .3s;
+        }
+
+            .btn-save-invoice:hover {
+                background: #218838;
+            }
+
+            .btn-save-invoice:disabled {
+                background: #adb5bd;
+                cursor: not-allowed;
+            }
+
+        .info-top-bar {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+            .info-top-bar > div {
+                flex: 1;
+                min-width: 180px;
+            }
+
+        /* Mode toggle */
+        .mode-toggle-bar {
+            display: flex;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #28a745;
+            width: fit-content;
+            margin-bottom: 16px;
+            transition: border-color .3s;
+        }
+
+        .mode-btn {
+            padding: 10px 28px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            background: #fff;
+            color: #28a745;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+            .mode-btn + .mode-btn {
+                border-right: 1px solid #28a745;
+            }
+
+            .mode-btn.active {
+                background: #28a745;
+                color: #fff;
+            }
+
+        /* Consume mode overrides */
+        #posForm.mode-consume .mode-toggle-bar {
+            border-color: #6f42c1;
+        }
+
+        #posForm.mode-consume .mode-btn {
+            color: #6f42c1;
+        }
+
+            #posForm.mode-consume .mode-btn + .mode-btn {
+                border-color: #6f42c1;
+            }
+
+            #posForm.mode-consume .mode-btn.active {
+                background: #6f42c1;
+                color: #fff;
+            }
+
+        #posForm.mode-consume .invoice-header {
+            background: #6f42c1;
+        }
+
+        #posForm.mode-consume .total-row.net {
+            color: #6f42c1;
+        }
+
+        #posForm.mode-consume .btn-save-invoice {
+            background: #6f42c1;
+        }
+
+            #posForm.mode-consume .btn-save-invoice:hover {
+                background: #5a32a3;
+            }
+
+        #posForm.mode-consume .qty-btn:hover {
+            background: #6f42c1;
+            border-color: #6f42c1;
+        }
+
+        #posForm.mode-consume .item-card:hover {
+            border-color: #6f42c1;
+            background: #f5f0ff;
+            box-shadow: 0 4px 12px rgba(111,66,193,.15);
+        }
+
+        @@media (max-width: 992px) {
+            .pos-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            .pos-right {
+                position: static;
+            }
+        }
+
+        @@media (max-width: 576px) {
+            .items-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .mode-btn {
+                padding: 8px 16px;
+                font-size: 13px;
+            }
+        }
+    </style>
 }
 
 <div class="page-header d-flex justify-content-between align-items-center mb-3">
     <div>
         <h1 style="font-size:20px;"><i class="fas fa-box me-2" style="color:#28a745"></i>فاتورة مبيعات منتجات</h1>
-        <small class="text-muted">بيع منتجات المخزون للعملاء</small>
+        <small class="text-muted">بيع منتجات المخزون أو توزيعها على الموظفين</small>
     </div>
     <div class="d-flex gap-2">
-        <a href="@Url.Action("CreateService")" class="btn btn-outline-warning btn-sm">
-            <i class="fas fa-cut me-1"></i> فاتورة خدمات
-        </a>
         <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
             <i class="fas fa-list me-1"></i> قائمة الفواتير
         </a>
@@ -64,20 +370,36 @@
     @Html.AntiForgeryToken()
     <input asp-for="InvoiceNumber" type="hidden" />
     <input asp-for="SaleType" type="hidden" value="منتجات" />
+    <input type="hidden" name="transactionType" id="transactionTypeField" value="بيع" />
     <div id="hiddenItems"></div>
+
+    <div class="mode-toggle-bar">
+        <button type="button" class="mode-btn active" id="btnSell" onclick="setMode('بيع')">
+            <i class="fas fa-shopping-cart me-2"></i>بيع لعميل
+        </button>
+        <button type="button" class="mode-btn" id="btnConsume" onclick="setMode('استهلاك')">
+            <i class="fas fa-user-tag me-2"></i>إعطاء لموظف
+        </button>
+    </div>
 
     <div class="info-top-bar">
         <div>
             <label class="form-label">رقم الفاتورة</label>
             <input type="text" class="form-control form-control-sm" value="@Model.InvoiceNumber" readonly />
         </div>
-        <div>
+        <div id="slotCustomer">
             <label class="form-label">العميل</label>
             <select name="CustomerId" asp-items="@ViewBag.Customers" class="form-select form-select-sm">
                 <option value="">👤 زائر</option>
             </select>
         </div>
-        <div>
+        <div id="slotEmployee" style="display:none">
+            <label class="form-label">الموظف <span class="text-danger">*</span></label>
+            <select name="employeeRecipientId" id="employeeRecipientSelect" asp-items="@ViewBag.Employees" class="form-select form-select-sm">
+                <option value="">-- اختر الموظف --</option>
+            </select>
+        </div>
+        <div id="slotPayment">
             <label class="form-label">طريقة الدفع</label>
             <select asp-for="PaymentMethod" class="form-select form-select-sm">
                 <option>نقدي</option>
@@ -102,7 +424,7 @@
                         <div class="text-center text-muted py-5">
                             <i class="fas fa-box-open fa-3x mb-3 opacity-25"></i>
                             <p>لا توجد منتجات متاحة في المخزون</p>
-                            <a href="@Url.Action("Create","Inventory")" class="btn btn-sm btn-outline-success">إضافة منتج</a>
+                            <a href="@Url.Action("Create", "Inventory")" class="btn btn-sm btn-outline-success">إضافة منتج</a>
                         </div>
                     }
                     else
@@ -113,7 +435,7 @@
                                 var lowStock = prod.StockQuantity <= prod.MinStockLevel;
                                 <div class="item-card @(lowStock ? "low-stock" : "") product-item"
                                      data-name="@prod.Name.ToLower()"
-                                     onclick="addItem(@prod.Id, '@Html.Raw(prod.Name.Replace("'","\\\'"))', @prod.SalePrice.ToString("F3"), @prod.StockQuantity)">
+                                     onclick="addItem(@prod.Id, '@Html.Raw(prod.Name.Replace("'", "\\\'"))', @prod.SalePrice.ToString("F3"), @prod.StockQuantity)">
                                     <div class="ic-icon">
                                         @if (lowStock)
                                         {
@@ -142,7 +464,7 @@
             <div class="invoice-card">
 
                 <div class="invoice-header">
-                    <div class="inv-title"><i class="fas fa-file-invoice me-2"></i>فاتورة منتجات</div>
+                    <div class="inv-title" id="invoiceTitle"><i class="fas fa-file-invoice me-2"></i>فاتورة منتجات</div>
                     <div class="inv-num">@Model.InvoiceNumber</div>
                 </div>
 
@@ -173,13 +495,13 @@
                         <span>الإجمالي:</span>
                         <span id="subtotalDisplay">0.000 د.ك</span>
                     </div>
-                    <div class="total-row">
+                    <div class="total-row" id="discountRow">
                         <span>الخصم:</span>
                         <input type="number" name="Discount" id="discountInput" class="discount-input"
                                value="0" step="0.001" min="0" oninput="recalc()" />
                     </div>
                     <div class="total-row net">
-                        <span>الصافي:</span>
+                        <span id="netLabel">الصافي:</span>
                         <span id="netDisplay">0.000 د.ك</span>
                     </div>
                 </div>
@@ -199,124 +521,198 @@
 </form>
 
 @section Scripts {
-<script>
-    let invoiceItems = [];
-    let rowCounter = 0;
-    let stockMap = {};
+    <script>
+        let invoiceItems = [];
+        let rowCounter = 0;
+        let currentMode = 'بيع';
 
-    function addItem(id, name, price, maxStock) {
-        price = parseFloat(price) || 0;
-        maxStock = parseInt(maxStock) || 0;
-        stockMap[id] = maxStock;
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('transactionTypeField').value = mode;
 
-        const existing = invoiceItems.find(i => i.id === id);
-        if (existing) {
-            if (existing.qty >= maxStock) { alert('لا يوجد مخزون كافٍ! المتاح: ' + maxStock); return; }
-            existing.qty++;
-            existing.total = existing.qty * existing.price;
-            updateRow(existing);
-        } else {
-            const item = { rowId: ++rowCounter, id, name, price, qty: 1, total: price, maxStock };
-            invoiceItems.push(item);
-            renderRow(item);
+            const form         = document.getElementById('posForm');
+            const btnSell      = document.getElementById('btnSell');
+            const btnConsume   = document.getElementById('btnConsume');
+            const slotCustomer = document.getElementById('slotCustomer');
+            const slotEmployee = document.getElementById('slotEmployee');
+            const slotPayment  = document.getElementById('slotPayment');
+            const invoiceTitle = document.getElementById('invoiceTitle');
+            const discountRow  = document.getElementById('discountRow');
+            const saveBtn      = document.getElementById('saveBtn');
+
+            if (mode === 'استهلاك') {
+                form.classList.add('mode-consume');
+                btnSell.classList.remove('active');
+                btnConsume.classList.add('active');
+                slotCustomer.style.display = 'none';
+                slotPayment.style.display  = 'none';
+                slotEmployee.style.display = '';
+                discountRow.style.display  = 'none';
+                invoiceTitle.innerHTML = '<i class="fas fa-user-tag me-2"></i>استهلاك موظف';
+                if (invoiceItems.length > 0) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> تسجيل الاستهلاك';
+                }
+            } else {
+                form.classList.remove('mode-consume');
+                btnSell.classList.add('active');
+                btnConsume.classList.remove('active');
+                slotCustomer.style.display = '';
+                slotPayment.style.display  = '';
+                slotEmployee.style.display = 'none';
+                discountRow.style.display  = '';
+                invoiceTitle.innerHTML = '<i class="fas fa-file-invoice me-2"></i>فاتورة منتجات';
+                if (invoiceItems.length > 0) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> حفظ الفاتورة';
+                }
+            }
+
+            // Update effective prices for items already in the invoice
+            invoiceItems.forEach(function(item) {
+                item.price = mode === 'استهلاك' ? 0 : item.originalPrice;
+                item.total = item.qty * item.price;
+                updateRow(item);
+            });
+            recalc();
         }
-        document.getElementById('emptyRow').style.display = 'none';
-        recalc();
-        document.getElementById('saveBtn').disabled = false;
-    }
 
-    function renderRow(item) {
-        const tr = document.createElement('tr');
-        tr.id = 'row-' + item.rowId;
-        tr.innerHTML = buildHtml(item);
-        document.getElementById('invoiceBody').appendChild(tr);
-    }
+        function addItem(id, name, price, maxStock) {
+            const originalPrice = parseFloat(price) || 0;
+            const effectivePrice = currentMode === 'استهلاك' ? 0 : originalPrice;
+            maxStock = parseInt(maxStock) || 0;
 
-    function updateRow(item) {
-        const tr = document.getElementById('row-' + item.rowId);
-        if (tr) tr.innerHTML = buildHtml(item);
-    }
-
-    function buildHtml(item) {
-        return `
-            <td>${item.name}</td>
-            <td>
-                <div class="qty-control">
-                    <button type="button" class="qty-btn" onclick="changeQty(${item.rowId}, -1)">−</button>
-                    <input type="number" class="qty-input" value="${item.qty}" min="1" max="${item.maxStock}"
-                           onchange="setQty(${item.rowId}, this.value)" />
-                    <button type="button" class="qty-btn" onclick="changeQty(${item.rowId}, 1)">+</button>
-                </div>
-                <small style="color:#6c757d;font-size:10px">متاح: ${item.maxStock}</small>
-            </td>
-            <td>${item.price.toFixed(3)}</td>
-            <td><strong>${item.total.toFixed(3)}</strong></td>
-            <td><button type="button" class="btn-remove-item" onclick="removeItem(${item.rowId})"><i class="fas fa-times"></i></button></td>
-        `;
-    }
-
-    function changeQty(rowId, delta) {
-        const item = invoiceItems.find(i => i.rowId === rowId);
-        if (!item) return;
-        const n = item.qty + delta;
-        if (n < 1) { removeItem(rowId); return; }
-        if (n > item.maxStock) { alert('لا يوجد مخزون كافٍ! المتاح: ' + item.maxStock); return; }
-        item.qty = n;
-        item.total = item.qty * item.price;
-        updateRow(item);
-        recalc();
-    }
-
-    function setQty(rowId, val) {
-        const item = invoiceItems.find(i => i.rowId === rowId);
-        if (!item) return;
-        let qty = Math.max(1, parseInt(val) || 1);
-        if (qty > item.maxStock) { qty = item.maxStock; }
-        item.qty = qty;
-        item.total = item.qty * item.price;
-        updateRow(item);
-        recalc();
-    }
-
-    function removeItem(rowId) {
-        invoiceItems = invoiceItems.filter(i => i.rowId !== rowId);
-        const tr = document.getElementById('row-' + rowId);
-        if (tr) tr.remove();
-        if (invoiceItems.length === 0) {
-            document.getElementById('emptyRow').style.display = '';
-            document.getElementById('saveBtn').disabled = true;
+            const existing = invoiceItems.find(i => i.id === id);
+            if (existing) {
+                if (existing.qty >= maxStock) { alert('لا يوجد مخزون كافٍ! المتاح: ' + maxStock); return; }
+                existing.qty++;
+                existing.total = existing.qty * existing.price;
+                updateRow(existing);
+            } else {
+                const item = { rowId: ++rowCounter, id, name, originalPrice, price: effectivePrice, qty: 1, total: effectivePrice, maxStock };
+                invoiceItems.push(item);
+                renderRow(item);
+            }
+            document.getElementById('emptyRow').style.display = 'none';
+            recalc();
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = currentMode === 'استهلاك'
+                ? '<i class="fas fa-check-circle me-2"></i> تسجيل الاستهلاك'
+                : '<i class="fas fa-print me-2"></i> حفظ الفاتورة';
         }
-        recalc();
-    }
 
-    function recalc() {
-        const subtotal = invoiceItems.reduce((s, i) => s + i.total, 0);
-        const discount = parseFloat(document.getElementById('discountInput').value) || 0;
-        const net = Math.max(0, subtotal - discount);
-        document.getElementById('subtotalDisplay').textContent = subtotal.toFixed(3) + ' د.ك';
-        document.getElementById('netDisplay').textContent = net.toFixed(3) + ' د.ك';
-    }
+        function renderRow(item) {
+            const tr = document.createElement('tr');
+            tr.id = 'row-' + item.rowId;
+            tr.innerHTML = buildHtml(item);
+            document.getElementById('invoiceBody').appendChild(tr);
+        }
 
-    function filterProducts(q) {
-        q = q.toLowerCase().trim();
-        document.querySelectorAll('.product-item').forEach(card => {
-            const name = card.dataset.name || '';
-            card.style.display = (!q || name.includes(q)) ? '' : 'none';
-        });
-    }
+        function updateRow(item) {
+            const tr = document.getElementById('row-' + item.rowId);
+            if (tr) tr.innerHTML = buildHtml(item);
+        }
 
-    document.getElementById('posForm').addEventListener('submit', function(e) {
-        if (invoiceItems.length === 0) { e.preventDefault(); return; }
-        const container = document.getElementById('hiddenItems');
-        container.innerHTML = '';
-        invoiceItems.forEach(function(item) {
-            container.innerHTML += `
-                <input type="hidden" name="itemIds"    value="${item.id}" />
-                <input type="hidden" name="itemNames"  value="${item.name}" />
-                <input type="hidden" name="itemPrices" value="${item.price}" />
-                <input type="hidden" name="itemQtys"   value="${item.qty}" />
+        function buildHtml(item) {
+            const isFree    = currentMode === 'استهلاك';
+            const priceCell = isFree ? '<span class="badge bg-success">مجاني</span>' : item.price.toFixed(3);
+            const totalCell = isFree ? '-' : `<strong>${item.total.toFixed(3)}</strong>`;
+            return `
+                <td>${item.name}</td>
+                <td>
+                    <div class="qty-control">
+                        <button type="button" class="qty-btn" onclick="changeQty(${item.rowId}, -1)">−</button>
+                        <input type="number" class="qty-input" value="${item.qty}" min="1" max="${item.maxStock}"
+                               onchange="setQty(${item.rowId}, this.value)" />
+                        <button type="button" class="qty-btn" onclick="changeQty(${item.rowId}, 1)">+</button>
+                    </div>
+                    <small style="color:#6c757d;font-size:10px">متاح: ${item.maxStock}</small>
+                </td>
+                <td>${priceCell}</td>
+                <td>${totalCell}</td>
+                <td><button type="button" class="btn-remove-item" onclick="removeItem(${item.rowId})"><i class="fas fa-times"></i></button></td>
             `;
+        }
+
+        function changeQty(rowId, delta) {
+            const item = invoiceItems.find(i => i.rowId === rowId);
+            if (!item) return;
+            const n = item.qty + delta;
+            if (n < 1) { removeItem(rowId); return; }
+            if (n > item.maxStock) { alert('لا يوجد مخزون كافٍ! المتاح: ' + item.maxStock); return; }
+            item.qty = n;
+            item.total = item.qty * item.price;
+            updateRow(item);
+            recalc();
+        }
+
+        function setQty(rowId, val) {
+            const item = invoiceItems.find(i => i.rowId === rowId);
+            if (!item) return;
+            let qty = Math.max(1, parseInt(val) || 1);
+            if (qty > item.maxStock) qty = item.maxStock;
+            item.qty = qty;
+            item.total = item.qty * item.price;
+            updateRow(item);
+            recalc();
+        }
+
+        function removeItem(rowId) {
+            invoiceItems = invoiceItems.filter(i => i.rowId !== rowId);
+            const tr = document.getElementById('row-' + rowId);
+            if (tr) tr.remove();
+            if (invoiceItems.length === 0) {
+                document.getElementById('emptyRow').style.display = '';
+                document.getElementById('saveBtn').disabled = true;
+            }
+            recalc();
+        }
+
+        function recalc() {
+            if (currentMode === 'استهلاك') {
+                const count = invoiceItems.reduce((s, i) => s + i.qty, 0);
+                document.getElementById('subtotalDisplay').textContent = count + ' قطعة';
+                document.getElementById('netDisplay').textContent      = 'مجاني';
+            } else {
+                const subtotal = invoiceItems.reduce((s, i) => s + i.total, 0);
+                const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+                const net = Math.max(0, subtotal - discount);
+                document.getElementById('subtotalDisplay').textContent = subtotal.toFixed(3) + ' د.ك';
+                document.getElementById('netDisplay').textContent      = net.toFixed(3)      + ' د.ك';
+            }
+        }
+
+        function filterProducts(q) {
+            q = q.toLowerCase().trim();
+            document.querySelectorAll('.product-item').forEach(card => {
+                const name = card.dataset.name || '';
+                card.style.display = (!q || name.includes(q)) ? '' : 'none';
+            });
+        }
+
+        document.getElementById('posForm').addEventListener('submit', function(e) {
+            if (invoiceItems.length === 0) { e.preventDefault(); return; }
+
+            if (currentMode === 'استهلاك') {
+                const empId = document.getElementById('employeeRecipientSelect').value;
+                if (!empId) {
+                    e.preventDefault();
+                    alert('يرجى اختيار الموظف أولاً');
+                    return;
+                }
+            }
+
+            const container = document.getElementById('hiddenItems');
+            container.innerHTML = '';
+            invoiceItems.forEach(function(item) {
+                container.innerHTML += `
+                    <input type="hidden" name="itemIds"    value="${item.id}" />
+                    <input type="hidden" name="itemNames"  value="${item.name}" />
+                    <input type="hidden" name="itemPrices" value="${item.price}" />
+                    <input type="hidden" name="itemQtys"   value="${item.qty}" />
+                `;
+            });
         });
-    });
-</script>
+    </script>
 }
