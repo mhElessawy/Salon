@@ -97,13 +97,10 @@
                                 </a>
                                 @if (s.Status != "ملغي")
                                 {
-                                    <form asp-action="Delete" asp-route-id="@s.Id" method="post" style="display:inline"
-                                          onsubmit="return confirm('هل تريد إلغاء هذه الفاتورة؟')">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="fas fa-ban"></i>
-                                        </button>
-                                    </form>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" title="إلغاء الفاتورة"
+                                            onclick="confirmDelete(@s.Id, '@Html.Raw(s.InvoiceNumber.Replace("'", "\\'"))')">
+                                        <i class="fas fa-ban"></i>
+                                    </button>
                                 }
                             </td>
                         </tr>
@@ -113,3 +110,40 @@
         </div>
     </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg delete-modal-red">
+            <div class="modal-body text-center p-5">
+                <div class="delete-icon-wrap mb-4">
+                    <i class="fas fa-times"></i>
+                </div>
+                <h4 class="fw-bold mb-2 text-white">تأكيد الإلغاء</h4>
+                <p class="text-white-50 mb-1">هل أنت متأكد من إلغاء الفاتورة:</p>
+                <p class="fw-bold fs-5 mb-2 text-white" id="deleteItemName"></p>
+                <p class="text-white-50 small mb-4">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    لا يمكن التراجع عن هذا الإجراء
+                </p>
+                <div class="d-flex justify-content-center gap-3">
+                    <form id="deleteForm" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn delete-confirm-btn px-4 fw-bold">تأكيد</button>
+                    </form>
+                    <button type="button" class="btn delete-cancel-btn px-4 fw-bold" data-bs-dismiss="modal">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function confirmDelete(id, name) {
+            document.getElementById('deleteItemName').textContent = name;
+            document.getElementById('deleteForm').action = '@Url.Action("Delete")/' + id;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+    </script>
+}
