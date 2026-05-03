@@ -323,7 +323,7 @@ namespace Salon.Controllers
             ViewBag.IsEmployee = isEmployee;
             ViewBag.LinkedEmployeeId = user?.LinkedEmployeeId;
 
-            var empQuery = _context.Employees.Where(e => e.IsActive && e.Department == dept);
+            var empQuery = _context.Employees.Where(e => e.IsActive && e.DepartmentNav!.Name == dept);
 
             if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
                 empQuery = empQuery.Where(e => e.Id == user.LinkedEmployeeId!.Value);
