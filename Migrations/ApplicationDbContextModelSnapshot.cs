@@ -770,6 +770,15 @@ namespace Salon.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<decimal?>("CashAmount")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal?>("LinkAmount")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int?>("DebtEmployeeId")
+                        .HasColumnType("int");
+
                     b.Property<string>("PaymentMethod")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -791,6 +800,8 @@ namespace Salon.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("DebtEmployeeId");
 
                     b.HasIndex("EmployeeId");
 
@@ -1219,9 +1230,15 @@ namespace Salon.Migrations
                         .WithMany()
                         .HasForeignKey("EmployeeId");
 
+                    b.HasOne("Salon.Models.Employee", "DebtEmployee")
+                        .WithMany()
+                        .HasForeignKey("DebtEmployeeId");
+
                     b.Navigation("Customer");
 
                     b.Navigation("Employee");
+
+                    b.Navigation("DebtEmployee");
                 });
 
             modelBuilder.Entity("Salon.Models.SaleItem", b =>

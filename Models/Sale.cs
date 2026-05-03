@@ -50,6 +50,18 @@ namespace Salon.Models
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
 
+        [Display(Name = "مبلغ الكاش")]
+        public decimal? CashAmount { get; set; }
+
+        [Display(Name = "مبلغ اللينك")]
+        public decimal? LinkAmount { get; set; }
+
+        [Display(Name = "موظف الدين")]
+        public int? DebtEmployeeId { get; set; }
+
+        [ForeignKey("DebtEmployeeId")]
+        public Employee? DebtEmployee { get; set; }
+
         public ICollection<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
     }
 
