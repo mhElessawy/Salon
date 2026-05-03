@@ -470,9 +470,6 @@ namespace Salon.Migrations
                     b.Property<int?>("DepartmentId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("DepartmentNavId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(max)");
 
@@ -510,8 +507,6 @@ namespace Salon.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DepartmentId");
-
-                    b.HasIndex("DepartmentNavId");
 
                     b.ToTable("Employees");
                 });
@@ -1169,14 +1164,10 @@ namespace Salon.Migrations
 
             modelBuilder.Entity("Salon.Models.Employee", b =>
                 {
-                    b.HasOne("Salon.Models.Department", null)
+                    b.HasOne("Salon.Models.Department", "DepartmentNav")
                         .WithMany("Employees")
                         .HasForeignKey("DepartmentId")
                         .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Salon.Models.Department", "DepartmentNav")
-                        .WithMany()
-                        .HasForeignKey("DepartmentNavId");
 
                     b.Navigation("DepartmentNav");
                 });
