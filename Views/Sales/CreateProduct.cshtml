@@ -389,9 +389,12 @@
         </div>
         <div id="slotCustomer">
             <label class="form-label">العميل</label>
-            <select name="CustomerId" asp-items="@ViewBag.Customers" class="form-select form-select-sm">
+            <select name="CustomerId" id="customerSelect" asp-items="@ViewBag.Customers" class="form-select form-select-sm">
                 <option value="">👤 زائر</option>
             </select>
+            <small id="customerDebtWarning" class="text-danger mt-1" style="display:none">
+                <i class="fas fa-exclamation-circle me-1"></i>يتطلب اختيار عميل مسجل
+            </small>
         </div>
         <div id="slotEmployee" style="display:none">
             <label class="form-label">الموظف <span class="text-danger">*</span></label>
@@ -401,10 +404,41 @@
         </div>
         <div id="slotPayment">
             <label class="form-label">طريقة الدفع</label>
-            <select asp-for="PaymentMethod" class="form-select form-select-sm">
-                <option>نقدي</option>
-                <option>بطاقة</option>
-                <option>تحويل بنكي</option>
+            <select asp-for="PaymentMethod" id="paymentMethodSelect" class="form-select form-select-sm" onchange="onPaymentChange()">
+                <option>كاش</option>
+                <option>لينك</option>
+                <option>لينك و كاش</option>
+                <option>دين على العميل</option>
+                <option>دين على الموظف</option>
+                <option>دين على صاحب المكان</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="extraPaymentBar" style="display:none; background:#f0fff4; border-radius:12px; box-shadow:var(--card-shadow); padding:14px 18px; margin-bottom:14px; border:1px solid #b3f0c9;">
+        <div id="splitSection" style="display:none">
+            <p class="mb-2 fw-semibold" style="font-size:13px"><i class="fas fa-exchange-alt me-1 text-warning"></i>تفاصيل الدفع المختلط</p>
+            <div class="d-flex gap-3 align-items-end flex-wrap">
+                <div>
+                    <label class="form-label mb-1" style="font-size:12px"><i class="fas fa-money-bill-wave me-1 text-success"></i>مبلغ الكاش</label>
+                    <input type="number" name="CashAmount" id="cashAmountInput" class="form-control form-control-sm" step="0.001" min="0" placeholder="0.000" oninput="validateSplit()" style="width:140px" />
+                </div>
+                <div>
+                    <label class="form-label mb-1" style="font-size:12px"><i class="fas fa-credit-card me-1 text-primary"></i>مبلغ اللينك</label>
+                    <input type="number" name="LinkAmount" id="linkAmountInput" class="form-control form-control-sm" step="0.001" min="0" placeholder="0.000" oninput="validateSplit()" style="width:140px" />
+                </div>
+                <small id="splitStatus" class="text-muted align-self-end pb-1"></small>
+            </div>
+        </div>
+        <div id="debtEmpSection" style="display:none">
+            <p class="mb-2 fw-semibold" style="font-size:13px"><i class="fas fa-user-tag me-1 text-danger"></i>بيانات الدين</p>
+            <label class="form-label mb-1" style="font-size:12px">اسم الموظف المدين <span class="text-danger">*</span></label>
+            <select name="DebtEmployeeId" id="debtEmployeeSelect" class="form-select form-select-sm" style="max-width:280px;">
+                <option value="">-- اختر الموظف --</option>
+                @foreach (var emp in ViewBag.AllEmployees as IEnumerable<Salon.Models.Employee> ?? Enumerable.Empty<Salon.Models.Employee>())
+                {
+                    <option value="@emp.Id">@emp.FullName</option>
+                }
             </select>
         </div>
     </div>
@@ -548,6 +582,7 @@
                 slotPayment.style.display  = 'none';
                 slotEmployee.style.display = '';
                 discountRow.style.display  = 'none';
+                document.getElementById('extraPaymentBar').style.display = 'none';
                 invoiceTitle.innerHTML = '<i class="fas fa-user-tag me-2"></i>استهلاك موظف';
                 if (invoiceItems.length > 0) {
                     saveBtn.disabled = false;
@@ -561,6 +596,7 @@
                 slotPayment.style.display  = '';
                 slotEmployee.style.display = 'none';
                 discountRow.style.display  = '';
+                onPaymentChange();
                 invoiceTitle.innerHTML = '<i class="fas fa-file-invoice me-2"></i>فاتورة منتجات';
                 if (invoiceItems.length > 0) {
                     saveBtn.disabled = false;
@@ -691,6 +727,29 @@
             });
         }
 
+        function onPaymentChange() {
+            const pm = document.getElementById('paymentMethodSelect').value;
+            const extraBar = document.getElementById('extraPaymentBar');
+            const splitSection = document.getElementById('splitSection');
+            const debtEmpSection = document.getElementById('debtEmpSection');
+            const customerWarning = document.getElementById('customerDebtWarning');
+            const customerSelect = document.getElementById('customerSelect');
+            splitSection.style.display = 'none';
+            debtEmpSection.style.display = 'none';
+            extraBar.style.display = 'none';
+            customerWarning.style.display = 'none';
+            customerSelect.required = false;
+            if (pm === 'لينك و كاش') { extraBar.style.display = ''; splitSection.style.display = ''; }
+            else if (pm === 'دين على العميل') { customerWarning.style.display = ''; customerSelect.required = true; }
+            else if (pm === 'دين على الموظف') { extraBar.style.display = ''; debtEmpSection.style.display = ''; }
+        }
+
+        function validateSplit() {
+            const cash = parseFloat(document.getElementById('cashAmountInput').value) || 0;
+            const link = parseFloat(document.getElementById('linkAmountInput').value) || 0;
+            document.getElementById('splitStatus').textContent = 'المجموع: ' + (cash + link).toFixed(3) + ' د.ك';
+        }
+
         document.getElementById('posForm').addEventListener('submit', function(e) {
             if (invoiceItems.length === 0) { e.preventDefault(); return; }
 
@@ -700,6 +759,16 @@
                     e.preventDefault();
                     alert('يرجى اختيار الموظف أولاً');
                     return;
+                }
+            } else {
+                const pm = document.getElementById('paymentMethodSelect').value;
+                if (pm === 'دين على العميل') {
+                    const custId = document.getElementById('customerSelect').value;
+                    if (!custId) { e.preventDefault(); alert('طريقة الدفع "دين على العميل" تتطلب اختيار عميل مسجل وليس زائر'); return; }
+                }
+                if (pm === 'دين على الموظف') {
+                    const empId = document.getElementById('debtEmployeeSelect')?.value;
+                    if (!empId) { e.preventDefault(); alert('يرجى اختيار الموظف المدين'); return; }
                 }
             }
 

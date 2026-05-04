@@ -323,12 +323,17 @@ namespace Salon.Controllers
             ViewBag.IsEmployee = isEmployee;
             ViewBag.LinkedEmployeeId = user?.LinkedEmployeeId;
 
-            var empQuery = _context.Employees.Where(e => e.IsActive && e.Department == dept);
+            var empQuery = _context.Employees.Where(e => e.IsActive && e.DepartmentNav!.Name == dept);
 
             if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
                 empQuery = empQuery.Where(e => e.Id == user.LinkedEmployeeId!.Value);
 
             ViewBag.Employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+
+            ViewBag.AllEmployees = await _context.Employees
+                .Where(e => e.IsActive)
+                .OrderBy(e => e.FullName)
+                .ToListAsync();
         }
 
         private async Task PopulateProductDropdowns()
@@ -342,6 +347,11 @@ namespace Salon.Controllers
             ViewBag.Products = await _context.Products
                 .Where(p => p.IsActive && p.StockQuantity > 0)
                 .OrderBy(p => p.Name)
+                .ToListAsync();
+
+            ViewBag.AllEmployees = await _context.Employees
+                .Where(e => e.IsActive)
+                .OrderBy(e => e.FullName)
                 .ToListAsync();
         }
 
