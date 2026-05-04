@@ -51,9 +51,11 @@ namespace Salon.Models
         public string? Notes { get; set; }
 
         [Display(Name = "مبلغ الكاش")]
+        [Column(TypeName = "decimal(18,3)")]
         public decimal? CashAmount { get; set; }
 
         [Display(Name = "مبلغ اللينك")]
+        [Column(TypeName = "decimal(18,3)")]
         public decimal? LinkAmount { get; set; }
 
         [Display(Name = "موظف الدين")]
