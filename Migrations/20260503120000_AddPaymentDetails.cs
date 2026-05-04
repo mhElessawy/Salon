@@ -4,8 +4,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Salon.Migrations
 {
+    /// <inheritdoc />
     public partial class AddPaymentDetails : Migration
     {
+        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<decimal>(
@@ -14,16 +16,16 @@ namespace Salon.Migrations
                 type: "decimal(18,3)",
                 nullable: true);
 
-            migrationBuilder.AddColumn<int>(
-                name: "DebtEmployeeId",
-                table: "Sales",
-                type: "int",
-                nullable: true);
-
             migrationBuilder.AddColumn<decimal>(
                 name: "LinkAmount",
                 table: "Sales",
                 type: "decimal(18,3)",
+                nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "DebtEmployeeId",
+                table: "Sales",
+                type: "int",
                 nullable: true);
 
             migrationBuilder.CreateIndex(
@@ -36,9 +38,11 @@ namespace Salon.Migrations
                 table: "Sales",
                 column: "DebtEmployeeId",
                 principalTable: "Employees",
-                principalColumn: "Id");
+                principalColumn: "Id",
+                onDelete: ReferentialAction.SetNull);
         }
 
+        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
@@ -49,9 +53,17 @@ namespace Salon.Migrations
                 name: "IX_Sales_DebtEmployeeId",
                 table: "Sales");
 
-            migrationBuilder.DropColumn(name: "CashAmount", table: "Sales");
-            migrationBuilder.DropColumn(name: "DebtEmployeeId", table: "Sales");
-            migrationBuilder.DropColumn(name: "LinkAmount", table: "Sales");
+            migrationBuilder.DropColumn(
+                name: "CashAmount",
+                table: "Sales");
+
+            migrationBuilder.DropColumn(
+                name: "LinkAmount",
+                table: "Sales");
+
+            migrationBuilder.DropColumn(
+                name: "DebtEmployeeId",
+                table: "Sales");
         }
     }
 }
