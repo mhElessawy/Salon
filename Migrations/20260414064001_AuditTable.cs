@@ -1,10 +1,15 @@
 ﻿using System;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Salon.Data;
 
 #nullable disable
 
 namespace Salon.Migrations
 {
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260414064001_AuditTable")]
     public partial class AuditTable : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
