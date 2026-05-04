@@ -10,60 +10,44 @@ namespace Salon.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<decimal>(
-                name: "CashAmount",
-                table: "Sales",
-                type: "decimal(18,3)",
-                nullable: true);
+            migrationBuilder.Sql(@"
+                IF COL_LENGTH('Sales','CashAmount') IS NULL
+                    ALTER TABLE Sales ADD CashAmount decimal(18,3) NULL;
 
-            migrationBuilder.AddColumn<decimal>(
-                name: "LinkAmount",
-                table: "Sales",
-                type: "decimal(18,3)",
-                nullable: true);
+                IF COL_LENGTH('Sales','LinkAmount') IS NULL
+                    ALTER TABLE Sales ADD LinkAmount decimal(18,3) NULL;
 
-            migrationBuilder.AddColumn<int>(
-                name: "DebtEmployeeId",
-                table: "Sales",
-                type: "int",
-                nullable: true);
+                IF COL_LENGTH('Sales','DebtEmployeeId') IS NULL
+                    ALTER TABLE Sales ADD DebtEmployeeId int NULL;
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Sales_DebtEmployeeId",
-                table: "Sales",
-                column: "DebtEmployeeId");
+                IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Sales_DebtEmployeeId' AND object_id = OBJECT_ID('Sales'))
+                    CREATE INDEX IX_Sales_DebtEmployeeId ON Sales (DebtEmployeeId);
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_Sales_Employees_DebtEmployeeId",
-                table: "Sales",
-                column: "DebtEmployeeId",
-                principalTable: "Employees",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
+                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Sales_Employees_DebtEmployeeId')
+                    ALTER TABLE Sales ADD CONSTRAINT FK_Sales_Employees_DebtEmployeeId
+                        FOREIGN KEY (DebtEmployeeId) REFERENCES Employees(Id) ON DELETE SET NULL;
+            ");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Sales_Employees_DebtEmployeeId",
-                table: "Sales");
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Sales_Employees_DebtEmployeeId')
+                    ALTER TABLE Sales DROP CONSTRAINT FK_Sales_Employees_DebtEmployeeId;
 
-            migrationBuilder.DropIndex(
-                name: "IX_Sales_DebtEmployeeId",
-                table: "Sales");
+                IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Sales_DebtEmployeeId' AND object_id = OBJECT_ID('Sales'))
+                    DROP INDEX IX_Sales_DebtEmployeeId ON Sales;
 
-            migrationBuilder.DropColumn(
-                name: "CashAmount",
-                table: "Sales");
+                IF COL_LENGTH('Sales','CashAmount') IS NOT NULL
+                    ALTER TABLE Sales DROP COLUMN CashAmount;
 
-            migrationBuilder.DropColumn(
-                name: "LinkAmount",
-                table: "Sales");
+                IF COL_LENGTH('Sales','LinkAmount') IS NOT NULL
+                    ALTER TABLE Sales DROP COLUMN LinkAmount;
 
-            migrationBuilder.DropColumn(
-                name: "DebtEmployeeId",
-                table: "Sales");
+                IF COL_LENGTH('Sales','DebtEmployeeId') IS NOT NULL
+                    ALTER TABLE Sales DROP COLUMN DebtEmployeeId;
+            ");
         }
     }
 }
