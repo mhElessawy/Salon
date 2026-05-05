@@ -946,8 +946,7 @@ a {
     }
 
     .topbar-greeting,
-    .connected-btn,
-    .lang-switch-btn {
+    .connected-btn {
         display: none !important;
     }
 
