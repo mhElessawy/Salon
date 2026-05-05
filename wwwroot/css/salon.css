@@ -1081,6 +1081,118 @@ body.sidebar-open {
     }
 
 /* =============================================
+   LTR (English) OVERRIDES
+   ============================================= */
+html[dir="ltr"] body {
+    direction: ltr;
+    text-align: left;
+}
+
+html[dir="ltr"] .sidebar {
+    right: auto;
+    left: 0;
+    border-left: none;
+    border-right: 1px solid var(--border-color);
+}
+
+html[dir="ltr"] .sidebar-menu li a {
+    border-right: none;
+    border-left: 3px solid transparent;
+}
+
+    html[dir="ltr"] .sidebar-menu li a:hover {
+        border-left-color: var(--primary);
+        border-right-color: transparent;
+    }
+
+html[dir="ltr"] .sidebar-menu li.has-submenu > a.active-parent {
+    border-left-color: var(--primary);
+    border-right-color: transparent;
+}
+
+html[dir="ltr"] .sidebar-menu li a.active {
+    border-left-color: var(--primary-dark);
+    border-right-color: transparent;
+}
+
+html[dir="ltr"] .sidebar-menu .submenu li a {
+    border-right: none;
+    border-left: 3px solid transparent;
+    padding-right: 16px;
+    padding-left: 36px;
+}
+
+    html[dir="ltr"] .sidebar-menu .submenu li a:hover {
+        border-left-color: var(--primary);
+        border-right-color: transparent;
+    }
+
+    html[dir="ltr"] .sidebar-menu .submenu li a.active {
+        border-left-color: var(--primary);
+        border-right-color: transparent;
+    }
+
+html[dir="ltr"] .sidebar-menu li.has-submenu > a.submenu-toggle .arrow-icon {
+    margin-left: auto;
+    margin-right: 0;
+}
+
+html[dir="ltr"] .notif-badge {
+    left: auto;
+    right: -4px;
+}
+
+html[dir="ltr"] .form-control,
+html[dir="ltr"] .form-select {
+    text-align: left;
+}
+
+html[dir="ltr"] .auth-card .form-control,
+html[dir="ltr"] .auth-card .form-label {
+    text-align: left;
+}
+
+html[dir="ltr"] .hamburger-btn {
+    margin-left: 0;
+    margin-right: 10px;
+}
+
+html[dir="ltr"] .password-toggle {
+    left: auto;
+    right: 12px;
+}
+
+@media (min-width: 992px) {
+    html[dir="ltr"] .main-content {
+        margin-right: 0;
+        margin-left: var(--sidebar-width);
+    }
+}
+
+@media (max-width: 992px) {
+    html[dir="ltr"] .main-content {
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    html[dir="ltr"] .sidebar {
+        transform: translateX(-100%);
+        left: 0;
+        right: auto;
+        box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+    }
+
+        html[dir="ltr"] .sidebar.show {
+            transform: translateX(0);
+        }
+
+    html[dir="ltr"] .sidebar-close-btn {
+        left: auto;
+        right: 12px;
+    }
+}
+
+/* =============================================
    DELETE CONFIRMATION MODAL
    ============================================= */
 .delete-modal-red {

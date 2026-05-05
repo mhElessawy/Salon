@@ -33,7 +33,7 @@
 
     <div class="sidebar-brand">
         <i class="fas fa-wifi wifi-icon"></i>
-        <span>نظام معهد موس</span>
+        <span data-i18n-en="Mus Institute System">نظام معهد موس</span>
     </div>
 
     <ul class="sidebar-menu">
@@ -44,7 +44,7 @@
             <li>
                 <a href="@Url.Action("Index", "Dashboard")" class="@IsActive("Dashboard")">
                     <i class="fas fa-th-large"></i>
-                    <span>لوحة التحكم</span>
+                    <span data-i18n-en="Dashboard">لوحة التحكم</span>
                 </a>
             </li>
         }
@@ -55,7 +55,7 @@
             <li>
                 <a href="@Url.Action("Index", "Customers")" class="@IsActive("Customers")">
                     <i class="fas fa-users"></i>
-                    <span>العملاء</span>
+                    <span data-i18n-en="Customers">العملاء</span>
                 </a>
             </li>
         }
@@ -67,20 +67,20 @@
                 <a href="#" class="submenu-toggle @(shiftsOpen ? "active-parent" : "")"
                    onclick="toggleMenu(this); return false;">
                     <i class="fas fa-clock"></i>
-                    <span>الشفتات</span>
+                    <span data-i18n-en="Shifts">الشفتات</span>
                     <i class="fas fa-chevron-left arrow-icon"></i>
                 </a>
                 <ul class="submenu @(shiftsOpen ? "show" : "")">
                     <li>
                         <a href="@Url.Action("Index", "Shifts")" class="@IsActive("Shifts", "Index")">
                             <i class="fas fa-play-circle"></i>
-                            <span>إدارة الشفتات</span>
+                            <span data-i18n-en="Manage Shifts">إدارة الشفتات</span>
                         </a>
                     </li>
                     <li>
                         <a href="@Url.Action("Reports", "Shifts")" class="@IsActive("Shifts", "Reports")">
                             <i class="fas fa-file-alt"></i>
-                            <span>تقارير الشفتات</span>
+                            <span data-i18n-en="Shift Reports">تقارير الشفتات</span>
                         </a>
                     </li>
                 </ul>
@@ -98,7 +98,7 @@
                 <a href="#" class="submenu-toggle @(salesOpen ? "active-parent" : "")"
                    onclick="toggleMenu(this); return false;">
                     <i class="fas fa-cash-register"></i>
-                    <span>المبيعات</span>
+                    <span data-i18n-en="Sales">المبيعات</span>
                     <i class="fas fa-chevron-left arrow-icon"></i>
                 </a>
                 <ul class="submenu @(salesOpen ? "show" : "")">
@@ -107,7 +107,7 @@
                         <li>
                             <a href="@Url.Action("Index", "Sales")" class="@IsActive("Sales", "Index")">
                                 <i class="fas fa-file-invoice"></i>
-                                <span>الفواتير</span>
+                                <span data-i18n-en="Invoices">الفواتير</span>
                             </a>
                         </li>
                     }
@@ -116,7 +116,7 @@
                         <li>
                             <a href="@Url.Action("CreateBarber", "Sales")" class="@IsActive("Sales", "CreateBarber")">
                                 <i class="fas fa-cut" style="color:#F7941D"></i>
-                                <span>فاتورة حلاقة (PAR)</span>
+                                <span data-i18n-en="Barbering Invoice (PAR)">فاتورة حلاقة (PAR)</span>
                             </a>
                         </li>
                     }
@@ -125,7 +125,7 @@
                         <li>
                             <a href="@Url.Action("CreateMassage", "Sales")" class="@IsActive("Sales", "CreateMassage")">
                                 <i class="fas fa-spa" style="color:#17a2b8"></i>
-                                <span>فاتورة مساج (MAS)</span>
+                                <span data-i18n-en="Massage Invoice (MAS)">فاتورة مساج (MAS)</span>
                             </a>
                         </li>
                     }
@@ -134,7 +134,7 @@
                         <li>
                             <a href="@Url.Action("CreateProduct", "Sales")" class="@IsActive("Sales", "CreateProduct")">
                                 <i class="fas fa-box" style="color:#28a745"></i>
-                                <span>فاتورة منتجات</span>
+                                <span data-i18n-en="Products Invoice">فاتورة منتجات</span>
                             </a>
                         </li>
                     }
@@ -143,7 +143,7 @@
                         <li>
                             <a href="@Url.Action("Index", "Appointments")" class="@IsActive("Appointments")">
                                 <i class="fas fa-calendar-check"></i>
-                                <span>المواعيد</span>
+                                <span data-i18n-en="Appointments">المواعيد</span>
                             </a>
                         </li>
                     }
@@ -161,7 +161,7 @@
                 <a href="#" class="submenu-toggle @(defsOpen ? "active-parent" : "")"
                    onclick="toggleMenu(this); return false;">
                     <i class="fas fa-book-open"></i>
-                    <span>التعريفات</span>
+                    <span data-i18n-en="Definitions">التعريفات</span>
                     <i class="fas fa-chevron-left arrow-icon"></i>
                 </a>
                 <ul class="submenu @(defsOpen ? "show" : "")">
@@ -170,7 +170,7 @@
                         <li>
                             <a href="@Url.Action("Index", "Services")" class="@IsActive("Services")">
                                 <i class="fas fa-concierge-bell"></i>
-                                <span>الخدمات</span>
+                                <span data-i18n-en="Services">الخدمات</span>
                             </a>
                         </li>
                     }
@@ -179,7 +179,7 @@
                         <li>
                             <a href="@Url.Action("Index", "ServiceCategories")" class="@IsActive("ServiceCategories")">
                                 <i class="fas fa-tags"></i>
-                                <span>فئات الخدمات</span>
+                                <span data-i18n-en="Service Categories">فئات الخدمات</span>
                             </a>
                         </li>
                     }
@@ -188,7 +188,7 @@
                         <li>
                             <a href="@Url.Action("Index", "Departments")" class="@IsActive("Departments")">
                                 <i class="fas fa-sitemap"></i>
-                                <span>الأقسام</span>
+                                <span data-i18n-en="Departments">الأقسام</span>
                             </a>
                         </li>
                     }
@@ -203,50 +203,50 @@
                 <a href="#" class="submenu-toggle @(inventoryOpen ? "active-parent" : "")"
                    onclick="toggleMenu(this); return false;">
                     <i class="fas fa-warehouse"></i>
-                    <span>المخزن</span>
+                    <span data-i18n-en="Inventory">المخزن</span>
                     <i class="fas fa-chevron-left arrow-icon"></i>
                 </a>
                 <ul class="submenu @(inventoryOpen ? "show" : "")">
                     <li>
                         <a href="@Url.Action("Index", "Suppliers")" class="@IsActive("Suppliers")">
                             <i class="fas fa-truck"></i>
-                            <span>الموردين</span>
+                            <span data-i18n-en="Suppliers">الموردين</span>
                         </a>
                     </li>
                     <li>
                         <a href="@Url.Action("Index", "Inventory")" class="@IsActive("Inventory", "Index")">
                             <i class="fas fa-boxes"></i>
-                            <span>المنتجات</span>
+                            <span data-i18n-en="Products">المنتجات</span>
                         </a>
                     </li>
                     <li>
                         <a href="@Url.Action("StockAdjust", "Inventory")" class="@IsActive("Inventory", "StockAdjust")">
                             <i class="fas fa-exchange-alt"></i>
-                            <span>إضافة / إهلاك كمية</span>
+                            <span data-i18n-en="Add / Reduce Quantity">إضافة / إهلاك كمية</span>
                         </a>
                     </li>
                     <li>
                         <a href="@Url.Action("SellProduct", "Inventory")" class="@IsActive("Inventory", "SellProduct")">
                             <i class="fas fa-shopping-cart"></i>
-                            <span>بيع منتج</span>
+                            <span data-i18n-en="Sell Product">بيع منتج</span>
                         </a>
                     </li>
                     <li>
                         <a href="@Url.Action("Consume", "Inventory")" class="@IsActive("Inventory", "Consume")">
                             <i class="fas fa-user-tag"></i>
-                            <span>استهلاك موظف</span>
+                            <span data-i18n-en="Employee Consumption">استهلاك موظف</span>
                         </a>
                     </li>
                     <li>
                         <a href="@Url.Action("Movements", "Inventory")" class="@IsActive("Inventory", "Movements")">
                             <i class="fas fa-history"></i>
-                            <span>سجل الحركات</span>
+                            <span data-i18n-en="Movement Log">سجل الحركات</span>
                         </a>
                     </li>
                     <li>
                         <a href="@Url.Action("ConsumeReport", "Inventory")" class="@IsActive("Inventory", "ConsumeReport")">
                             <i class="fas fa-file-alt" style="color:#6f42c1"></i>
-                            <span>تقرير الاستهلاك</span>
+                            <span data-i18n-en="Consumption Report">تقرير الاستهلاك</span>
                         </a>
                     </li>
                 </ul>
@@ -264,7 +264,7 @@
                 <a href="#" class="submenu-toggle @(hrOpen ? "active-parent" : "")"
                    onclick="toggleMenu(this); return false;">
                     <i class="fas fa-user-tie"></i>
-                    <span>شؤون الموظفين</span>
+                    <span data-i18n-en="Human Resources">شؤون الموظفين</span>
                     <i class="fas fa-chevron-left arrow-icon"></i>
                 </a>
                 <ul class="submenu @(hrOpen ? "show" : "")">
@@ -273,13 +273,13 @@
                         <li>
                             <a href="@Url.Action("Index", "Employees")" class="@IsActive("Employees", "Index")">
                                 <i class="fas fa-id-badge"></i>
-                                <span>الموظفين</span>
+                                <span data-i18n-en="Employees">الموظفين</span>
                             </a>
                         </li>
                         <li>
                             <a href="@Url.Action("Licenses", "Employees")" class="@IsActive("Employees", "Licenses")">
                                 <i class="fas fa-file-contract"></i>
-                                <span>التراخيص والإقامات</span>
+                                <span data-i18n-en="Licenses &amp; Residencies">التراخيص والإقامات</span>
                             </a>
                         </li>
                     }
@@ -288,7 +288,7 @@
                         <li>
                             <a href="@Url.Action("Index", "Salaries")" class="@IsActive("Salaries")">
                                 <i class="fas fa-money-bill-wave"></i>
-                                <span>صرف الرواتب</span>
+                                <span data-i18n-en="Pay Salaries">صرف الرواتب</span>
                             </a>
                         </li>
                     }
@@ -297,13 +297,13 @@
                         <li>
                             <a href="@Url.Action("Index", "Advances")" class="@IsActive("Advances")">
                                 <i class="fas fa-hand-holding-usd"></i>
-                                <span>سلف الموظفين</span>
+                                <span data-i18n-en="Employee Advances">سلف الموظفين</span>
                             </a>
                         </li>
                         <li>
                             <a href="@Url.Action("Report", "Advances")" class="@IsActive("Advances", "Report")">
                                 <i class="fas fa-file-invoice-dollar"></i>
-                                <span>تقرير السلف</span>
+                                <span data-i18n-en="Advances Report">تقرير السلف</span>
                             </a>
                         </li>
                     }
@@ -312,13 +312,13 @@
                         <li>
                             <a href="@Url.Action("Index", "Attendance")" class="@IsActive("Attendance", "Index")">
                                 <i class="fas fa-calendar-alt"></i>
-                                <span>الحضور والانصراف</span>
+                                <span data-i18n-en="Attendance">الحضور والانصراف</span>
                             </a>
                         </li>
                         <li>
                             <a href="@Url.Action("Reports", "Attendance")" class="@IsActive("Attendance", "Reports")">
                                 <i class="fas fa-file-alt"></i>
-                                <span>تقارير الحضور</span>
+                                <span data-i18n-en="Attendance Reports">تقارير الحضور</span>
                             </a>
                         </li>
                     }
@@ -336,7 +336,7 @@
                 <a href="#" class="submenu-toggle @(financeOpen ? "active-parent" : "")"
                    onclick="toggleMenu(this); return false;">
                     <i class="fas fa-chart-line"></i>
-                    <span>المالية والتقارير</span>
+                    <span data-i18n-en="Finance &amp; Reports">المالية والتقارير</span>
                     <i class="fas fa-chevron-left arrow-icon"></i>
                 </a>
                 <ul class="submenu @(financeOpen ? "show" : "")">
@@ -345,7 +345,7 @@
                         <li>
                             <a href="@Url.Action("Index", "Expenses")" class="@IsActive("Expenses")">
                                 <i class="fas fa-receipt"></i>
-                                <span>المصروفات</span>
+                                <span data-i18n-en="Expenses">المصروفات</span>
                             </a>
                         </li>
                     }
@@ -354,13 +354,13 @@
                         <li>
                             <a href="@Url.Action("Index", "Reports")" class="@IsActive("Reports", "Index")">
                                 <i class="fas fa-chart-bar"></i>
-                                <span>التقارير</span>
+                                <span data-i18n-en="Reports">التقارير</span>
                             </a>
                         </li>
                         <li>
                             <a href="@Url.Action("MyReport", "Reports")" class="@IsActive("Reports", "MyReport")">
                                 <i class="fas fa-file-invoice"></i>
-                                <span>تقريري اليومي</span>
+                                <span data-i18n-en="My Daily Report">تقريري اليومي</span>
                             </a>
                         </li>
                     }
@@ -374,7 +374,7 @@
             <li>
                 <a href="@Url.Action("Index", "Messages")" class="@IsActive("Messages")">
                     <i class="fas fa-envelope"></i>
-                    <span>الرسائل</span>
+                    <span data-i18n-en="Messages">الرسائل</span>
                 </a>
             </li>
         }
@@ -386,7 +386,7 @@
                 <a href="#" class="submenu-toggle @(settingsOpen ? "active-parent" : "")"
                    onclick="toggleMenu(this); return false;">
                     <i class="fas fa-cog"></i>
-                    <span>الإعدادات</span>
+                    <span data-i18n-en="Settings">الإعدادات</span>
                     <i class="fas fa-chevron-left arrow-icon"></i>
                 </a>
                 <ul class="submenu @(settingsOpen ? "show" : "")">
@@ -395,7 +395,7 @@
                         <li>
                             <a href="@Url.Action("Index", "Users")" class="@IsActive("Users")">
                                 <i class="fas fa-user-shield" style="color:#dc3545"></i>
-                                <span>المستخدمين والصلاحيات</span>
+                                <span data-i18n-en="Users &amp; Permissions">المستخدمين والصلاحيات</span>
                             </a>
                         </li>
                     }
@@ -404,37 +404,37 @@
                         <li>
                             <a href="@Url.Action("Index", "Settings")" class="@IsActive("Settings", "Index")">
                                 <i class="fas fa-sliders-h"></i>
-                                <span>الإعدادات العامة</span>
+                                <span data-i18n-en="General Settings">الإعدادات العامة</span>
                             </a>
                         </li>
                         <li>
                             <a href="@Url.Action("Email", "Settings")" class="@IsActive("Settings", "Email")">
                                 <i class="fas fa-envelope-open"></i>
-                                <span>إعدادات البريد</span>
+                                <span data-i18n-en="Email Settings">إعدادات البريد</span>
                             </a>
                         </li>
                         <li>
                             <a href="@Url.Action("Database", "Settings")" class="@IsActive("Settings", "Database")">
                                 <i class="fas fa-database"></i>
-                                <span>قاعدة البيانات</span>
+                                <span data-i18n-en="Database">قاعدة البيانات</span>
                             </a>
                         </li>
                         <li>
                             <a href="@Url.Action("UserCards", "Settings")" class="@IsActive("Settings", "UserCards")">
                                 <i class="fas fa-id-card"></i>
-                                <span>بطاقات المستخدمين</span>
+                                <span data-i18n-en="User Cards">بطاقات المستخدمين</span>
                             </a>
                         </li>
                         <li>
                             <a href="@Url.Action("Training", "Settings")" class="@IsActive("Settings", "Training")">
                                 <i class="fas fa-book"></i>
-                                <span>دليل التدريب</span>
+                                <span data-i18n-en="Training Guide">دليل التدريب</span>
                             </a>
                         </li>
                         <li>
                             <a href="@Url.Action("Packages", "Settings")" class="@IsActive("Settings", "Packages")">
                                 <i class="fas fa-cube"></i>
-                                <span>نظام الباقات</span>
+                                <span data-i18n-en="Packages System">نظام الباقات</span>
                             </a>
                         </li>
                     }

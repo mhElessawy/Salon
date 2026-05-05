@@ -7,15 +7,17 @@
 <div class="auth-page">
     <div class="auth-card">
         <div class="lang-toggle">
-            <button class="lang-btn">English <i class="fas fa-language"></i></button>
+            <button class="lang-btn" id="auth-lang-btn" onclick="toggleAuthLang()">
+                <span id="auth-lang-text">English</span> <i class="fas fa-language"></i>
+            </button>
         </div>
 
         <div class="auth-logo">
             <i class="fas fa-cut"></i>
         </div>
 
-        <h1>نظام معهد موس</h1>
-        <p class="subtitle">قم بتسجيل الدخول للوصول إلى لوحة التحكم</p>
+        <h1 data-i18n-en="Mus Institute System">نظام معهد موس</h1>
+        <p class="subtitle" data-i18n-en="Login to access the dashboard">قم بتسجيل الدخول للوصول إلى لوحة التحكم</p>
 
         @if (!ViewData.ModelState.IsValid)
         {
@@ -32,12 +34,12 @@
             <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
 
             <div class="mb-3">
-                <label asp-for="Email" class="form-label">البريد الإلكتروني</label>
+                <label asp-for="Email" class="form-label" data-i18n-en="Email Address">البريد الإلكتروني</label>
                 <input asp-for="Email" class="form-control" placeholder="example@email.com" autocomplete="email" />
             </div>
 
             <div class="mb-4">
-                <label asp-for="Password" class="form-label">كلمة المرور</label>
+                <label asp-for="Password" class="form-label" data-i18n-en="Password">كلمة المرور</label>
                 <div class="password-input-wrapper">
                     <input asp-for="Password" type="password" class="form-control" id="passwordInput" placeholder="••••••••" autocomplete="current-password" />
                     <button type="button" class="password-toggle" onclick="togglePassword()">
@@ -46,25 +48,25 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn-primary-orange">تسجيل الدخول</button>
+            <button type="submit" class="btn-primary-orange" data-i18n-en="Login">تسجيل الدخول</button>
         </form>
 
-        <a href="#" class="forgot-link">نسيت كلمة المرور؟</a>
+        <a href="#" class="forgot-link" data-i18n-en="Forgot your password?">نسيت كلمة المرور؟</a>
     </div>
 </div>
 
 @section Scripts {
-<script>
-    function togglePassword() {
-        const input = document.getElementById('passwordInput');
-        const icon = document.getElementById('eyeIcon');
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.classList.replace('fa-eye', 'fa-eye-slash');
-        } else {
-            input.type = 'password';
-            icon.classList.replace('fa-eye-slash', 'fa-eye');
+    <script>
+        function togglePassword() {
+            const input = document.getElementById('passwordInput');
+            const icon = document.getElementById('eyeIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
         }
-    }
-</script>
+    </script>
 }
