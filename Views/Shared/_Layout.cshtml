@@ -12,6 +12,14 @@
         "Employee" => "موظف",
         _ => layoutRole
     };
+    var layoutRoleEn = layoutRole switch
+    {
+        "Admin" => "System Admin",
+        "Manager" => "Manager",
+        "Cashier" => "Cashier",
+        "Employee" => "Employee",
+        _ => layoutRole
+    };
     var layoutInitial = layoutFullName.FirstOrDefault().ToString().ToUpper();
 }
 <!DOCTYPE html>
@@ -20,7 +28,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - نظام معهد موس</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" />
+    <link id="bootstrap-css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="~/css/salon.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
@@ -56,28 +64,28 @@
                              aria-expanded="false">
                             <div>
                                 <div style="font-size:13px; font-weight:600; line-height:1.2">@layoutFullName</div>
-                                <div class="user-role">@layoutRoleAr</div>
+                                <div class="user-role" data-i18n-en="@layoutRoleEn">@layoutRoleAr</div>
                             </div>
                             <div class="user-avatar">@layoutInitial</div>
                         </div>
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-1" style="min-width:200px">
                             <li>
                                 <a class="dropdown-item py-2" href="@Url.Action("ChangePassword", "Account")">
-                                    <i class="fas fa-key me-2" style="color:#F7941D"></i> تغيير كلمة المرور
+                                    <i class="fas fa-key me-2" style="color:#F7941D"></i> <span data-i18n-en="Change Password">تغيير كلمة المرور</span>
                                 </a>
                             </li>
                             @if (User.IsInRole("Admin"))
                             {
                                 <li>
                                     <a class="dropdown-item py-2" href="@Url.Action("Index", "Users")">
-                                        <i class="fas fa-user-shield me-2 text-danger"></i> إدارة المستخدمين
+                                        <i class="fas fa-user-shield me-2 text-danger"></i> <span data-i18n-en="Manage Users">إدارة المستخدمين</span>
                                     </a>
                                 </li>
                             }
                             <li><hr class="dropdown-divider my-1"></li>
                             <li>
                                 <a class="dropdown-item py-2 text-danger" href="@Url.Action("Logout", "Account")">
-                                    <i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج
+                                    <i class="fas fa-sign-out-alt me-2"></i> <span data-i18n-en="Logout">تسجيل الخروج</span>
                                 </a>
                             </li>
                         </ul>
@@ -90,21 +98,21 @@
                     </div>
 
                     <!-- Language switch -->
-                    <button class="lang-switch-btn">EN</button>
+                    <button class="lang-switch-btn" id="lang-btn">EN</button>
                 </div>
 
                 <div class="topbar-left">
                     <div class="topbar-greeting">
-                        مرحباً، <strong>@layoutFullName</strong>
+                        <span data-i18n-en="Hello,">مرحباً،</span> <strong>@layoutFullName</strong>
                     </div>
 
                     <div style="font-size:15px; font-weight:700; color:#1a1a2e;">
                         <i class="fas fa-wifi" style="color:var(--primary); margin-left:6px;"></i>
-                        نظام معهد موس
+                        <span data-i18n-en="Mus Institute System">نظام معهد موس</span>
                     </div>
 
                     <button class="connected-btn">
-                        <i class="fas fa-signal me-1"></i> متصل
+                        <i class="fas fa-signal me-1"></i> <span data-i18n-en="Connected">متصل</span>
                     </button>
                 </div>
             </header>
@@ -130,6 +138,61 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Language toggle
+        (function () {
+            var BOOTSTRAP_RTL = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css';
+            var BOOTSTRAP_LTR = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css';
+
+            function applyLanguage(lang) {
+                var html = document.documentElement;
+                var bootstrapCss = document.getElementById('bootstrap-css');
+                var langBtn = document.getElementById('lang-btn');
+
+                document.querySelectorAll('[data-i18n-en]').forEach(function (el) {
+                    if (lang === 'en') {
+                        if (!el.dataset.i18nAr) el.dataset.i18nAr = el.textContent.trim();
+                        el.textContent = el.dataset.i18nEn;
+                    } else {
+                        if (el.dataset.i18nAr) el.textContent = el.dataset.i18nAr;
+                    }
+                });
+
+                if (lang === 'en') {
+                    html.lang = 'en';
+                    html.dir = 'ltr';
+                    if (bootstrapCss) bootstrapCss.href = BOOTSTRAP_LTR;
+                    if (langBtn) langBtn.textContent = 'AR';
+                    document.querySelectorAll('.sidebar-menu .arrow-icon').forEach(function (i) {
+                        i.classList.replace('fa-chevron-left', 'fa-chevron-right');
+                    });
+                } else {
+                    html.lang = 'ar';
+                    html.dir = 'rtl';
+                    if (bootstrapCss) bootstrapCss.href = BOOTSTRAP_RTL;
+                    if (langBtn) langBtn.textContent = 'EN';
+                    document.querySelectorAll('.sidebar-menu .arrow-icon').forEach(function (i) {
+                        i.classList.replace('fa-chevron-right', 'fa-chevron-left');
+                    });
+                }
+
+                localStorage.setItem('lang', lang);
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                var saved = localStorage.getItem('lang') || 'ar';
+                if (saved === 'en') applyLanguage('en');
+
+                var btn = document.getElementById('lang-btn');
+                if (btn) {
+                    btn.addEventListener('click', function () {
+                        var current = localStorage.getItem('lang') || 'ar';
+                        applyLanguage(current === 'ar' ? 'en' : 'ar');
+                    });
+                }
+            });
+        })();
+    </script>
     <script>
         // Mobile sidebar
         var sidebar = document.getElementById('sidebar');
