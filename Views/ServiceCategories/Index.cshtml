@@ -46,6 +46,19 @@
                         <div>
                             <h6 class="mb-0 fw-bold">@cat.Name</h6>
                             <small class="text-muted">@cat.Services.Count خدمة</small>
+                            @if (!string.IsNullOrEmpty(cat.Department))
+                            {
+                                <span class="badge rounded-pill mt-1 d-inline-block"
+                                      style="background:@(cat.Department == "حلاقة" ? "#F7941D" : "#6f42c1");font-size:11px">
+                                    @(cat.Department == "حلاقة" ? "✂️" : "💆") @cat.Department
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger rounded-pill mt-1 d-inline-block" style="font-size:11px">
+                                    ⚠️ بدون قسم
+                                </span>
+                            }
                         </div>
                     </div>
                     @if (!string.IsNullOrEmpty(cat.Description))
