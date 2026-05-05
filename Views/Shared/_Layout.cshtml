@@ -1,16 +1,16 @@
 @inject Microsoft.AspNetCore.Identity.UserManager<Salon.Models.ApplicationUser> LayoutUserManager
 @{
-    var layoutUser     = await LayoutUserManager.GetUserAsync(User);
+    var layoutUser = await LayoutUserManager.GetUserAsync(User);
     var layoutFullName = layoutUser?.FullName ?? User.Identity?.Name?.Split('@').FirstOrDefault() ?? "المستخدم";
-    var layoutRoles    = layoutUser != null ? await LayoutUserManager.GetRolesAsync(layoutUser) : new List<string>();
-    var layoutRole     = layoutRoles.FirstOrDefault() ?? "";
-    var layoutRoleAr   = layoutRole switch
+    var layoutRoles = layoutUser != null ? await LayoutUserManager.GetRolesAsync(layoutUser) : new List<string>();
+    var layoutRole = layoutRoles.FirstOrDefault() ?? "";
+    var layoutRoleAr = layoutRole switch
     {
-        "Admin"    => "مدير النظام",
-        "Manager"  => "مدير",
-        "Cashier"  => "كاشير",
+        "Admin" => "مدير النظام",
+        "Manager" => "مدير",
+        "Cashier" => "كاشير",
         "Employee" => "موظف",
-        _          => layoutRole
+        _ => layoutRole
     };
     var layoutInitial = layoutFullName.FirstOrDefault().ToString().ToUpper();
 }
@@ -62,21 +62,21 @@
                         </div>
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-1" style="min-width:200px">
                             <li>
-                                <a class="dropdown-item py-2" href="@Url.Action("ChangePassword","Account")">
+                                <a class="dropdown-item py-2" href="@Url.Action("ChangePassword", "Account")">
                                     <i class="fas fa-key me-2" style="color:#F7941D"></i> تغيير كلمة المرور
                                 </a>
                             </li>
                             @if (User.IsInRole("Admin"))
                             {
                                 <li>
-                                    <a class="dropdown-item py-2" href="@Url.Action("Index","Users")">
+                                    <a class="dropdown-item py-2" href="@Url.Action("Index", "Users")">
                                         <i class="fas fa-user-shield me-2 text-danger"></i> إدارة المستخدمين
                                     </a>
                                 </li>
                             }
                             <li><hr class="dropdown-divider my-1"></li>
                             <li>
-                                <a class="dropdown-item py-2 text-danger" href="@Url.Action("Logout","Account")">
+                                <a class="dropdown-item py-2 text-danger" href="@Url.Action("Logout", "Account")">
                                     <i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج
                                 </a>
                             </li>
@@ -158,8 +158,8 @@
             });
         }
 
-        // Close sidebar when tapping a menu link on mobile
-        document.querySelectorAll('.sidebar-menu a[href]').forEach(function(link) {
+        // Close sidebar when tapping a real nav link on mobile (not submenu toggles)
+        document.querySelectorAll('.sidebar-menu a[href]:not(.submenu-toggle)').forEach(function(link) {
             link.addEventListener('click', function() {
                 if (window.innerWidth < 992) closeSidebar();
             });
