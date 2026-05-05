@@ -12,52 +12,55 @@
     @RenderBody()
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        (function () {
-            var BOOTSTRAP_RTL = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css';
-            var BOOTSTRAP_LTR = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css';
+        var BOOTSTRAP_RTL = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css';
+        var BOOTSTRAP_LTR = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css';
 
-            function applyLanguage(lang) {
-                var html = document.documentElement;
-                var bootstrapCss = document.getElementById('bootstrap-css');
-                var langTextEl = document.getElementById('auth-lang-text');
+        function applyLanguage(lang) {
+            var html = document.documentElement;
+            var bootstrapCss = document.getElementById('bootstrap-css');
+            var langTextEl = document.getElementById('auth-lang-text');
 
-                document.querySelectorAll('[data-i18n-en]').forEach(function (el) {
-                    if (lang === 'en') {
-                        if (!el.dataset.i18nAr) el.dataset.i18nAr = el.textContent.trim();
-                        el.textContent = el.dataset.i18nEn;
-                    } else {
-                        if (el.dataset.i18nAr) el.textContent = el.dataset.i18nAr;
-                    }
-                });
-
+            document.querySelectorAll('[data-i18n-en]').forEach(function (el) {
                 if (lang === 'en') {
-                    html.lang = 'en';
-                    html.dir = 'ltr';
-                    if (bootstrapCss) bootstrapCss.href = BOOTSTRAP_LTR;
-                    if (langTextEl) langTextEl.textContent = 'العربية';
+                    if (!el.getAttribute('data-i18n-ar')) {
+                        el.setAttribute('data-i18n-ar', el.textContent.trim());
+                    }
+                    el.textContent = el.getAttribute('data-i18n-en');
                 } else {
-                    html.lang = 'ar';
-                    html.dir = 'rtl';
-                    if (bootstrapCss) bootstrapCss.href = BOOTSTRAP_RTL;
-                    if (langTextEl) langTextEl.textContent = 'English';
-                }
-
-                localStorage.setItem('lang', lang);
-            }
-
-            document.addEventListener('DOMContentLoaded', function () {
-                var saved = localStorage.getItem('lang') || 'ar';
-                if (saved === 'en') applyLanguage('en');
-
-                var btn = document.getElementById('auth-lang-btn');
-                if (btn) {
-                    btn.addEventListener('click', function () {
-                        var current = localStorage.getItem('lang') || 'ar';
-                        applyLanguage(current === 'ar' ? 'en' : 'ar');
-                    });
+                    var ar = el.getAttribute('data-i18n-ar');
+                    if (ar) el.textContent = ar;
                 }
             });
-        })();
+
+            if (lang === 'en') {
+                html.setAttribute('lang', 'en');
+                html.setAttribute('dir', 'ltr');
+                if (bootstrapCss) bootstrapCss.setAttribute('href', BOOTSTRAP_LTR);
+                if (langTextEl) langTextEl.textContent = 'العربية';
+            } else {
+                html.setAttribute('lang', 'ar');
+                html.setAttribute('dir', 'rtl');
+                if (bootstrapCss) bootstrapCss.setAttribute('href', BOOTSTRAP_RTL);
+                if (langTextEl) langTextEl.textContent = 'English';
+            }
+
+            localStorage.setItem('lang', lang);
+        }
+
+        function toggleAuthLang() {
+            var current = localStorage.getItem('lang') || 'ar';
+            applyLanguage(current === 'ar' ? 'en' : 'ar');
+        }
+
+        // Apply saved language as soon as DOM is ready
+        var _savedLang = localStorage.getItem('lang') || 'ar';
+        if (_savedLang === 'en') {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function () { applyLanguage('en'); });
+            } else {
+                applyLanguage('en');
+            }
+        }
     </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
