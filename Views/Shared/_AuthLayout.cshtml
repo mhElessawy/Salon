@@ -4,7 +4,18 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - نظام معهد موس</title>
+    <script>
+        if (localStorage.getItem('lang') === 'en') {
+            document.documentElement.setAttribute('dir', 'ltr');
+            document.documentElement.setAttribute('lang', 'en');
+        }
+    </script>
     <link id="bootstrap-css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" />
+    <script>
+        if (localStorage.getItem('lang') === 'en') {
+            document.getElementById('bootstrap-css').href = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css';
+        }
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="~/css/salon.css" asp-append-version="true" />
 </head>
@@ -52,15 +63,8 @@
             applyLanguage(current === 'ar' ? 'en' : 'ar');
         }
 
-        // Apply saved language as soon as DOM is ready
-        var _savedLang = localStorage.getItem('lang') || 'ar';
-        if (_savedLang === 'en') {
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', function () { applyLanguage('en'); });
-            } else {
-                applyLanguage('en');
-            }
-        }
+        // Apply text translations now (dir+css already set in <head> script above)
+        if (localStorage.getItem('lang') === 'en') applyLanguage('en');
     </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

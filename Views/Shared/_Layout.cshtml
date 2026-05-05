@@ -28,7 +28,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - نظام معهد موس</title>
+    <script>
+        // Set direction BEFORE any CSS loads to prevent layout flash
+        if (localStorage.getItem('lang') === 'en') {
+            document.documentElement.setAttribute('dir', 'ltr');
+            document.documentElement.setAttribute('lang', 'en');
+        }
+    </script>
     <link id="bootstrap-css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" />
+    <script>
+        // Load the correct Bootstrap (RTL or LTR) before browser renders
+        if (localStorage.getItem('lang') === 'en') {
+            document.getElementById('bootstrap-css').href = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css';
+        }
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="~/css/salon.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
@@ -98,7 +111,7 @@
                     </div>
 
                     <!-- Language switch -->
-                    <button class="lang-switch-btn" id="lang-btn">EN</button>
+                    <button class="lang-switch-btn" id="lang-btn" onclick="toggleLang()">EN</button>
                 </div>
 
                 <div class="topbar-left">
@@ -139,59 +152,52 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Language toggle
-        (function () {
-            var BOOTSTRAP_RTL = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css';
-            var BOOTSTRAP_LTR = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css';
+        var BOOTSTRAP_RTL = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css';
+        var BOOTSTRAP_LTR = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css';
 
-            function applyLanguage(lang) {
-                var html = document.documentElement;
-                var bootstrapCss = document.getElementById('bootstrap-css');
-                var langBtn = document.getElementById('lang-btn');
+        function applyLanguage(lang) {
+            var html = document.documentElement;
+            var bootstrapCss = document.getElementById('bootstrap-css');
+            var langBtn = document.getElementById('lang-btn');
 
-                document.querySelectorAll('[data-i18n-en]').forEach(function (el) {
-                    if (lang === 'en') {
-                        if (!el.dataset.i18nAr) el.dataset.i18nAr = el.textContent.trim();
-                        el.textContent = el.dataset.i18nEn;
-                    } else {
-                        if (el.dataset.i18nAr) el.textContent = el.dataset.i18nAr;
-                    }
-                });
-
+            document.querySelectorAll('[data-i18n-en]').forEach(function (el) {
                 if (lang === 'en') {
-                    html.lang = 'en';
-                    html.dir = 'ltr';
-                    if (bootstrapCss) bootstrapCss.href = BOOTSTRAP_LTR;
-                    if (langBtn) langBtn.textContent = 'AR';
-                    document.querySelectorAll('.sidebar-menu .arrow-icon').forEach(function (i) {
-                        i.classList.replace('fa-chevron-left', 'fa-chevron-right');
-                    });
+                    if (!el.getAttribute('data-i18n-ar')) el.setAttribute('data-i18n-ar', el.textContent.trim());
+                    el.textContent = el.getAttribute('data-i18n-en');
                 } else {
-                    html.lang = 'ar';
-                    html.dir = 'rtl';
-                    if (bootstrapCss) bootstrapCss.href = BOOTSTRAP_RTL;
-                    if (langBtn) langBtn.textContent = 'EN';
-                    document.querySelectorAll('.sidebar-menu .arrow-icon').forEach(function (i) {
-                        i.classList.replace('fa-chevron-right', 'fa-chevron-left');
-                    });
-                }
-
-                localStorage.setItem('lang', lang);
-            }
-
-            document.addEventListener('DOMContentLoaded', function () {
-                var saved = localStorage.getItem('lang') || 'ar';
-                if (saved === 'en') applyLanguage('en');
-
-                var btn = document.getElementById('lang-btn');
-                if (btn) {
-                    btn.addEventListener('click', function () {
-                        var current = localStorage.getItem('lang') || 'ar';
-                        applyLanguage(current === 'ar' ? 'en' : 'ar');
-                    });
+                    var ar = el.getAttribute('data-i18n-ar');
+                    if (ar) el.textContent = ar;
                 }
             });
-        })();
+
+            if (lang === 'en') {
+                html.setAttribute('lang', 'en');
+                html.setAttribute('dir', 'ltr');
+                if (bootstrapCss) bootstrapCss.setAttribute('href', BOOTSTRAP_LTR);
+                if (langBtn) langBtn.textContent = 'AR';
+                document.querySelectorAll('.sidebar-menu .arrow-icon').forEach(function (i) {
+                    i.classList.replace('fa-chevron-left', 'fa-chevron-right');
+                });
+            } else {
+                html.setAttribute('lang', 'ar');
+                html.setAttribute('dir', 'rtl');
+                if (bootstrapCss) bootstrapCss.setAttribute('href', BOOTSTRAP_RTL);
+                if (langBtn) langBtn.textContent = 'EN';
+                document.querySelectorAll('.sidebar-menu .arrow-icon').forEach(function (i) {
+                    i.classList.replace('fa-chevron-right', 'fa-chevron-left');
+                });
+            }
+
+            localStorage.setItem('lang', lang);
+        }
+
+        function toggleLang() {
+            var current = localStorage.getItem('lang') || 'ar';
+            applyLanguage(current === 'ar' ? 'en' : 'ar');
+        }
+
+        // Apply text translations now (dir+css already set in <head> script above)
+        if (localStorage.getItem('lang') === 'en') applyLanguage('en');
     </script>
     <script>
         // Mobile sidebar
