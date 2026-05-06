@@ -46,8 +46,33 @@
                         <tr>
                             <td><strong>@(a.Employee?.FullName ?? "-")</strong></td>
                             <td>@a.AttendanceDate.ToString("yyyy/MM/dd")</td>
-                            <td>@(a.CheckIn?.ToString(@"hh\:mm") ?? "-")</td>
-                            <td>@(a.CheckOut?.ToString(@"hh\:mm") ?? "-")</td>
+                            <td>
+                                @if (a.CheckIn.HasValue)
+                                {
+                                    <span class="badge bg-success"><i class="fas fa-sign-in-alt me-1"></i>@a.CheckIn.Value.ToString(@"hh\:mm")</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (a.CheckOut.HasValue)
+                                {
+                                    <span class="badge bg-danger"><i class="fas fa-sign-out-alt me-1"></i>@a.CheckOut.Value.ToString(@"hh\:mm")</span>
+                                }
+                                else if (a.CheckIn.HasValue)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-warning"
+                                            onclick="confirmCheckOut(@a.Id, '@Html.Raw((a.Employee != null ? a.Employee.FullName : "-").Replace("'", "\\'"))')">
+                                        <i class="fas fa-sign-out-alt me-1"></i> تسجيل انصراف
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
                             <td>
                                 <span class="badge @(a.Status == "حاضر" ? "bg-success" : a.Status == "غائب" ? "bg-danger" : "bg-warning text-dark")">
                                     @a.Status
@@ -63,6 +88,32 @@
                     }
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- CheckOut Modal -->
+<div class="modal fade" id="checkOutModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fw-bold"><i class="fas fa-sign-out-alt me-2"></i>تسجيل الانصراف</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="mb-3">تسجيل انصراف: <strong id="checkOutEmployeeName"></strong></p>
+                <form id="checkOutForm" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">وقت الانصراف</label>
+                        <input type="time" id="checkOutTime" name="checkOutTime" class="form-control form-control-lg" required />
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-warning fw-bold px-4"><i class="fas fa-save me-1"></i> تأكيد الانصراف</button>
+                        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">إلغاء</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -100,6 +151,17 @@
             document.getElementById('deleteItemName').textContent = name;
             document.getElementById('deleteForm').action = '@Url.Action("Delete")/' + id;
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+
+        function confirmCheckOut(id, name) {
+            document.getElementById('checkOutEmployeeName').textContent = name;
+            document.getElementById('checkOutForm').action = '@Url.Action("CheckOut")/' + id;
+            // auto-fill current time
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('checkOutTime').value = hh + ':' + mm;
+            new bootstrap.Modal(document.getElementById('checkOutModal')).show();
         }
     </script>
 }

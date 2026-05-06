@@ -52,6 +52,19 @@ namespace Salon.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> CheckOut(int id, string checkOutTime)
+        {
+            var record = await _context.Attendances.FindAsync(id);
+            if (record != null && TimeSpan.TryParse(checkOutTime, out var time))
+            {
+                record.CheckOut = time;
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "تم تسجيل الانصراف بنجاح";
+            }
+            return RedirectToAction(nameof(Index), new { date = record?.AttendanceDate.ToString("yyyy-MM-dd") });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
             var record = await _context.Attendances.FindAsync(id);
