@@ -32,12 +32,14 @@ namespace Salon.Controllers
         {
             if (string.IsNullOrEmpty(dept)) return 1;
 
-            var max = await _context.Attendances
-                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
-                .Where(a => a.AttendanceDate == DateTime.Today
-                         && a.Employee!.DepartmentNav!.Name == dept
-                         && a.QueuePosition != null)
-                .MaxAsync(a => (int?)a.QueuePosition);
+            var today = DateTime.Today;
+            var max = await (
+                from a in _context.Attendances
+                join e in _context.Employees on a.EmployeeId equals e.Id
+                join d in _context.Departments on e.DepartmentId equals d.Id
+                where a.AttendanceDate == today && a.QueuePosition != null && d.Name == dept
+                select a.QueuePosition
+            ).MaxAsync();
 
             return (max ?? 0) + 1;
         }
@@ -55,8 +57,8 @@ namespace Salon.Controllers
             if (linkedId.HasValue)
                 query = query.Where(a => a.EmployeeId == linkedId.Value);
 
-            // Sort: حلاقة first then مساج, then by queue position within each dept
             var records = await query.ToListAsync();
+            // Sort in memory after loading — avoids EF Core generating OPENJSON / '$' SQL
             var sorted = records
                 .OrderBy(a => a.Employee?.DepartmentNav?.Name == "مساج" ? 1 : 0)
                 .ThenBy(a => a.QueuePosition ?? int.MaxValue)

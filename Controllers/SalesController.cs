@@ -329,13 +329,16 @@ namespace Salon.Controllers
                 empQuery = empQuery.Where(e => e.Id == user.LinkedEmployeeId!.Value);
 
             var empList = await empQuery.ToListAsync();
-            var empIds = empList.Select(e => e.Id).ToList();
 
-            // Today's queue positions for employees in this department
-            var todayQueue = await _context.Attendances
-                .Where(a => a.AttendanceDate == DateTime.Today && a.QueuePosition != null
-                         && empIds.Contains(a.EmployeeId))
-                .ToDictionaryAsync(a => a.EmployeeId, a => a.QueuePosition!.Value);
+            // Today's queue positions — join on Departments to avoid OPENJSON / '$' issue (EF Core 8 + SQL Server)
+            var today = DateTime.Today;
+            var todayQueue = await (
+                from a in _context.Attendances
+                join e in _context.Employees on a.EmployeeId equals e.Id
+                join d in _context.Departments on e.DepartmentId equals d.Id
+                where a.AttendanceDate == today && a.QueuePosition != null && d.Name == dept && e.IsActive
+                select new { a.EmployeeId, QueuePos = (int)a.QueuePosition! }
+            ).ToDictionaryAsync(x => x.EmployeeId, x => x.QueuePos);
 
             // Sort by queue position (present employees first), then unqueued alphabetically
             var sortedEmployees = empList
@@ -410,18 +413,19 @@ namespace Salon.Controllers
                 // Move the employee to the end of today's queue after serving a customer
                 if (model.EmployeeId.HasValue)
                 {
+                    var today2 = DateTime.Today;
                     var todayAttendance = await _context.Attendances
-                        .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                         .FirstOrDefaultAsync(a => a.EmployeeId == model.EmployeeId.Value
-                                               && a.AttendanceDate == DateTime.Today);
+                                               && a.AttendanceDate == today2);
                     if (todayAttendance != null)
                     {
-                        var maxPos = await _context.Attendances
-                            .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
-                            .Where(a => a.AttendanceDate == DateTime.Today
-                                     && a.Employee!.DepartmentNav!.Name == dept
-                                     && a.QueuePosition != null)
-                            .MaxAsync(a => (int?)a.QueuePosition);
+                        var maxPos = await (
+                            from a in _context.Attendances
+                            join e in _context.Employees on a.EmployeeId equals e.Id
+                            join d in _context.Departments on e.DepartmentId equals d.Id
+                            where a.AttendanceDate == today2 && a.QueuePosition != null && d.Name == dept
+                            select a.QueuePosition
+                        ).MaxAsync();
                         todayAttendance.QueuePosition = (maxPos ?? 0) + 1;
                         await _context.SaveChangesAsync();
                     }
