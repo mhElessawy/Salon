@@ -406,8 +406,8 @@
             <label class="form-label">طريقة الدفع</label>
             <select asp-for="PaymentMethod" id="paymentMethodSelect" class="form-select form-select-sm" onchange="onPaymentChange()">
                 <option>كاش</option>
-                <option>لينك</option>
-                <option>لينك و كاش</option>
+                <option>كي نت</option>
+                <option>كي نت و كاش</option>
                 <option>دين على العميل</option>
                 <option>دين على الموظف</option>
                 <option>دين على صاحب المكان</option>
@@ -424,7 +424,7 @@
                     <input type="number" name="CashAmount" id="cashAmountInput" class="form-control form-control-sm" step="0.001" min="0" placeholder="0.000" oninput="validateSplit()" style="width:140px" />
                 </div>
                 <div>
-                    <label class="form-label mb-1" style="font-size:12px"><i class="fas fa-credit-card me-1 text-primary"></i>مبلغ اللينك</label>
+                    <label class="form-label mb-1" style="font-size:12px"><i class="fas fa-credit-card me-1 text-primary"></i>مبلغ كي نت</label>
                     <input type="number" name="LinkAmount" id="linkAmountInput" class="form-control form-control-sm" step="0.001" min="0" placeholder="0.000" oninput="validateSplit()" style="width:140px" />
                 </div>
                 <small id="splitStatus" class="text-muted align-self-end pb-1"></small>
@@ -739,7 +739,7 @@
             extraBar.style.display = 'none';
             customerWarning.style.display = 'none';
             customerSelect.required = false;
-            if (pm === 'لينك و كاش') { extraBar.style.display = ''; splitSection.style.display = ''; }
+            if (pm === 'كي نت و كاش') { extraBar.style.display = ''; splitSection.style.display = ''; }
             else if (pm === 'دين على العميل') { customerWarning.style.display = ''; customerSelect.required = true; }
             else if (pm === 'دين على الموظف') { extraBar.style.display = ''; debtEmpSection.style.display = ''; }
         }

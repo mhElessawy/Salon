@@ -33,6 +33,11 @@
         if (localStorage.getItem('lang') === 'en') {
             document.documentElement.setAttribute('dir', 'ltr');
             document.documentElement.setAttribute('lang', 'en');
+            // Force mobile margin to 0 immediately (overrides any cached CSS)
+            var s = document.createElement('style');
+            s.id = 'lang-mobile-fix';
+            s.textContent = '@@media(max-width:991px){.main-content{margin-left:0!important;margin-right:0!important}}';
+            document.head.appendChild(s);
         }
     </script>
     <link id="bootstrap-css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" />
@@ -151,6 +156,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/translations.js" asp-append-version="true"></script>
     <script>
         var BOOTSTRAP_RTL = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css';
         var BOOTSTRAP_LTR = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css';
@@ -159,6 +165,7 @@
             var html = document.documentElement;
             var bootstrapCss = document.getElementById('bootstrap-css');
             var langBtn = document.getElementById('lang-btn');
+            var mc = document.querySelector('.main-content');
 
             document.querySelectorAll('[data-i18n-en]').forEach(function (el) {
                 if (lang === 'en') {
@@ -178,6 +185,10 @@
                 document.querySelectorAll('.sidebar-menu .arrow-icon').forEach(function (i) {
                     i.classList.replace('fa-chevron-left', 'fa-chevron-right');
                 });
+                if (mc) {
+                    mc.style.marginRight = '0';
+                    mc.style.marginLeft = window.innerWidth >= 992 ? 'var(--sidebar-width)' : '0';
+                }
             } else {
                 html.setAttribute('lang', 'ar');
                 html.setAttribute('dir', 'rtl');
@@ -186,9 +197,17 @@
                 document.querySelectorAll('.sidebar-menu .arrow-icon').forEach(function (i) {
                     i.classList.replace('fa-chevron-right', 'fa-chevron-left');
                 });
+                if (mc) {
+                    mc.style.marginRight = '';
+                    mc.style.marginLeft = '';
+                }
             }
 
             localStorage.setItem('lang', lang);
+
+            if (typeof translatePageContent === 'function') {
+                translatePageContent(lang);
+            }
         }
 
         function toggleLang() {
@@ -198,6 +217,14 @@
 
         // Apply text translations now (dir+css already set in <head> script above)
         if (localStorage.getItem('lang') === 'en') applyLanguage('en');
+
+        // Fix margin on screen resize (e.g. phone rotation)
+        window.addEventListener('resize', function () {
+            if (localStorage.getItem('lang') === 'en') {
+                var mc = document.querySelector('.main-content');
+                if (mc) mc.style.marginLeft = window.innerWidth >= 992 ? 'var(--sidebar-width)' : '0';
+            }
+        });
     </script>
     <script>
         // Mobile sidebar
