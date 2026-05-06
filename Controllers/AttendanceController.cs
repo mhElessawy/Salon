@@ -20,12 +20,26 @@ namespace Salon.Controllers
             _userManager = userManager;
         }
 
-        // Returns the LinkedEmployeeId if the current user is in Employee role, otherwise null.
         private async Task<int?> GetLinkedEmployeeIdIfEmployee()
         {
             if (!User.IsInRole("Employee")) return null;
             var user = await _userManager.GetUserAsync(User);
             return user?.LinkedEmployeeId;
+        }
+
+        // Returns the next queue position for the given department today.
+        private async Task<int> NextQueuePosition(string? dept)
+        {
+            if (string.IsNullOrEmpty(dept)) return 1;
+
+            var max = await _context.Attendances
+                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Where(a => a.AttendanceDate == DateTime.Today
+                         && a.Employee!.DepartmentNav!.Name == dept
+                         && a.QueuePosition != null)
+                .MaxAsync(a => (int?)a.QueuePosition);
+
+            return (max ?? 0) + 1;
         }
 
         public async Task<IActionResult> Index(string? date)
@@ -35,14 +49,22 @@ namespace Salon.Controllers
             var linkedId = await GetLinkedEmployeeIdIfEmployee();
 
             var query = _context.Attendances
-                .Include(a => a.Employee)
+                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Where(a => a.AttendanceDate == filterDate);
 
             if (linkedId.HasValue)
                 query = query.Where(a => a.EmployeeId == linkedId.Value);
 
+            // Sort: حلاقة first then مساج, then by queue position within each dept
+            var records = await query.ToListAsync();
+            var sorted = records
+                .OrderBy(a => a.Employee?.DepartmentNav?.Name == "مساج" ? 1 : 0)
+                .ThenBy(a => a.QueuePosition ?? int.MaxValue)
+                .ToList();
+
             ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
-            return View(await query.ToListAsync());
+            ViewBag.IsEmployee = linkedId.HasValue;
+            return View(sorted);
         }
 
         public async Task<IActionResult> Create()
@@ -51,10 +73,11 @@ namespace Salon.Controllers
 
             if (linkedId.HasValue)
             {
-                var employee = await _context.Employees.FindAsync(linkedId.Value);
+                var employee = await _context.Employees
+                    .Include(e => e.DepartmentNav)
+                    .FirstOrDefaultAsync(e => e.Id == linkedId.Value);
                 if (employee == null) return Forbid();
 
-                // Check if employee already has a record today
                 bool alreadyExists = await _context.Attendances.AnyAsync(a =>
                     a.EmployeeId == linkedId.Value && a.AttendanceDate == DateTime.Today);
                 if (alreadyExists)
@@ -69,7 +92,9 @@ namespace Salon.Controllers
             }
 
             ViewBag.IsEmployee = false;
-            ViewBag.Employees = new SelectList(await _context.Employees.Where(e => e.IsActive).ToListAsync(), "Id", "FullName");
+            ViewBag.Employees = new SelectList(
+                await _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync(),
+                "Id", "FullName");
             return View(new Attendance { AttendanceDate = DateTime.Today });
         }
 
@@ -80,27 +105,31 @@ namespace Salon.Controllers
 
             if (linkedId.HasValue)
             {
-                // Force employee's own ID and current time — ignore any submitted values
                 model.EmployeeId = linkedId.Value;
                 model.CheckIn = DateTime.Now.TimeOfDay;
                 model.CheckOut = null;
                 model.AttendanceDate = DateTime.Today;
             }
 
-            // Prevent duplicate record for the same employee on the same date (all roles)
+            // Prevent duplicate for same employee+date
             bool duplicate = await _context.Attendances.AnyAsync(a =>
                 a.EmployeeId == model.EmployeeId && a.AttendanceDate == model.AttendanceDate);
             if (duplicate)
-            {
                 ModelState.AddModelError(string.Empty, "يوجد سجل حضور لهذا الموظف في هذا اليوم مسبقاً");
-            }
 
             if (ModelState.IsValid)
             {
+                // Assign queue position based on employee's department
+                var employee = await _context.Employees
+                    .Include(e => e.DepartmentNav)
+                    .FirstOrDefaultAsync(e => e.Id == model.EmployeeId);
+                var dept = employee?.DepartmentNav?.Name;
+                model.QueuePosition = await NextQueuePosition(dept);
                 model.CreatedAt = DateTime.Now;
+
                 _context.Attendances.Add(model);
                 await _context.SaveChangesAsync();
-                TempData["Success"] = "تم تسجيل الحضور بنجاح";
+                TempData["Success"] = $"تم تسجيل الحضور بنجاح — الدور: {model.QueuePosition}";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -113,9 +142,25 @@ namespace Salon.Controllers
             else
             {
                 ViewBag.IsEmployee = false;
-                ViewBag.Employees = new SelectList(await _context.Employees.Where(e => e.IsActive).ToListAsync(), "Id", "FullName");
+                ViewBag.Employees = new SelectList(
+                    await _context.Employees.Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync(),
+                    "Id", "FullName");
             }
             return View(model);
+        }
+
+        // Inline update of queue position from the Index page.
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateQueue(int id, int position, string? returnDate)
+        {
+            var record = await _context.Attendances.FindAsync(id);
+            if (record != null && !User.IsInRole("Employee"))
+            {
+                record.QueuePosition = position;
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "تم تحديث الدور بنجاح";
+            }
+            return RedirectToAction(nameof(Index), new { date = returnDate });
         }
 
         [HttpPost, ValidateAntiForgeryToken]
@@ -128,7 +173,6 @@ namespace Salon.Controllers
             if (linkedId.HasValue && record.EmployeeId != linkedId.Value)
                 return Forbid();
 
-            // Employee role: always use current time, ignore submitted value
             var time = linkedId.HasValue
                 ? DateTime.Now.TimeOfDay
                 : (TimeSpan.TryParse(checkOutTime, out var parsed) ? parsed : DateTime.Now.TimeOfDay);
@@ -163,11 +207,10 @@ namespace Salon.Controllers
                 : DateTime.Parse(month + "-01");
 
             var nextMonth = filterMonth.AddMonths(1);
-
             var linkedId = await GetLinkedEmployeeIdIfEmployee();
 
             var query = _context.Attendances
-                .Include(a => a.Employee)
+                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Where(a => a.AttendanceDate >= filterMonth && a.AttendanceDate < nextMonth);
 
             if (linkedId.HasValue)

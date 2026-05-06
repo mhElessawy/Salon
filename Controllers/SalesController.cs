@@ -328,7 +328,23 @@ namespace Salon.Controllers
             if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
                 empQuery = empQuery.Where(e => e.Id == user.LinkedEmployeeId!.Value);
 
-            ViewBag.Employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+            var empList = await empQuery.ToListAsync();
+
+            // Today's queue positions for employees in this department
+            var todayQueue = await _context.Attendances
+                .Where(a => a.AttendanceDate == DateTime.Today && a.QueuePosition != null
+                         && empList.Select(e => e.Id).Contains(a.EmployeeId))
+                .ToDictionaryAsync(a => a.EmployeeId, a => a.QueuePosition!.Value);
+
+            // Sort by queue position (present employees first), then unqueued alphabetically
+            var sortedEmployees = empList
+                .OrderBy(e => todayQueue.ContainsKey(e.Id) ? 0 : 1)
+                .ThenBy(e => todayQueue.TryGetValue(e.Id, out var q) ? q : int.MaxValue)
+                .ThenBy(e => e.FullName)
+                .ToList();
+
+            ViewBag.Employees = sortedEmployees;
+            ViewBag.EmployeeQueuePositions = todayQueue;
 
             ViewBag.AllEmployees = await _context.Employees
                 .Where(e => e.IsActive)
@@ -390,7 +406,26 @@ namespace Salon.Controllers
                 model.NetAmount = model.TotalAmount - model.Discount;
                 await _context.SaveChangesAsync();
 
-                var actionName = dept == "حلاقة" ? "CreateBarber" : "CreateMassage";
+                // Move the employee to the end of today's queue after serving a customer
+                if (model.EmployeeId.HasValue)
+                {
+                    var todayAttendance = await _context.Attendances
+                        .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                        .FirstOrDefaultAsync(a => a.EmployeeId == model.EmployeeId.Value
+                                               && a.AttendanceDate == DateTime.Today);
+                    if (todayAttendance != null)
+                    {
+                        var maxPos = await _context.Attendances
+                            .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                            .Where(a => a.AttendanceDate == DateTime.Today
+                                     && a.Employee!.DepartmentNav!.Name == dept
+                                     && a.QueuePosition != null)
+                            .MaxAsync(a => (int?)a.QueuePosition);
+                        todayAttendance.QueuePosition = (maxPos ?? 0) + 1;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
                 TempData["Success"] = $"تم إنشاء الفاتورة {model.InvoiceNumber} بنجاح";
                 return RedirectToAction(nameof(Index), new { type = dept });
             }
