@@ -329,11 +329,12 @@ namespace Salon.Controllers
                 empQuery = empQuery.Where(e => e.Id == user.LinkedEmployeeId!.Value);
 
             var empList = await empQuery.ToListAsync();
+            var empIds = empList.Select(e => e.Id).ToList();
 
             // Today's queue positions for employees in this department
             var todayQueue = await _context.Attendances
                 .Where(a => a.AttendanceDate == DateTime.Today && a.QueuePosition != null
-                         && empList.Select(e => e.Id).Contains(a.EmployeeId))
+                         && empIds.Contains(a.EmployeeId))
                 .ToDictionaryAsync(a => a.EmployeeId, a => a.QueuePosition!.Value);
 
             // Sort by queue position (present employees first), then unqueued alphabetically
