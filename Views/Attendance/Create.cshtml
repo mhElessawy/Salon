@@ -1,3 +1,4 @@
+@model Salon.Models.Attendance
 @{
     ViewData["Title"] = "تسجيل حضور";
 }
@@ -12,9 +13,17 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">الموظف</label>
-                    <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select">
-                        <option value="">-- اختر الموظف --</option>
-                    </select>
+                    @if (ViewBag.IsEmployee == true)
+                    {
+                        <input type="hidden" name="EmployeeId" value="@Model.EmployeeId" />
+                        <input type="text" class="form-control" value="@ViewBag.EmployeeName" readonly />
+                    }
+                    else
+                    {
+                        <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select">
+                            <option value="">-- اختر الموظف --</option>
+                        </select>
+                    }
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">التاريخ</label>
