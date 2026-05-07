@@ -30,6 +30,10 @@ namespace Salon.Models
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
 
+        /// <summary>رقم الدور في الطابور اليومي حسب القسم</summary>
+        [Display(Name = "الدور")]
+        public int? QueuePosition { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 }

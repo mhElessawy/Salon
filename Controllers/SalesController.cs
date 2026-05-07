@@ -328,7 +328,27 @@ namespace Salon.Controllers
             if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
                 empQuery = empQuery.Where(e => e.Id == user.LinkedEmployeeId!.Value);
 
-            ViewBag.Employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+            var empList = await empQuery.ToListAsync();
+
+            // Today's queue positions — join on Departments to avoid OPENJSON / '$' issue (EF Core 8 + SQL Server)
+            var today = DateTime.Today;
+            var todayQueue = await (
+                from a in _context.Attendances
+                join e in _context.Employees on a.EmployeeId equals e.Id
+                join d in _context.Departments on e.DepartmentId equals d.Id
+                where a.AttendanceDate == today && a.QueuePosition != null && d.Name == dept && e.IsActive
+                select new { a.EmployeeId, QueuePos = (int)a.QueuePosition! }
+            ).ToDictionaryAsync(x => x.EmployeeId, x => x.QueuePos);
+
+            // Sort by queue position (present employees first), then unqueued alphabetically
+            var sortedEmployees = empList
+                .OrderBy(e => todayQueue.ContainsKey(e.Id) ? 0 : 1)
+                .ThenBy(e => todayQueue.TryGetValue(e.Id, out var q) ? q : int.MaxValue)
+                .ThenBy(e => e.FullName)
+                .ToList();
+
+            ViewBag.Employees = sortedEmployees;
+            ViewBag.EmployeeQueuePositions = todayQueue;
 
             ViewBag.AllEmployees = await _context.Employees
                 .Where(e => e.IsActive)
@@ -390,7 +410,27 @@ namespace Salon.Controllers
                 model.NetAmount = model.TotalAmount - model.Discount;
                 await _context.SaveChangesAsync();
 
-                var actionName = dept == "حلاقة" ? "CreateBarber" : "CreateMassage";
+                // Move the employee to the end of today's queue after serving a customer
+                if (model.EmployeeId.HasValue)
+                {
+                    var today2 = DateTime.Today;
+                    var todayAttendance = await _context.Attendances
+                        .FirstOrDefaultAsync(a => a.EmployeeId == model.EmployeeId.Value
+                                               && a.AttendanceDate == today2);
+                    if (todayAttendance != null)
+                    {
+                        var maxPos = await (
+                            from a in _context.Attendances
+                            join e in _context.Employees on a.EmployeeId equals e.Id
+                            join d in _context.Departments on e.DepartmentId equals d.Id
+                            where a.AttendanceDate == today2 && a.QueuePosition != null && d.Name == dept
+                            select a.QueuePosition
+                        ).MaxAsync();
+                        todayAttendance.QueuePosition = (maxPos ?? 0) + 1;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
                 TempData["Success"] = $"تم إنشاء الفاتورة {model.InvoiceNumber} بنجاح";
                 return RedirectToAction(nameof(Index), new { type = dept });
             }

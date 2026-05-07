@@ -5,6 +5,7 @@
     var employees = ViewBag.Employees as List<Salon.Models.Employee> ?? new();
     var isEmployee = (bool)(ViewBag.IsEmployee ?? false);
     var linkedEmpId = ViewBag.LinkedEmployeeId as int?;
+    var queuePositions = ViewBag.EmployeeQueuePositions as Dictionary<int, int> ?? new();
 }
 
 @section Styles {
@@ -339,7 +340,9 @@
                     <option value="">-- اختر المعالج --</option>
                     @foreach (var emp in employees)
                     {
-                        <option value="@emp.Id">@emp.FullName</option>
+                        var queueLabel = queuePositions.TryGetValue(emp.Id, out var pos)
+                        ? $" (دور {pos})" : "";
+                        <option value="@emp.Id">@emp.FullName@queueLabel</option>
                     }
                 </select>
             }

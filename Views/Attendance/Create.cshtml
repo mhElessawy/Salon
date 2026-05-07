@@ -1,3 +1,4 @@
+@model Salon.Models.Attendance
 @{
     ViewData["Title"] = "تسجيل حضور";
 }
@@ -12,9 +13,17 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">الموظف</label>
-                    <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select">
-                        <option value="">-- اختر الموظف --</option>
-                    </select>
+                    @if (ViewBag.IsEmployee == true)
+                    {
+                        <input type="hidden" name="EmployeeId" value="@Model.EmployeeId" />
+                        <input type="text" class="form-control" value="@ViewBag.EmployeeName" readonly />
+                    }
+                    else
+                    {
+                        <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select">
+                            <option value="">-- اختر الموظف --</option>
+                        </select>
+                    }
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">التاريخ</label>
@@ -22,11 +31,29 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">وقت الحضور</label>
-                    <input type="time" name="CheckIn" class="form-control" />
+                    @if (ViewBag.IsEmployee == true)
+                    {
+                        <div class="form-control bg-light d-flex align-items-center gap-2">
+                            <i class="fas fa-clock text-success"></i>
+                            <span id="currentTimeDisplay" class="fw-bold"></span>
+                            <small class="text-muted">(يُسجَّل تلقائياً)</small>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="time" name="CheckIn" id="checkInInput" class="form-control" />
+                    }
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">وقت الانصراف</label>
-                    <input type="time" name="CheckOut" class="form-control" />
+                    <label class="form-label">وقت الانصراف <small class="text-muted">(اختياري)</small></label>
+                    @if (ViewBag.IsEmployee == true)
+                    {
+                        <div class="form-control bg-light text-muted">يُسجَّل عند الانصراف</div>
+                    }
+                    else
+                    {
+                        <input type="time" name="CheckOut" class="form-control" />
+                    }
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">الحالة</label>
@@ -49,3 +76,35 @@
         </form>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        const timeStr = hh + ':' + mm;
+
+        @if (ViewBag.IsEmployee == true)
+        {
+                // Show live clock for employee (read-only)
+                <text>
+                function updateClock() {
+                    const d = new Date();
+                    const h = String(d.getHours()).padStart(2, '0');
+                    const m = String(d.getMinutes()).padStart(2, '0');
+                    const el = document.getElementById('currentTimeDisplay');
+                    if (el) el.textContent = h + ':' + m;
+                }
+                updateClock();
+                setInterval(updateClock, 1000);
+                </text>
+        }
+        else
+        {
+                <text>
+                const inp = document.getElementById('checkInInput');
+                if (inp) inp.value = timeStr;
+                </text>
+        }
+    </script>
+}

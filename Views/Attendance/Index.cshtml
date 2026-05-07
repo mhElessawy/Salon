@@ -1,6 +1,7 @@
 @model IEnumerable<Salon.Models.Attendance>
 @{
     ViewData["Title"] = "الحضور والانصراف";
+    bool isEmployee = (bool)(ViewBag.IsEmployee ?? false);
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -25,10 +26,12 @@
 <div class="card">
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table">
+            <table class="table align-middle">
                 <thead>
                     <tr>
+                        <th style="width:70px">الدور</th>
                         <th>الموظف</th>
+                        <th>القسم</th>
                         <th>التاريخ</th>
                         <th>وقت الحضور</th>
                         <th>وقت الانصراف</th>
@@ -39,15 +42,74 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="6" class="text-center text-muted py-4">لا توجد سجلات حضور في هذا اليوم</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted py-4">لا توجد سجلات حضور في هذا اليوم</td></tr>
                     }
                     @foreach (var a in Model)
                     {
+                        var dept = a.Employee?.DepartmentNav?.Name;
+                        var deptColor = dept == "مساج" ? "bg-info" : "bg-warning text-dark";
                         <tr>
+                            <td>
+                                @if (!isEmployee)
+                                {
+                                    <form method="post" asp-action="UpdateQueue" asp-route-id="@a.Id"
+                                          asp-route-returnDate="@ViewBag.FilterDate"
+                                          class="d-flex align-items-center gap-1" style="min-width:80px">
+                                        @Html.AntiForgeryToken()
+                                        <input type="number" name="position" value="@(a.QueuePosition ?? 0)"
+                                               min="1" max="99"
+                                               class="form-control form-control-sm text-center fw-bold p-1"
+                                               style="width:52px;font-size:1rem;"
+                                               onchange="this.form.submit()" title="تغيير الدور" />
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-primary fs-6 px-3">@(a.QueuePosition?.ToString() ?? "-")</span>
+                                }
+                            </td>
                             <td><strong>@(a.Employee?.FullName ?? "-")</strong></td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(dept))
+                                {
+                                    <span class="badge @deptColor">@dept</span>
+                                }
+                                else
+                                {
+
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
                             <td>@a.AttendanceDate.ToString("yyyy/MM/dd")</td>
-                            <td>@(a.CheckIn?.ToString(@"hh\:mm") ?? "-")</td>
-                            <td>@(a.CheckOut?.ToString(@"hh\:mm") ?? "-")</td>
+                            <td>
+                                @if (a.CheckIn.HasValue)
+                                {
+                                    <span class="badge bg-success"><i class="fas fa-sign-in-alt me-1"></i>@a.CheckIn.Value.ToString(@"hh\:mm")</span>
+                                }
+                                else
+                                {
+
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (a.CheckOut.HasValue)
+                                {
+                                    <span class="badge bg-danger"><i class="fas fa-sign-out-alt me-1"></i>@a.CheckOut.Value.ToString(@"hh\:mm")</span>
+                                }
+                                else if (a.CheckIn.HasValue)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-warning"
+                                            onclick="confirmCheckOut(@a.Id, '@Html.Raw((a.Employee?.FullName ?? "-").Replace("'", "\\'"))')">
+                                        <i class="fas fa-sign-out-alt me-1"></i> تسجيل انصراف
+                                    </button>
+                                }
+                                else
+                                {
+
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
                             <td>
                                 <span class="badge @(a.Status == "حاضر" ? "bg-success" : a.Status == "غائب" ? "bg-danger" : "bg-warning text-dark")">
                                     @a.Status
@@ -55,7 +117,7 @@
                             </td>
                             <td>
                                 <button type="button" class="btn btn-sm btn-outline-danger" title="حذف"
-                                        onclick="confirmDelete(@a.Id, '@Html.Raw((a.Employee != null ? a.Employee.FullName : "-").Replace("'", "\\'"))')">
+                                        onclick="confirmDelete(@a.Id, '@Html.Raw((a.Employee?.FullName ?? "-").Replace("'", "\\'"))')">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </td>
@@ -67,14 +129,50 @@
     </div>
 </div>
 
+<!-- CheckOut Modal -->
+<div class="modal fade" id="checkOutModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fw-bold"><i class="fas fa-sign-out-alt me-2"></i>تسجيل الانصراف</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="mb-3">تسجيل انصراف: <strong id="checkOutEmployeeName"></strong></p>
+                <form id="checkOutForm" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="checkOutTimeHidden" name="checkOutTime" />
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">وقت الانصراف</label>
+                        @if (User.IsInRole("Employee"))
+                        {
+                            <div class="form-control form-control-lg bg-light d-flex align-items-center gap-2">
+                                <i class="fas fa-clock text-warning"></i>
+                                <span id="checkOutTimeDisplay" class="fw-bold fs-5"></span>
+                                <small class="text-muted">(يُسجَّل تلقائياً)</small>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="time" id="checkOutTimeEditable" class="form-control form-control-lg" required />
+                        }
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-warning fw-bold px-4"><i class="fas fa-save me-1"></i> تأكيد الانصراف</button>
+                        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">إلغاء</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg delete-modal-red">
             <div class="modal-body text-center p-5">
-                <div class="delete-icon-wrap mb-4">
-                    <i class="fas fa-times"></i>
-                </div>
+                <div class="delete-icon-wrap mb-4"><i class="fas fa-times"></i></div>
                 <h4 class="fw-bold mb-2 text-white">تأكيد الحذف</h4>
                 <p class="text-white-50 mb-1">هل أنت متأكد من حذف سجل حضور:</p>
                 <p class="fw-bold fs-5 mb-2 text-white" id="deleteItemName"></p>
@@ -100,6 +198,52 @@
             document.getElementById('deleteItemName').textContent = name;
             document.getElementById('deleteForm').action = '@Url.Action("Delete")/' + id;
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+
+        @if (User.IsInRole("Employee"))
+        {
+                <text>
+                let checkOutClockInterval = null;
+                function updateCheckOutClock() {
+                    const d = new Date();
+                    const h = String(d.getHours()).padStart(2, '0');
+                    const m = String(d.getMinutes()).padStart(2, '0');
+                    const val = h + ':' + m;
+                    const disp = document.getElementById('checkOutTimeDisplay');
+                    if (disp) disp.textContent = val;
+                    document.getElementById('checkOutTimeHidden').value = val;
+                }
+                function confirmCheckOut(id, name) {
+                    document.getElementById('checkOutEmployeeName').textContent = name;
+                    document.getElementById('checkOutForm').action = '@Url.Action("CheckOut")/' + id;
+                    updateCheckOutClock();
+                    if (checkOutClockInterval) clearInterval(checkOutClockInterval);
+                    checkOutClockInterval = setInterval(updateCheckOutClock, 1000);
+                    new bootstrap.Modal(document.getElementById('checkOutModal')).show();
+                }
+                document.getElementById('checkOutModal').addEventListener('hidden.bs.modal', function () {
+                    if (checkOutClockInterval) { clearInterval(checkOutClockInterval); checkOutClockInterval = null; }
+                });
+                </text>
+        }
+        else
+        {
+                <text>
+                function confirmCheckOut(id, name) {
+                    document.getElementById('checkOutEmployeeName').textContent = name;
+                    document.getElementById('checkOutForm').action = '@Url.Action("CheckOut")/' + id;
+                    const now = new Date();
+                    const hh = String(now.getHours()).padStart(2, '0');
+                    const mm = String(now.getMinutes()).padStart(2, '0');
+                    const val = hh + ':' + mm;
+                    document.getElementById('checkOutTimeEditable').value = val;
+                    document.getElementById('checkOutTimeHidden').value = val;
+                    document.getElementById('checkOutTimeEditable').oninput = function () {
+                        document.getElementById('checkOutTimeHidden').value = this.value;
+                    };
+                    new bootstrap.Modal(document.getElementById('checkOutModal')).show();
+                }
+                </text>
         }
     </script>
 }
