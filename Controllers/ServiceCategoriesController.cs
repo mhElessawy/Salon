@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
@@ -10,19 +11,27 @@ namespace Salon.Controllers
     public class ServiceCategoriesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public ServiceCategoriesController(ApplicationDbContext context)
+        public ServiceCategoriesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         public async Task<IActionResult> Index()
         {
-            var categories = await _context.ServiceCategories
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
+            var query = _context.ServiceCategories
                 .Include(c => c.Services)
-                .Where(c => c.IsActive)
-                .OrderBy(c => c.Name)
-                .ToListAsync();
+                .Where(c => c.IsActive);
+
+            if (userDept == "حلاقة" || userDept == "مساج")
+                query = query.Where(c => c.Department == userDept);
+
+            var categories = await query.OrderBy(c => c.Name).ToListAsync();
             return View(categories);
         }
 

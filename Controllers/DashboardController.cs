@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
@@ -10,10 +11,12 @@ namespace Salon.Controllers
     public class DashboardController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public DashboardController(ApplicationDbContext context)
+        public DashboardController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         public async Task<IActionResult> Index()
@@ -21,12 +24,19 @@ namespace Salon.Controllers
             var today = DateTime.Today;
             var tomorrow = today.AddDays(1);
 
-            var salesToday = await _context.Sales
-                .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow)
-                .SumAsync(s => (decimal?)s.NetAmount) ?? 0;
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
 
-            var customersToday = await _context.Sales
-                .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow && s.CustomerId != null)
+            var salesBase = _context.Sales.Where(s => s.SaleDate >= today && s.SaleDate < tomorrow);
+            if (userDept == "مساج")
+                salesBase = salesBase.Where(s => s.SaleType != "حلاقة");
+            else if (userDept == "حلاقة")
+                salesBase = salesBase.Where(s => s.SaleType != "مساج");
+
+            var salesToday = await salesBase.SumAsync(s => (decimal?)s.NetAmount) ?? 0;
+
+            var customersToday = await salesBase
+                .Where(s => s.CustomerId != null)
                 .Select(s => s.CustomerId)
                 .Distinct()
                 .CountAsync();

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -11,15 +12,24 @@ namespace Salon.Controllers
     public class ServicesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public ServicesController(ApplicationDbContext context)
+        public ServicesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         public async Task<IActionResult> Index(string? search)
         {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
             var query = _context.Services.Include(s => s.ServiceCategory).Where(s => s.IsActive);
+
+            if (userDept == "حلاقة" || userDept == "مساج")
+                query = query.Where(s => s.ServiceCategory!.Department == userDept);
+
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(s => s.Name.Contains(search));
 
@@ -86,8 +96,13 @@ namespace Salon.Controllers
 
         private async Task PopulateCategories(int? selectedId = null)
         {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+            var catQuery = _context.ServiceCategories.Where(c => c.IsActive);
+            if (userDept == "حلاقة" || userDept == "مساج")
+                catQuery = catQuery.Where(c => c.Department == userDept);
             ViewBag.Categories = new SelectList(
-                await _context.ServiceCategories.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync(),
+                await catQuery.OrderBy(c => c.Name).ToListAsync(),
                 "Id", "Name", selectedId);
         }
     }
