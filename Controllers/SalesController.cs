@@ -26,11 +26,20 @@ namespace Salon.Controllers
             DateTime filterDate = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
             var nextDay = filterDate.AddDays(1);
 
+            var user = await _userManager.GetUserAsync(User);
+            var userDept = user?.UserDepartment;
+
             var query = _context.Sales
                 .Include(s => s.Customer)
                 .Include(s => s.Employee)
                 .Include(s => s.SaleItems)
                 .Where(s => s.SaleDate >= filterDate && s.SaleDate < nextDay);
+
+            // Hide opposing department's invoices from restricted users
+            if (userDept == "مساج")
+                query = query.Where(s => s.SaleType != "حلاقة");
+            else if (userDept == "حلاقة")
+                query = query.Where(s => s.SaleType != "مساج");
 
             if (!string.IsNullOrEmpty(type))
                 query = query.Where(s => s.SaleType == type);
@@ -40,6 +49,7 @@ namespace Salon.Controllers
             ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
             ViewBag.FilterType = type;
             ViewBag.TotalSales = sales.Sum(s => s.NetAmount);
+            ViewBag.UserDepartment = userDept;
             return View(sales);
         }
 
@@ -50,8 +60,8 @@ namespace Salon.Controllers
             var roles = await _userManager.GetRolesAsync(user!);
             var role = roles.FirstOrDefault() ?? "";
 
-            // كاشير مساج لا يملك صلاحية فواتير الحلاقة
-            if (role == "Cashier" && user!.UserDepartment == "مساج")
+            // مستخدمو قسم المساج لا يملكون صلاحية فواتير الحلاقة
+            if (user!.UserDepartment == "مساج")
                 return Forbid();
 
             await PopulateDeptDropdowns("حلاقة", user, role);
@@ -81,8 +91,8 @@ namespace Salon.Controllers
             var roles = await _userManager.GetRolesAsync(user!);
             var role = roles.FirstOrDefault() ?? "";
 
-            // كاشير حلاقة لا يملك صلاحية فواتير المساج
-            if (role == "Cashier" && user!.UserDepartment == "حلاقة")
+            // مستخدمو قسم الحلاقة لا يملكون صلاحية فواتير المساج
+            if (user!.UserDepartment == "حلاقة")
                 return Forbid();
 
             await PopulateDeptDropdowns("مساج", user, role);
