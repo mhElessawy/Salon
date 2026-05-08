@@ -16,14 +16,20 @@ namespace Salon.Controllers
             _context = context;
         }
 
-        public async Task<IActionResult> Index(string? search)
+        public async Task<IActionResult> Index(string? search, string? dept)
         {
             var query = _context.Customers.Where(c => c.IsActive);
             if (!string.IsNullOrEmpty(search))
-                query = query.Where(c => c.FullName.Contains(search) || (c.Phone != null && c.Phone.Contains(search)));
+                query = query.Where(c =>
+                    c.FullName.Contains(search) ||
+                    (c.FullNameEn != null && c.FullNameEn.Contains(search)) ||
+                    (c.Phone != null && c.Phone.Contains(search)));
+            if (!string.IsNullOrEmpty(dept))
+                query = query.Where(c => c.Department == dept);
 
             var customers = await query.OrderByDescending(c => c.CreatedAt).ToListAsync();
             ViewBag.Search = search;
+            ViewBag.Dept = dept;
             return View(customers);
         }
 

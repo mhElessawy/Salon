@@ -15,11 +15,20 @@
 
 <div class="card mb-4">
     <div class="card-body py-2">
-        <form method="get" class="search-bar">
-            <input type="text" name="search" value="@ViewBag.Search" class="form-control" placeholder="بحث بالاسم أو الهاتف..." />
+        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+            <input type="text" name="search" value="@ViewBag.Search" class="form-control" style="max-width:260px" placeholder="بحث بالاسم أو الهاتف..." />
+            <select name="dept" class="form-select" style="max-width:160px">
+                <option value="">-- كل الأقسام --</option>
+                <option value="حلاقة" selected="@(ViewBag.Dept == "حلاقة" ? "selected" : null)">✂ حلاقة</option>
+                <option value="مساج" selected="@(ViewBag.Dept == "مساج" ? "selected" : null)">💆 مساج</option>
+            </select>
             <button type="submit" class="btn btn-primary btn-sm">
                 <i class="fas fa-search"></i> بحث
             </button>
+            @if (!string.IsNullOrEmpty(ViewBag.Search as string) || !string.IsNullOrEmpty(ViewBag.Dept as string))
+            {
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">إلغاء الفلتر</a>
+            }
         </form>
     </div>
 </div>
@@ -43,13 +52,26 @@ else
                             @c.FullName.Substring(0, 1)
                         </div>
                         <h5 class="card-title mb-1 fw-bold">@c.FullName</h5>
-                        @if (!string.IsNullOrEmpty(c.Gender))
+                        @if (!string.IsNullOrEmpty(c.FullNameEn))
                         {
-                            <span class="badge rounded-pill mb-2"
-                                  style="background-color: var(--primary-light); color: var(--primary);">
-                                @c.Gender
-                            </span>
+                            <div class="text-muted small mb-1" dir="ltr">@c.FullNameEn</div>
                         }
+                        <div class="d-flex justify-content-center gap-1 flex-wrap mb-2">
+                            @if (!string.IsNullOrEmpty(c.Department))
+                            {
+                                var deptColor = c.Department == "حلاقة" ? "#F7941D" : "#17a2b8";
+                                <span class="badge rounded-pill" style="background-color:@deptColor">
+                                    @(c.Department == "حلاقة" ? "✂" : "💆") @c.Department
+                                </span>
+                            }
+                            @if (!string.IsNullOrEmpty(c.Gender))
+                            {
+                                <span class="badge rounded-pill"
+                                      style="background-color: var(--primary-light); color: var(--primary);">
+                                    @c.Gender
+                                </span>
+                            }
+                        </div>
                         <div class="customer-info mt-3">
                             @if (!string.IsNullOrEmpty(c.Phone))
                             {

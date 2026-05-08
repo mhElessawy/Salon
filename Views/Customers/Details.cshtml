@@ -24,7 +24,25 @@
             <div class="card-header">البيانات الأساسية</div>
             <div class="card-body">
                 <table class="table table-borderless mb-0">
-                    <tr><th>الاسم:</th><td>@Model.FullName</td></tr>
+                    <tr><th>الاسم عربي:</th><td>@Model.FullName</td></tr>
+                    @if (!string.IsNullOrEmpty(Model.FullNameEn))
+                    {
+                        <tr><th>الاسم إنجليزي:</th><td dir="ltr">@Model.FullNameEn</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Department))
+                    {
+                        <tr>
+                            <th>القسم:</th>
+                            <td>
+                                @{
+                                    var deptColor = Model.Department == "حلاقة" ? "#F7941D" : "#17a2b8";
+                                }
+                                <span class="badge" style="background-color:@deptColor">
+                                    @(Model.Department == "حلاقة" ? "✂" : "💆") @Model.Department
+                                </span>
+                            </td>
+                        </tr>
+                    }
                     <tr><th>الهاتف:</th><td>@(Model.Phone ?? "-")</td></tr>
                     <tr><th>البريد:</th><td>@(Model.Email ?? "-")</td></tr>
                     <tr><th>الجنس:</th><td>@(Model.Gender ?? "-")</td></tr>
