@@ -40,7 +40,9 @@ namespace Salon.Controllers
                     (c.FullNameEn != null && c.FullNameEn.Contains(search)) ||
                     (c.Phone != null && c.Phone.Contains(search)));
 
-            var customers = await query.OrderByDescending(c => c.CreatedAt).ToListAsync();
+            var customers = await query
+                .Include(c => c.Sales)
+                .OrderByDescending(c => c.CreatedAt).ToListAsync();
             ViewBag.Search = search;
             ViewBag.Dept = dept;
             ViewBag.UserDepartment = userDept;

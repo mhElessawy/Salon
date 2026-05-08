@@ -103,6 +103,35 @@ else
                                 <span>@c.CreatedAt.ToString("yyyy/MM/dd")</span>
                             </div>
                         </div>
+
+                        @{
+                            var completedSales = c.Sales.Where(s => s.Status == "مكتمل").ToList();
+                            var visitCount   = completedSales.Count;
+                            var totalPaid    = completedSales.Sum(s => s.NetAmount);
+                            var lastSale     = completedSales.OrderByDescending(s => s.SaleDate).FirstOrDefault();
+                        }
+                        <div class="border-top mt-3 pt-3 d-flex justify-content-around text-center">
+                            <div>
+                                <div class="fw-bold text-primary fs-5">@visitCount</div>
+                                <div class="text-muted" style="font-size:0.75rem">زيارة</div>
+                            </div>
+                            <div>
+                                <div class="fw-bold text-success fs-5">@totalPaid.ToString("N3")</div>
+                                <div class="text-muted" style="font-size:0.75rem">د.ك مدفوع</div>
+                            </div>
+                            <div>
+                                @if (lastSale != null)
+                                {
+                                    <div class="fw-bold text-dark" style="font-size:0.82rem">@lastSale.SaleDate.ToString("yyyy/MM/dd")</div>
+                                    <div class="text-muted" style="font-size:0.75rem">@lastSale.InvoiceNumber</div>
+                                }
+                                else
+                                {
+                                    <div class="text-muted" style="font-size:0.82rem">—</div>
+                                    <div class="text-muted" style="font-size:0.75rem">لا توجد</div>
+                                }
+                            </div>
+                        </div>
                     </div>
                     <div class="card-footer bg-transparent border-top-0 d-flex justify-content-center gap-2 pb-3">
                         <a href="@Url.Action("Details", new { id = c.Id })" class="btn btn-sm btn-outline-primary" title="التفاصيل">
