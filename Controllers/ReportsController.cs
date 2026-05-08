@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
+using Salon.Models;
 
 namespace Salon.Controllers
 {
@@ -9,10 +11,12 @@ namespace Salon.Controllers
     public class ReportsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public ReportsController(ApplicationDbContext context)
+        public ReportsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         public IActionResult Index()
@@ -25,12 +29,20 @@ namespace Salon.Controllers
             DateTime dateFrom = string.IsNullOrEmpty(from) ? DateTime.Today.AddDays(-30) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
 
-            var sales = await _context.Sales
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
+            var query = _context.Sales
                 .Include(s => s.Customer)
                 .Include(s => s.SaleItems)
-                .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo)
-                .OrderByDescending(s => s.SaleDate)
-                .ToListAsync();
+                .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo);
+
+            if (userDept == "ãÓÇÌ")
+                query = query.Where(s => s.SaleType != "ÍáÇÞÉ");
+            else if (userDept == "ÍáÇÞÉ")
+                query = query.Where(s => s.SaleType != "ãÓÇÌ");
+
+            var sales = await query.OrderByDescending(s => s.SaleDate).ToListAsync();
 
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
@@ -60,9 +72,16 @@ namespace Salon.Controllers
             var today = DateTime.Today;
             var tomorrow = today.AddDays(1);
 
-            var salesToday = await _context.Sales
-                .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow)
-                .SumAsync(s => (decimal?)s.NetAmount) ?? 0;
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
+            var salesQuery = _context.Sales.Where(s => s.SaleDate >= today && s.SaleDate < tomorrow);
+            if (userDept == "ãÓÇÌ")
+                salesQuery = salesQuery.Where(s => s.SaleType != "ÍáÇÞÉ");
+            else if (userDept == "ÍáÇÞÉ")
+                salesQuery = salesQuery.Where(s => s.SaleType != "ãÓÇÌ");
+
+            var salesToday = await salesQuery.SumAsync(s => (decimal?)s.NetAmount) ?? 0;
 
             var expensesToday = await _context.Expenses
                 .Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow)

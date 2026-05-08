@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -11,17 +12,25 @@ namespace Salon.Controllers
     public class EmployeesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public EmployeesController(ApplicationDbContext context)
+        public EmployeesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         public async Task<IActionResult> Index(string? search)
         {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
             var query = _context.Employees
                 .Include(e => e.DepartmentNav)
                 .Where(e => e.IsActive);
+
+            if (userDept == "حلاقة" || userDept == "مساج")
+                query = query.Where(e => e.DepartmentNav!.Name == userDept);
 
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(e => e.FullName.Contains(search) || (e.Phone != null && e.Phone.Contains(search)));
@@ -91,6 +100,12 @@ namespace Salon.Controllers
                 .Include(e => e.Advances)
                 .FirstOrDefaultAsync(e => e.Id == id);
             if (employee == null) return NotFound();
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+            if ((userDept == "حلاقة" || userDept == "مساج") && employee.DepartmentNav?.Name != userDept)
+                return Forbid();
+
             return View(employee);
         }
 
@@ -109,10 +124,17 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> Licenses()
         {
-            var employees = await _context.Employees
-                .Where(e => e.IsActive && e.ResidencyExpiry != null)
-                .OrderBy(e => e.ResidencyExpiry)
-                .ToListAsync();
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
+            var query = _context.Employees
+                .Include(e => e.DepartmentNav)
+                .Where(e => e.IsActive && e.ResidencyExpiry != null);
+
+            if (userDept == "حلاقة" || userDept == "مساج")
+                query = query.Where(e => e.DepartmentNav!.Name == userDept);
+
+            var employees = await query.OrderBy(e => e.ResidencyExpiry).ToListAsync();
             return View(employees);
         }
     }

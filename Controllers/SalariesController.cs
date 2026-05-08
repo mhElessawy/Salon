@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -13,18 +14,37 @@ namespace Salon.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _audit;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public SalariesController(ApplicationDbContext context, IAuditService audit)
+        public SalariesController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _audit = audit;
+            _userManager = userManager;
         }
 
         public async Task<IActionResult> Index(int? year, int? month, int? employeeId)
         {
             int y = year ?? DateTime.Today.Year;
 
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
+            // Scope to department-specific employees when user has a department restriction
+            List<int>? deptEmpIds = null;
+            if (userDept == "حلاقة" || userDept == "مساج")
+            {
+                deptEmpIds = await _context.Employees
+                    .Include(e => e.DepartmentNav)
+                    .Where(e => e.IsActive && e.DepartmentNav!.Name == userDept)
+                    .Select(e => e.Id)
+                    .ToListAsync();
+            }
+
             var query = _context.Salaries.Include(s => s.Employee).Where(s => s.Year == y);
+
+            if (deptEmpIds != null)
+                query = query.Where(s => deptEmpIds.Contains(s.EmployeeId));
 
             if (month.HasValue)
                 query = query.Where(s => s.Month == month.Value);
@@ -37,11 +57,15 @@ namespace Salon.Controllers
             int minYear = await _context.Salaries.AnyAsync() ? await _context.Salaries.MinAsync(s => s.Year) : DateTime.Today.Year;
             var years = Enumerable.Range(minYear, DateTime.Today.Year - minYear + 2).ToList();
 
+            var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+            if (deptEmpIds != null)
+                empQuery = empQuery.Where(e => deptEmpIds.Contains(e.Id));
+
             ViewBag.Year = y;
             ViewBag.Month = month;
             ViewBag.EmployeeId = employeeId;
             ViewBag.Years = years;
-            ViewBag.Employees = (await _context.Employees.Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync())
+            ViewBag.Employees = (await empQuery.OrderBy(e => e.FullName).ToListAsync())
                 .Select(e => new SelectListItem { Value = e.Id.ToString(), Text = e.FullName }).ToList();
 
             return View(salaries);
@@ -49,7 +73,12 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> Create()
         {
-            ViewBag.Employees = new SelectList(await _context.Employees.Where(e => e.IsActive).ToListAsync(), "Id", "FullName");
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+            var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+            if (userDept == "حلاقة" || userDept == "مساج")
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
+            ViewBag.Employees = new SelectList(await empQuery.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName");
             return View(new Salary { Year = DateTime.Today.Year, Month = DateTime.Today.Month });
         }
 
@@ -86,7 +115,11 @@ namespace Salon.Controllers
                 if (alreadyExists)
                 {
                     ModelState.AddModelError("", "تم تسجيل راتب هذا الموظف لهذا الشهر مسبقًا");
-                    ViewBag.Employees = new SelectList(await _context.Employees.Where(e => e.IsActive).ToListAsync(), "Id", "FullName");
+                    var cu2 = await _userManager.GetUserAsync(User);
+                    var ud2 = cu2?.UserDepartment;
+                    var eq2 = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+                    if (ud2 == "حلاقة" || ud2 == "مساج") eq2 = eq2.Where(e => e.DepartmentNav!.Name == ud2);
+                    ViewBag.Employees = new SelectList(await eq2.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName");
                     return View(model);
                 }
 
@@ -103,7 +136,11 @@ namespace Salon.Controllers
                 TempData["Success"] = "تم إضافة راتب الموظف بنجاح";
                 return RedirectToAction(nameof(Index));
             }
-            ViewBag.Employees = new SelectList(await _context.Employees.Where(e => e.IsActive).ToListAsync(), "Id", "FullName");
+            var cu3 = await _userManager.GetUserAsync(User);
+            var ud3 = cu3?.UserDepartment;
+            var eq3 = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+            if (ud3 == "حلاقة" || ud3 == "مساج") eq3 = eq3.Where(e => e.DepartmentNav!.Name == ud3);
+            ViewBag.Employees = new SelectList(await eq3.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName");
             return View(model);
         }
 

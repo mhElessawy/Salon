@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -13,16 +14,27 @@ namespace Salon.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _audit;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public AdvancesController(ApplicationDbContext context, IAuditService audit)
+        public AdvancesController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _audit = audit;
+            _userManager = userManager;
         }
 
         public async Task<IActionResult> Index(string? search)
         {
-            var advancesQuery = _context.EmployeeAdvances.Include(a => a.Employee).AsQueryable();
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
+            var advancesQuery = _context.EmployeeAdvances
+                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                .AsQueryable();
+
+            if (userDept == "حلاقة" || userDept == "مساج")
+                advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
+
             if (!string.IsNullOrEmpty(search))
                 advancesQuery = advancesQuery.Where(a => a.Employee != null && a.Employee.FullName.Contains(search));
 
@@ -61,7 +73,12 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> Create()
         {
-            ViewBag.Employees = new SelectList(await _context.Employees.Where(e => e.IsActive).ToListAsync(), "Id", "FullName");
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+            var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+            if (userDept == "حلاقة" || userDept == "مساج")
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
+            ViewBag.Employees = new SelectList(await empQuery.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName");
             return View(new EmployeeAdvance { AdvanceDate = DateTime.Today });
         }
 
@@ -82,7 +99,11 @@ namespace Salon.Controllers
                 TempData["Success"] = "تم إضافة السلفة بنجاح";
                 return RedirectToAction(nameof(Index));
             }
-            ViewBag.Employees = new SelectList(await _context.Employees.Where(e => e.IsActive).ToListAsync(), "Id", "FullName");
+            var cu2 = await _userManager.GetUserAsync(User);
+            var ud2 = cu2?.UserDepartment;
+            var eq2 = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+            if (ud2 == "حلاقة" || ud2 == "مساج") eq2 = eq2.Where(e => e.DepartmentNav!.Name == ud2);
+            ViewBag.Employees = new SelectList(await eq2.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName");
             return View(model);
         }
 

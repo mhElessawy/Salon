@@ -62,6 +62,13 @@ namespace Salon.Services
                 ? perms.ToHashSet()
                 : AppModules.All.Select(m => m.Key).ToHashSet();
 
+            // Apply department-based filtering: each department sees only its own invoice type
+            var appUser = await _userManager.FindByIdAsync(userId!);
+            if (appUser?.UserDepartment == "„”«Ã")
+                result.Remove("BarberInvoice");
+            else if (appUser?.UserDepartment == "Õ·«ﬁ…")
+                result.Remove("MassageInvoice");
+
             ctx.Items[cacheKey] = result;
             return result;
         }

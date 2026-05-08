@@ -27,6 +27,12 @@ namespace Salon.Controllers
             return user?.LinkedEmployeeId;
         }
 
+        private async Task<string?> GetUserDepartmentAsync()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            return user?.UserDepartment;
+        }
+
         // Returns the next queue position for the given department today.
         private async Task<int> NextQueuePosition(string? dept)
         {
@@ -49,6 +55,7 @@ namespace Salon.Controllers
             DateTime filterDate = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
 
             var linkedId = await GetLinkedEmployeeIdIfEmployee();
+            var userDept = await GetUserDepartmentAsync();
 
             var query = _context.Attendances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
@@ -56,6 +63,8 @@ namespace Salon.Controllers
 
             if (linkedId.HasValue)
                 query = query.Where(a => a.EmployeeId == linkedId.Value);
+            else if (userDept == "حلاقة" || userDept == "مساج")
+                query = query.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
 
             var records = await query.ToListAsync();
             // Sort in memory after loading — avoids EF Core generating OPENJSON / '$' SQL
@@ -93,9 +102,13 @@ namespace Salon.Controllers
                 return View(new Attendance { AttendanceDate = DateTime.Today, EmployeeId = linkedId.Value });
             }
 
+            var userDeptForCreate = await GetUserDepartmentAsync();
+            var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+            if (userDeptForCreate == "حلاقة" || userDeptForCreate == "مساج")
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDeptForCreate);
             ViewBag.IsEmployee = false;
             ViewBag.Employees = new SelectList(
-                await _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync(),
+                await empQuery.OrderBy(e => e.FullName).ToListAsync(),
                 "Id", "FullName");
             return View(new Attendance { AttendanceDate = DateTime.Today });
         }
@@ -143,9 +156,13 @@ namespace Salon.Controllers
             }
             else
             {
+                var userDeptPost = await GetUserDepartmentAsync();
+                var empQPost = _context.Employees.Where(e => e.IsActive);
+                if (userDeptPost == "حلاقة" || userDeptPost == "مساج")
+                    empQPost = empQPost.Where(e => e.DepartmentNav!.Name == userDeptPost);
                 ViewBag.IsEmployee = false;
                 ViewBag.Employees = new SelectList(
-                    await _context.Employees.Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync(),
+                    await empQPost.OrderBy(e => e.FullName).ToListAsync(),
                     "Id", "FullName");
             }
             return View(model);
@@ -210,6 +227,7 @@ namespace Salon.Controllers
 
             var nextMonth = filterMonth.AddMonths(1);
             var linkedId = await GetLinkedEmployeeIdIfEmployee();
+            var userDept = await GetUserDepartmentAsync();
 
             var query = _context.Attendances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
@@ -217,6 +235,8 @@ namespace Salon.Controllers
 
             if (linkedId.HasValue)
                 query = query.Where(a => a.EmployeeId == linkedId.Value);
+            else if (userDept == "حلاقة" || userDept == "مساج")
+                query = query.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
 
             var records = await query
                 .OrderBy(a => a.Employee!.FullName)
