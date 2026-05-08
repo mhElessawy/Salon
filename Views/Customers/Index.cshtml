@@ -1,6 +1,7 @@
 @model IEnumerable<Salon.Models.Customer>
 @{
     ViewData["Title"] = "العملاء";
+    var userDept = ViewBag.UserDepartment as string;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -17,15 +18,18 @@
     <div class="card-body py-2">
         <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
             <input type="text" name="search" value="@ViewBag.Search" class="form-control" style="max-width:260px" placeholder="بحث بالاسم أو الهاتف..." />
-            <select name="dept" class="form-select" style="max-width:160px">
-                <option value="">-- كل الأقسام --</option>
-                <option value="حلاقة" selected="@(ViewBag.Dept == "حلاقة" ? "selected" : null)">✂ حلاقة</option>
-                <option value="مساج" selected="@(ViewBag.Dept == "مساج" ? "selected" : null)">💆 مساج</option>
-            </select>
+            @if (string.IsNullOrEmpty(userDept))
+            {
+                <select name="dept" class="form-select" style="max-width:160px">
+                    <option value="">-- كل الأقسام --</option>
+                    <option value="حلاقة" selected="@(ViewBag.Dept == "حلاقة" ? "selected" : null)">✂ حلاقة</option>
+                    <option value="مساج" selected="@(ViewBag.Dept == "مساج" ? "selected" : null)">💆 مساج</option>
+                </select>
+            }
             <button type="submit" class="btn btn-primary btn-sm">
                 <i class="fas fa-search"></i> بحث
             </button>
-            @if (!string.IsNullOrEmpty(ViewBag.Search as string) || !string.IsNullOrEmpty(ViewBag.Dept as string))
+            @if (!string.IsNullOrEmpty(ViewBag.Search as string))
             {
                 <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">إلغاء الفلتر</a>
             }
