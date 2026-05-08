@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Salon.Migrations
 {
+    [DbContext(typeof(Salon.Data.ApplicationDbContext))]
+    [Migration("20260508120000_AddCustomerDepartmentAndEnName")]
     public partial class AddCustomerDepartmentAndEnName : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
