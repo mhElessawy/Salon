@@ -355,8 +355,14 @@ namespace Salon.Migrations
                 b.Property<string>("Email")
                     .HasColumnType("nvarchar(max)");
 
+                b.Property<string>("Department")
+                    .HasColumnType("nvarchar(max)");
+
                 b.Property<string>("FullName")
                     .IsRequired()
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("FullNameEn")
                     .HasColumnType("nvarchar(max)");
 
                 b.Property<string>("Gender")

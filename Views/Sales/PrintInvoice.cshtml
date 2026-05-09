@@ -1,0 +1,378 @@
+﻿@model Salon.Models.Sale
+@{
+    Layout = null;
+    var saleTypeIcon = Model.SaleType switch
+    {
+        "حلاقة" => "✂",
+        "مساج" => "💆",
+        "منتجات" => "🛍",
+        _ => "📄"
+    };
+}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>فاتورة @Model.InvoiceNumber</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            background: #f0f2f5;
+            direction: rtl;
+        }
+
+        .invoice-wrapper {
+            max-width: 720px;
+            margin: 30px auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+            overflow: hidden;
+        }
+
+        .invoice-header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+            color: #fff;
+            padding: 28px 32px 20px;
+            position: relative;
+        }
+
+        .salon-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+
+        .salon-subtitle {
+            font-size: 0.85rem;
+            opacity: 0.75;
+            margin-bottom: 0;
+        }
+
+        .invoice-badge {
+            position: absolute;
+            top: 28px;
+            left: 32px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            padding: 8px 16px;
+            text-align: center;
+        }
+
+            .invoice-badge .inv-num {
+                font-size: 1.1rem;
+                font-weight: 700;
+                letter-spacing: 1px;
+            }
+
+            .invoice-badge .inv-label {
+                font-size: 0.72rem;
+                opacity: 0.8;
+                display: block;
+            }
+
+        .invoice-body {
+            padding: 24px 32px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 24px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+            .info-item .lbl {
+                font-size: 0.75rem;
+                color: #888;
+                margin-bottom: 2px;
+            }
+
+            .info-item .val {
+                font-size: 0.95rem;
+                font-weight: 600;
+                color: #1a1a2e;
+            }
+
+        .divider {
+            border: none;
+            border-top: 2px dashed #e0e0e0;
+            margin: 18px 0;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+            .items-table thead tr {
+                background: #1a1a2e;
+                color: #fff;
+            }
+
+            .items-table thead th {
+                padding: 10px 12px;
+                font-weight: 600;
+                text-align: right;
+            }
+
+            .items-table tbody tr:nth-child(even) {
+                background: #f7f8fa;
+            }
+
+            .items-table tbody td {
+                padding: 9px 12px;
+                border-bottom: 1px solid #eee;
+                color: #333;
+            }
+
+        .totals-section {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .totals-box {
+            background: #f7f8fa;
+            border-radius: 10px;
+            padding: 16px 24px;
+            min-width: 280px;
+        }
+
+        .totals-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+            .totals-row.net {
+                border-top: 2px solid #1a1a2e;
+                margin-top: 8px;
+                padding-top: 10px;
+                font-size: 1.1rem;
+                font-weight: 700;
+                color: #1a1a2e;
+            }
+
+        .payment-section {
+            margin-top: 18px;
+        }
+
+        .payment-chip {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 20px;
+            padding: 4px 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid #a5d6a7;
+        }
+
+        .notes-box {
+            background: #fffde7;
+            border-right: 4px solid #ffd600;
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-top: 14px;
+            font-size: 0.88rem;
+            color: #5d4037;
+        }
+
+        .invoice-footer {
+            background: #f7f8fa;
+            border-top: 1px solid #eee;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        .action-bar {
+            padding: 16px 32px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            border-top: 1px solid #eee;
+        }
+
+        @@media print {
+            body {
+                background: #fff;
+            }
+
+            .action-bar {
+                display: none !important;
+            }
+
+            .invoice-wrapper {
+                box-shadow: none;
+                border-radius: 0;
+                margin: 0;
+                max-width: 100%;
+            }
+
+            .invoice-footer {
+                background: #fff;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="invoice-wrapper">
+
+        <!-- Header -->
+        <div class="invoice-header">
+            <div>
+                <div class="salon-name">معهد موس</div>
+                <div class="salon-subtitle">@saleTypeIcon فاتورة @Model.SaleType</div>
+            </div>
+            <div class="invoice-badge">
+                <span class="inv-label">رقم الفاتورة</span>
+                <div class="inv-num">@Model.InvoiceNumber</div>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="invoice-body">
+
+            <!-- Info Grid -->
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="lbl">التاريخ والوقت</span>
+                    <span class="val">@Model.SaleDate.ToString("yyyy/MM/dd  hh:mm tt")</span>
+                </div>
+                <div class="info-item">
+                    <span class="lbl">العميل</span>
+                    <span class="val">@(Model.Customer?.FullName ?? "زائر")</span>
+                </div>
+                <div class="info-item">
+                    <span class="lbl">الموظف المُنفِّذ</span>
+                    <span class="val">@(Model.Employee?.FullName ?? "-")</span>
+                </div>
+                <div class="info-item">
+                    <span class="lbl">نوع الفاتورة</span>
+                    <span class="val">@Model.SaleType</span>
+                </div>
+            </div>
+
+            <hr class="divider" />
+
+            <!-- Items Table -->
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>البيان</th>
+                        <th class="text-center">الكمية</th>
+                        <th class="text-center">السعر</th>
+                        <th class="text-center">الإجمالي</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        int rowNum = 1;
+                    }
+                    @foreach (var item in Model.SaleItems)
+                    {
+                        <tr>
+                            <td>@(rowNum++)</td>
+                            <td>@item.ItemName</td>
+                            <td class="text-center">@item.Quantity</td>
+                            <td class="text-center">@item.Price.ToString("N3")</td>
+                            <td class="text-center">@item.Total.ToString("N3") د.ك</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <!-- Totals -->
+            <div class="totals-section">
+                <div class="totals-box">
+                    <div class="totals-row">
+                        <span>المجموع الكلي</span>
+                        <span>@Model.TotalAmount.ToString("N3") د.ك</span>
+                    </div>
+                    @if (Model.Discount > 0)
+                    {
+                        <div class="totals-row" style="color:#c0392b">
+                            <span>الخصم</span>
+                            <span>- @Model.Discount.ToString("N3") د.ك</span>
+                        </div>
+                    }
+                    <div class="totals-row net">
+                        <span>الصافي المستحق</span>
+                        <span>@Model.NetAmount.ToString("N3") د.ك</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Method -->
+            <div class="payment-section">
+                @if (Model.PaymentMethod == "مناصفة" && (Model.CashAmount.HasValue || Model.LinkAmount.HasValue))
+                {
+                    <span class="payment-chip" style="background:#e3f2fd;color:#1565c0;border-color:#90caf9">
+                        نقدي: @(Model.CashAmount?.ToString("N3") ?? "0.000") د.ك &nbsp;|&nbsp; رابط: @(Model.LinkAmount?.ToString("N3") ?? "0.000") د.ك
+                    </span>
+                }
+                else if (Model.PaymentMethod == "آجل" && Model.DebtEmployee != null)
+                {
+                    <span class="payment-chip" style="background:#fce4ec;color:#c62828;border-color:#ef9a9a">
+                        آجل — @Model.DebtEmployee.FullName
+                    </span>
+                }
+                else
+                {
+                    <span class="payment-chip">@Model.PaymentMethod</span>
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.Notes))
+            {
+                <div class="notes-box">
+                    <strong>ملاحظات: </strong>@Model.Notes
+                </div>
+            }
+
+        </div>
+
+        <!-- Footer -->
+        <div class="invoice-footer">
+            <span>نظام معهد موس</span>
+            <span>شكراً لزيارتكم</span>
+        </div>
+
+        <!-- Action Buttons (hidden on print) -->
+        <div class="action-bar">
+            <button onclick="window.print()" class="btn btn-dark px-4">
+                🖨 طباعة
+            </button>
+            <a href="@Url.Action("Index", "Sales", new { type = Model.SaleType })" class="btn btn-outline-secondary px-4">
+                رجوع للقائمة
+            </a>
+        </div>
+
+    </div>
+
+    <script>
+        window.onload = function () { window.print(); };
+    </script>
+
+</body>
+</html>

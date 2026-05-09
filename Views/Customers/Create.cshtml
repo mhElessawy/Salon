@@ -1,6 +1,7 @@
 @model Salon.Models.Customer
 @{
     ViewData["Title"] = "إضافة عميل";
+    var userDept = ViewBag.UserDepartment as string;
 }
 
 <div class="page-header">
@@ -14,8 +15,28 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label asp-for="FullName" class="form-label"></label>
-                    <input asp-for="FullName" class="form-control" />
+                    <input asp-for="FullName" class="form-control" placeholder="الاسم بالعربية" />
                     <span asp-validation-for="FullName" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="FullNameEn" class="form-label"></label>
+                    <input asp-for="FullNameEn" class="form-control" placeholder="Name in English" dir="ltr" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Department" class="form-label"></label>
+                    @if (!string.IsNullOrEmpty(userDept))
+                    {
+                        <input type="hidden" asp-for="Department" />
+                        <input type="text" class="form-control" value="@userDept" disabled />
+                    }
+                    else
+                    {
+                        <select asp-for="Department" class="form-select">
+                            <option value="">-- اختر القسم --</option>
+                            <option value="حلاقة">✂ حلاقة</option>
+                            <option value="مساج">💆 مساج</option>
+                        </select>
+                    }
                 </div>
                 <div class="col-md-6">
                     <label asp-for="Phone" class="form-label"></label>

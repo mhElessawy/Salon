@@ -9,6 +9,7 @@
         <p>@Model.SaleDate.ToString("yyyy/MM/dd hh:mm tt")</p>
     </div>
     <div>
+        <a href="@Url.Action("PrintInvoice", new { id = Model.Id })" class="btn btn-dark me-2"><i class="fas fa-print me-1"></i> طباعة</a>
         <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
     </div>
 </div>
@@ -22,16 +23,21 @@
                     <tr><th>العميل:</th><td>@(Model.Customer?.FullName ?? "زائر")</td></tr>
                     <tr><th>الموظف:</th><td>@(Model.Employee?.FullName ?? "-")</td></tr>
                     <tr><th>طريقة الدفع:</th><td>@Model.PaymentMethod</td></tr>
-                    <tr><th>الحالة:</th><td>
-                        <span class="badge @(Model.Status == "مكتمل" ? "bg-success" : "bg-danger")">@Model.Status</span>
-                    </td></tr>
+                    <tr>
+                        <th>الحالة:</th>
+                        <td>
+                            <span class="badge @(Model.Status == "مكتمل" ? "bg-success" : "bg-danger")">@Model.Status</span>
+                        </td>
+                    </tr>
                     <tr><th>الإجمالي:</th><td>@Model.TotalAmount.ToString("N3") د.ك</td></tr>
                     <tr><th>الخصم:</th><td>@Model.Discount.ToString("N3") د.ك</td></tr>
                     <tr><th>الصافي:</th><td><strong>@Model.NetAmount.ToString("N3") د.ك</strong></td></tr>
                 </table>
                 @if (!string.IsNullOrEmpty(Model.Notes))
                 {
-                    <hr /><strong>ملاحظات:</strong>
+                    <hr />
+                
+                    <strong>ملاحظات:</strong>
                     <p class="text-muted mt-1">@Model.Notes</p>
                 }
             </div>
@@ -46,7 +52,9 @@
                         <tr><th>#</th><th>البيان</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr>
                     </thead>
                     <tbody>
-                        @{ int i = 1; }
+                        @{
+                            int i = 1;
+                        }
                         @foreach (var item in Model.SaleItems)
                         {
                             <tr>

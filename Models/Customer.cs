@@ -7,8 +7,14 @@ namespace Salon.Models
         public int Id { get; set; }
 
         [Required(ErrorMessage = "الاسم مطلوب")]
-        [Display(Name = "الاسم الكامل")]
+        [Display(Name = "الاسم الكامل عربي")]
         public string FullName { get; set; } = string.Empty;
+
+        [Display(Name = "Full Name English")]
+        public string? FullNameEn { get; set; }
+
+        [Display(Name = "القسم")]
+        public string? Department { get; set; }
 
         [Display(Name = "رقم الهاتف")]
         public string? Phone { get; set; }

@@ -257,7 +257,7 @@ namespace Salon.Controllers
                 model.NetAmount = model.TotalAmount - model.Discount;
                 await _context.SaveChangesAsync();
                 TempData["Success"] = $"تم إنشاء فاتورة المنتجات {model.InvoiceNumber} بنجاح";
-                return RedirectToAction(nameof(Index), new { type = "منتجات" });
+                return RedirectToAction(nameof(PrintInvoice), new { id = model.Id });
             }
             await PopulateProductDropdowns();
             return View(model);
@@ -268,6 +268,19 @@ namespace Salon.Controllers
             var sale = await _context.Sales
                 .Include(s => s.Customer)
                 .Include(s => s.Employee)
+                .Include(s => s.SaleItems).ThenInclude(i => i.Service)
+                .Include(s => s.SaleItems).ThenInclude(i => i.Product)
+                .FirstOrDefaultAsync(s => s.Id == id);
+            if (sale == null) return NotFound();
+            return View(sale);
+        }
+
+        public async Task<IActionResult> PrintInvoice(int id)
+        {
+            var sale = await _context.Sales
+                .Include(s => s.Customer)
+                .Include(s => s.Employee)
+                .Include(s => s.DebtEmployee)
                 .Include(s => s.SaleItems).ThenInclude(i => i.Service)
                 .Include(s => s.SaleItems).ThenInclude(i => i.Product)
                 .FirstOrDefaultAsync(s => s.Id == id);
@@ -442,7 +455,7 @@ namespace Salon.Controllers
                 }
 
                 TempData["Success"] = $"تم إنشاء الفاتورة {model.InvoiceNumber} بنجاح";
-                return RedirectToAction(nameof(Index), new { type = dept });
+                return RedirectToAction(nameof(PrintInvoice), new { id = model.Id });
             }
 
             var user = await _userManager.GetUserAsync(User);

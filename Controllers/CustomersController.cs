@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
@@ -10,24 +11,53 @@ namespace Salon.Controllers
     public class CustomersController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public CustomersController(ApplicationDbContext context)
+        public CustomersController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
-        public async Task<IActionResult> Index(string? search)
+        public async Task<IActionResult> Index(string? search, string? dept)
         {
-            var query = _context.Customers.Where(c => c.IsActive);
-            if (!string.IsNullOrEmpty(search))
-                query = query.Where(c => c.FullName.Contains(search) || (c.Phone != null && c.Phone.Contains(search)));
+            var user = await _userManager.GetUserAsync(User);
+            var userDept = user?.UserDepartment;
 
-            var customers = await query.OrderByDescending(c => c.CreatedAt).ToListAsync();
+            var query = _context.Customers.Where(c => c.IsActive);
+
+            // Department-restricted users see only their department's customers
+            if (userDept == "مساج")
+                query = query.Where(c => c.Department == "مساج");
+            else if (userDept == "حلاقة")
+                query = query.Where(c => c.Department == "حلاقة");
+            else if (!string.IsNullOrEmpty(dept))
+                query = query.Where(c => c.Department == dept);
+
+            if (!string.IsNullOrEmpty(search))
+                query = query.Where(c =>
+                    c.FullName.Contains(search) ||
+                    (c.FullNameEn != null && c.FullNameEn.Contains(search)) ||
+                    (c.Phone != null && c.Phone.Contains(search)));
+
+            var customers = await query
+                .Include(c => c.Sales)
+                .OrderByDescending(c => c.CreatedAt).ToListAsync();
             ViewBag.Search = search;
+            ViewBag.Dept = dept;
+            ViewBag.UserDepartment = userDept;
             return View(customers);
         }
 
-        public IActionResult Create() => View(new Customer());
+        public async Task<IActionResult> Create()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var model = new Customer();
+            if (!string.IsNullOrEmpty(user?.UserDepartment))
+                model.Department = user.UserDepartment;
+            ViewBag.UserDepartment = user?.UserDepartment;
+            return View(model);
+        }
 
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Customer model)
