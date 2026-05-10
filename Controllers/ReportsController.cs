@@ -37,10 +37,10 @@ namespace Salon.Controllers
                 .Include(s => s.SaleItems)
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo);
 
-            if (userDept == "ãÓÇÌ")
-                query = query.Where(s => s.SaleType != "ÍáÇÞÉ");
-            else if (userDept == "ÍáÇÞÉ")
-                query = query.Where(s => s.SaleType != "ãÓÇÌ");
+            if (userDept == "ï¿½ï¿½ï¿½ï¿½")
+                query = query.Where(s => s.SaleType != "ï¿½ï¿½ï¿½ï¿½ï¿½");
+            else if (userDept == "ï¿½ï¿½ï¿½ï¿½ï¿½")
+                query = query.Where(s => s.SaleType != "ï¿½ï¿½ï¿½ï¿½");
 
             var sales = await query.OrderByDescending(s => s.SaleDate).ToListAsync();
 
@@ -75,23 +75,41 @@ namespace Salon.Controllers
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
 
-            var salesQuery = _context.Sales.Where(s => s.SaleDate >= today && s.SaleDate < tomorrow);
-            if (userDept == "ãÓÇÌ")
-                salesQuery = salesQuery.Where(s => s.SaleType != "ÍáÇÞÉ");
-            else if (userDept == "ÍáÇÞÉ")
-                salesQuery = salesQuery.Where(s => s.SaleType != "ãÓÇÌ");
+            var salesQuery = _context.Sales
+                .Include(s => s.Customer)
+                .Include(s => s.Employee)
+                .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow);
 
-            var salesToday = await salesQuery.SumAsync(s => (decimal?)s.NetAmount) ?? 0;
+            if (userDept == "Ø­Ù„Ø§Ù‚Ø©")
+                salesQuery = salesQuery.Where(s => s.SaleType != "Ù…Ø³Ø§Ø¬");
+            else if (userDept == "Ù…Ø³Ø§Ø¬")
+                salesQuery = salesQuery.Where(s => s.SaleType != "Ø­Ù„Ø§Ù‚Ø©");
+
+            var sales = await salesQuery.OrderByDescending(s => s.SaleDate).ToListAsync();
 
             var expensesToday = await _context.Expenses
                 .Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow)
                 .SumAsync(e => (decimal?)e.Amount) ?? 0;
 
+            var salesToday = sales.Sum(s => s.NetAmount);
+            var barberSales = sales.Where(s => s.SaleType == "Ø­Ù„Ø§Ù‚Ø©").Sum(s => s.NetAmount);
+            var massageSales = sales.Where(s => s.SaleType == "Ù…Ø³Ø§Ø¬").Sum(s => s.NetAmount);
+            var productSales = sales.Where(s => s.SaleType == "Ù…Ù†ØªØ¬Ø§Øª").Sum(s => s.NetAmount);
+
+            var cashTotal = sales.Sum(s => s.CashAmount ?? (s.PaymentMethod == "Ù†Ù‚Ø¯ÙŠ" ? s.NetAmount : 0));
+            var linkTotal = sales.Sum(s => s.LinkAmount ?? (s.PaymentMethod == "Ø´Ø¨ÙƒØ©" ? s.NetAmount : 0));
+
             ViewBag.SalesToday = salesToday;
             ViewBag.ExpensesToday = expensesToday;
             ViewBag.NetProfit = salesToday - expensesToday;
+            ViewBag.BarberSales = barberSales;
+            ViewBag.MassageSales = massageSales;
+            ViewBag.ProductSales = productSales;
+            ViewBag.CashTotal = cashTotal;
+            ViewBag.LinkTotal = linkTotal;
             ViewBag.Date = today.ToString("yyyy/MM/dd");
-            return View();
+            ViewBag.UserDept = userDept;
+            return View(sales);
         }
     }
 }

@@ -1,5 +1,9 @@
+@model IEnumerable<Salon.Models.Sale>
 @{
     ViewData["Title"] = "تقريري اليومي";
+    var userDept = ViewBag.UserDept as string;
+    var showBarber = userDept != "مساج";
+    var showMassage = userDept != "حلاقة";
 }
 
 <div class="page-header">
@@ -7,7 +11,7 @@
     <p>ملخص يوم @ViewBag.Date</p>
 </div>
 
-<div class="stat-cards">
+<div class="stat-cards mb-4">
     <div class="stat-card green">
         <div class="stat-card-header">
             <span class="stat-label">مبيعات اليوم</span>
@@ -28,5 +32,154 @@
             <div class="stat-icon orange"><i class="fas fa-chart-line"></i></div>
         </div>
         <div class="stat-value">@ViewBag.NetProfit?.ToString("N3") د.ك</div>
+    </div>
+</div>
+
+@if (showBarber || showMassage)
+{
+    <div class="stat-cards mb-4">
+        @if (showBarber)
+        {
+            <div class="stat-card blue">
+                <div class="stat-card-header">
+                    <span class="stat-label">مبيعات الحلاقة</span>
+                    <div class="stat-icon blue"><i class="fas fa-cut"></i></div>
+                </div>
+                <div class="stat-value">@ViewBag.BarberSales?.ToString("N3") د.ك</div>
+            </div>
+        }
+        @if (showMassage)
+        {
+            <div class="stat-card purple" style="--card-color:#7c3aed;">
+                <div class="stat-card-header">
+                    <span class="stat-label">مبيعات المساج</span>
+                    <div class="stat-icon" style="background:#7c3aed;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-spa"></i></div>
+                </div>
+                <div class="stat-value">@ViewBag.MassageSales?.ToString("N3") د.ك</div>
+            </div>
+        }
+        <div class="stat-card" style="border-right:4px solid #0891b2;">
+            <div class="stat-card-header">
+                <span class="stat-label">نقدي اليوم</span>
+                <div class="stat-icon" style="background:#0891b2;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-money-bill-wave"></i></div>
+            </div>
+            <div class="stat-value">@ViewBag.CashTotal?.ToString("N3") د.ك</div>
+        </div>
+        <div class="stat-card" style="border-right:4px solid #059669;">
+            <div class="stat-card-header">
+                <span class="stat-label">شبكة اليوم</span>
+                <div class="stat-icon" style="background:#059669;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-credit-card"></i></div>
+            </div>
+            <div class="stat-value">@ViewBag.LinkTotal?.ToString("N3") د.ك</div>
+        </div>
+    </div>
+}
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title mb-3"><i class="fas fa-list me-2"></i>فواتير اليوم (@Model.Count())</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>رقم الفاتورة</th>
+                        <th>الموظف</th>
+                        <th>العميل</th>
+                        <th>النوع</th>
+                        <th>الإجمالي</th>
+                        <th>الخصم</th>
+                        <th>الصافي</th>
+                        <th>طريقة الدفع</th>
+                        <th>الوقت</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model)
+                    {
+                        <tr>
+                            <td><strong>@s.InvoiceNumber</strong></td>
+                            <td>@(s.Employee?.FullName ?? "-")</td>
+                            <td>@(s.Customer?.FullName ?? "زائر")</td>
+                            <td>
+                                @if (s.SaleType == "حلاقة")
+                                {
+                                    <span class="badge bg-primary"><i class="fas fa-cut me-1"></i>حلاقة</span>
+                                }
+                                else if (s.SaleType == "مساج")
+                                {
+                                    <span class="badge" style="background:#7c3aed;"><i class="fas fa-spa me-1"></i>مساج</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary"><i class="fas fa-box me-1"></i>منتجات</span>
+                                }
+                            </td>
+                            <td>@s.TotalAmount.ToString("N3") د.ك</td>
+                            <td class="text-danger">
+                                @if (s.Discount > 0)
+                                {
+                                    <span>@s.Discount.ToString("N3") د.ك</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td><strong class="text-success">@s.NetAmount.ToString("N3") د.ك</strong></td>
+                            <td>
+                                @if (s.PaymentMethod == "نقدي")
+                                {
+                                    <span class="badge bg-success"><i class="fas fa-money-bill-wave me-1"></i>نقدي</span>
+                                }
+                                else if (s.PaymentMethod == "شبكة")
+                                {
+                                    <span class="badge bg-info text-dark"><i class="fas fa-credit-card me-1"></i>شبكة</span>
+                                }
+                                else if (s.PaymentMethod == "كلاهما")
+                                {
+                                    <span class="badge bg-warning text-dark"><i class="fas fa-exchange-alt me-1"></i>نقدي+شبكة</span>
+                                    <div class="small text-muted mt-1">
+                                        @if (s.CashAmount.HasValue && s.CashAmount > 0)
+                                        {
+                                            <span>نقدي: @s.CashAmount.Value.ToString("N3")</span>
+                                        }
+                                        @if (s.LinkAmount.HasValue && s.LinkAmount > 0)
+                                        {
+                                            <span class="ms-1">شبكة: @s.LinkAmount.Value.ToString("N3")</span>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span>@s.PaymentMethod</span>
+                                }
+                            </td>
+                            <td class="text-muted small">@s.SaleDate.ToString("hh:mm tt")</td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-5">
+                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                لا توجد فواتير اليوم
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                @if (Model.Any())
+                {
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td colspan="4" class="text-end">المجموع:</td>
+                            <td>@Model.Sum(s => s.TotalAmount).ToString("N3") د.ك</td>
+                            <td class="text-danger">@Model.Sum(s => s.Discount).ToString("N3") د.ك</td>
+                            <td class="text-success">@Model.Sum(s => s.NetAmount).ToString("N3") د.ك</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
     </div>
 </div>
