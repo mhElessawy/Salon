@@ -1,9 +1,15 @@
 @model IEnumerable<Salon.Models.Sale>
+@using Salon.Models
 @{
     ViewData["Title"] = "تقريري اليومي";
     var userDept = ViewBag.UserDept as string;
     var showBarber = userDept != "مساج";
     var showMassage = userDept != "حلاقة";
+    var selectedSaleType = ViewBag.SelectedSaleType as string;
+    var selectedPayment = ViewBag.SelectedPaymentMethod as string;
+    var selectedEmpId = ViewBag.SelectedEmployeeId as int?;
+    var employees = ViewBag.Employees as List<Employee> ?? new List<Employee>();
+    var isFiltered = !string.IsNullOrEmpty(selectedSaleType) || !string.IsNullOrEmpty(selectedPayment) || selectedEmpId.HasValue;
 }
 
 <div class="page-header">
@@ -75,9 +81,75 @@
     </div>
 }
 
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" action="@Url.Action("MyReport")" class="row g-2 align-items-end">
+            @if (showBarber || showMassage)
+            {
+                <div class="col-auto">
+                    <label class="form-label small fw-semibold mb-1">النوع</label>
+                    <select name="saleType" class="form-select form-select-sm" style="min-width:130px;">
+                        <option value="" selected="@(string.IsNullOrEmpty(selectedSaleType))">-- الكل --</option>
+                        @if (showBarber)
+                        {
+                            <option value="حلاقة" selected="@(selectedSaleType == "حلاقة")">✂ حلاقة</option>
+                        }
+                        @if (showMassage)
+                        {
+                            <option value="مساج" selected="@(selectedSaleType == "مساج")">🌿 مساج</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">طريقة الدفع</label>
+                <select name="paymentMethod" class="form-select form-select-sm" style="min-width:140px;">
+                    <option value="" selected="@(string.IsNullOrEmpty(selectedPayment))">-- الكل --</option>
+                    <option value="نقدي" selected="@(selectedPayment == "نقدي")">💵 نقدي</option>
+                    <option value="شبكة" selected="@(selectedPayment == "شبكة")">💳 شبكة</option>
+                    <option value="كلاهما" selected="@(selectedPayment == "كلاهما")">↔ نقدي + شبكة</option>
+                </select>
+            </div>
+
+            @if (employees.Any())
+            {
+                <div class="col-auto">
+                    <label class="form-label small fw-semibold mb-1">الموظف</label>
+                    <select name="employeeId" class="form-select form-select-sm" style="min-width:170px;">
+                        <option value="" selected="@(!selectedEmpId.HasValue)">-- كل الموظفين --</option>
+                        @foreach (var emp in employees)
+                        {
+                            <option value="@emp.Id" selected="@(selectedEmpId == emp.Id)">@emp.FullName</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            <div class="col-auto d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-filter me-1"></i>تصفية
+                </button>
+                @if (isFiltered)
+                {
+                    <a href="@Url.Action("MyReport")" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-times me-1"></i>إلغاء
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-body">
-        <h5 class="card-title mb-3"><i class="fas fa-list me-2"></i>فواتير اليوم (@Model.Count())</h5>
+        <h5 class="card-title mb-3">
+            <i class="fas fa-list me-2"></i>فواتير اليوم (@Model.Count())
+            @if (isFiltered)
+            {
+                <span class="badge bg-warning text-dark ms-2 fs-6"><i class="fas fa-filter me-1"></i>مفلتر</span>
+            }
+        </h5>
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead class="table-light">

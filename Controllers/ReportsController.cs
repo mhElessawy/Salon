@@ -67,7 +67,7 @@ namespace Salon.Controllers
             return View(expenses);
         }
 
-        public async Task<IActionResult> MyReport()
+        public async Task<IActionResult> MyReport(string? saleType, string? paymentMethod, int? employeeId)
         {
             var today = DateTime.Today;
             var tomorrow = today.AddDays(1);
@@ -75,41 +75,53 @@ namespace Salon.Controllers
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
 
-            var salesQuery = _context.Sales
+            var baseQuery = _context.Sales
                 .Include(s => s.Customer)
                 .Include(s => s.Employee)
                 .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow);
 
             if (userDept == "حلاقة")
-                salesQuery = salesQuery.Where(s => s.SaleType != "مساج");
+                baseQuery = baseQuery.Where(s => s.SaleType != "مساج");
             else if (userDept == "مساج")
-                salesQuery = salesQuery.Where(s => s.SaleType != "حلاقة");
+                baseQuery = baseQuery.Where(s => s.SaleType != "حلاقة");
 
-            var sales = await salesQuery.OrderByDescending(s => s.SaleDate).ToListAsync();
+            var allSales = await baseQuery.OrderByDescending(s => s.SaleDate).ToListAsync();
+
+            // تطبيق الفلاتر على الجدول
+            var filtered = allSales.AsEnumerable();
+            if (!string.IsNullOrEmpty(saleType))
+                filtered = filtered.Where(s => s.SaleType == saleType);
+            if (!string.IsNullOrEmpty(paymentMethod))
+                filtered = filtered.Where(s => s.PaymentMethod == paymentMethod);
+            if (employeeId.HasValue)
+                filtered = filtered.Where(s => s.EmployeeId == employeeId);
+            var filteredList = filtered.ToList();
 
             var expensesToday = await _context.Expenses
                 .Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow)
                 .SumAsync(e => (decimal?)e.Amount) ?? 0;
 
-            var salesToday = sales.Sum(s => s.NetAmount);
-            var barberSales = sales.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount);
-            var massageSales = sales.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount);
-            var productSales = sales.Where(s => s.SaleType == "منتجات").Sum(s => s.NetAmount);
-
-            var cashTotal = sales.Sum(s => s.CashAmount ?? (s.PaymentMethod == "نقدي" ? s.NetAmount : 0));
-            var linkTotal = sales.Sum(s => s.LinkAmount ?? (s.PaymentMethod == "شبكة" ? s.NetAmount : 0));
+            var salesToday = allSales.Sum(s => s.NetAmount);
 
             ViewBag.SalesToday = salesToday;
             ViewBag.ExpensesToday = expensesToday;
             ViewBag.NetProfit = salesToday - expensesToday;
-            ViewBag.BarberSales = barberSales;
-            ViewBag.MassageSales = massageSales;
-            ViewBag.ProductSales = productSales;
-            ViewBag.CashTotal = cashTotal;
-            ViewBag.LinkTotal = linkTotal;
+            ViewBag.BarberSales = allSales.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount);
+            ViewBag.MassageSales = allSales.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount);
+            ViewBag.CashTotal = allSales.Sum(s => s.CashAmount ?? (s.PaymentMethod == "نقدي" ? s.NetAmount : 0));
+            ViewBag.LinkTotal = allSales.Sum(s => s.LinkAmount ?? (s.PaymentMethod == "شبكة" ? s.NetAmount : 0));
             ViewBag.Date = today.ToString("yyyy/MM/dd");
             ViewBag.UserDept = userDept;
-            return View(sales);
+            ViewBag.Employees = allSales
+                .Where(s => s.Employee != null)
+                .Select(s => s.Employee!)
+                .DistinctBy(e => e.Id)
+                .OrderBy(e => e.FullName)
+                .ToList();
+            ViewBag.SelectedSaleType = saleType;
+            ViewBag.SelectedPaymentMethod = paymentMethod;
+            ViewBag.SelectedEmployeeId = employeeId;
+            return View(filteredList);
         }
     }
 }
