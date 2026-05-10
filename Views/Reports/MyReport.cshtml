@@ -66,17 +66,24 @@
         }
         <div class="stat-card" style="border-right:4px solid #0891b2;">
             <div class="stat-card-header">
-                <span class="stat-label">نقدي اليوم</span>
+                <span class="stat-label">كاش اليوم</span>
                 <div class="stat-icon" style="background:#0891b2;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-money-bill-wave"></i></div>
             </div>
             <div class="stat-value">@ViewBag.CashTotal?.ToString("N3") د.ك</div>
         </div>
         <div class="stat-card" style="border-right:4px solid #059669;">
             <div class="stat-card-header">
-                <span class="stat-label">شبكة اليوم</span>
+                <span class="stat-label">كي نت اليوم</span>
                 <div class="stat-icon" style="background:#059669;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-credit-card"></i></div>
             </div>
-            <div class="stat-value">@ViewBag.LinkTotal?.ToString("N3") د.ك</div>
+            <div class="stat-value">@ViewBag.KnetTotal?.ToString("N3") د.ك</div>
+        </div>
+        <div class="stat-card" style="border-right:4px solid #dc2626;">
+            <div class="stat-card-header">
+                <span class="stat-label">ديون اليوم</span>
+                <div class="stat-icon" style="background:#dc2626;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-file-invoice-dollar"></i></div>
+            </div>
+            <div class="stat-value">@ViewBag.DebtTotal?.ToString("N3") د.ك</div>
         </div>
     </div>
 }
@@ -104,11 +111,14 @@
 
             <div class="col-auto">
                 <label class="form-label small fw-semibold mb-1">طريقة الدفع</label>
-                <select name="paymentMethod" class="form-select form-select-sm" style="min-width:140px;">
+                <select name="paymentMethod" class="form-select form-select-sm" style="min-width:180px;">
                     <option value="" selected="@(string.IsNullOrEmpty(selectedPayment))">-- الكل --</option>
-                    <option value="نقدي" selected="@(selectedPayment == "نقدي")">💵 نقدي</option>
-                    <option value="شبكة" selected="@(selectedPayment == "شبكة")">💳 شبكة</option>
-                    <option value="كلاهما" selected="@(selectedPayment == "كلاهما")">↔ نقدي + شبكة</option>
+                    <option value="كاش" selected="@(selectedPayment == "كاش")">💵 كاش</option>
+                    <option value="كي نت" selected="@(selectedPayment == "كي نت")">💳 كي نت</option>
+                    <option value="كي نت و كاش" selected="@(selectedPayment == "كي نت و كاش")">↔ كاش + كي نت</option>
+                    <option value="دين على العميل" selected="@(selectedPayment == "دين على العميل")">👤 دين على العميل</option>
+                    <option value="دين على الموظف" selected="@(selectedPayment == "دين على الموظف")">👷 دين على الموظف</option>
+                    <option value="دين على صاحب المكان" selected="@(selectedPayment == "دين على صاحب المكان")">🏠 دين على صاحب المكان</option>
                 </select>
             </div>
 
@@ -199,31 +209,43 @@
                             </td>
                             <td><strong class="text-success">@s.NetAmount.ToString("N3") د.ك</strong></td>
                             <td>
-                                @if (s.PaymentMethod == "نقدي")
+                                @if (s.PaymentMethod == "كاش")
                                 {
-                                    <span class="badge bg-success"><i class="fas fa-money-bill-wave me-1"></i>نقدي</span>
+                                    <span class="badge bg-success"><i class="fas fa-money-bill-wave me-1"></i>كاش</span>
                                 }
-                                else if (s.PaymentMethod == "شبكة")
+                                else if (s.PaymentMethod == "كي نت")
                                 {
-                                    <span class="badge bg-info text-dark"><i class="fas fa-credit-card me-1"></i>شبكة</span>
+                                    <span class="badge bg-info text-dark"><i class="fas fa-credit-card me-1"></i>كي نت</span>
                                 }
-                                else if (s.PaymentMethod == "كلاهما")
+                                else if (s.PaymentMethod == "كي نت و كاش")
                                 {
-                                    <span class="badge bg-warning text-dark"><i class="fas fa-exchange-alt me-1"></i>نقدي+شبكة</span>
+                                    <span class="badge bg-warning text-dark"><i class="fas fa-exchange-alt me-1"></i>كاش + كي نت</span>
                                     <div class="small text-muted mt-1">
                                         @if (s.CashAmount.HasValue && s.CashAmount > 0)
                                         {
-                                            <span>نقدي: @s.CashAmount.Value.ToString("N3")</span>
+                                            <span>كاش: @s.CashAmount.Value.ToString("N3")</span>
                                         }
                                         @if (s.LinkAmount.HasValue && s.LinkAmount > 0)
                                         {
-                                            <span class="ms-1">شبكة: @s.LinkAmount.Value.ToString("N3")</span>
+                                            <span class="ms-1">كي نت: @s.LinkAmount.Value.ToString("N3")</span>
                                         }
                                     </div>
                                 }
+                                else if (s.PaymentMethod == "دين على العميل")
+                                {
+                                    <span class="badge bg-danger"><i class="fas fa-user me-1"></i>دين / عميل</span>
+                                }
+                                else if (s.PaymentMethod == "دين على الموظف")
+                                {
+                                    <span class="badge bg-danger"><i class="fas fa-hard-hat me-1"></i>دين / موظف</span>
+                                }
+                                else if (s.PaymentMethod == "دين على صاحب المكان")
+                                {
+                                    <span class="badge bg-danger"><i class="fas fa-building me-1"></i>دين / صاحب المكان</span>
+                                }
                                 else
                                 {
-                                    <span>@s.PaymentMethod</span>
+                                    <span class="badge bg-secondary">@s.PaymentMethod</span>
                                 }
                             </td>
                             <td class="text-muted small">@s.SaleDate.ToString("hh:mm tt")</td>
