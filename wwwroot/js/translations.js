@@ -335,6 +335,30 @@ window.PAGE_TRANSLATIONS = {
     'ملخص أداء اليوم من مبيعات ومصروفات وأرباح': 'Summary of today\'s sales, expenses and profits',
     'سجلات حضور وانصراف الموظفين': 'Employee attendance records',
     'تقارير تفصيلية للشفتات اليومية': 'Detailed daily shift reports',
+    // My Daily Report cards
+    'مصروفات اليوم': 'Today\'s Expenses',
+    'صافي الربح': 'Net Profit',
+    'مبيعات الحلاقة': 'Barber Sales',
+    'مبيعات المساج': 'Massage Sales',
+    'كاش اليوم': 'Cash Today',
+    'كي نت اليوم': 'K-Net Today',
+    'ديون اليوم': 'Debts Today',
+    // My Daily Report table & filter
+    'الخصم': 'Discount',
+    'الوقت': 'Time',
+    'تصفية': 'Filter',
+    'مفلتر': 'Filtered',
+    'لا توجد فواتير اليوم': 'No invoices today',
+    '-- كل الموظفين --': '-- All Employees --',
+    // Payment methods
+    'كي نت': 'K-Net',
+    'كي نت و كاش': 'Cash & K-Net',
+    'منتجات': 'Products',
+    'دين / عميل': 'Customer Debt',
+    'دين / موظف': 'Employee Debt',
+    'دين / صاحب المكان': 'Owner Debt',
+    'كاش + كي نت': 'Cash & K-Net',
+    'نقدي + شبكة': 'Cash & Card',
 
     // ── Settings ─────────────────────────────────────────
     'إعدادات النظام العامة': 'General System Settings',
