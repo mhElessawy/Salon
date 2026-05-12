@@ -93,8 +93,13 @@ namespace Salon.Controllers
 
             var ids = employees.Select(e => e.Id).ToList();
 
-            var attendGroups = await _context.Attendances
-                .Where(a => ids.Contains(a.EmployeeId) && a.AttendanceDate >= dateFrom && a.AttendanceDate < dateToExcl)
+            var rawAttend = await _context.Attendances
+                .Where(a => a.AttendanceDate >= dateFrom && a.AttendanceDate < dateToExcl)
+                .Select(a => new { a.EmployeeId, a.Status })
+                .ToListAsync();
+
+            var attendGroups = rawAttend
+                .Where(a => ids.Contains(a.EmployeeId))
                 .GroupBy(a => a.EmployeeId)
                 .Select(g => new {
                     EmpId   = g.Key,
@@ -103,18 +108,22 @@ namespace Salon.Controllers
                     Absent  = g.Count(a => a.Status == "غائب"),
                     Leave   = g.Count(a => a.Status == "إجازة"),
                 })
+                .ToList();
+
+            var rawSales = await _context.Sales
+                .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateToExcl && s.EmployeeId != null)
+                .Select(s => new { s.EmployeeId, s.NetAmount })
                 .ToListAsync();
 
-            var salesGroups = await _context.Sales
-                .Where(s => s.EmployeeId != null && ids.Contains(s.EmployeeId.Value)
-                         && s.SaleDate >= dateFrom && s.SaleDate < dateToExcl)
+            var salesGroups = rawSales
+                .Where(s => ids.Contains(s.EmployeeId!.Value))
                 .GroupBy(s => s.EmployeeId!.Value)
                 .Select(g => new {
                     EmpId = g.Key,
                     Total = g.Sum(s => s.NetAmount),
                     Count = g.Count(),
                 })
-                .ToListAsync();
+                .ToList();
 
             var rows = employees.Select(e => {
                 var att  = attendGroups.FirstOrDefault(x => x.EmpId == e.Id);
