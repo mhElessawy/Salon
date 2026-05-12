@@ -12,8 +12,9 @@ namespace Salon.Models
         public int AbsentDays { get; set; }
         public int LeaveDays { get; set; }
         public int TotalAttendanceRecords { get; set; }
+        public int PeriodDays => (int)(DateTo - DateFrom).TotalDays + 1;
         public double AttendancePercent =>
-            TotalAttendanceRecords > 0 ? Math.Round(PresentDays * 100.0 / TotalAttendanceRecords, 1) : 0;
+            PeriodDays > 0 ? Math.Round(PresentDays * 100.0 / PeriodDays, 1) : 0;
 
         // Sales
         public decimal TotalSales { get; set; }

@@ -134,7 +134,7 @@ else
                         <div class="stat-icon orange"><i class="fas fa-percentage"></i></div>
                     </div>
                     <div class="stat-value">@Model.AttendancePercent%</div>
-                    <div class="stat-sub">من @Model.TotalAttendanceRecords يوم</div>
+                    <div class="stat-sub">من @Model.PeriodDays يوم</div>
                 </div>
             </div>
         </div>
@@ -147,7 +147,7 @@ else
                 <span style="color:#dc3545; font-weight:600;">غائب @Model.AbsentDays</span>
             </div>
             <div style="height:12px; border-radius:6px; overflow:hidden; display:flex; background:#f0f0f0;">
-                @{ double total = Model.TotalAttendanceRecords; }
+                @{ double total = Model.PeriodDays; }
                 @if (Model.PresentDays > 0)
                 {
                     <div style="width:@((Model.PresentDays/total*100).ToString("F1"))%; background:#28a745;"></div>

@@ -125,12 +125,15 @@ namespace Salon.Controllers
                 })
                 .ToList();
 
+            int periodDays = (int)(dateTo - dateFrom).TotalDays + 1;
+
             var rows = employees.Select(e => {
                 var att  = attendGroups.FirstOrDefault(x => x.EmpId == e.Id);
                 var sale = salesGroups.FirstOrDefault(x => x.EmpId == e.Id);
                 return new EmployeeEvaluationRow
                 {
                     Employee               = e,
+                    PeriodDays             = periodDays,
                     TotalAttendanceRecords = att?.Total   ?? 0,
                     PresentDays            = att?.Present ?? 0,
                     AbsentDays             = att?.Absent  ?? 0,
