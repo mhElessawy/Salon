@@ -363,6 +363,18 @@ namespace Salon.Controllers
                 select new { a.EmployeeId, QueuePos = (int)a.QueuePosition! }
             ).ToDictionaryAsync(x => x.EmployeeId, x => x.QueuePos);
 
+            // Today's check-in times
+            var checkInRows = await (
+                from a in _context.Attendances
+                join e in _context.Employees on a.EmployeeId equals e.Id
+                join d in _context.Departments on e.DepartmentId equals d.Id
+                where a.AttendanceDate == today && d.Name == dept && e.IsActive && a.CheckIn != null
+                select new { a.EmployeeId, a.CheckIn }
+            ).ToListAsync();
+            ViewBag.EmployeeCheckInTimes = checkInRows
+                .GroupBy(x => x.EmployeeId)
+                .ToDictionary(g => g.Key, g => g.First().CheckIn);
+
             // Sort by queue position (present employees first), then unqueued alphabetically
             var sortedEmployees = empList
                 .OrderBy(e => todayQueue.ContainsKey(e.Id) ? 0 : 1)
