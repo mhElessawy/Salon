@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -12,15 +13,20 @@ namespace Salon.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IPermissionService _permissionService;
 
-        public DashboardController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public DashboardController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IPermissionService permissionService)
         {
             _context = context;
             _userManager = userManager;
+            _permissionService = permissionService;
         }
 
         public async Task<IActionResult> Index()
         {
+            if (!await _permissionService.HasAccessAsync("Dashboard"))
+                return RedirectToAction("AccessDenied", "Account");
+
             var today = DateTime.Today;
             var tomorrow = today.AddDays(1);
 
@@ -28,10 +34,10 @@ namespace Salon.Controllers
             var userDept = currentUser?.UserDepartment;
 
             var salesBase = _context.Sales.Where(s => s.SaleDate >= today && s.SaleDate < tomorrow);
-            if (userDept == "ãÓÇÌ")
-                salesBase = salesBase.Where(s => s.SaleType != "ÍáÇÞÉ");
-            else if (userDept == "ÍáÇÞÉ")
-                salesBase = salesBase.Where(s => s.SaleType != "ãÓÇÌ");
+            if (userDept == "ï¿½ï¿½ï¿½ï¿½")
+                salesBase = salesBase.Where(s => s.SaleType != "ï¿½ï¿½ï¿½ï¿½ï¿½");
+            else if (userDept == "ï¿½ï¿½ï¿½ï¿½ï¿½")
+                salesBase = salesBase.Where(s => s.SaleType != "ï¿½ï¿½ï¿½ï¿½");
 
             var salesToday = await salesBase.SumAsync(s => (decimal?)s.NetAmount) ?? 0;
 
