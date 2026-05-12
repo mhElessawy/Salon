@@ -150,18 +150,7 @@
         display:flex;
         flex-direction:column;
     }
-    .pos-tabs { display:grid; grid-template-columns:1fr 1fr; }
-    .pos-tab {
-        padding:11px;
-        font-size:14px; font-weight:600;
-        border:none; cursor:pointer;
-        transition:background .18s, color .18s;
-        background:#f0f0f0; color:#6c757d;
-    }
-    .pos-tab.active { background:var(--dept-color); color:#fff; }
-    .pos-tab:not(.active):hover { background:#e0e0e0; }
-
-    .pos-search {
+.pos-search {
         padding:8px 10px;
         border-bottom:1px solid #f0f0f0;
         position:relative;
@@ -213,15 +202,7 @@
     .svc-name { font-size:11px; font-weight:600; color:#333; margin-bottom:4px; line-height:1.3; }
     .svc-price { font-size:11px; font-weight:700; color:var(--dept-color); }
 
-    .companions-section {
-        border-top:1px solid #e9ecef;
-        padding:10px 12px;
-        display:flex; justify-content:space-between; align-items:center;
-    }
-    .companions-title { font-size:13px; font-weight:600; color:#333; }
-    .companions-empty { font-size:11px; color:#adb5bd; margin-top:1px; }
-
-    /* ════════════════════════════════════════
+/* ════════════════════════════════════════
        COLUMN 3 (LEFT in RTL) — Cart / Invoice
     ════════════════════════════════════════ */
     .pos-cart-panel {
@@ -439,10 +420,6 @@
 
         <!-- ── Col 2 (MIDDLE): Services ── -->
         <div class="pos-services-panel">
-            <div class="pos-tabs">
-                <button type="button" class="pos-tab active" onclick="switchTab('services',this)">الخدمات</button>
-                <button type="button" class="pos-tab"        onclick="switchTab('products',this)">المنتجات</button>
-            </div>
             <div class="pos-search">
                 <i class="fas fa-search search-icon"></i>
                 <input type="text" id="svcSearch" placeholder="ابحث..." oninput="filterItems(this.value)" />
@@ -477,27 +454,6 @@
                 }
             </div>
 
-            <!-- Products placeholder -->
-            <div class="services-scroll" id="productsContent" style="display:none">
-                <div class="text-center text-muted py-5">
-                    <i class="fas fa-box fa-3x mb-3 opacity-25"></i>
-                    <p>فاتورة المنتجات</p>
-                    <a href="@Url.Action("CreateProduct")" class="btn btn-sm btn-outline-warning">
-                        <i class="fas fa-external-link-alt me-1"></i> فتح فاتورة منتجات
-                    </a>
-                </div>
-            </div>
-
-            <!-- Companions -->
-            <div class="companions-section">
-                <div>
-                    <div class="companions-title"><i class="fas fa-user-friends text-muted me-1"></i> المرافقين</div>
-                    <div class="companions-empty">لا يوجد مرافقين</div>
-                </div>
-                <button type="button" class="btn btn-sm btn-success">
-                    <i class="fas fa-plus me-1"></i> إضافة مرافق
-                </button>
-            </div>
         </div>
 
         <!-- ── Col 3 (LEFT in RTL): Cart / Invoice ── -->
@@ -568,14 +524,7 @@
         document.getElementById('selectedEmployeeId').value = id;
     }
 
-    function switchTab(tab, btn) {
-        document.querySelectorAll('.pos-tab').forEach(function(t) { t.classList.remove('active'); });
-        btn.classList.add('active');
-        document.getElementById('servicesContent').style.display = tab === 'services' ? '' : 'none';
-        document.getElementById('productsContent').style.display = tab === 'products'  ? '' : 'none';
-    }
-
-    function addItem(id, name, price) {
+function addItem(id, name, price) {
         price = parseFloat(price) || 0;
         var ex = items.find(function(i) { return i.id === id; });
         if (ex) { ex.qty++; ex.total = ex.qty * ex.price; updateRow(ex); }
