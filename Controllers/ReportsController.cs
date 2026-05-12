@@ -78,6 +78,67 @@ namespace Salon.Controllers
             return View(vm);
         }
 
+        public async Task<IActionResult> EvaluationList(string? from, string? to, string? dept)
+        {
+            var dateFrom = string.IsNullOrEmpty(from) ? DateTime.Today.AddDays(-30) : DateTime.Parse(from);
+            var dateTo   = string.IsNullOrEmpty(to)   ? DateTime.Today              : DateTime.Parse(to);
+            var dateToExcl = dateTo.AddDays(1);
+
+            var empQuery = _context.Employees.Where(e => e.IsActive);
+            if (!string.IsNullOrEmpty(dept))
+                empQuery = empQuery.Where(e => e.Department == dept);
+            var employees = await empQuery.OrderBy(e => e.Department).ThenBy(e => e.FullName).ToListAsync();
+
+            var ids = employees.Select(e => e.Id).ToList();
+
+            var attendGroups = await _context.Attendances
+                .Where(a => ids.Contains(a.EmployeeId) && a.AttendanceDate >= dateFrom && a.AttendanceDate < dateToExcl)
+                .GroupBy(a => a.EmployeeId)
+                .Select(g => new {
+                    EmpId   = g.Key,
+                    Total   = g.Count(),
+                    Present = g.Count(a => a.Status == "حاضر"),
+                    Absent  = g.Count(a => a.Status == "غائب"),
+                    Leave   = g.Count(a => a.Status == "إجازة"),
+                })
+                .ToListAsync();
+
+            var salesGroups = await _context.Sales
+                .Where(s => s.EmployeeId != null && ids.Contains(s.EmployeeId.Value)
+                         && s.SaleDate >= dateFrom && s.SaleDate < dateToExcl)
+                .GroupBy(s => s.EmployeeId!.Value)
+                .Select(g => new {
+                    EmpId = g.Key,
+                    Total = g.Sum(s => s.NetAmount),
+                    Count = g.Count(),
+                })
+                .ToListAsync();
+
+            var rows = employees.Select(e => {
+                var att  = attendGroups.FirstOrDefault(x => x.EmpId == e.Id);
+                var sale = salesGroups.FirstOrDefault(x => x.EmpId == e.Id);
+                return new EmployeeEvaluationRow
+                {
+                    Employee               = e,
+                    TotalAttendanceRecords = att?.Total   ?? 0,
+                    PresentDays            = att?.Present ?? 0,
+                    AbsentDays             = att?.Absent  ?? 0,
+                    LeaveDays              = att?.Leave   ?? 0,
+                    TotalSales             = sale?.Total  ?? 0,
+                    TotalTransactions      = sale?.Count  ?? 0,
+                };
+            }).ToList();
+
+            var vm = new EmployeeEvaluationListViewModel
+            {
+                Rows       = rows,
+                DateFrom   = dateFrom,
+                DateTo     = dateTo,
+                Department = dept,
+            };
+            return View(vm);
+        }
+
         public async Task<IActionResult> Sales(string? from, string? to, int? employeeId, int? customerId, string? saleType)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? DateTime.Today.AddDays(-30) : DateTime.Parse(from);

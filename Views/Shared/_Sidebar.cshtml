@@ -364,9 +364,15 @@
                             </a>
                         </li>
                         <li>
+                            <a href="@Url.Action("EvaluationList", "Reports")" class="@IsActive("Reports", "EvaluationList")">
+                                <i class="fas fa-users-cog"></i>
+                                <span data-i18n-en="Employees Evaluation">تقييم الموظفين</span>
+                            </a>
+                        </li>
+                        <li>
                             <a href="@Url.Action("EmployeeEvaluation", "Reports")" class="@IsActive("Reports", "EmployeeEvaluation")">
                                 <i class="fas fa-user-check"></i>
-                                <span data-i18n-en="Employee Evaluation">تقييم الموظف</span>
+                                <span data-i18n-en="Single Employee Evaluation">تقييم موظف واحد</span>
                             </a>
                         </li>
                     }
