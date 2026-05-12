@@ -77,6 +77,7 @@ namespace Salon.Controllers
             ViewBag.SelectedEmployeeId = employeeId;
             ViewBag.SelectedCustomerId = customerId;
             ViewBag.SelectedSaleType = saleType;
+            ViewBag.UserDept = userDept;
             return View(sales);
         }
 

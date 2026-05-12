@@ -1,11 +1,16 @@
 @model IEnumerable<Salon.Models.Sale>
 @{
     ViewData["Title"] = "تقرير المبيعات";
-    var employees = ViewBag.Employees as IEnumerable<Salon.Models.Employee> ?? Enumerable.Empty<Salon.Models.Employee>();
-    var customers = ViewBag.Customers as IEnumerable<Salon.Models.Customer> ?? Enumerable.Empty<Salon.Models.Customer>();
-    int? selectedEmployee = ViewBag.SelectedEmployeeId;
-    int? selectedCustomer = ViewBag.SelectedCustomerId;
-    string? selectedType = ViewBag.SelectedSaleType;
+    var employees    = ViewBag.Employees as IEnumerable<Salon.Models.Employee> ?? Enumerable.Empty<Salon.Models.Employee>();
+    var customers    = ViewBag.Customers as IEnumerable<Salon.Models.Customer> ?? Enumerable.Empty<Salon.Models.Customer>();
+    int?    selectedEmployee = ViewBag.SelectedEmployeeId;
+    int?    selectedCustomer = ViewBag.SelectedCustomerId;
+    string? selectedType     = ViewBag.SelectedSaleType;
+    string? userDept         = ViewBag.UserDept as string;
+
+    bool isHaircut = userDept == "حلاقة";
+    bool isMassage = userDept == "مساج";
+    bool isDeptUser = isHaircut || isMassage;
 }
 
 <div class="page-header">
@@ -27,8 +32,14 @@
                 <label class="form-label mb-1">النوع:</label>
                 <select id="saleTypeSelect" name="saleType" class="form-select" style="max-width:160px;">
                     <option value="">الكل</option>
-                    <option value="حلاقة" @(selectedType == "حلاقة" ? "selected" : "")>حلاقة</option>
-                    <option value="مساج" @(selectedType == "مساج" ? "selected" : "")>مساج</option>
+                    @if (!isMassage)
+                    {
+                        <option value="حلاقة" @(selectedType == "حلاقة" ? "selected" : "")>حلاقة</option>
+                    }
+                    @if (!isHaircut)
+                    {
+                        <option value="مساج" @(selectedType == "مساج" ? "selected" : "")>مساج</option>
+                    }
                     <option value="منتجات" @(selectedType == "منتجات" ? "selected" : "")>منتجات</option>
                 </select>
             </div>
@@ -77,18 +88,24 @@
             <div class="stat-value">@ViewBag.TotalCount</div>
         </div>
     </div>
-    <div class="col-md-2">
-        <div class="stat-card" style="border-right: 4px solid #6c757d; background:#f8f9fa;">
-            <div class="stat-label">حلاقة</div>
-            <div class="stat-value" style="font-size:1.2rem;">@ViewBag.TotalHaircut?.ToString("N3") د.ك</div>
+    @if (!isMassage)
+    {
+        <div class="col-md-2">
+            <div class="stat-card" style="border-right: 4px solid #6c757d; background:#f8f9fa;">
+                <div class="stat-label">حلاقة</div>
+                <div class="stat-value" style="font-size:1.2rem;">@ViewBag.TotalHaircut?.ToString("N3") د.ك</div>
+            </div>
         </div>
-    </div>
-    <div class="col-md-2">
-        <div class="stat-card" style="border-right: 4px solid #6f42c1; background:#f8f9fa;">
-            <div class="stat-label">مساج</div>
-            <div class="stat-value" style="font-size:1.2rem;">@ViewBag.TotalMassage?.ToString("N3") د.ك</div>
+    }
+    @if (!isHaircut)
+    {
+        <div class="col-md-2">
+            <div class="stat-card" style="border-right: 4px solid #6f42c1; background:#f8f9fa;">
+                <div class="stat-label">مساج</div>
+                <div class="stat-value" style="font-size:1.2rem;">@ViewBag.TotalMassage?.ToString("N3") د.ك</div>
+            </div>
         </div>
-    </div>
+    }
     <div class="col-md-2">
         <div class="stat-card" style="border-right: 4px solid #fd7e14; background:#f8f9fa;">
             <div class="stat-label">منتجات</div>
@@ -104,7 +121,10 @@
                 <thead>
                     <tr>
                         <th>رقم الفاتورة</th>
-                        <th>النوع</th>
+                        @if (!isDeptUser)
+                        {
+                            <th>النوع</th>
+                        }
                         <th>العميل</th>
                         <th>الموظف</th>
                         <th>التاريخ</th>
@@ -118,20 +138,23 @@
                     {
                         <tr>
                             <td>@s.InvoiceNumber</td>
-                            <td>
-                                @if (s.SaleType == "حلاقة")
-                                {
-                                    <span class="badge bg-secondary">حلاقة</span>
-                                }
-                                else if (s.SaleType == "مساج")
-                                {
-                                    <span class="badge" style="background:#6f42c1;">مساج</span>
-                                }
-                                else
-                                {
-                                    <span class="badge" style="background:#fd7e14;">منتجات</span>
-                                }
-                            </td>
+                            @if (!isDeptUser)
+                            {
+                                <td>
+                                    @if (s.SaleType == "حلاقة")
+                                    {
+                                        <span class="badge bg-secondary">حلاقة</span>
+                                    }
+                                    else if (s.SaleType == "مساج")
+                                    {
+                                        <span class="badge" style="background:#6f42c1;">مساج</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge" style="background:#fd7e14;">منتجات</span>
+                                    }
+                                </td>
+                            }
                             <td>@(s.Customer?.FullName ?? "زائر")</td>
                             <td>@(s.Employee?.FullName ?? "-")</td>
                             <td>@s.SaleDate.ToString("yyyy/MM/dd")</td>
@@ -142,7 +165,7 @@
                     }
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="8" class="text-center text-muted py-4">لا توجد مبيعات في هذه الفترة</td></tr>
+                        <tr><td colspan="@(isDeptUser ? 7 : 8)" class="text-center text-muted py-4">لا توجد مبيعات في هذه الفترة</td></tr>
                     }
                 </tbody>
             </table>
@@ -156,31 +179,29 @@
         var typeSelect = document.getElementById('saleTypeSelect');
         var empSelect  = document.getElementById('employeeSelect');
         var custSelect = document.getElementById('customerSelect');
+        var userDept   = '@Html.Raw(userDept ?? "")';
 
         function filterByType(type) {
-            filterOptions(empSelect,  type);
-            filterOptions(custSelect, type);
+            // For dept users with no type selected, default filtering to their dept
+            var effectiveType = type || (userDept === 'حلاقة' || userDept === 'مساج' ? userDept : '');
+            filterOptions(empSelect,  effectiveType);
+            filterOptions(custSelect, effectiveType);
         }
 
         function filterOptions(select, type) {
-            var needsClear = false;
             var options = select.querySelectorAll('option[data-dept]');
             options.forEach(function (opt) {
                 var dept = opt.getAttribute('data-dept');
-                // منتجات: show all employees (no dept restriction)
-                // حلاقة/مساج: show only matching dept, or empty dept
                 var visible = !type || type === 'منتجات' || !dept || dept === type;
                 opt.hidden = !visible;
-                if (!visible && opt.selected) needsClear = true;
+                if (!visible && opt.selected) select.value = '';
             });
-            if (needsClear) select.value = '';
         }
 
         typeSelect.addEventListener('change', function () {
             filterByType(this.value);
         });
 
-        // Apply on page load for already-selected type
         filterByType(typeSelect.value);
     })();
 </script>
