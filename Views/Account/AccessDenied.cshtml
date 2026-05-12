@@ -1,8 +1,6 @@
-@inject Salon.Services.IPermissionService PermissionService
 @{
     ViewData["Title"] = "غير مصرح";
     Layout = "_AuthLayout";
-    var hasDashboard = await PermissionService.HasAccessAsync("Dashboard");
 }
 
 <div class="auth-page">
@@ -12,17 +10,8 @@
         </div>
         <h1>غير مصرح</h1>
         <p class="subtitle">ليس لديك صلاحية للوصول إلى هذه الصفحة</p>
-        @if (hasDashboard)
-        {
-            <a href="@Url.Action("Index", "Dashboard")" class="btn-primary-orange d-block text-center" style="text-decoration:none;">
-                <i class="fas fa-home me-2"></i> العودة إلى لوحة التحكم
-            </a>
-        }
-        else
-        {
-            <a href="@Url.Action("Logout", "Account")" class="btn-primary-orange d-block text-center" style="text-decoration:none;">
-                <i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج
-            </a>
-        }
+        <a href="@Url.Action("Index", "Dashboard")" class="btn-primary-orange d-block text-center" style="text-decoration:none;">
+            <i class="fas fa-home me-2"></i> العودة إلى لوحة التحكم
+        </a>
     </div>
 </div>

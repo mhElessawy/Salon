@@ -2,6 +2,7 @@ namespace Salon.Models
 {
     public class DashboardViewModel
     {
+        public bool HasAccess { get; set; } = true;
         public decimal SalesToday { get; set; }
         public int CustomersToday { get; set; }
         public decimal ExpensesToday { get; set; }

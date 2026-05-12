@@ -8,6 +8,15 @@
     <p>نظرة عامة على أداء القسم اليوم</p>
 </div>
 
+@if (!Model.HasAccess)
+{
+    <div style="text-align:center; padding:60px 20px; color:#adb5bd;">
+        <i class="fas fa-lock fa-3x mb-3" style="display:block; margin-bottom:16px;"></i>
+        <h4 style="color:#6c757d;">ليس لديك صلاحية لعرض بيانات لوحة التحكم</h4>
+    </div>
+}
+else
+{
 <!-- Stat Cards Row -->
 <div class="stat-cards">
     <div class="stat-card green">
@@ -153,3 +162,4 @@
         }
     </div>
 </div>
+}

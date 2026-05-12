@@ -25,7 +25,7 @@ namespace Salon.Controllers
         public async Task<IActionResult> Index()
         {
             if (!await _permissionService.HasAccessAsync("Dashboard"))
-                return RedirectToAction("AccessDenied", "Account");
+                return View(new DashboardViewModel { HasAccess = false });
 
             var today = DateTime.Today;
             var tomorrow = today.AddDays(1);
