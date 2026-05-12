@@ -1,0 +1,231 @@
+@model Salon.Models.EmployeeEvaluationViewModel
+@{
+    ViewData["Title"] = "تقرير تقييم الموظف";
+    int? selectedId = ViewBag.SelectedEmployeeId as int?;
+    var emp = Model.Employee;
+    bool hasData = emp != null;
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-user-check me-2"></i>تقرير تقييم الموظف</h1>
+</div>
+
+<!-- Filter Form -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label mb-1">الموظف:</label>
+                <select name="employeeId" class="form-select" style="min-width:200px;" required>
+                    <option value="">-- اختر موظف --</option>
+                    @foreach (var e in Model.Employees)
+                    {
+                        <option value="@e.Id" @(selectedId == e.Id ? "selected" : "")>
+                            @e.FullName @(e.Department != null ? $"({e.Department})" : "")
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1">من:</label>
+                <input type="date" name="from" value="@Model.DateFrom.ToString("yyyy-MM-dd")" class="form-control" style="max-width:170px;" />
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1">إلى:</label>
+                <input type="date" name="to" value="@Model.DateTo.ToString("yyyy-MM-dd")" class="form-control" style="max-width:170px;" />
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> عرض التقرير</button>
+                <a href="@Url.Action("EmployeeEvaluation")" class="btn btn-secondary btn-sm ms-1"><i class="fas fa-undo"></i> إعادة تعيين</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (!hasData)
+{
+    <div style="text-align:center; padding:60px 20px; color:#adb5bd;">
+        <i class="fas fa-user-check fa-3x" style="display:block; margin-bottom:16px;"></i>
+        <h5 style="color:#6c757d;">اختر موظفاً وحدد الفترة الزمنية لعرض التقرير</h5>
+    </div>
+}
+else
+{
+    <!-- Employee Info Card -->
+    <div class="card mb-4" style="border-right: 4px solid var(--primary);">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div style="width:64px;height:64px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff;">
+                        @emp!.FullName.FirstOrDefault()
+                    </div>
+                </div>
+                <div class="col">
+                    <h4 class="mb-1">@emp.FullName</h4>
+                    <div style="color:#6c757d; font-size:14px;">
+                        <span class="me-3"><i class="fas fa-briefcase me-1"></i>@(emp.JobTitle ?? "—")</span>
+                        <span class="me-3"><i class="fas fa-sitemap me-1"></i>@(emp.Department ?? "—")</span>
+                        @if (emp.HireDate != default)
+                        {
+                            var months = (int)((Model.DateTo - emp.HireDate).TotalDays / 30.44);
+                            var years = months / 12;
+                            var remMonths = months % 12;
+                            <span><i class="fas fa-calendar-alt me-1"></i>
+                                مدة الخدمة:
+                                @(years > 0 ? $"{years} سنة " : "")@(remMonths > 0 || years == 0 ? $"{remMonths} شهر" : "")
+                            </span>
+                        }
+                    </div>
+                </div>
+                <div class="col-auto text-muted" style="font-size:13px;">
+                    <i class="fas fa-calendar-range me-1"></i>
+                    @Model.DateFrom.ToString("yyyy/MM/dd") — @Model.DateTo.ToString("yyyy/MM/dd")
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Section -->
+    <h5 class="mb-3" style="color:var(--primary); border-bottom:2px solid #f0f0f0; padding-bottom:8px;">
+        <i class="fas fa-calendar-check me-2"></i>الحضور والغياب
+    </h5>
+
+    @if (Model.TotalAttendanceRecords == 0)
+    {
+        <div class="alert alert-light text-center mb-4">لا توجد سجلات حضور في هذه الفترة</div>
+    }
+    else
+    {
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="stat-card green" style="padding:16px;">
+                    <div class="stat-card-header">
+                        <span class="stat-label">أيام الحضور</span>
+                        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+                    </div>
+                    <div class="stat-value">@Model.PresentDays</div>
+                    <div class="stat-sub">يوم حاضر</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card red" style="padding:16px;">
+                    <div class="stat-card-header">
+                        <span class="stat-label">أيام الغياب</span>
+                        <div class="stat-icon red"><i class="fas fa-times-circle"></i></div>
+                    </div>
+                    <div class="stat-value">@Model.AbsentDays</div>
+                    <div class="stat-sub">يوم غائب</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card blue" style="padding:16px;">
+                    <div class="stat-card-header">
+                        <span class="stat-label">أيام الإجازة</span>
+                        <div class="stat-icon blue"><i class="fas fa-umbrella-beach"></i></div>
+                    </div>
+                    <div class="stat-value">@Model.LeaveDays</div>
+                    <div class="stat-sub">يوم إجازة</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card orange" style="padding:16px;">
+                    <div class="stat-card-header">
+                        <span class="stat-label">نسبة الحضور</span>
+                        <div class="stat-icon orange"><i class="fas fa-percentage"></i></div>
+                    </div>
+                    <div class="stat-value">@Model.AttendancePercent%</div>
+                    <div class="stat-sub">من @Model.TotalAttendanceRecords يوم</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance progress bar -->
+        <div class="card mb-4" style="padding:16px 20px;">
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
+                <span style="color:#28a745; font-weight:600;">حاضر @Model.PresentDays</span>
+                <span style="color:#ffc107; font-weight:600;">إجازة @Model.LeaveDays</span>
+                <span style="color:#dc3545; font-weight:600;">غائب @Model.AbsentDays</span>
+            </div>
+            <div style="height:12px; border-radius:6px; overflow:hidden; display:flex; background:#f0f0f0;">
+                @{ double total = Model.TotalAttendanceRecords; }
+                @if (Model.PresentDays > 0)
+                {
+                    <div style="width:@((Model.PresentDays/total*100).ToString("F1"))%; background:#28a745;"></div>
+                }
+                @if (Model.LeaveDays > 0)
+                {
+                    <div style="width:@((Model.LeaveDays/total*100).ToString("F1"))%; background:#ffc107;"></div>
+                }
+                @if (Model.AbsentDays > 0)
+                {
+                    <div style="width:@((Model.AbsentDays/total*100).ToString("F1"))%; background:#dc3545;"></div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Sales Section -->
+    <h5 class="mb-3" style="color:var(--primary); border-bottom:2px solid #f0f0f0; padding-bottom:8px;">
+        <i class="fas fa-cash-register me-2"></i>المبيعات
+    </h5>
+
+    @if (Model.TotalTransactions == 0)
+    {
+        <div class="alert alert-light text-center mb-4">لا توجد مبيعات مسجلة لهذا الموظف في هذه الفترة</div>
+    }
+    else
+    {
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="stat-card green" style="padding:16px;">
+                    <div class="stat-card-header">
+                        <span class="stat-label">إجمالي المبيعات</span>
+                        <div class="stat-icon green"><i class="fas fa-dollar-sign"></i></div>
+                    </div>
+                    <div class="stat-value" style="font-size:20px;">@Model.TotalSales.ToString("N3")</div>
+                    <div class="stat-sub">د.ك</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card blue" style="padding:16px;">
+                    <div class="stat-card-header">
+                        <span class="stat-label">عدد الفواتير</span>
+                        <div class="stat-icon blue"><i class="fas fa-file-invoice"></i></div>
+                    </div>
+                    <div class="stat-value">@Model.TotalTransactions</div>
+                    <div class="stat-sub">فاتورة</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card orange" style="padding:16px;">
+                    <div class="stat-card-header">
+                        <span class="stat-label">متوسط الفاتورة</span>
+                        <div class="stat-icon orange"><i class="fas fa-chart-line"></i></div>
+                    </div>
+                    <div class="stat-value" style="font-size:20px;">@Model.AverageSale.ToString("N3")</div>
+                    <div class="stat-sub">د.ك</div>
+                </div>
+            </div>
+            @if (Model.HaircutSales > 0 || Model.MassageSales > 0 || Model.ProductSales > 0)
+            {
+                <div class="col-6 col-md-3">
+                    <div class="card h-100" style="padding:16px;">
+                        <div style="font-size:12px; color:#6c757d; margin-bottom:8px;">توزيع المبيعات</div>
+                        @if (Model.HaircutSales > 0)
+                        {
+                            <div style="font-size:13px;"><i class="fas fa-cut me-1" style="color:#F7941D;"></i>حلاقة: <strong>@Model.HaircutSales.ToString("N3") د.ك</strong></div>
+                        }
+                        @if (Model.MassageSales > 0)
+                        {
+                            <div style="font-size:13px;"><i class="fas fa-spa me-1" style="color:#17a2b8;"></i>مساج: <strong>@Model.MassageSales.ToString("N3") د.ك</strong></div>
+                        }
+                        @if (Model.ProductSales > 0)
+                        {
+                            <div style="font-size:13px;"><i class="fas fa-box me-1" style="color:#28a745;"></i>منتجات: <strong>@Model.ProductSales.ToString("N3") د.ك</strong></div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}

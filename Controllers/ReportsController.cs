@@ -24,6 +24,60 @@ namespace Salon.Controllers
             return View();
         }
 
+        public async Task<IActionResult> EmployeeEvaluation(int? employeeId, string? from, string? to)
+        {
+            var employees = await _context.Employees
+                .Include(e => e.DepartmentNav)
+                .Where(e => e.IsActive)
+                .OrderBy(e => e.FullName)
+                .ToListAsync();
+
+            var vm = new EmployeeEvaluationViewModel
+            {
+                Employees = employees,
+                DateFrom = string.IsNullOrEmpty(from) ? DateTime.Today.AddDays(-30) : DateTime.Parse(from),
+                DateTo = string.IsNullOrEmpty(to) ? DateTime.Today : DateTime.Parse(to),
+            };
+
+            if (employeeId.HasValue)
+            {
+                var employee = employees.FirstOrDefault(e => e.Id == employeeId.Value);
+                if (employee != null)
+                {
+                    vm.Employee = employee;
+                    var dateTo = vm.DateTo.AddDays(1);
+
+                    // Attendance
+                    var attendanceRecords = await _context.Attendances
+                        .Where(a => a.EmployeeId == employeeId.Value
+                                 && a.AttendanceDate >= vm.DateFrom
+                                 && a.AttendanceDate < dateTo)
+                        .ToListAsync();
+
+                    vm.TotalAttendanceRecords = attendanceRecords.Count;
+                    vm.PresentDays = attendanceRecords.Count(a => a.Status == "حاضر");
+                    vm.AbsentDays = attendanceRecords.Count(a => a.Status == "غائب");
+                    vm.LeaveDays = attendanceRecords.Count(a => a.Status == "إجازة");
+
+                    // Sales
+                    var sales = await _context.Sales
+                        .Where(s => s.EmployeeId == employeeId.Value
+                                 && s.SaleDate >= vm.DateFrom
+                                 && s.SaleDate < dateTo)
+                        .ToListAsync();
+
+                    vm.TotalTransactions = sales.Count;
+                    vm.TotalSales = sales.Sum(s => s.NetAmount);
+                    vm.HaircutSales = sales.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount);
+                    vm.MassageSales = sales.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount);
+                    vm.ProductSales = sales.Where(s => s.SaleType == "منتجات").Sum(s => s.NetAmount);
+                }
+            }
+
+            ViewBag.SelectedEmployeeId = employeeId;
+            return View(vm);
+        }
+
         public async Task<IActionResult> Sales(string? from, string? to, int? employeeId, int? customerId, string? saleType)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? DateTime.Today.AddDays(-30) : DateTime.Parse(from);
