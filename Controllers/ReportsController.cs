@@ -97,9 +97,9 @@ namespace Salon.Controllers
             return View(expenses);
         }
 
-        public async Task<IActionResult> MyReport(string? saleType, string? paymentMethod, int? employeeId)
+        public async Task<IActionResult> MyReport(string? saleType, string? paymentMethod, int? employeeId, string? date)
         {
-            var today = DateTime.Today;
+            var today = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
             var tomorrow = today.AddDays(1);
 
             var currentUser = await _userManager.GetUserAsync(User);
@@ -148,6 +148,8 @@ namespace Salon.Controllers
                 .Where(s => s.PaymentMethod == "دين على العميل" || s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "دين على صاحب المكان")
                 .Sum(s => s.NetAmount);
             ViewBag.Date = today.ToString("yyyy/MM/dd");
+            ViewBag.SelectedDate = today.ToString("yyyy-MM-dd");
+            ViewBag.IsToday = today == DateTime.Today;
             ViewBag.UserDept = userDept;
             ViewBag.Employees = allSales
                 .Where(s => s.Employee != null)
