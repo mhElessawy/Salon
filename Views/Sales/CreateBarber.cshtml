@@ -2,344 +2,317 @@
 @{
     ViewData["Title"] = "نقطة البيع (الكاشير)";
     var categories = ViewBag.ServiceCategories as List<Salon.Models.ServiceCategory> ?? new();
-    var employees = ViewBag.Employees as List<Salon.Models.Employee> ?? new();
-    var isEmployee = (bool)(ViewBag.IsEmployee ?? false);
-    var linkedEmpId = ViewBag.LinkedEmployeeId as int?;
+    var employees  = ViewBag.Employees as List<Salon.Models.Employee> ?? new();
+    var isEmployee    = (bool)(ViewBag.IsEmployee ?? false);
+    var linkedEmpId   = ViewBag.LinkedEmployeeId as int?;
     var queuePositions = ViewBag.EmployeeQueuePositions as Dictionary<int, int> ?? new();
-    var checkInTimes = ViewBag.EmployeeCheckInTimes as Dictionary<int, TimeSpan?> ?? new();
-    var firstEmpId = employees.FirstOrDefault()?.Id ?? 0;
+    var checkInTimes   = ViewBag.EmployeeCheckInTimes  as Dictionary<int, TimeSpan?> ?? new();
+
+    // Employee whose turn it is = lowest queue position
+    int onDutyEmpId = queuePositions.Any()
+        ? queuePositions.OrderBy(x => x.Value).First().Key
+        : 0;
+
+    var firstEmpId      = employees.FirstOrDefault()?.Id ?? 0;
     var autoSelectEmpId = isEmployee && linkedEmpId.HasValue ? linkedEmpId.Value : firstEmpId;
 }
 
 @section Styles {
-    <style>
-        :root {
-            --dept-color: #F7941D;
-            --dept-light: #fff8f0;
-            --emp-dark: #1b3d6e;
-            --emp-mid: #2a5298;
-            --emp-row: #2d5ba3;
-            --emp-selected: #3d6fbf;
-        }
+<style>
+    :root {
+        --dept-color: #F7941D;
+        --dept-light: #fff8f0;
+        --emp-blue:  #2d5ba3;
+        --emp-dark:  #1b3d6e;
+        --emp-green: #219150;
+        --emp-green-dark: #196e3d;
+    }
 
-        /* ---- Page Header ---- */
-        .pos-page-header { text-align: right; margin-bottom: 12px; }
-        .pos-page-header h1 { font-size: 22px; font-weight: 700; color: var(--text-dark); margin: 0 0 2px; }
-        .pos-page-header p { color: #6c757d; font-size: 13px; margin: 0; }
+    /* ── Page header ── */
+    .pos-page-header { text-align:right; margin-bottom:12px; }
+    .pos-page-header h1 { font-size:22px; font-weight:700; color:var(--text-dark); margin:0 0 2px; }
+    .pos-page-header p  { color:#6c757d; font-size:13px; margin:0; }
 
-        /* ---- Top Info Bar ---- */
-        .pos-info-bar {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,.07);
-            padding: 14px 16px;
-            margin-bottom: 12px;
-        }
-        .pos-info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 12px;
-        }
+    /* ── Top info bar ── */
+    .pos-info-bar {
+        background:#fff;
+        border-radius:12px;
+        box-shadow:0 2px 10px rgba(0,0,0,.07);
+        padding:14px 16px;
+        margin-bottom:12px;
+    }
+    .pos-info-grid {
+        display:grid;
+        grid-template-columns:1fr 1fr 1fr;
+        gap:12px;
+    }
+    .extra-payment-bar {
+        background:#fff8f0;
+        border-radius:8px;
+        padding:12px;
+        border:1px solid #ffd9b3;
+        margin-top:10px;
+    }
 
-        /* ---- Main Grid ---- */
-        /* RTL: first child → right, second child → left */
-        .pos-wrapper {
-            display: grid;
-            grid-template-columns: 360px 1fr;
-            gap: 12px;
-            align-items: start;
-        }
+    /* ── 3-column main grid (RTL: col1→right, col2→mid, col3→left) ── */
+    .pos-wrapper {
+        display:grid;
+        grid-template-columns: 260px 1fr 330px;
+        gap:12px;
+        align-items:start;
+    }
 
-        /* ---- Right Column (employees + cart) ---- */
-        .pos-right-col {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            position: sticky;
-            top: 70px;
-        }
+    /* ════════════════════════════════════════
+       COLUMN 1 (RIGHT in RTL) — Employees
+    ════════════════════════════════════════ */
+    .pos-employees-panel {
+        background: var(--emp-dark);
+        border-radius:12px;
+        overflow:hidden;
+        position:sticky;
+        top:70px;
+        max-height:calc(100vh - 110px);
+        display:flex;
+        flex-direction:column;
+    }
+    .emp-header {
+        background:var(--emp-dark);
+        color:#fff;
+        padding:12px 14px;
+        font-size:13px;
+        font-weight:700;
+        display:flex;
+        align-items:center;
+        justify-content:flex-end;
+        gap:8px;
+    }
+    .emp-toggle-bar {
+        background:rgba(255,255,255,.08);
+        padding:7px 14px;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        color:rgba(255,255,255,.85);
+        font-size:12px;
+        border-bottom:1px solid rgba(255,255,255,.1);
+    }
+    .badge-locked {
+        background:#27ae60;
+        color:#fff;
+        padding:2px 9px;
+        border-radius:12px;
+        font-size:11px;
+        font-weight:600;
+    }
+    .emp-list { overflow-y:auto; flex:1; }
 
-        /* Employee Panel */
-        .pos-employees-panel {
-            background: var(--emp-dark);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        .emp-header {
-            background: var(--emp-dark);
-            color: #fff;
-            padding: 12px 14px;
-            font-size: 14px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 8px;
-        }
-        .emp-toggle-bar {
-            background: rgba(255,255,255,.08);
-            padding: 7px 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: rgba(255,255,255,.85);
-            font-size: 12px;
-            border-bottom: 1px solid rgba(255,255,255,.1);
-        }
-        .badge-locked {
-            background: #27ae60;
-            color: #fff;
-            padding: 2px 9px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        .emp-list { max-height: 300px; overflow-y: auto; }
-        .emp-item {
-            display: flex;
-            align-items: center;
-            padding: 9px 12px;
-            border-bottom: 1px solid rgba(255,255,255,.07);
-            cursor: pointer;
-            color: #fff;
-            transition: background .15s;
-            gap: 8px;
-            background: var(--emp-row);
-        }
-        .emp-item:hover { background: rgba(255,255,255,.15); }
-        .emp-item.selected { background: var(--emp-selected); }
-        .emp-queue-num {
-            background: var(--emp-mid);
-            color: #fff;
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: 700;
-            flex-shrink: 0;
-        }
-        .emp-info { flex: 1; text-align: right; }
-        .emp-info .emp-name { font-size: 13px; font-weight: 600; }
-        .emp-info .emp-time {
-            font-size: 10px;
-            color: rgba(255,255,255,.65);
-            display: flex;
-            align-items: center;
-            gap: 3px;
-            justify-content: flex-end;
-            margin-top: 1px;
-        }
-        .emp-check { color: #2ecc71; font-size: 15px; font-weight: 700; flex-shrink: 0; width: 16px; text-align: center; }
+    .emp-item {
+        display:flex;
+        align-items:center;
+        padding:10px 12px;
+        border-bottom:1px solid rgba(255,255,255,.07);
+        cursor:pointer;
+        color:#fff;
+        transition:filter .15s;
+        gap:8px;
+        background: var(--emp-blue);   /* default = blue */
+    }
+    .emp-item.on-duty  { background: var(--emp-green); }
+    .emp-item:hover    { filter:brightness(1.12); }
 
-        /* Cart / Invoice Card */
-        .invoice-card {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,.07);
-            overflow: hidden;
-        }
-        .invoice-card-header {
-            background: var(--dept-color);
-            color: #fff;
-            padding: 11px 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-            font-weight: 700;
-        }
-        .invoice-items {
-            min-height: 80px;
-            max-height: 240px;
-            overflow-y: auto;
-        }
-        .invoice-items table { width: 100%; font-size: 12px; }
-        .invoice-items thead th {
-            background: #f8f9fa;
-            padding: 6px 8px;
-            font-size: 11px;
-            color: #6c757d;
-        }
-        .invoice-items tbody td {
-            padding: 6px 8px;
-            border-bottom: 1px solid #f0f0f0;
-            vertical-align: middle;
-        }
-        .invoice-empty { text-align: center; padding: 24px 16px; color: #adb5bd; font-size: 13px; }
-        .invoice-totals {
-            padding: 10px 14px;
-            border-top: 1px solid #f0f0f0;
-            background: #fafafa;
-        }
-        .total-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 4px 0;
-            font-size: 13px;
-        }
-        .total-row.net {
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--dept-color);
-            border-top: 2px solid #e9ecef;
-            padding-top: 8px;
-            margin-top: 4px;
-        }
-        .discount-input {
-            width: 80px;
-            text-align: center;
-            border: 1px dashed #ccc;
-            border-radius: 6px;
-            padding: 3px 5px;
-            font-size: 12px;
-        }
-        .discount-input:focus { outline: none; border-color: var(--dept-color); }
-        .btn-save-invoice {
-            width: 100%;
-            padding: 12px;
-            background: var(--dept-color);
-            color: #fff;
-            border: none;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background .2s;
-        }
-        .btn-save-invoice:hover { background: #e0841a; }
-        .btn-save-invoice:disabled { background: #adb5bd; cursor: not-allowed; }
+    .emp-queue-num {
+        background:rgba(0,0,0,.2);
+        color:#fff;
+        width:26px; height:26px;
+        border-radius:50%;
+        display:flex; align-items:center; justify-content:center;
+        font-size:11px; font-weight:700; flex-shrink:0;
+    }
+    .emp-info { flex:1; text-align:right; }
+    .emp-name { font-size:13px; font-weight:600; }
+    .emp-time {
+        font-size:10px;
+        color:rgba(255,255,255,.65);
+        display:flex; align-items:center; gap:3px;
+        justify-content:flex-end; margin-top:1px;
+    }
+    .emp-check { color:#fff; font-size:14px; font-weight:700; flex-shrink:0; width:16px; text-align:center; opacity:0; }
+    .emp-item.emp-selected .emp-check { opacity:1; }
 
-        /* Qty controls */
-        .qty-control { display: flex; align-items: center; gap: 3px; }
-        .qty-btn { width: 20px; height: 20px; border: 1px solid #dee2e6; border-radius: 3px; background: #f8f9fa; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; }
-        .qty-btn:hover { background: var(--dept-color); color: #fff; border-color: var(--dept-color); }
-        .qty-input { width: 28px; text-align: center; border: 1px solid #dee2e6; border-radius: 3px; font-size: 12px; padding: 1px; }
-        .btn-remove-item { background: none; border: none; color: #dc3545; cursor: pointer; font-size: 12px; padding: 2px 4px; border-radius: 3px; }
-        .btn-remove-item:hover { background: #fce4ec; }
+    /* ════════════════════════════════════════
+       COLUMN 2 (MIDDLE) — Services
+    ════════════════════════════════════════ */
+    .pos-services-panel {
+        background:#fff;
+        border-radius:12px;
+        box-shadow:0 2px 10px rgba(0,0,0,.07);
+        overflow:hidden;
+        display:flex;
+        flex-direction:column;
+    }
+    .pos-tabs { display:grid; grid-template-columns:1fr 1fr; }
+    .pos-tab {
+        padding:11px;
+        font-size:14px; font-weight:600;
+        border:none; cursor:pointer;
+        transition:background .18s, color .18s;
+        background:#f0f0f0; color:#6c757d;
+    }
+    .pos-tab.active { background:var(--dept-color); color:#fff; }
+    .pos-tab:not(.active):hover { background:#e0e0e0; }
 
-        /* ---- Left Column (services) ---- */
-        .pos-services-panel {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,.07);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        .pos-tabs {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-        }
-        .pos-tab {
-            padding: 11px;
-            font-size: 14px;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-            transition: background .18s, color .18s;
-            background: #f0f0f0;
-            color: #6c757d;
-        }
-        .pos-tab.active { background: var(--dept-color); color: #fff; }
-        .pos-tab:not(.active):hover { background: #e0e0e0; }
+    .pos-search {
+        padding:8px 10px;
+        border-bottom:1px solid #f0f0f0;
+        position:relative;
+    }
+    .search-icon {
+        position:absolute; left:20px; top:50%;
+        transform:translateY(-50%);
+        color:#adb5bd; font-size:13px; pointer-events:none;
+    }
+    .pos-search input {
+        width:100%;
+        padding:7px 10px 7px 32px;
+        border:1px solid #e9ecef; border-radius:7px;
+        font-size:13px; background:#f8f9fa; direction:rtl;
+    }
+    .pos-search input:focus { outline:none; border-color:var(--dept-color); background:#fff; }
 
-        .pos-search {
-            padding: 8px 10px;
-            border-bottom: 1px solid #f0f0f0;
-            position: relative;
-        }
-        .pos-search .search-icon {
-            position: absolute;
-            left: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #adb5bd;
-            font-size: 13px;
-            pointer-events: none;
-        }
-        .pos-search input {
-            width: 100%;
-            padding: 7px 10px 7px 32px;
-            border: 1px solid #e9ecef;
-            border-radius: 7px;
-            font-size: 13px;
-            background: #f8f9fa;
-            direction: rtl;
-        }
-        .pos-search input:focus { outline: none; border-color: var(--dept-color); background: #fff; }
+    .services-scroll {
+        padding:10px;
+        overflow-y:auto;
+        max-height:calc(100vh - 280px);
+    }
+    .cat-label {
+        font-size:11px; font-weight:700;
+        padding:2px 0 5px;
+        border-bottom:1px solid #f0f0f0;
+        margin-bottom:6px;
+    }
+    .services-grid {
+        display:grid;
+        grid-template-columns:repeat(4,1fr);
+        gap:6px; margin-bottom:10px;
+    }
+    .svc-card {
+        background:#fff;
+        border:1.5px solid #e9ecef;
+        border-radius:8px;
+        padding:8px 6px;
+        cursor:pointer;
+        transition:all .16s;
+        text-align:center;
+    }
+    .svc-card:hover {
+        border-color:var(--dept-color);
+        background:var(--dept-light);
+        transform:translateY(-1px);
+        box-shadow:0 2px 8px rgba(247,148,29,.15);
+    }
+    .svc-name { font-size:11px; font-weight:600; color:#333; margin-bottom:4px; line-height:1.3; }
+    .svc-price { font-size:11px; font-weight:700; color:var(--dept-color); }
 
-        .services-scroll { padding: 10px; overflow-y: auto; max-height: calc(100vh - 280px); }
+    .companions-section {
+        border-top:1px solid #e9ecef;
+        padding:10px 12px;
+        display:flex; justify-content:space-between; align-items:center;
+    }
+    .companions-title { font-size:13px; font-weight:600; color:#333; }
+    .companions-empty { font-size:11px; color:#adb5bd; margin-top:1px; }
 
-        .cat-label {
-            font-size: 11px;
-            font-weight: 700;
-            padding: 2px 0 5px;
-            border-bottom: 1px solid #f0f0f0;
-            margin-bottom: 6px;
-        }
+    /* ════════════════════════════════════════
+       COLUMN 3 (LEFT in RTL) — Cart / Invoice
+    ════════════════════════════════════════ */
+    .pos-cart-panel {
+        background:#fff;
+        border-radius:12px;
+        box-shadow:0 2px 10px rgba(0,0,0,.07);
+        overflow:hidden;
+        position:sticky;
+        top:70px;
+    }
+    .cart-header {
+        background:var(--dept-color);
+        color:#fff;
+        padding:11px 14px;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        font-size:13px; font-weight:700;
+    }
+    .invoice-items {
+        min-height:90px; max-height:280px; overflow-y:auto;
+    }
+    .invoice-items table { width:100%; font-size:12px; }
+    .invoice-items thead th {
+        background:#f8f9fa;
+        padding:6px 8px; font-size:11px; color:#6c757d;
+    }
+    .invoice-items tbody td {
+        padding:6px 8px;
+        border-bottom:1px solid #f0f0f0;
+        vertical-align:middle;
+    }
+    .invoice-empty {
+        text-align:center; padding:22px 16px;
+        color:#adb5bd; font-size:12px;
+    }
+    .invoice-totals {
+        padding:10px 14px;
+        border-top:1px solid #f0f0f0;
+        background:#fafafa;
+    }
+    .total-row {
+        display:flex; justify-content:space-between; align-items:center;
+        padding:4px 0; font-size:13px;
+    }
+    .total-row.net {
+        font-size:15px; font-weight:700; color:var(--dept-color);
+        border-top:2px solid #e9ecef; padding-top:8px; margin-top:4px;
+    }
+    .discount-input {
+        width:80px; text-align:center;
+        border:1px dashed #ccc; border-radius:6px;
+        padding:3px 5px; font-size:12px;
+    }
+    .discount-input:focus { outline:none; border-color:var(--dept-color); }
 
-        /* Small service cards — 4 columns */
-        .services-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
-            margin-bottom: 10px;
-        }
-        .svc-card {
-            background: #fff;
-            border: 1.5px solid #e9ecef;
-            border-radius: 8px;
-            padding: 8px 6px;
-            cursor: pointer;
-            transition: all .16s;
-            text-align: center;
-        }
-        .svc-card:hover {
-            border-color: var(--dept-color);
-            background: var(--dept-light);
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(247,148,29,.15);
-        }
-        .svc-card .svc-name { font-size: 11px; font-weight: 600; color: #333; margin-bottom: 4px; line-height: 1.3; }
-        .svc-card .svc-price { font-size: 11px; font-weight: 700; color: var(--dept-color); }
+    .btn-save-invoice {
+        width:100%; padding:12px;
+        background:var(--dept-color); color:#fff;
+        border:none; font-size:14px; font-weight:700;
+        cursor:pointer; transition:background .2s;
+    }
+    .btn-save-invoice:hover    { background:#e0841a; }
+    .btn-save-invoice:disabled { background:#adb5bd; cursor:not-allowed; }
 
-        /* Companions */
-        .companions-section {
-            border-top: 1px solid #e9ecef;
-            padding: 10px 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .companions-title { font-size: 13px; font-weight: 600; color: #333; }
-        .companions-empty { font-size: 11px; color: #adb5bd; margin-top: 1px; }
+    /* qty controls */
+    .qty-control { display:flex; align-items:center; gap:3px; }
+    .qty-btn { width:20px; height:20px; border:1px solid #dee2e6; border-radius:3px; background:#f8f9fa; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; line-height:1; }
+    .qty-btn:hover { background:var(--dept-color); color:#fff; border-color:var(--dept-color); }
+    .qty-input { width:28px; text-align:center; border:1px solid #dee2e6; border-radius:3px; font-size:12px; padding:1px; }
+    .btn-remove-item { background:none; border:none; color:#dc3545; cursor:pointer; font-size:12px; padding:2px 4px; border-radius:3px; }
+    .btn-remove-item:hover { background:#fce4ec; }
 
-        /* Extra payment section */
-        .extra-payment-bar {
-            background: #fff8f0;
-            border-radius: 8px;
-            padding: 12px;
-            border: 1px solid #ffd9b3;
-            margin-top: 8px;
-        }
-
-        @@media (max-width: 992px) {
-            .pos-wrapper { grid-template-columns: 1fr; }
-            .pos-right-col { position: static; }
-            .services-grid { grid-template-columns: repeat(3, 1fr); }
-            .pos-info-grid { grid-template-columns: 1fr 1fr; }
-        }
-        @@media (max-width: 576px) {
-            .services-grid { grid-template-columns: repeat(2, 1fr); }
-            .pos-info-grid { grid-template-columns: 1fr; }
-        }
-    </style>
+    /* ── Responsive ── */
+    @@media (max-width:1100px) {
+        .pos-wrapper { grid-template-columns: 220px 1fr 300px; }
+    }
+    @@media (max-width:900px) {
+        .pos-wrapper { grid-template-columns: 1fr; }
+        .pos-employees-panel, .pos-cart-panel { position:static; max-height:none; }
+        .services-grid { grid-template-columns:repeat(3,1fr); }
+        .pos-info-grid { grid-template-columns:1fr 1fr; }
+    }
+    @@media (max-width:576px) {
+        .services-grid { grid-template-columns:repeat(2,1fr); }
+        .pos-info-grid { grid-template-columns:1fr; }
+    }
+</style>
 }
 
-<!-- Page Header -->
+<!-- Header -->
 <div class="pos-page-header">
     <h1>نقطة البيع (الكاشير)</h1>
     <p>إدارة المبيعات والفواتير</p>
@@ -352,7 +325,7 @@
     <input type="hidden" id="selectedEmployeeId" name="EmployeeId" value="@autoSelectEmpId" />
     <div id="hiddenItems"></div>
 
-    <!-- ═══ Top Info Bar ═══ -->
+    <!-- ══ Top: Customer / Payment / Notes ══ -->
     <div class="pos-info-bar">
         <div class="pos-info-grid">
             <div>
@@ -381,7 +354,6 @@
             </div>
         </div>
 
-        <!-- Split / Debt extras -->
         <div id="extraPaymentBar" style="display:none" class="extra-payment-bar">
             <div id="splitSection" style="display:none">
                 <p class="mb-2 fw-semibold" style="font-size:13px">
@@ -417,116 +389,73 @@
         </div>
     </div>
 
-    <!-- ═══ Main Grid ═══ -->
+    <!-- ══ 3-Column Grid ══ -->
     <div class="pos-wrapper">
 
-        <!-- RIGHT (first in RTL): Employee Panel + Cart -->
-        <div class="pos-right-col">
-
-            <!-- Employee Queue -->
-            <div class="pos-employees-panel">
-                <div class="emp-header">
-                    <i class="fas fa-user-tie"></i> الموظفين الحاضرين
-                </div>
-                <div class="emp-toggle-bar">
-                    <span class="badge-locked">مقفل</span>
-                    <span>توزيع تلقائي</span>
-                </div>
-                <div class="emp-list">
-                    @if (!employees.Any())
-                    {
-                        <div class="text-center py-3" style="color:rgba(255,255,255,.6);font-size:13px">
-                            <i class="fas fa-user-slash mb-1 d-block"></i>
-                            لا يوجد موظفون حاضرون
-                        </div>
-                    }
-                    @foreach (var emp in employees)
-                    {
-                        var qPos = queuePositions.TryGetValue(emp.Id, out var p) ? p.ToString() : "—";
-                        var tSpan = checkInTimes.TryGetValue(emp.Id, out var t) && t.HasValue ? t.Value : (TimeSpan?)null;
-                        var timeStr = tSpan.HasValue ? tSpan.Value.ToString(@"hh\:mm") : "—";
-                        var isSelected = emp.Id == autoSelectEmpId;
-                        <div class="emp-item @(isSelected ? "selected" : "")"
-                             id="emp-@emp.Id"
-                             onclick="selectEmployee(@emp.Id, this)">
-                            <div class="emp-info">
-                                <div class="emp-name">@emp.FullName</div>
-                                <div class="emp-time">
-                                    <i class="fas fa-clock" style="font-size:9px"></i> @timeStr
-                                </div>
-                            </div>
-                            <div class="emp-queue-num">@qPos</div>
-                            <div class="emp-check" id="check-@emp.Id">@(isSelected ? "✓" : "")</div>
-                        </div>
-                    }
-                </div>
+        <!-- ── Col 1 (RIGHT in RTL): Employee Queue ── -->
+        <div class="pos-employees-panel">
+            <div class="emp-header">
+                <i class="fas fa-user-tie"></i> الموظفين الحاضرين
             </div>
-
-            <!-- Invoice / Cart -->
-            <div class="invoice-card">
-                <div class="invoice-card-header">
-                    <span><i class="fas fa-shopping-cart me-1"></i> الخدمات المختارة</span>
-                    <span style="font-size:11px;opacity:.9">@Model.InvoiceNumber</span>
-                </div>
-                <div class="invoice-items">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>الخدمة</th>
-                                <th>الكمية</th>
-                                <th>السعر</th>
-                                <th>الإجمالي</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody id="invoiceBody">
-                            <tr id="emptyRow">
-                                <td colspan="5" class="invoice-empty">
-                                    <i class="fas fa-hand-point-right mb-1 d-block"></i>اختر خدمة
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="invoice-totals">
-                    <div class="total-row"><span>الإجمالي:</span><span id="subtotalDisplay">0.000 د.ك</span></div>
-                    <div class="total-row">
-                        <span>الخصم:</span>
-                        <input type="number" name="Discount" id="discountInput" class="discount-input"
-                               value="0" step="0.001" min="0" oninput="recalc()" />
+            <div class="emp-toggle-bar">
+                <span class="badge-locked">مقفل</span>
+                <span>توزيع تلقائي</span>
+            </div>
+            <div class="emp-list">
+                @if (!employees.Any())
+                {
+                    <div class="text-center py-3" style="color:rgba(255,255,255,.6);font-size:13px">
+                        <i class="fas fa-user-slash mb-1 d-block"></i>
+                        لا يوجد موظفون حاضرون
                     </div>
-                    <div class="total-row net"><span>الصافي:</span><span id="netDisplay">0.000 د.ك</span></div>
-                </div>
-                <button type="submit" class="btn-save-invoice" id="saveBtn" disabled>
-                    <i class="fas fa-print me-2"></i> حفظ فاتورة الحلاقة
-                </button>
-            </div>
+                }
+                @foreach (var emp in employees)
+                {
+                    var qPos    = queuePositions.TryGetValue(emp.Id, out var p) ? p.ToString() : "—";
+                    var tSpan   = checkInTimes.TryGetValue(emp.Id, out var t) && t.HasValue ? t.Value : (TimeSpan?)null;
+                    var timeStr = tSpan.HasValue ? tSpan.Value.ToString(@"hh\:mm") : "—";
 
+                    var isOnDuty   = emp.Id == onDutyEmpId;
+                    var isSelected = emp.Id == autoSelectEmpId;
+
+                    var rowClass = "emp-item" +
+                                   (isOnDuty   ? " on-duty"     : "") +
+                                   (isSelected ? " emp-selected" : "");
+                    <div class="@rowClass"
+                         id="emp-@emp.Id"
+                         onclick="selectEmployee(@emp.Id, this)">
+                        <div class="emp-info">
+                            <div class="emp-name">@emp.FullName</div>
+                            <div class="emp-time">
+                                <i class="fas fa-clock" style="font-size:9px"></i> @timeStr
+                            </div>
+                        </div>
+                        <div class="emp-queue-num">@qPos</div>
+                        <div class="emp-check" id="check-@emp.Id">✓</div>
+                    </div>
+                }
+            </div>
         </div>
 
-        <!-- LEFT (second in RTL): Services Panel -->
+        <!-- ── Col 2 (MIDDLE): Services ── -->
         <div class="pos-services-panel">
-
-            <!-- Tabs -->
             <div class="pos-tabs">
-                <button type="button" class="pos-tab active" onclick="switchTab('services', this)">الخدمات</button>
-                <button type="button" class="pos-tab" onclick="switchTab('products', this)">المنتجات</button>
+                <button type="button" class="pos-tab active" onclick="switchTab('services',this)">الخدمات</button>
+                <button type="button" class="pos-tab"        onclick="switchTab('products',this)">المنتجات</button>
             </div>
-
-            <!-- Search -->
             <div class="pos-search">
                 <i class="fas fa-search search-icon"></i>
                 <input type="text" id="svcSearch" placeholder="ابحث..." oninput="filterItems(this.value)" />
             </div>
 
-            <!-- Services Grid -->
+            <!-- Services -->
             <div class="services-scroll" id="servicesContent">
                 @if (!categories.Any(c => c.Services.Any()))
                 {
                     <div class="text-center text-muted py-5">
                         <i class="fas fa-cut fa-3x mb-3 opacity-25"></i>
                         <p>لا توجد خدمات حلاقة مسجلة</p>
-                        <a href="@Url.Action("Create", "Services")" class="btn btn-sm btn-outline-warning">إضافة خدمة</a>
+                        <a href="@Url.Action("Create","Services")" class="btn btn-sm btn-outline-warning">إضافة خدمة</a>
                     </div>
                 }
                 @foreach (var cat in categories)
@@ -562,9 +491,7 @@
             <!-- Companions -->
             <div class="companions-section">
                 <div>
-                    <div class="companions-title">
-                        <i class="fas fa-user-friends text-muted me-1"></i> المرافقين
-                    </div>
+                    <div class="companions-title"><i class="fas fa-user-friends text-muted me-1"></i> المرافقين</div>
                     <div class="companions-empty">لا يوجد مرافقين</div>
                 </div>
                 <button type="button" class="btn btn-sm btn-success">
@@ -573,145 +500,185 @@
             </div>
         </div>
 
-    </div>
+        <!-- ── Col 3 (LEFT in RTL): Cart / Invoice ── -->
+        <div class="pos-cart-panel">
+            <div class="cart-header">
+                <span><i class="fas fa-shopping-cart me-1"></i> الخدمات المختارة</span>
+                <span style="font-size:11px;opacity:.9">@Model.InvoiceNumber</span>
+            </div>
+            <div class="invoice-items">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>الخدمة</th>
+                            <th>الكمية</th>
+                            <th>السعر</th>
+                            <th>الإجمالي</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoiceBody">
+                        <tr id="emptyRow">
+                            <td colspan="5" class="invoice-empty">
+                                <i class="fas fa-hand-point-right mb-1 d-block"></i>اختر خدمة
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="invoice-totals">
+                <div class="total-row">
+                    <span>الإجمالي:</span><span id="subtotalDisplay">0.000 د.ك</span>
+                </div>
+                <div class="total-row">
+                    <span>الخصم:</span>
+                    <input type="number" name="Discount" id="discountInput" class="discount-input"
+                           value="0" step="0.001" min="0" oninput="recalc()" />
+                </div>
+                <div class="total-row net">
+                    <span>الصافي:</span><span id="netDisplay">0.000 د.ك</span>
+                </div>
+            </div>
+            <button type="submit" class="btn-save-invoice" id="saveBtn" disabled>
+                <i class="fas fa-print me-2"></i> حفظ فاتورة الحلاقة
+            </button>
+        </div>
+
+    </div><!-- /pos-wrapper -->
 </form>
 
 @section Scripts {
-    <script>
-        let items = [], rowId = 0;
+<script>
+    let items = [], rowId = 0;
 
-        @if (isEmployee && linkedEmpId.HasValue)
-        {
-            <text>
-            document.querySelectorAll('.emp-item').forEach(function(el) {
-                el.style.cursor = 'default';
-                el.onclick = null;
-            });
-            </text>
-        }
-
-        function selectEmployee(id, el) {
-            @if (isEmployee) { <text>return;</text> }
-            document.querySelectorAll('.emp-item').forEach(function(e) { e.classList.remove('selected'); });
-            document.querySelectorAll('.emp-check').forEach(function(e) { e.textContent = ''; });
-            el.classList.add('selected');
-            var chk = document.getElementById('check-' + id);
-            if (chk) chk.textContent = '✓';
-            document.getElementById('selectedEmployeeId').value = id;
-        }
-
-        function switchTab(tab, btn) {
-            document.querySelectorAll('.pos-tab').forEach(function(t) { t.classList.remove('active'); });
-            btn.classList.add('active');
-            document.getElementById('servicesContent').style.display = tab === 'services' ? '' : 'none';
-            document.getElementById('productsContent').style.display = tab === 'products' ? '' : 'none';
-        }
-
-        function addItem(id, name, price) {
-            price = parseFloat(price) || 0;
-            var ex = items.find(function(i) { return i.id === id; });
-            if (ex) { ex.qty++; ex.total = ex.qty * ex.price; updateRow(ex); }
-            else { var it = { rowId: ++rowId, id: id, name: name, price: price, qty: 1, total: price }; items.push(it); renderRow(it); }
-            document.getElementById('emptyRow').style.display = 'none';
-            document.getElementById('saveBtn').disabled = false;
-            recalc();
-        }
-
-        function renderRow(it) {
-            var tr = document.createElement('tr'); tr.id = 'row-' + it.rowId;
-            tr.innerHTML = buildHtml(it);
-            document.getElementById('invoiceBody').appendChild(tr);
-        }
-        function updateRow(it) {
-            var tr = document.getElementById('row-' + it.rowId);
-            if (tr) tr.innerHTML = buildHtml(it);
-        }
-        function buildHtml(it) {
-            return '<td>' + it.name + '</td>' +
-                '<td><div class="qty-control">' +
-                '<button type="button" class="qty-btn" onclick="chQty(' + it.rowId + ',-1)">−</button>' +
-                '<input type="number" class="qty-input" value="' + it.qty + '" min="1" onchange="setQty(' + it.rowId + ',this.value)"/>' +
-                '<button type="button" class="qty-btn" onclick="chQty(' + it.rowId + ',1)">+</button>' +
-                '</div></td>' +
-                '<td>' + it.price.toFixed(3) + '</td>' +
-                '<td><strong>' + it.total.toFixed(3) + '</strong></td>' +
-                '<td><button type="button" class="btn-remove-item" onclick="removeItem(' + it.rowId + ')"><i class="fas fa-times"></i></button></td>';
-        }
-        function chQty(rid, d) {
-            var it = items.find(function(i) { return i.rowId === rid; });
-            if (!it) return;
-            var n = it.qty + d;
-            if (n < 1) { removeItem(rid); return; }
-            it.qty = n; it.total = it.qty * it.price; updateRow(it); recalc();
-        }
-        function setQty(rid, v) {
-            var it = items.find(function(i) { return i.rowId === rid; });
-            if (!it) return;
-            it.qty = Math.max(1, parseInt(v) || 1); it.total = it.qty * it.price; updateRow(it); recalc();
-        }
-        function removeItem(rid) {
-            items = items.filter(function(i) { return i.rowId !== rid; });
-            var tr = document.getElementById('row-' + rid); if (tr) tr.remove();
-            if (!items.length) {
-                document.getElementById('emptyRow').style.display = '';
-                document.getElementById('saveBtn').disabled = true;
-            }
-            recalc();
-        }
-        function recalc() {
-            var s = items.reduce(function(a, i) { return a + i.total; }, 0);
-            var d = parseFloat(document.getElementById('discountInput').value) || 0;
-            document.getElementById('subtotalDisplay').textContent = s.toFixed(3) + ' د.ك';
-            document.getElementById('netDisplay').textContent = Math.max(0, s - d).toFixed(3) + ' د.ك';
-        }
-        function filterItems(q) {
-            q = q.toLowerCase();
-            document.querySelectorAll('.svc-item').forEach(function(c) {
-                c.style.display = (!q || c.dataset.name.includes(q)) ? '' : 'none';
-            });
-        }
-        function onPaymentChange() {
-            var pm = document.getElementById('paymentMethodSelect').value;
-            var extraBar = document.getElementById('extraPaymentBar');
-            var splitSection = document.getElementById('splitSection');
-            var debtEmpSection = document.getElementById('debtEmpSection');
-            var customerWarning = document.getElementById('customerDebtWarning');
-            var customerSelect = document.getElementById('customerSelect');
-            splitSection.style.display = 'none';
-            debtEmpSection.style.display = 'none';
-            extraBar.style.display = 'none';
-            customerWarning.style.display = 'none';
-            customerSelect.required = false;
-            if (pm === 'كي نت و كاش') { extraBar.style.display = ''; splitSection.style.display = ''; }
-            else if (pm === 'دين على العميل') { customerWarning.style.display = ''; customerSelect.required = true; }
-            else if (pm === 'دين على الموظف') { extraBar.style.display = ''; debtEmpSection.style.display = ''; }
-        }
-        function validateSplit() {
-            var cash = parseFloat(document.getElementById('cashAmountInput').value) || 0;
-            var link = parseFloat(document.getElementById('linkAmountInput').value) || 0;
-            document.getElementById('splitStatus').textContent = 'المجموع: ' + (cash + link).toFixed(3) + ' د.ك';
-        }
-
-        document.getElementById('posForm').addEventListener('submit', function(e) {
-            if (!items.length) { e.preventDefault(); return; }
-            var empId = document.getElementById('selectedEmployeeId').value;
-            if (!empId) { e.preventDefault(); alert('يرجى اختيار الحلاق أولاً'); return; }
-            var pm = document.getElementById('paymentMethodSelect').value;
-            if (pm === 'دين على العميل') {
-                var custId = document.getElementById('customerSelect').value;
-                if (!custId) { e.preventDefault(); alert('طريقة الدفع "دين على العميل" تتطلب اختيار عميل مسجل'); return; }
-            }
-            if (pm === 'دين على الموظف') {
-                var empDebtId = document.getElementById('debtEmployeeSelect') ? document.getElementById('debtEmployeeSelect').value : '';
-                if (!empDebtId) { e.preventDefault(); alert('يرجى اختيار الموظف المدين'); return; }
-            }
-            var c = document.getElementById('hiddenItems'); c.innerHTML = '';
-            items.forEach(function(it) {
-                c.innerHTML += '<input type="hidden" name="itemIds" value="' + it.id + '"/>' +
-                    '<input type="hidden" name="itemNames" value="' + it.name + '"/>' +
-                    '<input type="hidden" name="itemPrices" value="' + it.price + '"/>' +
-                    '<input type="hidden" name="itemQtys" value="' + it.qty + '"/>';
-            });
+    @if (isEmployee && linkedEmpId.HasValue)
+    {
+        <text>
+        document.querySelectorAll('.emp-item').forEach(function(el) {
+            el.style.cursor = 'default';
+            el.onclick = null;
         });
-    </script>
+        </text>
+    }
+
+    function selectEmployee(id, el) {
+        @if (isEmployee) { <text>return;</text> }
+        document.querySelectorAll('.emp-item').forEach(function(e) { e.classList.remove('emp-selected'); });
+        el.classList.add('emp-selected');
+        document.getElementById('selectedEmployeeId').value = id;
+    }
+
+    function switchTab(tab, btn) {
+        document.querySelectorAll('.pos-tab').forEach(function(t) { t.classList.remove('active'); });
+        btn.classList.add('active');
+        document.getElementById('servicesContent').style.display = tab === 'services' ? '' : 'none';
+        document.getElementById('productsContent').style.display = tab === 'products'  ? '' : 'none';
+    }
+
+    function addItem(id, name, price) {
+        price = parseFloat(price) || 0;
+        var ex = items.find(function(i) { return i.id === id; });
+        if (ex) { ex.qty++; ex.total = ex.qty * ex.price; updateRow(ex); }
+        else { var it = { rowId:++rowId, id:id, name:name, price:price, qty:1, total:price }; items.push(it); renderRow(it); }
+        document.getElementById('emptyRow').style.display = 'none';
+        document.getElementById('saveBtn').disabled = false;
+        recalc();
+    }
+    function renderRow(it) {
+        var tr = document.createElement('tr'); tr.id = 'row-' + it.rowId;
+        tr.innerHTML = buildHtml(it);
+        document.getElementById('invoiceBody').appendChild(tr);
+    }
+    function updateRow(it) {
+        var tr = document.getElementById('row-' + it.rowId);
+        if (tr) tr.innerHTML = buildHtml(it);
+    }
+    function buildHtml(it) {
+        return '<td>' + it.name + '</td>' +
+            '<td><div class="qty-control">' +
+            '<button type="button" class="qty-btn" onclick="chQty(' + it.rowId + ',-1)">−</button>' +
+            '<input type="number" class="qty-input" value="' + it.qty + '" min="1" onchange="setQty(' + it.rowId + ',this.value)"/>' +
+            '<button type="button" class="qty-btn" onclick="chQty(' + it.rowId + ',1)">+</button>' +
+            '</div></td>' +
+            '<td>' + it.price.toFixed(3) + '</td>' +
+            '<td><strong>' + it.total.toFixed(3) + '</strong></td>' +
+            '<td><button type="button" class="btn-remove-item" onclick="removeItem(' + it.rowId + ')"><i class="fas fa-times"></i></button></td>';
+    }
+    function chQty(rid, d) {
+        var it = items.find(function(i) { return i.rowId === rid; });
+        if (!it) return;
+        var n = it.qty + d;
+        if (n < 1) { removeItem(rid); return; }
+        it.qty = n; it.total = it.qty * it.price; updateRow(it); recalc();
+    }
+    function setQty(rid, v) {
+        var it = items.find(function(i) { return i.rowId === rid; });
+        if (!it) return;
+        it.qty = Math.max(1, parseInt(v) || 1); it.total = it.qty * it.price; updateRow(it); recalc();
+    }
+    function removeItem(rid) {
+        items = items.filter(function(i) { return i.rowId !== rid; });
+        var tr = document.getElementById('row-' + rid); if (tr) tr.remove();
+        if (!items.length) {
+            document.getElementById('emptyRow').style.display = '';
+            document.getElementById('saveBtn').disabled = true;
+        }
+        recalc();
+    }
+    function recalc() {
+        var s = items.reduce(function(a,i) { return a + i.total; }, 0);
+        var d = parseFloat(document.getElementById('discountInput').value) || 0;
+        document.getElementById('subtotalDisplay').textContent = s.toFixed(3) + ' د.ك';
+        document.getElementById('netDisplay').textContent      = Math.max(0, s - d).toFixed(3) + ' د.ك';
+    }
+    function filterItems(q) {
+        q = q.toLowerCase();
+        document.querySelectorAll('.svc-item').forEach(function(c) {
+            c.style.display = (!q || c.dataset.name.includes(q)) ? '' : 'none';
+        });
+    }
+    function onPaymentChange() {
+        var pm = document.getElementById('paymentMethodSelect').value;
+        var extraBar       = document.getElementById('extraPaymentBar');
+        var splitSection   = document.getElementById('splitSection');
+        var debtEmpSection = document.getElementById('debtEmpSection');
+        var customerWarning = document.getElementById('customerDebtWarning');
+        var customerSelect  = document.getElementById('customerSelect');
+        splitSection.style.display = debtEmpSection.style.display = extraBar.style.display = 'none';
+        customerWarning.style.display = 'none';
+        customerSelect.required = false;
+        if (pm === 'كي نت و كاش')      { extraBar.style.display = ''; splitSection.style.display = ''; }
+        else if (pm === 'دين على العميل') { customerWarning.style.display = ''; customerSelect.required = true; }
+        else if (pm === 'دين على الموظف') { extraBar.style.display = ''; debtEmpSection.style.display = ''; }
+    }
+    function validateSplit() {
+        var cash = parseFloat(document.getElementById('cashAmountInput').value) || 0;
+        var link = parseFloat(document.getElementById('linkAmountInput').value) || 0;
+        document.getElementById('splitStatus').textContent = 'المجموع: ' + (cash + link).toFixed(3) + ' د.ك';
+    }
+
+    document.getElementById('posForm').addEventListener('submit', function(e) {
+        if (!items.length) { e.preventDefault(); return; }
+        var empId = document.getElementById('selectedEmployeeId').value;
+        if (!empId) { e.preventDefault(); alert('يرجى اختيار الحلاق أولاً'); return; }
+        var pm = document.getElementById('paymentMethodSelect').value;
+        if (pm === 'دين على العميل') {
+            if (!document.getElementById('customerSelect').value) {
+                e.preventDefault(); alert('طريقة الدفع "دين على العميل" تتطلب اختيار عميل مسجل'); return;
+            }
+        }
+        if (pm === 'دين على الموظف') {
+            var sel = document.getElementById('debtEmployeeSelect');
+            if (!sel || !sel.value) { e.preventDefault(); alert('يرجى اختيار الموظف المدين'); return; }
+        }
+        var c = document.getElementById('hiddenItems'); c.innerHTML = '';
+        items.forEach(function(it) {
+            c.innerHTML +=
+                '<input type="hidden" name="itemIds"    value="' + it.id    + '"/>' +
+                '<input type="hidden" name="itemNames"  value="' + it.name  + '"/>' +
+                '<input type="hidden" name="itemPrices" value="' + it.price + '"/>' +
+                '<input type="hidden" name="itemQtys"   value="' + it.qty   + '"/>';
+        });
+    });
+</script>
 }
