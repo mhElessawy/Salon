@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +24,7 @@ namespace Salon.Controllers
             return View();
         }
 
-        public async Task<IActionResult> Sales(string? from, string? to)
+        public async Task<IActionResult> Sales(string? from, string? to, int? employeeId, int? customerId, string? saleType)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? DateTime.Today.AddDays(-30) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
@@ -34,20 +34,48 @@ namespace Salon.Controllers
 
             var query = _context.Sales
                 .Include(s => s.Customer)
+                .Include(s => s.Employee)
                 .Include(s => s.SaleItems)
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo);
 
-            if (userDept == "����")
-                query = query.Where(s => s.SaleType != "�����");
-            else if (userDept == "�����")
-                query = query.Where(s => s.SaleType != "����");
+            if (userDept == "مساج")
+                query = query.Where(s => s.SaleType != "حلاقة");
+            else if (userDept == "حلاقة")
+                query = query.Where(s => s.SaleType != "مساج");
+
+            if (employeeId.HasValue)
+                query = query.Where(s => s.EmployeeId == employeeId);
+
+            if (customerId.HasValue)
+                query = query.Where(s => s.CustomerId == customerId);
+
+            if (!string.IsNullOrEmpty(saleType))
+                query = query.Where(s => s.SaleType == saleType);
 
             var sales = await query.OrderByDescending(s => s.SaleDate).ToListAsync();
+
+            var employees = await _context.Employees
+                .Where(e => e.IsActive)
+                .OrderBy(e => e.FullName)
+                .ToListAsync();
+
+            var customers = await _context.Customers
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.FullName)
+                .ToListAsync();
 
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
             ViewBag.TotalSales = sales.Sum(s => s.NetAmount);
             ViewBag.TotalCount = sales.Count;
+            ViewBag.TotalHaircut = sales.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount);
+            ViewBag.TotalMassage = sales.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount);
+            ViewBag.TotalProducts = sales.Where(s => s.SaleType == "منتجات").Sum(s => s.NetAmount);
+            ViewBag.Employees = employees;
+            ViewBag.Customers = customers;
+            ViewBag.SelectedEmployeeId = employeeId;
+            ViewBag.SelectedCustomerId = customerId;
+            ViewBag.SelectedSaleType = saleType;
             return View(sales);
         }
 

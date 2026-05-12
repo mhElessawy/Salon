@@ -1,6 +1,11 @@
 @model IEnumerable<Salon.Models.Sale>
 @{
     ViewData["Title"] = "تقرير المبيعات";
+    var employees = ViewBag.Employees as IEnumerable<Salon.Models.Employee> ?? Enumerable.Empty<Salon.Models.Employee>();
+    var customers = ViewBag.Customers as IEnumerable<Salon.Models.Customer> ?? Enumerable.Empty<Salon.Models.Customer>();
+    int? selectedEmployee = ViewBag.SelectedEmployeeId;
+    int? selectedCustomer = ViewBag.SelectedCustomerId;
+    string? selectedType = ViewBag.SelectedSaleType;
 }
 
 <div class="page-header">
@@ -9,27 +14,81 @@
 
 <div class="card mb-3">
     <div class="card-body">
-        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
-            <label class="form-label mb-0">من:</label>
-            <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:170px;" />
-            <label class="form-label mb-0">إلى:</label>
-            <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:170px;" />
-            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label mb-1">من:</label>
+                <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:170px;" />
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1">إلى:</label>
+                <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:170px;" />
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1">النوع:</label>
+                <select name="saleType" class="form-select" style="max-width:160px;">
+                    <option value="">الكل</option>
+                    <option value="حلاقة" selected="@(selectedType == "حلاقة")">حلاقة</option>
+                    <option value="مساج" selected="@(selectedType == "مساج")">مساج</option>
+                    <option value="منتجات" selected="@(selectedType == "منتجات")">منتجات</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1">الموظف:</label>
+                <select name="employeeId" class="form-select" style="max-width:200px;">
+                    <option value="">الكل</option>
+                    @foreach (var emp in employees)
+                    {
+                        <option value="@emp.Id" selected="@(selectedEmployee == emp.Id)">@emp.FullName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1">العميل:</label>
+                <select name="customerId" class="form-select" style="max-width:200px;">
+                    <option value="">الكل</option>
+                    @foreach (var cust in customers)
+                    {
+                        <option value="@cust.Id" selected="@(selectedCustomer == cust.Id)">@cust.FullName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
+                <a href="@Url.Action("Sales")" class="btn btn-secondary btn-sm ms-1"><i class="fas fa-undo"></i> إعادة تعيين</a>
+            </div>
         </form>
     </div>
 </div>
 
 <div class="row g-3 mb-3">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="stat-card green">
             <div class="stat-label">إجمالي المبيعات</div>
             <div class="stat-value">@ViewBag.TotalSales?.ToString("N3") د.ك</div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="stat-card blue">
             <div class="stat-label">عدد الفواتير</div>
             <div class="stat-value">@ViewBag.TotalCount</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="stat-card" style="border-right: 4px solid #6c757d; background:#f8f9fa;">
+            <div class="stat-label">حلاقة</div>
+            <div class="stat-value" style="font-size:1.2rem;">@ViewBag.TotalHaircut?.ToString("N3") د.ك</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="stat-card" style="border-right: 4px solid #6f42c1; background:#f8f9fa;">
+            <div class="stat-label">مساج</div>
+            <div class="stat-value" style="font-size:1.2rem;">@ViewBag.TotalMassage?.ToString("N3") د.ك</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="stat-card" style="border-right: 4px solid #fd7e14; background:#f8f9fa;">
+            <div class="stat-label">منتجات</div>
+            <div class="stat-value" style="font-size:1.2rem;">@ViewBag.TotalProducts?.ToString("N3") د.ك</div>
         </div>
     </div>
 </div>
@@ -41,7 +100,9 @@
                 <thead>
                     <tr>
                         <th>رقم الفاتورة</th>
+                        <th>النوع</th>
                         <th>العميل</th>
+                        <th>الموظف</th>
                         <th>التاريخ</th>
                         <th>الصافي</th>
                         <th>الدفع</th>
@@ -53,7 +114,22 @@
                     {
                         <tr>
                             <td>@s.InvoiceNumber</td>
+                            <td>
+                                @if (s.SaleType == "حلاقة")
+                                {
+                                    <span class="badge bg-secondary">حلاقة</span>
+                                }
+                                else if (s.SaleType == "مساج")
+                                {
+                                    <span class="badge" style="background:#6f42c1;">مساج</span>
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background:#fd7e14;">منتجات</span>
+                                }
+                            </td>
                             <td>@(s.Customer?.FullName ?? "زائر")</td>
+                            <td>@(s.Employee?.FullName ?? "-")</td>
                             <td>@s.SaleDate.ToString("yyyy/MM/dd")</td>
                             <td><strong>@s.NetAmount.ToString("N3") د.ك</strong></td>
                             <td>@s.PaymentMethod</td>
@@ -62,7 +138,7 @@
                     }
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="6" class="text-center text-muted py-4">لا توجد مبيعات في هذه الفترة</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted py-4">لا توجد مبيعات في هذه الفترة</td></tr>
                     }
                 </tbody>
             </table>
