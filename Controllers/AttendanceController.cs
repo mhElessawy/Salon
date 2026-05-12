@@ -168,21 +168,7 @@ namespace Salon.Controllers
             return View(model);
         }
 
-        // Inline update of queue position from the Index page.
-        [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateQueue(int id, int position, string? returnDate)
-        {
-            var record = await _context.Attendances.FindAsync(id);
-            if (record != null && !User.IsInRole("Employee"))
-            {
-                record.QueuePosition = position;
-                await _context.SaveChangesAsync();
-                TempData["Success"] = "تم تحديث الدور بنجاح";
-            }
-            return RedirectToAction(nameof(Index), new { date = returnDate });
-        }
-
-        [HttpPost, ValidateAntiForgeryToken]
+[HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> CheckOut(int id, string checkOutTime)
         {
             var record = await _context.Attendances.FindAsync(id);
