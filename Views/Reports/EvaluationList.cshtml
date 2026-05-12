@@ -1,10 +1,23 @@
 @model Salon.Models.EmployeeEvaluationListViewModel
 @{
     ViewData["Title"] = "تقييم جميع الموظفين";
-    var rows    = Model.Rows;
+    var rows        = Model.Rows;
     var haircutRows = rows.Where(r => r.Employee.Department == "حلاقة").ToList();
     var massageRows = rows.Where(r => r.Employee.Department == "مساج").ToList();
-    bool showAll = string.IsNullOrEmpty(Model.Department);
+    var withAttend  = rows.Where(r => r.TotalAttendanceRecords > 0).ToList();
+
+    var groups = new List<(string Label, string Color, List<Salon.Models.EmployeeEvaluationRow> Rows)>();
+    if (!string.IsNullOrEmpty(Model.Department))
+    {
+        groups.Add((Model.Department, Model.Department == "مساج" ? "#17a2b8" : "var(--primary)", rows));
+    }
+    else
+    {
+        if (haircutRows.Any()) groups.Add(("حلاقة", "var(--primary)", haircutRows));
+        if (massageRows.Any()) groups.Add(("مساج", "#17a2b8", massageRows));
+        var otherRows = rows.Where(r => r.Employee.Department != "حلاقة" && r.Employee.Department != "مساج").ToList();
+        if (otherRows.Any()) groups.Add(("أخرى", "#6c757d", otherRows));
+    }
 }
 
 <div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
@@ -69,10 +82,7 @@ else
                     <span class="stat-label">متوسط الحضور</span>
                     <div class="stat-icon green"><i class="fas fa-calendar-check"></i></div>
                 </div>
-                <div class="stat-value">
-                    @{ var withAttend = rows.Where(r => r.TotalAttendanceRecords > 0).ToList(); }
-                    @(withAttend.Any() ? withAttend.Average(r => r.AttendancePercent).ToString("F1") : "0")%
-                </div>
+                <div class="stat-value">@(withAttend.Any() ? withAttend.Average(r => r.AttendancePercent).ToString("F1") : "0")%</div>
                 <div class="stat-sub">متوسط نسبة الحضور</div>
             </div>
         </div>
@@ -97,116 +107,99 @@ else
             </div>
         </div>
     </div>
+}
 
-    @{
-        // Groups to render: if dept filter active, just one group; else both
-        var groups = new List<(string Label, string Color, List<Salon.Models.EmployeeEvaluationRow> Rows)>();
-        if (!string.IsNullOrEmpty(Model.Department))
-        {
-            groups.Add((Model.Department, Model.Department == "مساج" ? "#17a2b8" : "var(--primary)", rows));
-        }
-        else
-        {
-            if (haircutRows.Any()) groups.Add(("حلاقة", "var(--primary)", haircutRows));
-            if (massageRows.Any()) groups.Add(("مساج", "#17a2b8", massageRows));
-            // employees with no department
-            var otherRows = rows.Where(r => r.Employee.Department != "حلاقة" && r.Employee.Department != "مساج").ToList();
-            if (otherRows.Any()) groups.Add(("أخرى", "#6c757d", otherRows));
-        }
-    }
+@foreach (var grp in groups)
+{
+    <h5 class="mb-3" style="color:@grp.Color; border-bottom:2px solid #f0f0f0; padding-bottom:8px;">
+        <i class="@(grp.Label == "حلاقة" ? "fas fa-cut" : grp.Label == "مساج" ? "fas fa-spa" : "fas fa-users") me-2"></i>
+        قسم @grp.Label
+        <span class="badge ms-2" style="background:@grp.Color; font-size:12px;">@grp.Rows.Count موظف</span>
+    </h5>
 
-    @foreach (var (label, color, groupRows) in groups)
-    {
-        <h5 class="mb-3" style="color:@color; border-bottom:2px solid #f0f0f0; padding-bottom:8px;">
-            <i class="@(label == "حلاقة" ? "fas fa-cut" : label == "مساج" ? "fas fa-spa" : "fas fa-users") me-2"></i>
-            قسم @label
-            <span class="badge ms-2" style="background:@color; font-size:12px;">@groupRows.Count موظف</span>
-        </h5>
-
-        <div class="card mb-4 table-responsive">
-            <table class="table table-hover mb-0 align-middle" style="min-width:700px;">
-                <thead style="background:#f8f9fa;">
+    <div class="card mb-4 table-responsive">
+        <table class="table table-hover mb-0 align-middle" style="min-width:700px;">
+            <thead style="background:#f8f9fa;">
+                <tr>
+                    <th style="width:200px;">الموظف</th>
+                    <th class="text-center" style="width:80px;">حاضر</th>
+                    <th class="text-center" style="width:80px;">غائب</th>
+                    <th class="text-center" style="width:80px;">إجازة</th>
+                    <th class="text-center" style="width:110px;">نسبة الحضور</th>
+                    <th class="text-center" style="width:120px;">المبيعات (د.ك)</th>
+                    <th class="text-center" style="width:90px;">الفواتير</th>
+                    <th class="text-center" style="width:120px;">متوسط الفاتورة</th>
+                    <th class="text-center" style="width:70px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in grp.Rows.OrderByDescending(r => r.TotalSales))
+                {
+                    var attPct   = row.AttendancePercent;
+                    var attColor = attPct >= 90 ? "#28a745" : attPct >= 70 ? "#ffc107" : "#dc3545";
                     <tr>
-                        <th style="width:200px;">الموظف</th>
-                        <th class="text-center" style="width:80px;">حاضر</th>
-                        <th class="text-center" style="width:80px;">غائب</th>
-                        <th class="text-center" style="width:80px;">إجازة</th>
-                        <th class="text-center" style="width:110px;">نسبة الحضور</th>
-                        <th class="text-center" style="width:120px;">المبيعات (د.ك)</th>
-                        <th class="text-center" style="width:90px;">الفواتير</th>
-                        <th class="text-center" style="width:120px;">متوسط الفاتورة</th>
-                        <th class="text-center" style="width:70px;"></th>
+                        <td>
+                            <div style="font-weight:600;">@row.Employee.FullName</div>
+                            <div style="font-size:12px; color:#6c757d;">@(row.Employee.JobTitle ?? "")</div>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-success">@row.PresentDays</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge @(row.AbsentDays > 0 ? "bg-danger" : "bg-light text-dark")">@row.AbsentDays</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge @(row.LeaveDays > 0 ? "bg-warning text-dark" : "bg-light text-dark")">@row.LeaveDays</span>
+                        </td>
+                        <td class="text-center">
+                            @if (row.TotalAttendanceRecords > 0)
+                            {
+                                <div style="font-weight:700; color:@attColor;">@attPct%</div>
+                                <div style="height:4px; background:#f0f0f0; border-radius:2px; margin-top:4px;">
+                                    <div style="height:4px; width:@(Math.Min(attPct, 100))%; background:@attColor; border-radius:2px;"></div>
+                                </div>
+                            }
+                            else
+                            {
+                                <span style="color:#adb5bd; font-size:12px;">لا يوجد</span>
+                            }
+                        </td>
+                        <td class="text-center" style="font-weight:600;">
+                            @if (row.TotalSales > 0)
+                            {
+                                <span style="color:#28a745;">@row.TotalSales.ToString("N3")</span>
+                            }
+                            else
+                            {
+                                <span style="color:#adb5bd;">0.000</span>
+                            }
+                        </td>
+                        <td class="text-center">@row.TotalTransactions</td>
+                        <td class="text-center" style="color:#6c757d;">
+                            @(row.TotalTransactions > 0 ? row.AverageSale.ToString("N3") : "—")
+                        </td>
+                        <td class="text-center">
+                            <a href="@Url.Action("EmployeeEvaluation", new { employeeId = row.Employee.Id, from = Model.DateFrom.ToString("yyyy-MM-dd"), to = Model.DateTo.ToString("yyyy-MM-dd") })"
+                               class="btn btn-outline-primary btn-sm" title="تفاصيل">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    @foreach (var row in groupRows.OrderByDescending(r => r.TotalSales))
-                    {
-                        var attPct = row.AttendancePercent;
-                        var attColor = attPct >= 90 ? "#28a745" : attPct >= 70 ? "#ffc107" : "#dc3545";
-                        <tr>
-                            <td>
-                                <div style="font-weight:600;">@row.Employee.FullName</div>
-                                <div style="font-size:12px; color:#6c757d;">@(row.Employee.JobTitle ?? "")</div>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-success">@row.PresentDays</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge @(row.AbsentDays > 0 ? "bg-danger" : "bg-light text-dark")">@row.AbsentDays</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge @(row.LeaveDays > 0 ? "bg-warning text-dark" : "bg-light text-dark")">@row.LeaveDays</span>
-                            </td>
-                            <td class="text-center">
-                                @if (row.TotalAttendanceRecords > 0)
-                                {
-                                    <div style="font-weight:700; color:@attColor;">@attPct%</div>
-                                    <div style="height:4px; background:#f0f0f0; border-radius:2px; margin-top:4px;">
-                                        <div style="height:4px; width:@attPct%; background:@attColor; border-radius:2px; max-width:100%;"></div>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <span style="color:#adb5bd; font-size:12px;">لا يوجد</span>
-                                }
-                            </td>
-                            <td class="text-center" style="font-weight:600;">
-                                @if (row.TotalSales > 0)
-                                {
-                                    <span style="color:#28a745;">@row.TotalSales.ToString("N3")</span>
-                                }
-                                else
-                                {
-                                    <span style="color:#adb5bd;">0.000</span>
-                                }
-                            </td>
-                            <td class="text-center">@row.TotalTransactions</td>
-                            <td class="text-center" style="color:#6c757d;">
-                                @(row.TotalTransactions > 0 ? row.AverageSale.ToString("N3") : "—")
-                            </td>
-                            <td class="text-center">
-                                <a href="@Url.Action("EmployeeEvaluation", new { employeeId = row.Employee.Id, from = Model.DateFrom.ToString("yyyy-MM-dd"), to = Model.DateTo.ToString("yyyy-MM-dd") })"
-                                   class="btn btn-outline-primary btn-sm" title="تفاصيل">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-                <tfoot style="background:#f8f9fa; font-weight:700;">
-                    <tr>
-                        <td>الإجمالي</td>
-                        <td class="text-center" style="color:#28a745;">@groupRows.Sum(r => r.PresentDays)</td>
-                        <td class="text-center" style="color:#dc3545;">@groupRows.Sum(r => r.AbsentDays)</td>
-                        <td class="text-center" style="color:#ffc107;">@groupRows.Sum(r => r.LeaveDays)</td>
-                        <td class="text-center">—</td>
-                        <td class="text-center" style="color:#28a745;">@groupRows.Sum(r => r.TotalSales).ToString("N3")</td>
-                        <td class="text-center">@groupRows.Sum(r => r.TotalTransactions)</td>
-                        <td class="text-center">—</td>
-                        <td></td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-    }
+                }
+            </tbody>
+            <tfoot style="background:#f8f9fa; font-weight:700;">
+                <tr>
+                    <td>الإجمالي</td>
+                    <td class="text-center" style="color:#28a745;">@grp.Rows.Sum(r => r.PresentDays)</td>
+                    <td class="text-center" style="color:#dc3545;">@grp.Rows.Sum(r => r.AbsentDays)</td>
+                    <td class="text-center" style="color:#ffc107;">@grp.Rows.Sum(r => r.LeaveDays)</td>
+                    <td class="text-center">—</td>
+                    <td class="text-center" style="color:#28a745;">@grp.Rows.Sum(r => r.TotalSales).ToString("N3")</td>
+                    <td class="text-center">@grp.Rows.Sum(r => r.TotalTransactions)</td>
+                    <td class="text-center">—</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
 }
