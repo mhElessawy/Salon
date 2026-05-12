@@ -25,30 +25,34 @@
             </div>
             <div class="col-auto">
                 <label class="form-label mb-1">النوع:</label>
-                <select name="saleType" class="form-select" style="max-width:160px;">
+                <select id="saleTypeSelect" name="saleType" class="form-select" style="max-width:160px;">
                     <option value="">الكل</option>
-                    <option value="حلاقة" selected="@(selectedType == "حلاقة")">حلاقة</option>
-                    <option value="مساج" selected="@(selectedType == "مساج")">مساج</option>
-                    <option value="منتجات" selected="@(selectedType == "منتجات")">منتجات</option>
+                    <option value="حلاقة" @(selectedType == "حلاقة" ? "selected" : "")>حلاقة</option>
+                    <option value="مساج" @(selectedType == "مساج" ? "selected" : "")>مساج</option>
+                    <option value="منتجات" @(selectedType == "منتجات" ? "selected" : "")>منتجات</option>
                 </select>
             </div>
             <div class="col-auto">
                 <label class="form-label mb-1">الموظف:</label>
-                <select name="employeeId" class="form-select" style="max-width:200px;">
+                <select id="employeeSelect" name="employeeId" class="form-select" style="max-width:200px;">
                     <option value="">الكل</option>
                     @foreach (var emp in employees)
                     {
-                        <option value="@emp.Id" selected="@(selectedEmployee == emp.Id)">@emp.FullName</option>
+                        <option value="@emp.Id"
+                                data-dept="@(emp.Department ?? "")"
+                                @(selectedEmployee == emp.Id ? "selected" : "")>@emp.FullName</option>
                     }
                 </select>
             </div>
             <div class="col-auto">
                 <label class="form-label mb-1">العميل:</label>
-                <select name="customerId" class="form-select" style="max-width:200px;">
+                <select id="customerSelect" name="customerId" class="form-select" style="max-width:200px;">
                     <option value="">الكل</option>
                     @foreach (var cust in customers)
                     {
-                        <option value="@cust.Id" selected="@(selectedCustomer == cust.Id)">@cust.FullName</option>
+                        <option value="@cust.Id"
+                                data-dept="@(cust.Department ?? "")"
+                                @(selectedCustomer == cust.Id ? "selected" : "")>@cust.FullName</option>
                     }
                 </select>
             </div>
@@ -145,3 +149,39 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+<script>
+    (function () {
+        var typeSelect = document.getElementById('saleTypeSelect');
+        var empSelect  = document.getElementById('employeeSelect');
+        var custSelect = document.getElementById('customerSelect');
+
+        function filterByType(type) {
+            filterOptions(empSelect,  type);
+            filterOptions(custSelect, type);
+        }
+
+        function filterOptions(select, type) {
+            var needsClear = false;
+            var options = select.querySelectorAll('option[data-dept]');
+            options.forEach(function (opt) {
+                var dept = opt.getAttribute('data-dept');
+                // منتجات: show all employees (no dept restriction)
+                // حلاقة/مساج: show only matching dept, or empty dept
+                var visible = !type || type === 'منتجات' || !dept || dept === type;
+                opt.hidden = !visible;
+                if (!visible && opt.selected) needsClear = true;
+            });
+            if (needsClear) select.value = '';
+        }
+
+        typeSelect.addEventListener('change', function () {
+            filterByType(this.value);
+        });
+
+        // Apply on page load for already-selected type
+        filterByType(typeSelect.value);
+    })();
+</script>
+}

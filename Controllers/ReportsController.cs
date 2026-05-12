@@ -55,6 +55,7 @@ namespace Salon.Controllers
             var sales = await query.OrderByDescending(s => s.SaleDate).ToListAsync();
 
             var employees = await _context.Employees
+                .Include(e => e.DepartmentNav)
                 .Where(e => e.IsActive)
                 .OrderBy(e => e.FullName)
                 .ToListAsync();
