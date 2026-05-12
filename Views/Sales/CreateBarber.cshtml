@@ -40,9 +40,10 @@
         }
 
         /* ---- Main Grid ---- */
+        /* RTL: first child → right, second child → left */
         .pos-wrapper {
             display: grid;
-            grid-template-columns: 1fr 300px;
+            grid-template-columns: 300px 1fr;
             gap: 14px;
             align-items: start;
         }
@@ -373,7 +374,7 @@
 
         @@media (max-width: 992px) {
             .pos-wrapper { grid-template-columns: 1fr; }
-            .pos-employees-panel { position: static; max-height: 380px; }
+            .pos-employees-panel { position: static; max-height: 360px; }
             .services-grid { grid-template-columns: repeat(2, 1fr); }
             .payment-grid { grid-template-columns: 1fr 1fr; }
         }
@@ -399,7 +400,46 @@
 
     <div class="pos-wrapper">
 
-        <!-- ═══ Left: Services Panel ═══ -->
+        <!-- ═══ RIGHT (first child in RTL): Employee Queue Panel ═══ -->
+        <div class="pos-employees-panel">
+            <div class="emp-header">
+                <i class="fas fa-user-tie"></i> الموظفين الحاضرين
+            </div>
+            <div class="emp-toggle-bar">
+                <span class="badge-locked">مقفل</span>
+                <span>توزيع تلقائي</span>
+            </div>
+            <div class="emp-list">
+                @if (!employees.Any())
+                {
+                    <div class="text-center py-4" style="color:rgba(255,255,255,.6)">
+                        <i class="fas fa-user-slash fa-2x mb-2 d-block"></i>
+                        لا يوجد موظفون حاضرون
+                    </div>
+                }
+                @foreach (var emp in employees)
+                {
+                    var qPos = queuePositions.TryGetValue(emp.Id, out var p) ? p.ToString() : "—";
+                    var tSpan = checkInTimes.TryGetValue(emp.Id, out var t) && t.HasValue ? t.Value : (TimeSpan?)null;
+                    var timeStr = tSpan.HasValue ? tSpan.Value.ToString(@"hh\:mm") : "—";
+                    var isSelected = emp.Id == autoSelectEmpId;
+                    <div class="emp-item @(isSelected ? "selected" : "")"
+                         id="emp-@emp.Id"
+                         onclick="selectEmployee(@emp.Id, this)">
+                        <div class="emp-info">
+                            <div class="emp-name">@emp.FullName</div>
+                            <div class="emp-time">
+                                <i class="fas fa-clock" style="font-size:9px"></i> @timeStr
+                            </div>
+                        </div>
+                        <div class="emp-queue-num">@qPos</div>
+                        <div class="emp-check" id="check-@emp.Id">@(isSelected ? "✓" : "")</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- ═══ LEFT (second child in RTL): Services Panel ═══ -->
         <div class="pos-services-panel">
 
             <!-- Tabs -->
@@ -494,45 +534,6 @@
                 <button type="button" class="btn btn-sm btn-success">
                     <i class="fas fa-plus me-1"></i> إضافة مرافق
                 </button>
-            </div>
-        </div>
-
-        <!-- ═══ Right: Employee Queue Panel ═══ -->
-        <div class="pos-employees-panel">
-            <div class="emp-header">
-                <i class="fas fa-user-tie"></i> الموظفين الحاضرين
-            </div>
-            <div class="emp-toggle-bar">
-                <span class="badge-locked">مقفل</span>
-                <span>توزيع تلقائي</span>
-            </div>
-            <div class="emp-list">
-                @if (!employees.Any())
-                {
-                    <div class="text-center py-4" style="color:rgba(255,255,255,.6)">
-                        <i class="fas fa-user-slash fa-2x mb-2 d-block"></i>
-                        لا يوجد موظفون حاضرون
-                    </div>
-                }
-                @foreach (var emp in employees)
-                {
-                    var qPos = queuePositions.TryGetValue(emp.Id, out var p) ? p.ToString() : "—";
-                    var tSpan = checkInTimes.TryGetValue(emp.Id, out var t) && t.HasValue ? t.Value : (TimeSpan?)null;
-                    var timeStr = tSpan.HasValue ? tSpan.Value.ToString(@"hh\:mm") : "—";
-                    var isSelected = emp.Id == autoSelectEmpId;
-                    <div class="emp-item @(isSelected ? "selected" : "")"
-                         id="emp-@emp.Id"
-                         onclick="selectEmployee(@emp.Id, this)">
-                        <div class="emp-info">
-                            <div class="emp-name">@emp.FullName</div>
-                            <div class="emp-time">
-                                <i class="fas fa-clock" style="font-size:9px"></i> @timeStr
-                            </div>
-                        </div>
-                        <div class="emp-queue-num">@qPos</div>
-                        <div class="emp-check" id="check-@emp.Id">@(isSelected ? "✓" : "")</div>
-                    </div>
-                }
             </div>
         </div>
 
