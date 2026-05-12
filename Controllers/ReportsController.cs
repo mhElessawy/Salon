@@ -84,10 +84,12 @@ namespace Salon.Controllers
             var dateTo   = string.IsNullOrEmpty(to)   ? DateTime.Today              : DateTime.Parse(to);
             var dateToExcl = dateTo.AddDays(1);
 
-            var empQuery = _context.Employees.Where(e => e.IsActive);
+            var empQuery = _context.Employees
+                .Include(e => e.DepartmentNav)
+                .Where(e => e.IsActive);
             if (!string.IsNullOrEmpty(dept))
-                empQuery = empQuery.Where(e => e.Department == dept);
-            var employees = await empQuery.OrderBy(e => e.Department).ThenBy(e => e.FullName).ToListAsync();
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == dept);
+            var employees = await empQuery.OrderBy(e => e.DepartmentNav!.Name).ThenBy(e => e.FullName).ToListAsync();
 
             var ids = employees.Select(e => e.Id).ToList();
 
