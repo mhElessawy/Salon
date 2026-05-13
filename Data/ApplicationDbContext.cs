@@ -48,6 +48,10 @@ namespace Salon.Data
                 .Property(s => s.NetAmount)
                 .HasColumnType("decimal(18,3)");
 
+            builder.Entity<Sale>()
+                .Property(s => s.EmployeeGift)
+                .HasColumnType("decimal(18,3)");
+
             builder.Entity<SaleItem>()
                 .Property(s => s.Price)
                 .HasColumnType("decimal(18,3)");
@@ -120,6 +124,10 @@ namespace Salon.Data
 
             builder.Entity<Salary>()
                 .Property(s => s.NetSalary)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<Salary>()
+                .Property(s => s.GiftAmount)
                 .HasColumnType("decimal(18,3)");
 
             builder.Entity<EmployeeAdvance>()

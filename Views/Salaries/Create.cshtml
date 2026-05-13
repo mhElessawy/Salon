@@ -52,6 +52,14 @@
                     <input type="number" name="Allowances" id="allowances" step="0.001" class="form-control" value="0" oninput="calcNet()" />
                 </div>
                 <div class="col-md-3">
+                    <label class="form-label">
+                        إجمالي الهدايا
+                        <small class="text-muted fw-normal">(من الفواتير)</small>
+                    </label>
+                    <input type="number" name="GiftAmount" id="giftAmount" step="0.001" class="form-control" value="0" oninput="calcNet()"
+                           style="background:#fff8f0;" />
+                </div>
+                <div class="col-md-3">
                     <label class="form-label">الخصومات</label>
                     <input type="number" name="Deductions" id="deductions" step="0.001" class="form-control" value="0" oninput="calcNet()" />
                 </div>
@@ -81,9 +89,10 @@
 function calcNet() {
     const basic = parseFloat(document.getElementById('basicSalary').value) || 0;
     const allow = parseFloat(document.getElementById('allowances').value) || 0;
-    const ded   = parseFloat(document.getElementById('deductions').value) || 0;
+    const gift  = parseFloat(document.getElementById('giftAmount').value)  || 0;
+    const ded   = parseFloat(document.getElementById('deductions').value)  || 0;
     const adv   = parseFloat(document.getElementById('advanceDeducted').value) || 0;
-    document.getElementById('netSalary').value = (basic + allow - ded - adv).toFixed(3);
+    document.getElementById('netSalary').value = (basic + allow + gift - ded - adv).toFixed(3);
 }
 
 async function loadSalary() {
@@ -105,6 +114,7 @@ async function loadSalary() {
 
         document.getElementById('basicSalary').value     = data.basicSalary.toFixed(3);
         document.getElementById('advanceDeducted').value = data.advanceDeducted.toFixed(3);
+        document.getElementById('giftAmount').value      = data.totalGifts.toFixed(3);
         calcNet();
 
         // إظهار تحذير إذا الشهر مدفوع مسبقاً

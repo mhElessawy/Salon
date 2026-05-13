@@ -96,10 +96,18 @@ namespace Salon.Controllers
             bool alreadyPaid = await _context.Salaries
                 .AnyAsync(s => s.EmployeeId == employeeId && s.Month == month && s.Year == year);
 
+            var totalGifts = await _context.Sales
+                .Where(s => s.EmployeeId == employeeId
+                         && s.SaleDate.Month == month
+                         && s.SaleDate.Year == year
+                         && s.EmployeeGift != null)
+                .SumAsync(s => s.EmployeeGift ?? 0);
+
             return Json(new
             {
                 basicSalary = employee.BasicSalary,
                 advanceDeducted = totalAdvances,
+                totalGifts,
                 alreadyPaid
             });
         }
@@ -123,7 +131,7 @@ namespace Salon.Controllers
                     return View(model);
                 }
 
-                model.NetSalary = model.BasicSalary + model.Allowances - model.Deductions - model.AdvanceDeducted;
+                model.NetSalary = model.BasicSalary + model.Allowances + model.GiftAmount - model.Deductions - model.AdvanceDeducted;
                 model.CreatedAt = DateTime.Now;
                 _context.Salaries.Add(model);
                 await _context.SaveChangesAsync();

@@ -47,6 +47,10 @@ namespace Salon.Models
         [Display(Name = "الحالة")]
         public string Status { get; set; } = "معلق";
 
+        [Display(Name = "إجمالي الهدايا")]
+        [DataType(DataType.Currency)]
+        public decimal GiftAmount { get; set; }
+
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
 
