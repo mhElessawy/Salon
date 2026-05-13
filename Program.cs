@@ -13,7 +13,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     if (connStr.StartsWith("Data Source=") || connStr.EndsWith(".db"))
         options.UseSqlite(connStr);
     else
-        options.UseSqlServer(connStr);
+        options.UseSqlServer(connStr, o => o.UseCompatibilityLevel(120));
 });
 
 // Add Identity
