@@ -128,7 +128,8 @@ namespace Salon.Data
 
             builder.Entity<Salary>()
                 .Property(s => s.GiftAmount)
-                .HasColumnType("decimal(18,3)");
+                .HasColumnType("decimal(18,3)")
+                .IsRequired(false);
 
             builder.Entity<EmployeeAdvance>()
                 .Property(a => a.Amount)

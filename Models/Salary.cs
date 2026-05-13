@@ -49,7 +49,7 @@ namespace Salon.Models
 
         [Display(Name = "إجمالي الهدايا")]
         [DataType(DataType.Currency)]
-        public decimal GiftAmount { get; set; }
+        public decimal? GiftAmount { get; set; }
 
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
