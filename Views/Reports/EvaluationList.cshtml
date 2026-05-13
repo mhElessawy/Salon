@@ -1,0 +1,205 @@
+﻿@model Salon.Models.EmployeeEvaluationListViewModel
+@{
+    ViewData["Title"] = "تقييم جميع الموظفين";
+    var rows        = Model.Rows;
+    var haircutRows = rows.Where(r => r.Employee.Department == "حلاقة").ToList();
+    var massageRows = rows.Where(r => r.Employee.Department == "مساج").ToList();
+    var withAttend  = rows.Where(r => r.TotalAttendanceRecords > 0).ToList();
+
+    var groups = new List<(string Label, string Color, List<Salon.Models.EmployeeEvaluationRow> Rows)>();
+    if (!string.IsNullOrEmpty(Model.Department))
+    {
+        groups.Add((Model.Department, Model.Department == "مساج" ? "#17a2b8" : "var(--primary)", rows));
+    }
+    else
+    {
+        if (haircutRows.Any()) groups.Add(("حلاقة", "var(--primary)", haircutRows));
+        if (massageRows.Any()) groups.Add(("مساج", "#17a2b8", massageRows));
+        var otherRows = rows.Where(r => r.Employee.Department != "حلاقة" && r.Employee.Department != "مساج").ToList();
+        if (otherRows.Any()) groups.Add(("أخرى", "#6c757d", otherRows));
+    }
+}
+
+<div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <h1><i class="fas fa-users-cog me-2"></i>تقييم جميع الموظفين</h1>
+    <a href="@Url.Action("EmployeeEvaluation")" class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-user-check me-1"></i>تقييم موظف واحد
+    </a>
+</div>
+
+<!-- Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label mb-1">القسم:</label>
+                <select name="dept" class="form-select" style="min-width:150px;">
+                    <option value="" @@(string.IsNullOrEmpty(Model.Department) ? "selected" : "")>الكل</option>
+                    <option value="حلاقة" @@(Model.Department == "حلاقة" ? "selected" : "")>حلاقة</option>
+                    <option value="مساج"  @@(Model.Department == "مساج"  ? "selected" : "")>مساج</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1">من:</label>
+                <input type="date" name="from" value="@Model.DateFrom.ToString("yyyy-MM-dd")" class="form-control" style="max-width:170px;" />
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1">إلى:</label>
+                <input type="date" name="to" value="@Model.DateTo.ToString("yyyy-MM-dd")" class="form-control" style="max-width:170px;" />
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> عرض</button>
+                <a href="@Url.Action("EvaluationList")" class="btn btn-secondary btn-sm ms-1"><i class="fas fa-undo"></i> إعادة تعيين</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (!rows.Any())
+{
+    <div style="text-align:center; padding:60px 20px; color:#adb5bd;">
+        <i class="fas fa-users fa-3x" style="display:block; margin-bottom:16px;"></i>
+        <h5 style="color:#6c757d;">لا يوجد موظفون نشطون في هذا القسم</h5>
+    </div>
+}
+else
+{
+    <!-- Summary cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="stat-card blue" style="padding:16px;">
+                <div class="stat-card-header">
+                    <span class="stat-label">إجمالي الموظفين</span>
+                    <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+                </div>
+                <div class="stat-value">@rows.Count</div>
+                <div class="stat-sub">موظف نشط</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card green" style="padding:16px;">
+                <div class="stat-card-header">
+                    <span class="stat-label">متوسط الحضور</span>
+                    <div class="stat-icon green"><i class="fas fa-calendar-check"></i></div>
+                </div>
+                <div class="stat-value">@(withAttend.Any() ? withAttend.Average(r => r.AttendancePercent).ToString("F1") : "0")%</div>
+                <div class="stat-sub">متوسط نسبة الحضور</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card orange" style="padding:16px;">
+                <div class="stat-card-header">
+                    <span class="stat-label">إجمالي المبيعات</span>
+                    <div class="stat-icon orange"><i class="fas fa-dollar-sign"></i></div>
+                </div>
+                <div class="stat-value" style="font-size:18px;">@rows.Sum(r => r.TotalSales).ToString("N3")</div>
+                <div class="stat-sub">د.ك</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card red" style="padding:16px;">
+                <div class="stat-card-header">
+                    <span class="stat-label">إجمالي الفواتير</span>
+                    <div class="stat-icon red"><i class="fas fa-file-invoice"></i></div>
+                </div>
+                <div class="stat-value">@rows.Sum(r => r.TotalTransactions)</div>
+                <div class="stat-sub">فاتورة</div>
+            </div>
+        </div>
+    </div>
+}
+
+@foreach (var grp in groups)
+{
+    <h5 class="mb-3" style="color:@grp.Color; border-bottom:2px solid #f0f0f0; padding-bottom:8px;">
+        <i class="@(grp.Label == "حلاقة" ? "fas fa-cut" : grp.Label == "مساج" ? "fas fa-spa" : "fas fa-users") me-2"></i>
+        قسم @grp.Label
+        <span class="badge ms-2" style="background:@grp.Color; font-size:12px;">@grp.Rows.Count موظف</span>
+    </h5>
+
+    <div class="card mb-4 table-responsive">
+        <table class="table table-hover mb-0 align-middle" style="min-width:700px;">
+            <thead style="background:#f8f9fa;">
+                <tr>
+                    <th style="width:200px;">الموظف</th>
+                    <th class="text-center" style="width:80px;">حاضر</th>
+                    <th class="text-center" style="width:80px;">غائب</th>
+                    <th class="text-center" style="width:80px;">إجازة</th>
+                    <th class="text-center" style="width:110px;">نسبة الحضور</th>
+                    <th class="text-center" style="width:120px;">المبيعات (د.ك)</th>
+                    <th class="text-center" style="width:90px;">الفواتير</th>
+                    <th class="text-center" style="width:120px;">متوسط الفاتورة</th>
+                    <th class="text-center" style="width:70px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in grp.Rows.OrderByDescending(r => r.TotalSales))
+                {
+                    var attPct   = row.AttendancePercent;
+                    var attColor = attPct >= 90 ? "#28a745" : attPct >= 70 ? "#ffc107" : "#dc3545";
+                    <tr>
+                        <td>
+                            <div style="font-weight:600;">@row.Employee.FullName</div>
+                            <div style="font-size:12px; color:#6c757d;">@(row.Employee.JobTitle ?? "")</div>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-success">@row.PresentDays</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge @(row.AbsentDays > 0 ? "bg-danger" : "bg-light text-dark")">@row.AbsentDays</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge @(row.LeaveDays > 0 ? "bg-warning text-dark" : "bg-light text-dark")">@row.LeaveDays</span>
+                        </td>
+                        <td class="text-center">
+                            @if (row.TotalAttendanceRecords > 0)
+                            {
+                                <div style="font-weight:700; color:@attColor;">@attPct%</div>
+                                <div style="height:4px; background:#f0f0f0; border-radius:2px; margin-top:4px;">
+                                    <div style="height:4px; width:@(Math.Min(attPct, 100))%; background:@attColor; border-radius:2px;"></div>
+                                </div>
+                            }
+                            else
+                            {
+                                <span style="color:#adb5bd; font-size:12px;">لا يوجد</span>
+                            }
+                        </td>
+                        <td class="text-center" style="font-weight:600;">
+                            @if (row.TotalSales > 0)
+                            {
+                                <span style="color:#28a745;">@row.TotalSales.ToString("N3")</span>
+                            }
+                            else
+                            {
+                                <span style="color:#adb5bd;">0.000</span>
+                            }
+                        </td>
+                        <td class="text-center">@row.TotalTransactions</td>
+                        <td class="text-center" style="color:#6c757d;">
+                            @(row.TotalTransactions > 0 ? row.AverageSale.ToString("N3") : "—")
+                        </td>
+                        <td class="text-center">
+                            <a href="@Url.Action("EmployeeEvaluation", new { employeeId = row.Employee.Id, from = Model.DateFrom.ToString("yyyy-MM-dd"), to = Model.DateTo.ToString("yyyy-MM-dd") })"
+                               class="btn btn-outline-primary btn-sm" title="تفاصيل">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot style="background:#f8f9fa; font-weight:700;">
+                <tr>
+                    <td>الإجمالي</td>
+                    <td class="text-center" style="color:#28a745;">@grp.Rows.Sum(r => r.PresentDays)</td>
+                    <td class="text-center" style="color:#dc3545;">@grp.Rows.Sum(r => r.AbsentDays)</td>
+                    <td class="text-center" style="color:#ffc107;">@grp.Rows.Sum(r => r.LeaveDays)</td>
+                    <td class="text-center">—</td>
+                    <td class="text-center" style="color:#28a745;">@grp.Rows.Sum(r => r.TotalSales).ToString("N3")</td>
+                    <td class="text-center">@grp.Rows.Sum(r => r.TotalTransactions)</td>
+                    <td class="text-center">—</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+}

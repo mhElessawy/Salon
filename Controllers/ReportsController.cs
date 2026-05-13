@@ -160,5 +160,122 @@ namespace Salon.Controllers
             ViewBag.SelectedEmployeeId = employeeId;
             return View(filteredList);
         }
+
+        public async Task<IActionResult> EvaluationList(string? from, string? to)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
+            DateTime dateFrom = string.IsNullOrEmpty(from)
+                ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)
+                : DateTime.Parse(from);
+            DateTime dateTo = string.IsNullOrEmpty(to)
+                ? DateTime.Today.AddDays(1)
+                : DateTime.Parse(to).AddDays(1);
+
+            var empQuery = _context.Employees
+                .Include(e => e.DepartmentNav)
+                .Where(e => e.IsActive);
+
+            if (userDept == "حلاقة")
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "حلاقة");
+            else if (userDept == "مساج")
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "مساج");
+
+            var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+
+            // Load sales and attendances in memory to avoid EF Core Contains translation issues
+            var allSales = await _context.Sales
+                .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.EmployeeId.HasValue)
+                .Select(s => new { s.EmployeeId, s.NetAmount, EmployeeGift = s.EmployeeGift ?? 0 })
+                .ToListAsync();
+
+            var allAttendances = await _context.Attendances
+                .Where(a => a.AttendanceDate >= dateFrom.Date && a.AttendanceDate < dateTo.Date)
+                .Select(a => new { a.EmployeeId, a.Status })
+                .ToListAsync();
+
+            var empIdSet = employees.Select(e => e.Id).ToHashSet();
+
+            var evaluations = employees.Select(emp => new EmployeeEvalSummary
+            {
+                Employee = emp,
+                SalesCount = allSales.Count(s => s.EmployeeId == emp.Id),
+                TotalRevenue = allSales.Where(s => s.EmployeeId == emp.Id).Sum(s => s.NetAmount),
+                TotalGifts = allSales.Where(s => s.EmployeeId == emp.Id).Sum(s => s.EmployeeGift),
+                AttendanceDays = allAttendances.Count(a => a.EmployeeId == emp.Id && a.Status == "حاضر"),
+            }).ToList();
+
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
+            ViewBag.UserDept = userDept;
+            ViewBag.TotalRevenue = evaluations.Sum(e => e.TotalRevenue);
+            ViewBag.TotalGifts = evaluations.Sum(e => e.TotalGifts);
+            ViewBag.TotalSales = evaluations.Sum(e => e.SalesCount);
+
+            return View(evaluations);
+        }
+
+        public async Task<IActionResult> EmployeeEvaluation(int? employeeId, string? from, string? to)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
+            DateTime dateFrom = string.IsNullOrEmpty(from)
+                ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)
+                : DateTime.Parse(from);
+            DateTime dateTo = string.IsNullOrEmpty(to)
+                ? DateTime.Today.AddDays(1)
+                : DateTime.Parse(to).AddDays(1);
+
+            var empQuery = _context.Employees
+                .Include(e => e.DepartmentNav)
+                .Where(e => e.IsActive);
+
+            if (userDept == "حلاقة")
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "حلاقة");
+            else if (userDept == "مساج")
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "مساج");
+
+            var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+
+            Employee? selectedEmp = employeeId.HasValue
+                ? employees.FirstOrDefault(e => e.Id == employeeId.Value)
+                : null;
+
+            List<Sale> sales = new();
+            List<Attendance> attendances = new();
+
+            if (selectedEmp != null)
+            {
+                sales = await _context.Sales
+                    .Include(s => s.SaleItems)
+                    .Where(s => s.EmployeeId == selectedEmp.Id
+                             && s.SaleDate >= dateFrom && s.SaleDate < dateTo)
+                    .OrderByDescending(s => s.SaleDate)
+                    .ToListAsync();
+
+                attendances = await _context.Attendances
+                    .Where(a => a.EmployeeId == selectedEmp.Id
+                             && a.AttendanceDate >= dateFrom.Date && a.AttendanceDate < dateTo.Date)
+                    .OrderByDescending(a => a.AttendanceDate)
+                    .ToListAsync();
+            }
+
+            ViewBag.Employees = employees;
+            ViewBag.SelectedEmployee = selectedEmp;
+            ViewBag.SelectedEmployeeId = employeeId;
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
+            ViewBag.UserDept = userDept;
+            ViewBag.TotalRevenue = sales.Sum(s => s.NetAmount);
+            ViewBag.TotalGifts = sales.Sum(s => s.EmployeeGift ?? 0);
+            ViewBag.SalesCount = sales.Count;
+            ViewBag.AttendanceDays = attendances.Count(a => a.Status == "حاضر");
+            ViewBag.Sales = sales;
+            ViewBag.Attendances = attendances;
+
+            return View();
+        }
     }
 }

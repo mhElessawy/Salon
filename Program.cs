@@ -13,7 +13,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     if (connStr.StartsWith("Data Source=") || connStr.EndsWith(".db"))
         options.UseSqlite(connStr);
     else
-        options.UseSqlServer(connStr);
+        options.UseSqlServer(connStr, o => o.UseCompatibilityLevel(120));
 });
 
 // Add Identity
@@ -104,6 +104,8 @@ using (var scope = app.Services.CreateScope())
             TryExec("ALTER TABLE Products ADD COLUMN SupplierId INTEGER NULL");
             TryExec("ALTER TABLE Products ADD COLUMN OpeningQuantity INTEGER NOT NULL DEFAULT 0");
             TryExec("ALTER TABLE Attendances ADD COLUMN QueuePosition INTEGER NULL");
+            TryExec("ALTER TABLE Sales ADD COLUMN EmployeeGift REAL NULL");
+            TryExec("ALTER TABLE Salaries ADD COLUMN GiftAmount REAL NOT NULL DEFAULT 0");
             TryExec(@"CREATE TABLE IF NOT EXISTS Suppliers (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 Name TEXT NOT NULL,
@@ -131,6 +133,8 @@ using (var scope = app.Services.CreateScope())
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Products' AND COLUMN_NAME='SupplierId') ALTER TABLE Products ADD SupplierId INT NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Products' AND COLUMN_NAME='OpeningQuantity') ALTER TABLE Products ADD OpeningQuantity INT NOT NULL DEFAULT 0");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Attendances' AND COLUMN_NAME='QueuePosition') ALTER TABLE Attendances ADD QueuePosition INT NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Sales' AND COLUMN_NAME='EmployeeGift') ALTER TABLE Sales ADD EmployeeGift DECIMAL(18,3) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='GiftAmount') ALTER TABLE Salaries ADD GiftAmount DECIMAL(18,3) NULL");
             TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='Suppliers')
                 CREATE TABLE Suppliers (Id INT IDENTITY PRIMARY KEY, Name NVARCHAR(200) NOT NULL,
                 Phone NVARCHAR(50), Email NVARCHAR(200), Address NVARCHAR(500), Notes NVARCHAR(MAX),
