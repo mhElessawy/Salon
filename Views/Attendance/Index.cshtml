@@ -185,48 +185,48 @@
 
         @if (User.IsInRole("Employee"))
         {
-                <text>
-                let checkOutClockInterval = null;
-                function updateCheckOutClock() {
-                    const d = new Date();
-                    const h = String(d.getHours()).padStart(2, '0');
-                    const m = String(d.getMinutes()).padStart(2, '0');
-                    const val = h + ':' + m;
-                    const disp = document.getElementById('checkOutTimeDisplay');
-                    if (disp) disp.textContent = val;
-                    document.getElementById('checkOutTimeHidden').value = val;
-                }
-                function confirmCheckOut(id, name) {
-                    document.getElementById('checkOutEmployeeName').textContent = name;
-                    document.getElementById('checkOutForm').action = '@Url.Action("CheckOut")/' + id;
-                    updateCheckOutClock();
-                    if (checkOutClockInterval) clearInterval(checkOutClockInterval);
-                    checkOutClockInterval = setInterval(updateCheckOutClock, 1000);
-                    new bootstrap.Modal(document.getElementById('checkOutModal')).show();
-                }
-                document.getElementById('checkOutModal').addEventListener('hidden.bs.modal', function () {
-                    if (checkOutClockInterval) { clearInterval(checkOutClockInterval); checkOutClockInterval = null; }
-                });
-                </text>
+                    <text>
+                    let checkOutClockInterval = null;
+                    function updateCheckOutClock() {
+                        const d = new Date();
+                        const h = String(d.getHours()).padStart(2, '0');
+                        const m = String(d.getMinutes()).padStart(2, '0');
+                        const val = h + ':' + m;
+                        const disp = document.getElementById('checkOutTimeDisplay');
+                        if (disp) disp.textContent = val;
+                        document.getElementById('checkOutTimeHidden').value = val;
+                    }
+                    function confirmCheckOut(id, name) {
+                        document.getElementById('checkOutEmployeeName').textContent = name;
+                        document.getElementById('checkOutForm').action = '@Url.Action("CheckOut")/' + id;
+                        updateCheckOutClock();
+                        if (checkOutClockInterval) clearInterval(checkOutClockInterval);
+                        checkOutClockInterval = setInterval(updateCheckOutClock, 1000);
+                        new bootstrap.Modal(document.getElementById('checkOutModal')).show();
+                    }
+                    document.getElementById('checkOutModal').addEventListener('hidden.bs.modal', function () {
+                        if (checkOutClockInterval) { clearInterval(checkOutClockInterval); checkOutClockInterval = null; }
+                    });
+                    </text>
         }
         else
         {
-                <text>
-                function confirmCheckOut(id, name) {
-                    document.getElementById('checkOutEmployeeName').textContent = name;
-                    document.getElementById('checkOutForm').action = '@Url.Action("CheckOut")/' + id;
-                    const now = new Date();
-                    const hh = String(now.getHours()).padStart(2, '0');
-                    const mm = String(now.getMinutes()).padStart(2, '0');
-                    const val = hh + ':' + mm;
-                    document.getElementById('checkOutTimeEditable').value = val;
-                    document.getElementById('checkOutTimeHidden').value = val;
-                    document.getElementById('checkOutTimeEditable').oninput = function () {
-                        document.getElementById('checkOutTimeHidden').value = this.value;
-                    };
-                    new bootstrap.Modal(document.getElementById('checkOutModal')).show();
-                }
-                </text>
+                    <text>
+                    function confirmCheckOut(id, name) {
+                        document.getElementById('checkOutEmployeeName').textContent = name;
+                        document.getElementById('checkOutForm').action = '@Url.Action("CheckOut")/' + id;
+                        const now = new Date();
+                        const hh = String(now.getHours()).padStart(2, '0');
+                        const mm = String(now.getMinutes()).padStart(2, '0');
+                        const val = hh + ':' + mm;
+                        document.getElementById('checkOutTimeEditable').value = val;
+                        document.getElementById('checkOutTimeHidden').value = val;
+                        document.getElementById('checkOutTimeEditable').oninput = function () {
+                            document.getElementById('checkOutTimeHidden').value = this.value;
+                        };
+                        new bootstrap.Modal(document.getElementById('checkOutModal')).show();
+                    }
+                    </text>
         }
     </script>
 }

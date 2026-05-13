@@ -97,7 +97,7 @@ namespace Salon.Controllers
                 .AnyAsync(s => s.EmployeeId == employeeId && s.Month == month && s.Year == year);
 
             var rangeStart = new DateTime(year, month, 1);
-            var rangeEnd   = rangeStart.AddMonths(1);
+            var rangeEnd = rangeStart.AddMonths(1);
             var totalGifts = await _context.Sales
                 .Where(s => s.EmployeeId == employeeId
                          && s.SaleDate >= rangeStart

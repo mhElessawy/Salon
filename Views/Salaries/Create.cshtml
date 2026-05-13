@@ -85,49 +85,49 @@
 </div>
 
 @section Scripts {
-<script>
-function calcNet() {
-    const basic = parseFloat(document.getElementById('basicSalary').value) || 0;
-    const allow = parseFloat(document.getElementById('allowances').value) || 0;
-    const gift  = parseFloat(document.getElementById('giftAmount').value)  || 0;
-    const ded   = parseFloat(document.getElementById('deductions').value)  || 0;
-    const adv   = parseFloat(document.getElementById('advanceDeducted').value) || 0;
-    document.getElementById('netSalary').value = (basic + allow + gift - ded - adv).toFixed(3);
-}
-
-async function loadSalary() {
-    const empId = document.getElementById('employeeSelect').value;
-    const month = document.getElementById('monthSelect').value;
-    const year  = document.getElementById('yearInput').value;
-    const alert = document.getElementById('alreadyPaidAlert');
-    const submitBtn = document.querySelector('button[type="submit"]');
-
-    if (!empId) {
-        alert.classList.add('d-none');
-        return;
-    }
-
-    try {
-        const res = await fetch(`/Salaries/GetEmployeeInfo?employeeId=${empId}&month=${month}&year=${year}`);
-        if (!res.ok) return;
-        const data = await res.json();
-
-        document.getElementById('basicSalary').value     = data.basicSalary.toFixed(3);
-        document.getElementById('advanceDeducted').value = data.advanceDeducted.toFixed(3);
-        document.getElementById('giftAmount').value      = data.totalGifts.toFixed(3);
-        calcNet();
-
-        // إظهار تحذير إذا الشهر مدفوع مسبقاً
-        if (data.alreadyPaid) {
-            alert.classList.remove('d-none');
-            submitBtn.disabled = true;
-        } else {
-            alert.classList.add('d-none');
-            submitBtn.disabled = false;
+    <script>
+        function calcNet() {
+            const basic = parseFloat(document.getElementById('basicSalary').value) || 0;
+            const allow = parseFloat(document.getElementById('allowances').value) || 0;
+            const gift  = parseFloat(document.getElementById('giftAmount').value)  || 0;
+            const ded   = parseFloat(document.getElementById('deductions').value)  || 0;
+            const adv   = parseFloat(document.getElementById('advanceDeducted').value) || 0;
+            document.getElementById('netSalary').value = (basic + allow + gift - ded - adv).toFixed(3);
         }
-    } catch (e) {
-        console.error('خطأ في جلب بيانات الموظف', e);
-    }
-}
-</script>
+
+        async function loadSalary() {
+            const empId = document.getElementById('employeeSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            const year  = document.getElementById('yearInput').value;
+            const alert = document.getElementById('alreadyPaidAlert');
+            const submitBtn = document.querySelector('button[type="submit"]');
+
+            if (!empId) {
+                alert.classList.add('d-none');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/Salaries/GetEmployeeInfo?employeeId=${empId}&month=${month}&year=${year}`);
+                if (!res.ok) return;
+                const data = await res.json();
+
+                document.getElementById('basicSalary').value     = data.basicSalary.toFixed(3);
+                document.getElementById('advanceDeducted').value = data.advanceDeducted.toFixed(3);
+                document.getElementById('giftAmount').value      = data.totalGifts.toFixed(3);
+                calcNet();
+
+                // إظهار تحذير إذا الشهر مدفوع مسبقاً
+                if (data.alreadyPaid) {
+                    alert.classList.remove('d-none');
+                    submitBtn.disabled = true;
+                } else {
+                    alert.classList.add('d-none');
+                    submitBtn.disabled = false;
+                }
+            } catch (e) {
+                console.error('خطأ في جلب بيانات الموظف', e);
+            }
+        }
+    </script>
 }

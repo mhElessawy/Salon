@@ -9,6 +9,8 @@
     var selectedPayment = ViewBag.SelectedPaymentMethod as string;
     var selectedEmpId = ViewBag.SelectedEmployeeId as int?;
     var employees = ViewBag.Employees as List<Employee> ?? new List<Employee>();
+    var selectedDate = ViewBag.SelectedDate as string ?? DateTime.Today.ToString("yyyy-MM-dd");
+    bool isToday = ViewBag.IsToday is bool b && b;
     var isFiltered = !string.IsNullOrEmpty(selectedSaleType) || !string.IsNullOrEmpty(selectedPayment) || selectedEmpId.HasValue;
 }
 
@@ -91,6 +93,15 @@
 <div class="card mb-3">
     <div class="card-body">
         <form method="get" action="@Url.Action("MyReport")" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">التاريخ</label>
+                <div class="input-group input-group-sm">
+                    <input type="date" id="dateInput" name="date" value="@selectedDate" class="form-control" style="max-width:160px;" />
+                    <button type="button" class="btn btn-outline-secondary" id="todayBtn" title="اليوم">
+                        <i class="fas fa-calendar-day"></i>
+                    </button>
+                </div>
+            </div>
             @if (showBarber || showMassage)
             {
                 <div class="col-auto">
@@ -142,7 +153,7 @@
                 </button>
                 @if (isFiltered)
                 {
-                    <a href="@Url.Action("MyReport")" class="btn btn-outline-secondary btn-sm">
+                    <a href="@Url.Action("MyReport", new { date = selectedDate })" class="btn btn-outline-secondary btn-sm">
                         <i class="fas fa-times me-1"></i>إلغاء
                     </a>
                 }
@@ -277,3 +288,13 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.getElementById('todayBtn').addEventListener('click', function () {
+            var today = new Date().toISOString().slice(0, 10);
+            document.getElementById('dateInput').value = today;
+            document.getElementById('dateInput').form.submit();
+        });
+    </script>
+}

@@ -168,7 +168,7 @@ namespace Salon.Controllers
             return View(model);
         }
 
-[HttpPost, ValidateAntiForgeryToken]
+        [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> CheckOut(int id, string checkOutTime)
         {
             var record = await _context.Attendances.FindAsync(id);

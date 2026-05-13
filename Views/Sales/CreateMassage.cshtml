@@ -2,176 +2,484 @@
 @{
     ViewData["Title"] = "نقطة البيع — مساج";
     var categories = ViewBag.ServiceCategories as List<Salon.Models.ServiceCategory> ?? new();
-    var employees  = ViewBag.Employees as List<Salon.Models.Employee> ?? new();
-    var isEmployee    = (bool)(ViewBag.IsEmployee ?? false);
-    var linkedEmpId   = ViewBag.LinkedEmployeeId as int?;
+    var employees = ViewBag.Employees as List<Salon.Models.Employee> ?? new();
+    var isEmployee = (bool)(ViewBag.IsEmployee ?? false);
+    var linkedEmpId = ViewBag.LinkedEmployeeId as int?;
     var queuePositions = ViewBag.EmployeeQueuePositions as Dictionary<int, int> ?? new();
-    var checkInTimes   = ViewBag.EmployeeCheckInTimes  as Dictionary<int, TimeSpan?> ?? new();
+    var checkInTimes = ViewBag.EmployeeCheckInTimes as Dictionary<int, TimeSpan?> ?? new();
 
     int onDutyEmpId = queuePositions.Any()
         ? queuePositions.OrderBy(x => x.Value).First().Key
         : 0;
 
-    var firstEmpId      = employees.FirstOrDefault()?.Id ?? 0;
+    var firstEmpId = employees.FirstOrDefault()?.Id ?? 0;
     var autoSelectEmpId = isEmployee && linkedEmpId.HasValue ? linkedEmpId.Value : firstEmpId;
 }
 
 @section Styles {
-<style>
-    :root {
-        --dept-color: #17a2b8;
-        --dept-light: #f0fbfd;
-        --emp-blue:  #2d5ba3;
-        --emp-dark:  #1b3d6e;
-        --emp-green: #219150;
-    }
+    <style>
+        :root {
+            --dept-color: #17a2b8;
+            --dept-light: #f0fbfd;
+            --emp-blue: #2d5ba3;
+            --emp-dark: #1b3d6e;
+            --emp-green: #219150;
+        }
 
-    .pos-page-header { text-align:right; margin-bottom:12px; }
-    .pos-page-header h1 { font-size:22px; font-weight:700; color:var(--text-dark); margin:0 0 2px; }
-    .pos-page-header p  { color:#6c757d; font-size:13px; margin:0; }
+        .pos-page-header {
+            text-align: right;
+            margin-bottom: 12px;
+        }
 
-    .pos-info-bar {
-        background:#fff;
-        border-radius:12px;
-        box-shadow:0 2px 10px rgba(0,0,0,.07);
-        padding:14px 16px;
-        margin-bottom:12px;
-    }
-    .pos-info-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
-    .extra-payment-bar {
-        background:#e8f4ff;
-        border-radius:8px;
-        padding:12px;
-        border:1px solid #b3d9ff;
-        margin-top:10px;
-    }
+            .pos-page-header h1 {
+                font-size: 22px;
+                font-weight: 700;
+                color: var(--text-dark);
+                margin: 0 0 2px;
+            }
 
-    /* 3-column grid (RTL: col1→right, col2→mid, col3→left) */
-    .pos-wrapper { display:grid; grid-template-columns:260px 1fr 330px; gap:12px; align-items:start; }
+            .pos-page-header p {
+                color: #6c757d;
+                font-size: 13px;
+                margin: 0;
+            }
 
-    /* ── Col 1: Employees ── */
-    .pos-employees-panel {
-        background:var(--emp-dark);
-        border-radius:12px;
-        overflow:hidden;
-        position:sticky;
-        top:70px;
-        max-height:calc(100vh - 110px);
-        display:flex;
-        flex-direction:column;
-    }
-    .emp-header {
-        background:var(--emp-dark);
-        color:#fff;
-        padding:12px 14px;
-        font-size:13px; font-weight:700;
-        display:flex; align-items:center; justify-content:flex-end; gap:8px;
-    }
-    .emp-toggle-bar {
-        background:rgba(255,255,255,.08);
-        padding:7px 14px;
-        display:flex; justify-content:space-between; align-items:center;
-        color:rgba(255,255,255,.85); font-size:12px;
-        border-bottom:1px solid rgba(255,255,255,.1);
-    }
-    .badge-locked { background:#27ae60; color:#fff; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:600; }
-    .emp-list { overflow-y:auto; flex:1; }
-    .emp-item {
-        display:flex; align-items:center;
-        padding:10px 12px;
-        border-bottom:1px solid rgba(255,255,255,.07);
-        cursor:pointer; color:#fff;
-        transition:filter .15s; gap:8px;
-        background:var(--emp-blue);
-    }
-    .emp-item.on-duty  { background:var(--emp-green); }
-    .emp-item:hover    { filter:brightness(1.12); }
-    .emp-queue-num {
-        background:rgba(0,0,0,.2); color:#fff;
-        width:26px; height:26px; border-radius:50%;
-        display:flex; align-items:center; justify-content:center;
-        font-size:11px; font-weight:700; flex-shrink:0;
-    }
-    .emp-info { flex:1; text-align:right; }
-    .emp-name  { font-size:13px; font-weight:600; }
-    .emp-time  { font-size:10px; color:rgba(255,255,255,.65); display:flex; align-items:center; gap:3px; justify-content:flex-end; margin-top:1px; }
-    .emp-check { color:#fff; font-size:14px; font-weight:700; flex-shrink:0; width:16px; text-align:center; opacity:0; }
-    .emp-item.emp-selected .emp-check { opacity:1; }
+        .pos-info-bar {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.07);
+            padding: 14px 16px;
+            margin-bottom: 12px;
+        }
 
-    /* ── Col 2: Services ── */
-    .pos-services-panel {
-        background:#fff;
-        border-radius:12px;
-        box-shadow:0 2px 10px rgba(0,0,0,.07);
-        overflow:hidden; display:flex; flex-direction:column;
-    }
-.pos-search { padding:8px 10px; border-bottom:1px solid #f0f0f0; position:relative; }
-    .search-icon { position:absolute; left:20px; top:50%; transform:translateY(-50%); color:#adb5bd; font-size:13px; pointer-events:none; }
-    .pos-search input {
-        width:100%; padding:7px 10px 7px 32px;
-        border:1px solid #e9ecef; border-radius:7px;
-        font-size:13px; background:#f8f9fa; direction:rtl;
-    }
-    .pos-search input:focus { outline:none; border-color:var(--dept-color); background:#fff; }
-    .services-scroll { padding:10px; overflow-y:auto; max-height:calc(100vh - 280px); }
-    .cat-label { font-size:11px; font-weight:700; padding:2px 0 5px; border-bottom:1px solid #f0f0f0; margin-bottom:6px; }
-    .services-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:10px; }
-    .svc-card {
-        background:#fff; border:1.5px solid #e9ecef;
-        border-radius:8px; padding:8px 6px;
-        cursor:pointer; transition:all .16s; text-align:center;
-    }
-    .svc-card:hover {
-        border-color:var(--dept-color);
-        background:var(--dept-light);
-        transform:translateY(-1px);
-        box-shadow:0 2px 8px rgba(23,162,184,.15);
-    }
-    .svc-name  { font-size:11px; font-weight:600; color:#333; margin-bottom:4px; line-height:1.3; }
-    .svc-price { font-size:11px; font-weight:700; color:var(--dept-color); }
+        .pos-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+        }
 
-/* ── Col 3: Cart ── */
-    .pos-cart-panel {
-        background:#fff; border-radius:12px;
-        box-shadow:0 2px 10px rgba(0,0,0,.07);
-        overflow:hidden; position:sticky; top:70px;
-    }
-    .cart-header {
-        background:var(--dept-color); color:#fff;
-        padding:11px 14px;
-        display:flex; justify-content:space-between; align-items:center;
-        font-size:13px; font-weight:700;
-    }
-    .invoice-items { min-height:90px; max-height:280px; overflow-y:auto; }
-    .invoice-items table { width:100%; font-size:12px; }
-    .invoice-items thead th { background:#f8f9fa; padding:6px 8px; font-size:11px; color:#6c757d; }
-    .invoice-items tbody td { padding:6px 8px; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
-    .invoice-empty { text-align:center; padding:22px 16px; color:#adb5bd; font-size:12px; }
-    .invoice-totals { padding:10px 14px; border-top:1px solid #f0f0f0; background:#fafafa; }
-    .total-row { display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:13px; }
-    .total-row.net { font-size:15px; font-weight:700; color:var(--dept-color); border-top:2px solid #e9ecef; padding-top:8px; margin-top:4px; }
-    .discount-input { width:80px; text-align:center; border:1px dashed #ccc; border-radius:6px; padding:3px 5px; font-size:12px; }
-    .discount-input:focus { outline:none; border-color:var(--dept-color); }
-    .btn-save-invoice { width:100%; padding:12px; background:var(--dept-color); color:#fff; border:none; font-size:14px; font-weight:700; cursor:pointer; transition:background .2s; }
-    .btn-save-invoice:hover    { background:#138496; }
-    .btn-save-invoice:disabled { background:#adb5bd; cursor:not-allowed; }
+        .extra-payment-bar {
+            background: #e8f4ff;
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid #b3d9ff;
+            margin-top: 10px;
+        }
 
-    .qty-control { display:flex; align-items:center; gap:3px; }
-    .qty-btn { width:20px; height:20px; border:1px solid #dee2e6; border-radius:3px; background:#f8f9fa; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; line-height:1; }
-    .qty-btn:hover { background:var(--dept-color); color:#fff; border-color:var(--dept-color); }
-    .qty-input { width:28px; text-align:center; border:1px solid #dee2e6; border-radius:3px; font-size:12px; padding:1px; }
-    .btn-remove-item { background:none; border:none; color:#dc3545; cursor:pointer; font-size:12px; padding:2px 4px; border-radius:3px; }
-    .btn-remove-item:hover { background:#fce4ec; }
+        /* 3-column grid (RTL: col1→right, col2→mid, col3→left) */
+        .pos-wrapper {
+            display: grid;
+            grid-template-columns: 260px 1fr 330px;
+            gap: 12px;
+            align-items: start;
+        }
 
-    @@media (max-width:1100px) { .pos-wrapper { grid-template-columns:220px 1fr 300px; } }
-    @@media (max-width:900px)  {
-        .pos-wrapper { grid-template-columns:1fr; }
-        .pos-employees-panel, .pos-cart-panel { position:static; max-height:none; }
-        .services-grid { grid-template-columns:repeat(3,1fr); }
-        .pos-info-grid { grid-template-columns:1fr 1fr; }
-    }
-    @@media (max-width:576px) { .services-grid { grid-template-columns:repeat(2,1fr); } .pos-info-grid { grid-template-columns:1fr; } }
-</style>
+        /* ── Col 1: Employees ── */
+        .pos-employees-panel {
+            background: var(--emp-dark);
+            border-radius: 12px;
+            overflow: hidden;
+            position: sticky;
+            top: 70px;
+            max-height: calc(100vh - 110px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .emp-header {
+            background: var(--emp-dark);
+            color: #fff;
+            padding: 12px 14px;
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .emp-toggle-bar {
+            background: rgba(255,255,255,.08);
+            padding: 7px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: rgba(255,255,255,.85);
+            font-size: 12px;
+            border-bottom: 1px solid rgba(255,255,255,.1);
+        }
+
+        .badge-locked {
+            background: #27ae60;
+            color: #fff;
+            padding: 2px 9px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .emp-list {
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .emp-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255,255,255,.07);
+            cursor: pointer;
+            color: #fff;
+            transition: filter .15s;
+            gap: 8px;
+            background: var(--emp-blue);
+        }
+
+            .emp-item.on-duty {
+                background: var(--emp-green);
+            }
+
+            .emp-item:hover {
+                filter: brightness(1.12);
+            }
+
+        .emp-queue-num {
+            background: rgba(0,0,0,.2);
+            color: #fff;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .emp-info {
+            flex: 1;
+            text-align: right;
+        }
+
+        .emp-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .emp-time {
+            font-size: 10px;
+            color: rgba(255,255,255,.65);
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            justify-content: flex-end;
+            margin-top: 1px;
+        }
+
+        .emp-check {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            flex-shrink: 0;
+            width: 16px;
+            text-align: center;
+            opacity: 0;
+        }
+
+        .emp-item.emp-selected .emp-check {
+            opacity: 1;
+        }
+
+        /* ── Col 2: Services ── */
+        .pos-services-panel {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.07);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pos-search {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f0f0f0;
+            position: relative;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #adb5bd;
+            font-size: 13px;
+            pointer-events: none;
+        }
+
+        .pos-search input {
+            width: 100%;
+            padding: 7px 10px 7px 32px;
+            border: 1px solid #e9ecef;
+            border-radius: 7px;
+            font-size: 13px;
+            background: #f8f9fa;
+            direction: rtl;
+        }
+
+            .pos-search input:focus {
+                outline: none;
+                border-color: var(--dept-color);
+                background: #fff;
+            }
+
+        .services-scroll {
+            padding: 10px;
+            overflow-y: auto;
+            max-height: calc(100vh - 280px);
+        }
+
+        .cat-label {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 0 5px;
+            border-bottom: 1px solid #f0f0f0;
+            margin-bottom: 6px;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(4,1fr);
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .svc-card {
+            background: #fff;
+            border: 1.5px solid #e9ecef;
+            border-radius: 8px;
+            padding: 8px 6px;
+            cursor: pointer;
+            transition: all .16s;
+            text-align: center;
+        }
+
+            .svc-card:hover {
+                border-color: var(--dept-color);
+                background: var(--dept-light);
+                transform: translateY(-1px);
+                box-shadow: 0 2px 8px rgba(23,162,184,.15);
+            }
+
+        .svc-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        .svc-price {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--dept-color);
+        }
+
+        /* ── Col 3: Cart ── */
+        .pos-cart-panel {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.07);
+            overflow: hidden;
+            position: sticky;
+            top: 70px;
+        }
+
+        .cart-header {
+            background: var(--dept-color);
+            color: #fff;
+            padding: 11px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .invoice-items {
+            min-height: 90px;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+            .invoice-items table {
+                width: 100%;
+                font-size: 12px;
+            }
+
+            .invoice-items thead th {
+                background: #f8f9fa;
+                padding: 6px 8px;
+                font-size: 11px;
+                color: #6c757d;
+            }
+
+            .invoice-items tbody td {
+                padding: 6px 8px;
+                border-bottom: 1px solid #f0f0f0;
+                vertical-align: middle;
+            }
+
+        .invoice-empty {
+            text-align: center;
+            padding: 22px 16px;
+            color: #adb5bd;
+            font-size: 12px;
+        }
+
+        .invoice-totals {
+            padding: 10px 14px;
+            border-top: 1px solid #f0f0f0;
+            background: #fafafa;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 13px;
+        }
+
+            .total-row.net {
+                font-size: 15px;
+                font-weight: 700;
+                color: var(--dept-color);
+                border-top: 2px solid #e9ecef;
+                padding-top: 8px;
+                margin-top: 4px;
+            }
+
+        .discount-input {
+            width: 80px;
+            text-align: center;
+            border: 1px dashed #ccc;
+            border-radius: 6px;
+            padding: 3px 5px;
+            font-size: 12px;
+        }
+
+            .discount-input:focus {
+                outline: none;
+                border-color: var(--dept-color);
+            }
+
+        .btn-save-invoice {
+            width: 100%;
+            padding: 12px;
+            background: var(--dept-color);
+            color: #fff;
+            border: none;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .2s;
+        }
+
+            .btn-save-invoice:hover {
+                background: #138496;
+            }
+
+            .btn-save-invoice:disabled {
+                background: #adb5bd;
+                cursor: not-allowed;
+            }
+
+        .qty-control {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .qty-btn {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            background: #f8f9fa;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            line-height: 1;
+        }
+
+            .qty-btn:hover {
+                background: var(--dept-color);
+                color: #fff;
+                border-color: var(--dept-color);
+            }
+
+        .qty-input {
+            width: 28px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            font-size: 12px;
+            padding: 1px;
+        }
+
+        .btn-remove-item {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+            .btn-remove-item:hover {
+                background: #fce4ec;
+            }
+
+        @@media (max-width:1100px) {
+            .pos-wrapper {
+                grid-template-columns: 220px 1fr 300px;
+            }
+        }
+
+        @@media (max-width:900px) {
+            .pos-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            .pos-employees-panel, .pos-cart-panel {
+                position: static;
+                max-height: none;
+            }
+
+            .services-grid {
+                grid-template-columns: repeat(3,1fr);
+            }
+
+            .pos-info-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @@media (max-width:576px) {
+            .services-grid {
+                grid-template-columns: repeat(2,1fr);
+            }
+
+            .pos-info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 }
 
 <div class="pos-page-header">
@@ -272,10 +580,10 @@
                 }
                 @foreach (var emp in employees)
                 {
-                    var qPos    = queuePositions.TryGetValue(emp.Id, out var p) ? p.ToString() : "—";
-                    var tSpan   = checkInTimes.TryGetValue(emp.Id, out var t) && t.HasValue ? t.Value : (TimeSpan?)null;
+                    var qPos = queuePositions.TryGetValue(emp.Id, out var p) ? p.ToString() : "—";
+                    var tSpan = checkInTimes.TryGetValue(emp.Id, out var t) && t.HasValue ? t.Value : (TimeSpan?)null;
                     var timeStr = tSpan.HasValue ? tSpan.Value.ToString(@"hh\:mm") : "—";
-                    var isOnDuty   = emp.Id == onDutyEmpId;
+                    var isOnDuty = emp.Id == onDutyEmpId;
                     var isSelected = emp.Id == autoSelectEmpId;
                     var rowClass = "emp-item" + (isOnDuty ? " on-duty" : "") + (isSelected ? " emp-selected" : "");
                     <div class="@rowClass" id="emp-@emp.Id" onclick="selectEmployee(@emp.Id, this)">
@@ -303,7 +611,7 @@
                     <div class="text-center text-muted py-5">
                         <i class="fas fa-spa fa-3x mb-3 opacity-25"></i>
                         <p>لا توجد خدمات مساج مسجلة</p>
-                        <a href="@Url.Action("Create","Services")" class="btn btn-sm btn-outline-info">إضافة خدمة</a>
+                        <a href="@Url.Action("Create", "Services")" class="btn btn-sm btn-outline-info">إضافة خدمة</a>
                     </div>
                 }
                 @foreach (var cat in categories)
@@ -316,7 +624,7 @@
                         @foreach (var svc in cat.Services.OrderBy(s => s.Name))
                         {
                             <div class="svc-card svc-item" data-name="@svc.Name.ToLower()"
-                                 onclick="addItem(@svc.Id,'@Html.Raw(svc.Name.Replace("'","\\\'"))',@svc.Price.ToString("F3"))">
+                                 onclick="addItem(@svc.Id,'@Html.Raw(svc.Name.Replace("'", "\\\'"))',@svc.Price.ToString("F3"))">
                                 <div class="svc-name">@svc.Name</div>
                                 <div class="svc-price">@svc.Price.ToString("N3") د.ك</div>
                             </div>
@@ -337,7 +645,11 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>الخدمة</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th></th>
+                            <th>الخدمة</th>
+                            <th>الكمية</th>
+                            <th>السعر</th>
+                            <th>الإجمالي</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody id="invoiceBody">
@@ -373,119 +685,122 @@
 </form>
 
 @section Scripts {
-<script>
-    let items = [], rowId = 0;
+    <script>
+        let items = [], rowId = 0;
 
-    @if (isEmployee && linkedEmpId.HasValue)
-    {
-        <text>
-        document.querySelectorAll('.emp-item').forEach(function(el) {
-            el.style.cursor = 'default'; el.onclick = null;
-        });
-        </text>
-    }
+        @if (isEmployee && linkedEmpId.HasValue)
+        {
+                <text>
+                document.querySelectorAll('.emp-item').forEach(function(el) {
+                    el.style.cursor = 'default'; el.onclick = null;
+                });
+                </text>
+        }
 
-    function selectEmployee(id, el) {
-        @if (isEmployee) { <text>return;</text> }
-        document.querySelectorAll('.emp-item').forEach(function(e) { e.classList.remove('emp-selected'); });
-        el.classList.add('emp-selected');
-        document.getElementById('selectedEmployeeId').value = id;
-    }
-
-
-    function addItem(id, name, price) {
-        price = parseFloat(price) || 0;
-        var ex = items.find(function(i) { return i.id === id; });
-        if (ex) { ex.qty++; ex.total = ex.qty * ex.price; updateRow(ex); }
-        else { var it = { rowId:++rowId, id:id, name:name, price:price, qty:1, total:price }; items.push(it); renderRow(it); }
-        document.getElementById('emptyRow').style.display = 'none';
-        document.getElementById('saveBtn').disabled = false;
-        recalc();
-    }
-    function renderRow(it) {
-        var tr = document.createElement('tr'); tr.id = 'row-' + it.rowId;
-        tr.innerHTML = buildHtml(it); document.getElementById('invoiceBody').appendChild(tr);
-    }
-    function updateRow(it) { var tr = document.getElementById('row-' + it.rowId); if (tr) tr.innerHTML = buildHtml(it); }
-    function buildHtml(it) {
-        return '<td>' + it.name + '</td>' +
-            '<td><div class="qty-control">' +
-            '<button type="button" class="qty-btn" onclick="chQty(' + it.rowId + ',-1)">−</button>' +
-            '<input type="number" class="qty-input" value="' + it.qty + '" min="1" onchange="setQty(' + it.rowId + ',this.value)"/>' +
-            '<button type="button" class="qty-btn" onclick="chQty(' + it.rowId + ',1)">+</button>' +
-            '</div></td>' +
-            '<td>' + it.price.toFixed(3) + '</td>' +
-            '<td><strong>' + it.total.toFixed(3) + '</strong></td>' +
-            '<td><button type="button" class="btn-remove-item" onclick="removeItem(' + it.rowId + ')"><i class="fas fa-times"></i></button></td>';
-    }
-    function chQty(rid, d) {
-        var it = items.find(function(i) { return i.rowId === rid; }); if (!it) return;
-        var n = it.qty + d; if (n < 1) { removeItem(rid); return; }
-        it.qty = n; it.total = it.qty * it.price; updateRow(it); recalc();
-    }
-    function setQty(rid, v) {
-        var it = items.find(function(i) { return i.rowId === rid; }); if (!it) return;
-        it.qty = Math.max(1, parseInt(v) || 1); it.total = it.qty * it.price; updateRow(it); recalc();
-    }
-    function removeItem(rid) {
-        items = items.filter(function(i) { return i.rowId !== rid; });
-        var tr = document.getElementById('row-' + rid); if (tr) tr.remove();
-        if (!items.length) { document.getElementById('emptyRow').style.display = ''; document.getElementById('saveBtn').disabled = true; }
-        recalc();
-    }
-    function recalc() {
-        var s = items.reduce(function(a,i) { return a + i.total; }, 0);
-        var d = parseFloat(document.getElementById('discountInput').value) || 0;
-        document.getElementById('subtotalDisplay').textContent = s.toFixed(3) + ' د.ك';
-        document.getElementById('netDisplay').textContent      = Math.max(0, s - d).toFixed(3) + ' د.ك';
-    }
-    function filterItems(q) {
-        q = q.toLowerCase();
-        document.querySelectorAll('.svc-item').forEach(function(c) {
-            c.style.display = (!q || c.dataset.name.includes(q)) ? '' : 'none';
-        });
-    }
-    function onPaymentChange() {
-        var pm = document.getElementById('paymentMethodSelect').value;
-        var extraBar = document.getElementById('extraPaymentBar');
-        var splitSection = document.getElementById('splitSection');
-        var debtEmpSection = document.getElementById('debtEmpSection');
-        var customerWarning = document.getElementById('customerDebtWarning');
-        var customerSelect  = document.getElementById('customerSelect');
-        splitSection.style.display = debtEmpSection.style.display = extraBar.style.display = 'none';
-        customerWarning.style.display = 'none'; customerSelect.required = false;
-        if (pm === 'كي نت و كاش')       { extraBar.style.display = ''; splitSection.style.display = ''; }
-        else if (pm === 'دين على العميل') { customerWarning.style.display = ''; customerSelect.required = true; }
-        else if (pm === 'دين على الموظف') { extraBar.style.display = ''; debtEmpSection.style.display = ''; }
-    }
-    function validateSplit() {
-        var cash = parseFloat(document.getElementById('cashAmountInput').value) || 0;
-        var link = parseFloat(document.getElementById('linkAmountInput').value) || 0;
-        document.getElementById('splitStatus').textContent = 'المجموع: ' + (cash + link).toFixed(3) + ' د.ك';
-    }
-
-    document.getElementById('posForm').addEventListener('submit', function(e) {
-        if (!items.length) { e.preventDefault(); return; }
-        var empId = document.getElementById('selectedEmployeeId').value;
-        if (!empId) { e.preventDefault(); alert('يرجى اختيار المعالج أولاً'); return; }
-        var pm = document.getElementById('paymentMethodSelect').value;
-        if (pm === 'دين على العميل') {
-            if (!document.getElementById('customerSelect').value) {
-                e.preventDefault(); alert('طريقة الدفع "دين على العميل" تتطلب اختيار عميل مسجل'); return;
+        function selectEmployee(id, el) {
+            @if (isEmployee)
+            {
+                <text>return;</text>
             }
+            document.querySelectorAll('.emp-item').forEach(function(e) { e.classList.remove('emp-selected'); });
+            el.classList.add('emp-selected');
+            document.getElementById('selectedEmployeeId').value = id;
         }
-        if (pm === 'دين على الموظف') {
-            var sel = document.getElementById('debtEmployeeSelect');
-            if (!sel || !sel.value) { e.preventDefault(); alert('يرجى اختيار الموظف المدين'); return; }
+
+
+        function addItem(id, name, price) {
+            price = parseFloat(price) || 0;
+            var ex = items.find(function(i) { return i.id === id; });
+            if (ex) { ex.qty++; ex.total = ex.qty * ex.price; updateRow(ex); }
+            else { var it = { rowId:++rowId, id:id, name:name, price:price, qty:1, total:price }; items.push(it); renderRow(it); }
+            document.getElementById('emptyRow').style.display = 'none';
+            document.getElementById('saveBtn').disabled = false;
+            recalc();
         }
-        var c = document.getElementById('hiddenItems'); c.innerHTML = '';
-        items.forEach(function(it) {
-            c.innerHTML +=
-                '<input type="hidden" name="itemIds"    value="' + it.id    + '"/>' +
-                '<input type="hidden" name="itemNames"  value="' + it.name  + '"/>' +
-                '<input type="hidden" name="itemPrices" value="' + it.price + '"/>' +
-                '<input type="hidden" name="itemQtys"   value="' + it.qty   + '"/>';
+        function renderRow(it) {
+            var tr = document.createElement('tr'); tr.id = 'row-' + it.rowId;
+            tr.innerHTML = buildHtml(it); document.getElementById('invoiceBody').appendChild(tr);
+        }
+        function updateRow(it) { var tr = document.getElementById('row-' + it.rowId); if (tr) tr.innerHTML = buildHtml(it); }
+        function buildHtml(it) {
+            return '<td>' + it.name + '</td>' +
+                '<td><div class="qty-control">' +
+                '<button type="button" class="qty-btn" onclick="chQty(' + it.rowId + ',-1)">−</button>' +
+                '<input type="number" class="qty-input" value="' + it.qty + '" min="1" onchange="setQty(' + it.rowId + ',this.value)"/>' +
+                '<button type="button" class="qty-btn" onclick="chQty(' + it.rowId + ',1)">+</button>' +
+                '</div></td>' +
+                '<td>' + it.price.toFixed(3) + '</td>' +
+                '<td><strong>' + it.total.toFixed(3) + '</strong></td>' +
+                '<td><button type="button" class="btn-remove-item" onclick="removeItem(' + it.rowId + ')"><i class="fas fa-times"></i></button></td>';
+        }
+        function chQty(rid, d) {
+            var it = items.find(function(i) { return i.rowId === rid; }); if (!it) return;
+            var n = it.qty + d; if (n < 1) { removeItem(rid); return; }
+            it.qty = n; it.total = it.qty * it.price; updateRow(it); recalc();
+        }
+        function setQty(rid, v) {
+            var it = items.find(function(i) { return i.rowId === rid; }); if (!it) return;
+            it.qty = Math.max(1, parseInt(v) || 1); it.total = it.qty * it.price; updateRow(it); recalc();
+        }
+        function removeItem(rid) {
+            items = items.filter(function(i) { return i.rowId !== rid; });
+            var tr = document.getElementById('row-' + rid); if (tr) tr.remove();
+            if (!items.length) { document.getElementById('emptyRow').style.display = ''; document.getElementById('saveBtn').disabled = true; }
+            recalc();
+        }
+        function recalc() {
+            var s = items.reduce(function(a,i) { return a + i.total; }, 0);
+            var d = parseFloat(document.getElementById('discountInput').value) || 0;
+            document.getElementById('subtotalDisplay').textContent = s.toFixed(3) + ' د.ك';
+            document.getElementById('netDisplay').textContent      = Math.max(0, s - d).toFixed(3) + ' د.ك';
+        }
+        function filterItems(q) {
+            q = q.toLowerCase();
+            document.querySelectorAll('.svc-item').forEach(function(c) {
+                c.style.display = (!q || c.dataset.name.includes(q)) ? '' : 'none';
+            });
+        }
+        function onPaymentChange() {
+            var pm = document.getElementById('paymentMethodSelect').value;
+            var extraBar = document.getElementById('extraPaymentBar');
+            var splitSection = document.getElementById('splitSection');
+            var debtEmpSection = document.getElementById('debtEmpSection');
+            var customerWarning = document.getElementById('customerDebtWarning');
+            var customerSelect  = document.getElementById('customerSelect');
+            splitSection.style.display = debtEmpSection.style.display = extraBar.style.display = 'none';
+            customerWarning.style.display = 'none'; customerSelect.required = false;
+            if (pm === 'كي نت و كاش')       { extraBar.style.display = ''; splitSection.style.display = ''; }
+            else if (pm === 'دين على العميل') { customerWarning.style.display = ''; customerSelect.required = true; }
+            else if (pm === 'دين على الموظف') { extraBar.style.display = ''; debtEmpSection.style.display = ''; }
+        }
+        function validateSplit() {
+            var cash = parseFloat(document.getElementById('cashAmountInput').value) || 0;
+            var link = parseFloat(document.getElementById('linkAmountInput').value) || 0;
+            document.getElementById('splitStatus').textContent = 'المجموع: ' + (cash + link).toFixed(3) + ' د.ك';
+        }
+
+        document.getElementById('posForm').addEventListener('submit', function(e) {
+            if (!items.length) { e.preventDefault(); return; }
+            var empId = document.getElementById('selectedEmployeeId').value;
+            if (!empId) { e.preventDefault(); alert('يرجى اختيار المعالج أولاً'); return; }
+            var pm = document.getElementById('paymentMethodSelect').value;
+            if (pm === 'دين على العميل') {
+                if (!document.getElementById('customerSelect').value) {
+                    e.preventDefault(); alert('طريقة الدفع "دين على العميل" تتطلب اختيار عميل مسجل'); return;
+                }
+            }
+            if (pm === 'دين على الموظف') {
+                var sel = document.getElementById('debtEmployeeSelect');
+                if (!sel || !sel.value) { e.preventDefault(); alert('يرجى اختيار الموظف المدين'); return; }
+            }
+            var c = document.getElementById('hiddenItems'); c.innerHTML = '';
+            items.forEach(function(it) {
+                c.innerHTML +=
+                    '<input type="hidden" name="itemIds"    value="' + it.id    + '"/>' +
+                    '<input type="hidden" name="itemNames"  value="' + it.name  + '"/>' +
+                    '<input type="hidden" name="itemPrices" value="' + it.price + '"/>' +
+                    '<input type="hidden" name="itemQtys"   value="' + it.qty   + '"/>';
+            });
         });
-    });
-</script>
+    </script>
 }
