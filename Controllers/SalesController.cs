@@ -28,6 +28,8 @@ namespace Salon.Controllers
 
             var user = await _userManager.GetUserAsync(User);
             var userDept = user?.UserDepartment;
+            var roles = await _userManager.GetRolesAsync(user!);
+            var isEmployee = roles.Contains("Employee");
 
             var query = _context.Sales
                 .Include(s => s.Customer)
@@ -41,6 +43,10 @@ namespace Salon.Controllers
             else if (userDept == "حلاقة")
                 query = query.Where(s => s.SaleType != "مساج");
 
+            // Employees see only their own invoices
+            if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
+                query = query.Where(s => s.EmployeeId == user.LinkedEmployeeId!.Value);
+
             if (!string.IsNullOrEmpty(type))
                 query = query.Where(s => s.SaleType == type);
 
@@ -50,6 +56,7 @@ namespace Salon.Controllers
             ViewBag.FilterType = type;
             ViewBag.TotalSales = sales.Sum(s => s.NetAmount);
             ViewBag.UserDepartment = userDept;
+            ViewBag.IsEmployee = isEmployee;
             return View(sales);
         }
 
@@ -118,6 +125,11 @@ namespace Salon.Controllers
         // ===== فاتورة مبيعات منتجات (PRD-) =====
         public async Task<IActionResult> CreateProduct()
         {
+            var user = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(user!);
+            if (roles.Contains("Employee"))
+                return Forbid();
+
             await PopulateProductDropdowns();
             var sale = new Sale
             {
@@ -135,6 +147,11 @@ namespace Salon.Controllers
             decimal[]? itemPrices, int[]? itemQtys,
             string? transactionType, int? employeeRecipientId)
         {
+            var user = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(user!);
+            if (roles.Contains("Employee"))
+                return Forbid();
+
             model.SaleType = "منتجات";
 
             // ===== استهلاك موظف =====

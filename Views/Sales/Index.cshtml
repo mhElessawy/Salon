@@ -5,6 +5,7 @@
     var userDept = ViewBag.UserDepartment as string;
     bool showBarber = userDept != "مساج";
     bool showMassage = userDept != "حلاقة";
+    bool isEmployee = ViewBag.IsEmployee == true;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -25,9 +26,12 @@
                 <i class="fas fa-spa me-1"></i> فاتورة مساج
             </a>
         }
-        <a href="@Url.Action("CreateProduct")" class="btn btn-success btn-sm">
-            <i class="fas fa-box me-1"></i> فاتورة منتجات
-        </a>
+        @if (!isEmployee)
+        {
+            <a href="@Url.Action("CreateProduct")" class="btn btn-success btn-sm">
+                <i class="fas fa-box me-1"></i> فاتورة منتجات
+            </a>
+        }
     </div>
 </div>
 
