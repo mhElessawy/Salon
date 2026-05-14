@@ -24,7 +24,7 @@
                     <option value="">-- اختر موظفاً --</option>
                     @foreach (var emp in employees)
                     {
-                        <option value="@emp.Id" @(selectedEmployeeId == emp.Id ? "selected" : "")>
+                        <option value="@emp.Id" @@(selectedEmployeeId == emp.Id ? "selected" : "")>
                             @emp.FullName @(emp.Department != null ? "(" + emp.Department + ")" : "")
                         </option>
                     }
