@@ -107,6 +107,48 @@ namespace Salon.Controllers
             return View(model);
         }
 
+        public async Task<IActionResult> Report(DateTime? dateFrom, DateTime? dateTo, int? employeeId, string? status)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
+            var query = _context.EmployeeAdvances
+                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                .AsQueryable();
+
+            if (userDept == "حلاقة" || userDept == "مساج")
+                query = query.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
+
+            if (dateFrom.HasValue)
+                query = query.Where(a => a.AdvanceDate >= dateFrom.Value);
+
+            if (dateTo.HasValue)
+                query = query.Where(a => a.AdvanceDate <= dateTo.Value);
+
+            if (employeeId.HasValue)
+                query = query.Where(a => a.EmployeeId == employeeId.Value);
+
+            if (!string.IsNullOrEmpty(status))
+                query = query.Where(a => a.Status == status);
+
+            var advances = await query.OrderByDescending(a => a.AdvanceDate).ToListAsync();
+
+            var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+            if (userDept == "حلاقة" || userDept == "مساج")
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
+
+            ViewBag.Employees = (await empQuery.OrderBy(e => e.FullName).ToListAsync())
+                .Select(e => new SelectListItem { Value = e.Id.ToString(), Text = e.FullName })
+                .ToList();
+
+            ViewBag.DateFrom = dateFrom?.ToString("yyyy-MM-dd");
+            ViewBag.DateTo = dateTo?.ToString("yyyy-MM-dd");
+            ViewBag.EmployeeId = employeeId;
+            ViewBag.Status = status;
+
+            return View(advances);
+        }
+
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Approve(int id)
         {
