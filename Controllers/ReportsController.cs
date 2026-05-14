@@ -97,10 +97,11 @@ namespace Salon.Controllers
             return View(expenses);
         }
 
-        public async Task<IActionResult> MyReport(string? saleType, string? paymentMethod, int? employeeId)
+        public async Task<IActionResult> MyReport(string? saleType, string? paymentMethod, int? employeeId, string? date)
         {
-            var today = DateTime.Today;
+            var today = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
             var tomorrow = today.AddDays(1);
+            bool isToday = today == DateTime.Today;
 
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
@@ -131,11 +132,21 @@ namespace Salon.Controllers
                 .Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow)
                 .SumAsync(e => (decimal?)e.Amount) ?? 0;
 
+            var advancesQuery = _context.EmployeeAdvances
+                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow);
+
+            if (userDept == "حلاقة" || userDept == "مساج")
+                advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
+
+            var advancesToday = await advancesQuery.SumAsync(a => (decimal?)a.Amount) ?? 0;
+
             var salesToday = allSales.Sum(s => s.NetAmount);
 
             ViewBag.SalesToday = salesToday;
             ViewBag.ExpensesToday = expensesToday;
-            ViewBag.NetProfit = salesToday - expensesToday;
+            ViewBag.AdvancesToday = advancesToday;
+            ViewBag.NetProfit = salesToday - expensesToday - advancesToday;
             ViewBag.BarberSales = allSales.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount);
             ViewBag.MassageSales = allSales.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount);
             ViewBag.CashTotal = allSales.Sum(s =>
@@ -148,6 +159,8 @@ namespace Salon.Controllers
                 .Where(s => s.PaymentMethod == "دين على العميل" || s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "دين على صاحب المكان")
                 .Sum(s => s.NetAmount);
             ViewBag.Date = today.ToString("yyyy/MM/dd");
+            ViewBag.SelectedDate = today.ToString("yyyy-MM-dd");
+            ViewBag.IsToday = isToday;
             ViewBag.UserDept = userDept;
             ViewBag.Employees = allSales
                 .Where(s => s.Employee != null)
@@ -173,15 +186,16 @@ namespace Salon.Controllers
                 ? DateTime.Today.AddDays(1)
                 : DateTime.Parse(to).AddDays(1);
 
-            // Department filter: restricted users override the dept param
-            string? effectiveDept = userDept == "حلاقة" || userDept == "مساج" ? userDept : dept;
-
             var empQuery = _context.Employees
                 .Include(e => e.DepartmentNav)
                 .Where(e => e.IsActive);
 
-            if (!string.IsNullOrEmpty(effectiveDept))
-                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == effectiveDept);
+            if (userDept == "حلاقة")
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "حلاقة");
+            else if (userDept == "مساج")
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "مساج");
+            else if (!string.IsNullOrEmpty(dept))
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == dept);
 
             var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
 
@@ -200,13 +214,13 @@ namespace Salon.Controllers
             var rows = employees.Select(emp => new EmployeeEvaluationRow
             {
                 Employee = emp,
+                TotalTransactions = allSales.Count(s => s.EmployeeId == emp.Id),
+                TotalSales = allSales.Where(s => s.EmployeeId == emp.Id).Sum(s => s.NetAmount),
                 PresentDays = allAttendances.Count(a => a.EmployeeId == emp.Id && a.Status == "حاضر"),
                 AbsentDays = allAttendances.Count(a => a.EmployeeId == emp.Id && a.Status == "غائب"),
                 LeaveDays = allAttendances.Count(a => a.EmployeeId == emp.Id && a.Status == "إجازة"),
                 TotalAttendanceRecords = allAttendances.Count(a => a.EmployeeId == emp.Id),
                 PeriodDays = periodDays,
-                TotalSales = allSales.Where(s => s.EmployeeId == emp.Id).Sum(s => s.NetAmount),
-                TotalTransactions = allSales.Count(s => s.EmployeeId == emp.Id),
             }).ToList();
 
             var vm = new EmployeeEvaluationListViewModel
@@ -214,7 +228,7 @@ namespace Salon.Controllers
                 Rows = rows,
                 DateFrom = dateFrom,
                 DateTo = dateTo.AddDays(-1),
-                Department = effectiveDept,
+                Department = userDept ?? dept,
             };
 
             return View(vm);
