@@ -34,10 +34,10 @@ namespace Salon.Controllers
             var userDept = currentUser?.UserDepartment;
 
             var salesBase = _context.Sales.Where(s => s.SaleDate >= today && s.SaleDate < tomorrow);
-            if (userDept == "����")
-                salesBase = salesBase.Where(s => s.SaleType != "�����");
-            else if (userDept == "�����")
-                salesBase = salesBase.Where(s => s.SaleType != "����");
+            if (userDept == "حلاقة")
+                salesBase = salesBase.Where(s => s.SaleType != "مساج");
+            else if (userDept == "مساج")
+                salesBase = salesBase.Where(s => s.SaleType != "حلاقة");
 
             var salesToday = await salesBase.SumAsync(s => (decimal?)s.NetAmount) ?? 0;
 
@@ -51,7 +51,16 @@ namespace Salon.Controllers
                 .Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow)
                 .SumAsync(e => (decimal?)e.Amount) ?? 0;
 
-            var netProfit = salesToday - expensesToday;
+            var advancesQuery = _context.EmployeeAdvances
+                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow);
+
+            if (userDept == "حلاقة" || userDept == "مساج")
+                advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
+
+            var advancesToday = await advancesQuery.SumAsync(a => (decimal?)a.Amount) ?? 0;
+
+            var netProfit = salesToday - expensesToday - advancesToday;
 
             var newCustomersToday = await _context.Customers
                 .Where(c => c.CreatedAt >= today && c.CreatedAt < tomorrow)
@@ -91,6 +100,7 @@ namespace Salon.Controllers
                 SalesToday = salesToday,
                 CustomersToday = customersToday,
                 ExpensesToday = expensesToday,
+                AdvancesToday = advancesToday,
                 NetProfitToday = netProfit,
                 NewCustomersToday = newCustomersToday,
                 UpcomingBirthdays = birthdayList,
