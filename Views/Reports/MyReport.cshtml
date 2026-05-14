@@ -34,6 +34,13 @@
         </div>
         <div class="stat-value">@ViewBag.ExpensesToday?.ToString("N3") د.ك</div>
     </div>
+    <div class="stat-card" style="border-right:4px solid #9f1239;">
+        <div class="stat-card-header">
+            <span class="stat-label">سلف اليوم</span>
+            <div class="stat-icon" style="background:#9f1239;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-hand-holding-usd"></i></div>
+        </div>
+        <div class="stat-value" style="color:#9f1239;">@ViewBag.AdvancesToday?.ToString("N3") د.ك</div>
+    </div>
     <div class="stat-card orange">
         <div class="stat-card-header">
             <span class="stat-label">صافي الربح</span>
