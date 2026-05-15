@@ -97,6 +97,64 @@
     </div>
 }
 
+@{
+    var breakdown = ViewBag.PaymentBreakdown as IEnumerable<dynamic>;
+    var salesTotalForCheck = (decimal)(ViewBag.SalesToday ?? 0m);
+    var cashK   = (decimal)(ViewBag.CashTotal  ?? 0m);
+    var knetK   = (decimal)(ViewBag.KnetTotal  ?? 0m);
+    var debtK   = (decimal)(ViewBag.DebtTotal  ?? 0m);
+    var otherK  = salesTotalForCheck - cashK - knetK - debtK;
+    bool hasUnclassified = otherK > 0.001m;
+}
+@if (breakdown != null && breakdown.Any())
+{
+    <div class="card mb-3 border-warning">
+        <div class="card-header bg-warning bg-opacity-10 d-flex justify-content-between align-items-center py-2"
+             style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('d-none')">
+            <span class="fw-semibold small">
+                <i class="fas fa-chart-pie me-1 text-warning"></i>توزيع طرق الدفع الفعلية في قاعدة البيانات
+                @if (hasUnclassified)
+                {
+                    <span class="badge bg-danger ms-2">@otherK.ToString("N3") د.ك غير مصنّف</span>
+                }
+            </span>
+            <i class="fas fa-chevron-down small text-muted"></i>
+        </div>
+        <div class="card-body py-2 d-none">
+            <table class="table table-sm table-bordered mb-0" style="font-size:13px;">
+                <thead class="table-light">
+                    <tr><th>طريقة الدفع (كما هي في DB)</th><th>عدد الفواتير</th><th>الإجمالي</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in breakdown)
+                    {
+                        <tr>
+                            <td><code>@item.Method</code></td>
+                            <td>@item.Count</td>
+                            <td>@((decimal)item.Total).ToString("N3") د.ك</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot class="table-light fw-bold">
+                    <tr>
+                        <td>المجموع</td>
+                        <td></td>
+                        <td>@salesTotalForCheck.ToString("N3") د.ك</td>
+                    </tr>
+                </tfoot>
+            </table>
+            @if (hasUnclassified)
+            {
+                <div class="alert alert-warning mt-2 py-2 mb-0 small">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    يوجد <strong>@otherK.ToString("N3") د.ك</strong> غير مصنّف في كاش/كي نت/ديون.
+                    راجع الجدول أعلاه لمعرفة طريقة الدفع غير المعروفة وأبلغ المطور لإضافتها.
+                </div>
+            }
+        </div>
+    </div>
+}
+
 <div class="card mb-3">
     <div class="card-body">
         <form method="get" action="@Url.Action("MyReport")" class="row g-2 align-items-end">
