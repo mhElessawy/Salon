@@ -150,10 +150,10 @@ namespace Salon.Controllers
             ViewBag.BarberSales = allSales.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount);
             ViewBag.MassageSales = allSales.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount);
             ViewBag.CashTotal = allSales.Sum(s =>
-                s.PaymentMethod == "كاش" ? s.NetAmount :
+                (s.PaymentMethod == "كاش" || s.PaymentMethod == "نقدي") ? s.NetAmount :
                 s.PaymentMethod == "كي نت و كاش" ? (s.CashAmount ?? 0) : 0);
             ViewBag.KnetTotal = allSales.Sum(s =>
-                s.PaymentMethod == "كي نت" ? s.NetAmount :
+                (s.PaymentMethod == "كي نت" || s.PaymentMethod == "بطاقة" || s.PaymentMethod == "تحويل بنكي") ? s.NetAmount :
                 s.PaymentMethod == "كي نت و كاش" ? (s.LinkAmount ?? 0) : 0);
             ViewBag.DebtTotal = allSales
                 .Where(s => s.PaymentMethod == "دين على العميل" || s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "دين على صاحب المكان")
