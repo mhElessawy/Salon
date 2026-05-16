@@ -374,6 +374,54 @@
                 border-color: var(--dept-color);
             }
 
+        .payment-btn-group {
+            padding: 10px 12px 8px;
+            background: #f0fbfd;
+            border-top: 1px solid #a8e6ef;
+        }
+
+        .payment-btn-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #888;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .payment-btns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .pay-btn {
+            flex: 1 1 auto;
+            min-width: calc(33% - 6px);
+            padding: 6px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: #fff;
+            color: #555;
+            cursor: pointer;
+            transition: all .18s;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .pay-btn:hover {
+            border-color: var(--dept-color);
+            color: var(--dept-color);
+        }
+
+        .pay-btn.active {
+            background: var(--dept-color);
+            border-color: var(--dept-color);
+            color: #fff;
+        }
+
         .btn-save-invoice {
             width: 100%;
             padding: 12px;
@@ -507,15 +555,7 @@
                 </small>
             </div>
             <div>
-                <label class="form-label">طريقة الدفع</label>
-                <select asp-for="PaymentMethod" id="paymentMethodSelect" class="form-select form-select-sm" onchange="onPaymentChange()">
-                    <option>كاش</option>
-                    <option>كي نت</option>
-                    <option>كي نت و كاش</option>
-                    <option>دين على العميل</option>
-                    <option>دين على الموظف</option>
-                    <option>دين على صاحب المكان</option>
-                </select>
+                <input type="hidden" asp-for="PaymentMethod" id="paymentMethodSelect" value="كاش" />
             </div>
             <div>
                 <label class="form-label">ملاحظات</label>
@@ -676,6 +716,30 @@
                            style="border-color:#a8e6ef;width:90px;" />
                 </div>
             </div>
+            <!-- ══ Payment Method Buttons ══ -->
+            <div class="payment-btn-group">
+                <div class="payment-btn-label">طريقة الدفع</div>
+                <div class="payment-btns">
+                    <button type="button" class="pay-btn active" data-value="كاش" onclick="selectPayment(this)">
+                        <i class="fas fa-money-bill-wave"></i> كاش
+                    </button>
+                    <button type="button" class="pay-btn" data-value="كي نت" onclick="selectPayment(this)">
+                        <i class="fas fa-credit-card"></i> كي نت
+                    </button>
+                    <button type="button" class="pay-btn" data-value="كي نت و كاش" onclick="selectPayment(this)">
+                        <i class="fas fa-exchange-alt"></i> كي نت و كاش
+                    </button>
+                    <button type="button" class="pay-btn" data-value="دين على العميل" onclick="selectPayment(this)">
+                        <i class="fas fa-user-clock"></i> دين عميل
+                    </button>
+                    <button type="button" class="pay-btn" data-value="دين على الموظف" onclick="selectPayment(this)">
+                        <i class="fas fa-user-tag"></i> دين موظف
+                    </button>
+                    <button type="button" class="pay-btn" data-value="دين على صاحب المكان" onclick="selectPayment(this)">
+                        <i class="fas fa-building"></i> دين صاحب المكان
+                    </button>
+                </div>
+            </div>
             <button type="submit" class="btn-save-invoice" id="saveBtn" disabled>
                 <i class="fas fa-print me-2"></i> حفظ فاتورة المساج
             </button>
@@ -759,6 +823,12 @@
             document.querySelectorAll('.svc-item').forEach(function(c) {
                 c.style.display = (!q || c.dataset.name.includes(q)) ? '' : 'none';
             });
+        }
+        function selectPayment(btn) {
+            document.querySelectorAll('.pay-btn').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            document.getElementById('paymentMethodSelect').value = btn.dataset.value;
+            onPaymentChange();
         }
         function onPaymentChange() {
             var pm = document.getElementById('paymentMethodSelect').value;
