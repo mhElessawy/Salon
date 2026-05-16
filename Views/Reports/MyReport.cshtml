@@ -97,6 +97,16 @@
     </div>
 }
 
+@{
+    var breakdown = ViewBag.PaymentBreakdown as IEnumerable<dynamic>;
+    var salesTotalForCheck = (decimal)(ViewBag.SalesToday ?? 0m);
+    var cashK   = (decimal)(ViewBag.CashTotal  ?? 0m);
+    var knetK   = (decimal)(ViewBag.KnetTotal  ?? 0m);
+    var debtK   = (decimal)(ViewBag.DebtTotal  ?? 0m);
+    var otherK  = salesTotalForCheck - cashK - knetK - debtK;
+    bool hasUnclassified = otherK > 0.001m;
+}
+
 <div class="card mb-3">
     <div class="card-body">
         <form method="get" action="@Url.Action("MyReport")" class="row g-2 align-items-end">

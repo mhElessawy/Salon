@@ -143,6 +143,11 @@ namespace Salon.Controllers
 
             var salesToday = allSales.Sum(s => s.NetAmount);
 
+            string[] cashMethods = { "كاش", "نقدي" , "Cash" };
+            string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedMethods = { "كي نت و كاش", "مناصفة" ,"Cash & K-Net" };
+            string[] debtMethods = { "دين على العميل", "دين على الموظف", "دين على صاحب المكان", "آجل" ,"Customer Debit","Employee Debit","Owner Debit"};
+
             ViewBag.SalesToday = salesToday;
             ViewBag.ExpensesToday = expensesToday;
             ViewBag.AdvancesToday = advancesToday;
@@ -150,14 +155,21 @@ namespace Salon.Controllers
             ViewBag.BarberSales = allSales.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount);
             ViewBag.MassageSales = allSales.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount);
             ViewBag.CashTotal = allSales.Sum(s =>
-                s.PaymentMethod == "كاش" ? s.NetAmount :
-                s.PaymentMethod == "كي نت و كاش" ? (s.CashAmount ?? 0) : 0);
+                cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
             ViewBag.KnetTotal = allSales.Sum(s =>
-                s.PaymentMethod == "كي نت" ? s.NetAmount :
-                s.PaymentMethod == "كي نت و كاش" ? (s.LinkAmount ?? 0) : 0);
+                knetMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
             ViewBag.DebtTotal = allSales
-                .Where(s => s.PaymentMethod == "دين على العميل" || s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "دين على صاحب المكان")
+                .Where(s => debtMethods.Contains(s.PaymentMethod))
                 .Sum(s => s.NetAmount);
+
+            // تشخيص: تفاصيل طرق الدفع الفعلية في قاعدة البيانات
+            ViewBag.PaymentBreakdown = allSales
+                .GroupBy(s => string.IsNullOrWhiteSpace(s.PaymentMethod) ? "(غير محدد)" : s.PaymentMethod)
+                .Select(g => new { Method = g.Key, Total = g.Sum(x => x.NetAmount), Count = g.Count() })
+                .OrderByDescending(x => x.Total)
+                .ToList();
             ViewBag.Date = today.ToString("yyyy/MM/dd");
             ViewBag.SelectedDate = today.ToString("yyyy-MM-dd");
             ViewBag.IsToday = isToday;

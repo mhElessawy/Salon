@@ -69,6 +69,11 @@ namespace Salon.Services
             else if (appUser?.UserDepartment == "Õ·«ﬁ…")
                 result.Remove("MassageInvoice");
 
+            // Employees cannot create product invoices
+            var userClaims = _httpContextAccessor.HttpContext!.User;
+            if (userClaims.IsInRole("Employee"))
+                result.Remove("ProductInvoice");
+
             ctx.Items[cacheKey] = result;
             return result;
         }
