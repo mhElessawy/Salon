@@ -484,6 +484,10 @@ namespace Salon.Controllers
                 }
 
                 TempData["Success"] = $"تم إنشاء الفاتورة {model.InvoiceNumber} بنجاح";
+
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = true, invoiceId = model.Id });
+
                 return RedirectToAction(nameof(PrintInvoice), new { id = model.Id });
             }
 

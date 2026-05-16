@@ -774,6 +774,36 @@
     </div><!-- /pos-wrapper -->
 </form>
 
+<!-- ══ Print Invoice Modal ══ -->
+<div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius:12px;overflow:hidden;">
+            <div class="modal-header" style="background:#1a1a2e;color:#fff;padding:14px 20px;">
+                <h6 class="modal-title mb-0 fw-bold" id="printModalLabel">
+                    <i class="fas fa-print me-2"></i>طباعة الفاتورة
+                </h6>
+                <div class="d-flex gap-2 ms-auto">
+                    <button type="button" onclick="printInvoice()" class="btn btn-sm btn-light px-3">
+                        <i class="fas fa-print me-1"></i>طباعة
+                    </button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="closeModal()"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0" style="height:70vh;">
+                <iframe id="printFrame" style="width:100%;height:100%;border:none;" src=""></iframe>
+            </div>
+            <div class="modal-footer" style="gap:8px;justify-content:center;padding:12px;">
+                <button type="button" class="btn btn-primary px-5" onclick="printInvoice()">
+                    <i class="fas fa-print me-2"></i>طباعة
+                </button>
+                <button type="button" class="btn btn-secondary px-5" data-bs-dismiss="modal" onclick="closeModal()">
+                    <i class="fas fa-times me-2"></i>إغلاق
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
             let items = [], rowId = 0;
@@ -887,18 +917,19 @@
             }
 
             document.getElementById('posForm').addEventListener('submit', function(e) {
-                if (!items.length) { e.preventDefault(); return; }
+                e.preventDefault();
+                if (!items.length) return;
                 var empId = document.getElementById('selectedEmployeeId').value;
-                if (!empId) { e.preventDefault(); alert('يرجى اختيار الحلاق أولاً'); return; }
+                if (!empId) { alert('يرجى اختيار الحلاق أولاً'); return; }
                 var pm = document.getElementById('paymentMethodSelect').value;
                 if (pm === 'دين على العميل') {
                     if (!document.getElementById('customerSelect').value) {
-                        e.preventDefault(); alert('طريقة الدفع "دين على العميل" تتطلب اختيار عميل مسجل'); return;
+                        alert('طريقة الدفع "دين على العميل" تتطلب اختيار عميل مسجل'); return;
                     }
                 }
                 if (pm === 'دين على الموظف') {
                     var sel = document.getElementById('debtEmployeeSelect');
-                    if (!sel || !sel.value) { e.preventDefault(); alert('يرجى اختيار الموظف المدين'); return; }
+                    if (!sel || !sel.value) { alert('يرجى اختيار الموظف المدين'); return; }
                 }
                 var c = document.getElementById('hiddenItems'); c.innerHTML = '';
                 items.forEach(function(it) {
@@ -908,6 +939,60 @@
                         '<input type="hidden" name="itemPrices" value="' + it.price + '"/>' +
                         '<input type="hidden" name="itemQtys"   value="' + it.qty   + '"/>';
                 });
+
+                var saveBtn = document.getElementById('saveBtn');
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري الحفظ...';
+
+                var formData = new FormData(document.getElementById('posForm'));
+                fetch(document.getElementById('posForm').action, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        document.getElementById('printFrame').src = '/Sales/PrintInvoice/' + data.invoiceId + '?modal=1';
+                        var modal = new bootstrap.Modal(document.getElementById('printModal'));
+                        modal.show();
+                        resetForm();
+                    }
+                })
+                .catch(function() {
+                    alert('حدث خطأ أثناء الحفظ، يرجى المحاولة مرة أخرى');
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> حفظ فاتورة الحلاقة';
+                });
             });
+
+            function printInvoice() {
+                var frame = document.getElementById('printFrame');
+                frame.contentWindow.print();
+            }
+
+            function closeModal() {
+                document.getElementById('printFrame').src = '';
+            }
+
+            function resetForm() {
+                items = []; rowId = 0;
+                document.getElementById('invoiceBody').innerHTML =
+                    '<tr id="emptyRow"><td colspan="5" class="invoice-empty">' +
+                    '<i class="fas fa-hand-point-right mb-1 d-block"></i>اختر خدمة</td></tr>';
+                document.getElementById('hiddenItems').innerHTML = '';
+                document.getElementById('subtotalDisplay').textContent = '0.000 د.ك';
+                document.getElementById('netDisplay').textContent = '0.000 د.ك';
+                document.getElementById('discountInput').value = '0';
+                document.getElementById('giftInput').value = '';
+                document.getElementById('customerSelect').value = '';
+                document.getElementById('paymentMethodSelect').value = 'كاش';
+                document.querySelectorAll('.pay-btn').forEach(function(b) { b.classList.remove('active'); });
+                document.querySelector('.pay-btn[data-value="كاش"]').classList.add('active');
+                onPaymentChange();
+                var saveBtn = document.getElementById('saveBtn');
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> حفظ فاتورة الحلاقة';
+            }
     </script>
 }
