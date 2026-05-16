@@ -411,16 +411,16 @@
             white-space: nowrap;
         }
 
-        .pay-btn:hover {
-            border-color: var(--dept-color);
-            color: var(--dept-color);
-        }
+            .pay-btn:hover {
+                border-color: var(--dept-color);
+                color: var(--dept-color);
+            }
 
-        .pay-btn.active {
-            background: var(--dept-color);
-            border-color: var(--dept-color);
-            color: #fff;
-        }
+            .pay-btn.active {
+                background: var(--dept-color);
+                border-color: var(--dept-color);
+                color: #fff;
+            }
 
         .btn-save-invoice {
             width: 100%;
@@ -741,7 +741,7 @@
                 </div>
             </div>
             <button type="submit" class="btn-save-invoice" id="saveBtn" disabled>
-                <i class="fas fa-print me-2"></i> حفظ فاتورة المساج
+                <i class="fas fa-print me-2"></i> إتمام العملية
             </button>
         </div>
 
@@ -784,17 +784,17 @@
 
         @if (isEmployee && linkedEmpId.HasValue)
         {
-                <text>
-                document.querySelectorAll('.emp-item').forEach(function(el) {
-                    el.style.cursor = 'default'; el.onclick = null;
-                });
-                </text>
+                    <text>
+                    document.querySelectorAll('.emp-item').forEach(function(el) {
+                        el.style.cursor = 'default'; el.onclick = null;
+                    });
+                    </text>
         }
 
         function selectEmployee(id, el) {
             @if (isEmployee)
             {
-                <text>return;</text>
+                    <text>return;</text>
             }
             document.querySelectorAll('.emp-item').forEach(function(e) { e.classList.remove('emp-selected'); });
             el.classList.add('emp-selected');
