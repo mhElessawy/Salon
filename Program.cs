@@ -63,6 +63,12 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 
+// Email service
+var emailSettings = builder.Configuration.GetSection("EmailSettings").Get<Salon.Services.EmailSettings>()
+    ?? new Salon.Services.EmailSettings();
+builder.Services.AddSingleton(emailSettings);
+builder.Services.AddScoped<IEmailService, EmailService>();
+
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
