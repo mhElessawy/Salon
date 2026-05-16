@@ -79,8 +79,8 @@
         }
 
         /* ════════════════════════════════════════
-               COLUMN 1 (RIGHT in RTL) — Employees
-            ════════════════════════════════════════ */
+                       COLUMN 1 (RIGHT in RTL) — Employees
+                    ════════════════════════════════════════ */
         .pos-employees-panel {
             background: var(--emp-dark);
             border-radius: 12px;
@@ -198,8 +198,8 @@
         }
 
         /* ════════════════════════════════════════
-               COLUMN 2 (MIDDLE) — Services
-            ════════════════════════════════════════ */
+                       COLUMN 2 (MIDDLE) — Services
+                    ════════════════════════════════════════ */
         .pos-services-panel {
             background: #fff;
             border-radius: 12px;
@@ -294,8 +294,8 @@
         }
 
         /* ════════════════════════════════════════
-               COLUMN 3 (LEFT in RTL) — Cart / Invoice
-            ════════════════════════════════════════ */
+                       COLUMN 3 (LEFT in RTL) — Cart / Invoice
+                    ════════════════════════════════════════ */
         .pos-cart-panel {
             background: #fff;
             border-radius: 12px;
@@ -382,6 +382,54 @@
             .discount-input:focus {
                 outline: none;
                 border-color: var(--dept-color);
+            }
+
+        .payment-btn-group {
+            padding: 10px 12px 8px;
+            background: #fff8f0;
+            border-top: 1px solid #f0d090;
+        }
+
+        .payment-btn-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #888;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .payment-btns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .pay-btn {
+            flex: 1 1 auto;
+            min-width: calc(33% - 6px);
+            padding: 6px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: #fff;
+            color: #555;
+            cursor: pointer;
+            transition: all .18s;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+            .pay-btn:hover {
+                border-color: var(--dept-color);
+                color: var(--dept-color);
+            }
+
+            .pay-btn.active {
+                background: var(--dept-color);
+                border-color: var(--dept-color);
+                color: #fff;
             }
 
         .btn-save-invoice {
@@ -520,15 +568,7 @@
                 </small>
             </div>
             <div>
-                <label class="form-label">طريقة الدفع</label>
-                <select asp-for="PaymentMethod" id="paymentMethodSelect" class="form-select form-select-sm" onchange="onPaymentChange()">
-                    <option>كاش</option>
-                    <option>كي نت</option>
-                    <option>كي نت و كاش</option>
-                    <option>دين على العميل</option>
-                    <option>دين على الموظف</option>
-                    <option>دين على صاحب المكان</option>
-                </select>
+                <input type="hidden" asp-for="PaymentMethod" id="paymentMethodSelect" value="كاش" />
             </div>
             <div>
                 <label class="form-label">ملاحظات</label>
@@ -702,13 +742,67 @@
                            style="border-color:#f0d090;width:90px;" />
                 </div>
             </div>
+            <!-- ══ Payment Method Buttons ══ -->
+            <div class="payment-btn-group">
+                <div class="payment-btn-label">طريقة الدفع</div>
+                <div class="payment-btns">
+                    <button type="button" class="pay-btn active" data-value="كاش" onclick="selectPayment(this)">
+                        <i class="fas fa-money-bill-wave"></i> كاش
+                    </button>
+                    <button type="button" class="pay-btn" data-value="كي نت" onclick="selectPayment(this)">
+                        <i class="fas fa-credit-card"></i> كي نت
+                    </button>
+                    <button type="button" class="pay-btn" data-value="كي نت و كاش" onclick="selectPayment(this)">
+                        <i class="fas fa-exchange-alt"></i> كي نت و كاش
+                    </button>
+                    <button type="button" class="pay-btn" data-value="دين على العميل" onclick="selectPayment(this)">
+                        <i class="fas fa-user-clock"></i> دين على العميل
+                    </button>
+                    <button type="button" class="pay-btn" data-value="دين على الموظف" onclick="selectPayment(this)">
+                        <i class="fas fa-user-tag"></i> دين على الموظف
+                    </button>
+                    <button type="button" class="pay-btn" data-value="دين على صاحب المكان" onclick="selectPayment(this)">
+                        <i class="fas fa-building"></i> دين على صاحب المكان
+                    </button>
+                </div>
+            </div>
             <button type="submit" class="btn-save-invoice" id="saveBtn" disabled>
-                <i class="fas fa-print me-2"></i> حفظ فاتورة الحلاقة
+                <i class="fas fa-print me-2"></i> إتمام العملية
             </button>
         </div>
 
     </div><!-- /pos-wrapper -->
 </form>
+
+<!-- ══ Print Invoice Modal ══ -->
+<div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius:12px;overflow:hidden;">
+            <div class="modal-header" style="background:#1a1a2e;color:#fff;padding:14px 20px;">
+                <h6 class="modal-title mb-0 fw-bold" id="printModalLabel">
+                    <i class="fas fa-print me-2"></i>طباعة الفاتورة
+                </h6>
+                <div class="d-flex gap-2 ms-auto">
+                    <button type="button" onclick="printInvoice()" class="btn btn-sm btn-light px-3">
+                        <i class="fas fa-print me-1"></i>طباعة
+                    </button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="closeModal()"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0" style="height:70vh;">
+                <iframe id="printFrame" style="width:100%;height:100%;border:none;" src=""></iframe>
+            </div>
+            <div class="modal-footer" style="gap:8px;justify-content:center;padding:12px;">
+                <button type="button" class="btn btn-primary px-5" onclick="printInvoice()">
+                    <i class="fas fa-print me-2"></i>طباعة
+                </button>
+                <button type="button" class="btn btn-secondary px-5" data-bs-dismiss="modal" onclick="closeModal()">
+                    <i class="fas fa-times me-2"></i>إغلاق
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     <script>
@@ -716,18 +810,18 @@
 
             @if (isEmployee && linkedEmpId.HasValue)
             {
-                    <text>
-                    document.querySelectorAll('.emp-item').forEach(function(el) {
-                        el.style.cursor = 'default';
-                        el.onclick = null;
-                    });
-                    </text>
+                        <text>
+                        document.querySelectorAll('.emp-item').forEach(function(el) {
+                            el.style.cursor = 'default';
+                            el.onclick = null;
+                        });
+                        </text>
             }
 
             function selectEmployee(id, el) {
                 @if (isEmployee)
                 {
-                    <text>return;</text>
+                        <text>return;</text>
                 }
                 document.querySelectorAll('.emp-item').forEach(function(e) { e.classList.remove('emp-selected'); });
                 el.classList.add('emp-selected');
@@ -796,6 +890,12 @@
                     c.style.display = (!q || c.dataset.name.includes(q)) ? '' : 'none';
                 });
             }
+            function selectPayment(btn) {
+                document.querySelectorAll('.pay-btn').forEach(function(b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                document.getElementById('paymentMethodSelect').value = btn.dataset.value;
+                onPaymentChange();
+            }
             function onPaymentChange() {
                 var pm = document.getElementById('paymentMethodSelect').value;
                 var extraBar       = document.getElementById('extraPaymentBar');
@@ -817,18 +917,19 @@
             }
 
             document.getElementById('posForm').addEventListener('submit', function(e) {
-                if (!items.length) { e.preventDefault(); return; }
+                e.preventDefault();
+                if (!items.length) return;
                 var empId = document.getElementById('selectedEmployeeId').value;
-                if (!empId) { e.preventDefault(); alert('يرجى اختيار الحلاق أولاً'); return; }
+                if (!empId) { alert('يرجى اختيار الحلاق أولاً'); return; }
                 var pm = document.getElementById('paymentMethodSelect').value;
                 if (pm === 'دين على العميل') {
                     if (!document.getElementById('customerSelect').value) {
-                        e.preventDefault(); alert('طريقة الدفع "دين على العميل" تتطلب اختيار عميل مسجل'); return;
+                        alert('طريقة الدفع "دين على العميل" تتطلب اختيار عميل مسجل'); return;
                     }
                 }
                 if (pm === 'دين على الموظف') {
                     var sel = document.getElementById('debtEmployeeSelect');
-                    if (!sel || !sel.value) { e.preventDefault(); alert('يرجى اختيار الموظف المدين'); return; }
+                    if (!sel || !sel.value) { alert('يرجى اختيار الموظف المدين'); return; }
                 }
                 var c = document.getElementById('hiddenItems'); c.innerHTML = '';
                 items.forEach(function(it) {
@@ -838,6 +939,60 @@
                         '<input type="hidden" name="itemPrices" value="' + it.price + '"/>' +
                         '<input type="hidden" name="itemQtys"   value="' + it.qty   + '"/>';
                 });
+
+                var saveBtn = document.getElementById('saveBtn');
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري الحفظ...';
+
+                var formData = new FormData(document.getElementById('posForm'));
+                fetch(document.getElementById('posForm').action, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        document.getElementById('printFrame').src = '/Sales/PrintInvoice/' + data.invoiceId + '?modal=1';
+                        var modal = new bootstrap.Modal(document.getElementById('printModal'));
+                        modal.show();
+                        resetForm();
+                    }
+                })
+                .catch(function() {
+                    alert('حدث خطأ أثناء الحفظ، يرجى المحاولة مرة أخرى');
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> حفظ فاتورة الحلاقة';
+                });
             });
+
+            function printInvoice() {
+                var frame = document.getElementById('printFrame');
+                frame.contentWindow.print();
+            }
+
+            function closeModal() {
+                document.getElementById('printFrame').src = '';
+            }
+
+            function resetForm() {
+                items = []; rowId = 0;
+                document.getElementById('invoiceBody').innerHTML =
+                    '<tr id="emptyRow"><td colspan="5" class="invoice-empty">' +
+                    '<i class="fas fa-hand-point-right mb-1 d-block"></i>اختر خدمة</td></tr>';
+                document.getElementById('hiddenItems').innerHTML = '';
+                document.getElementById('subtotalDisplay').textContent = '0.000 د.ك';
+                document.getElementById('netDisplay').textContent = '0.000 د.ك';
+                document.getElementById('discountInput').value = '0';
+                document.getElementById('giftInput').value = '';
+                document.getElementById('customerSelect').value = '';
+                document.getElementById('paymentMethodSelect').value = 'كاش';
+                document.querySelectorAll('.pay-btn').forEach(function(b) { b.classList.remove('active'); });
+                document.querySelector('.pay-btn[data-value="كاش"]').classList.add('active');
+                onPaymentChange();
+                var saveBtn = document.getElementById('saveBtn');
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> حفظ فاتورة الحلاقة';
+            }
     </script>
 }

@@ -1,4 +1,4 @@
-﻿@model Salon.Models.Sale
+﻿@model  Salon.Models.Sale
 @{
     Layout = null;
     var saleTypeIcon = Model.SaleType switch
@@ -358,20 +358,29 @@
             <span>شكراً لزيارتكم</span>
         </div>
 
-        <!-- Action Buttons (hidden on print) -->
-        <div class="action-bar">
-            <button onclick="window.print()" class="btn btn-dark px-4">
-                🖨 طباعة
-            </button>
-            <a href="@Url.Action("Index", "Sales", new { type = Model.SaleType })" class="btn btn-outline-secondary px-4">
-                رجوع للقائمة
-            </a>
-        </div>
+        <!-- Action Buttons (hidden on print, hidden in modal) -->
+        @{
+            var isModal = Context.Request.Query.ContainsKey("modal");
+        }
+        @if (!isModal)
+        {
+            <div class="action-bar">
+                <button onclick="window.print()" class="btn btn-dark px-4">
+                    🖨 طباعة
+                </button>
+                <a href="@Url.Action("Index", "Sales", new { type = Model.SaleType })" class="btn btn-outline-secondary px-4">
+                    رجوع للقائمة
+                </a>
+            </div>
+        }
 
     </div>
 
     <script>
-        window.onload = function () { window.print(); };
+        // Auto-print only when opened directly (not inside modal iframe)
+        if (!new URLSearchParams(window.location.search).get('modal')) {
+            window.onload = function () { window.print(); };
+        }
     </script>
 
 </body>
