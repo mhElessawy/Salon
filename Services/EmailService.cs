@@ -42,6 +42,9 @@ public class EmailService : IEmailService
 
         try
         {
+            _logger.LogInformation("Email: connecting to {Host}:{Port} as {Sender}",
+                _settings.SmtpHost, _settings.SmtpPort, _settings.SenderEmail);
+
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress(_settings.SenderName, _settings.SenderEmail));
             message.To.Add(MailboxAddress.Parse(_settings.NotificationEmail));
@@ -50,13 +53,17 @@ public class EmailService : IEmailService
 
             using var smtp = new SmtpClient();
             await smtp.ConnectAsync(_settings.SmtpHost, _settings.SmtpPort, SecureSocketOptions.StartTls);
+            _logger.LogInformation("Email: connected. Authenticating...");
             await smtp.AuthenticateAsync(_settings.SenderEmail, _settings.SenderPassword);
+            _logger.LogInformation("Email: authenticated. Sending to {To}", _settings.NotificationEmail);
             await smtp.SendAsync(message);
             await smtp.DisconnectAsync(true);
+            _logger.LogInformation("Email: invoice {InvoiceNumber} sent successfully", sale.InvoiceNumber);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send invoice email for {InvoiceNumber}", sale.InvoiceNumber);
+            _logger.LogError(ex, "Email FAILED for invoice {InvoiceNumber} — {Message}",
+                sale.InvoiceNumber, ex.Message);
         }
     }
 

@@ -490,14 +490,14 @@ namespace Salon.Controllers
 
                 TempData["Success"] = $"تم إنشاء الفاتورة {model.InvoiceNumber} بنجاح";
 
-                // Send email notification (fire-and-forget, never blocks the response)
+                // Send email notification (awaited but exception-safe)
                 var currentUser = await _userManager.GetUserAsync(User);
                 var cashierName = currentUser?.FullName ?? User.Identity?.Name ?? "—";
                 var saleWithItems = await _context.Sales
                     .Include(s => s.Employee)
                     .Include(s => s.SaleItems)
                     .FirstAsync(s => s.Id == model.Id);
-                _ = Task.Run(() => _emailService.SendInvoiceNotificationAsync(saleWithItems, cashierName));
+                await _emailService.SendInvoiceNotificationAsync(saleWithItems, cashierName);
 
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                     return Json(new { success = true, invoiceId = model.Id });
