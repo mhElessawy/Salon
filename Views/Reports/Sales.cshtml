@@ -77,109 +77,106 @@
     </div>
 </div>
 
-<div class="stat-cards mb-4">
-    <div class="stat-card green">
-        <div class="stat-card-header">
-            <span class="stat-label">إجمالي المبيعات</span>
-            <div class="stat-icon green"><i class="fas fa-dollar-sign"></i></div>
+<div class="stat-cards mb-3" style="grid-template-columns:repeat(7,1fr);gap:10px;">
+    <div class="stat-card green" style="padding:12px 14px;">
+        <div class="stat-card-header" style="margin-bottom:6px;">
+            <span class="stat-label" style="font-size:11px;">إجمالي المبيعات</span>
+            <div class="stat-icon green" style="width:28px;height:28px;font-size:13px;"><i class="fas fa-dollar-sign"></i></div>
         </div>
-        <div class="stat-value">@ViewBag.TotalSales?.ToString("N3") د.ك</div>
+        <div class="stat-value" style="font-size:1.05rem;">@ViewBag.TotalSales?.ToString("N3") د.ك</div>
     </div>
-    <div class="stat-card red">
-        <div class="stat-card-header">
-            <span class="stat-label">المصروفات</span>
-            <div class="stat-icon red"><i class="fas fa-shopping-bag"></i></div>
+    <div class="stat-card red" style="padding:12px 14px;">
+        <div class="stat-card-header" style="margin-bottom:6px;">
+            <span class="stat-label" style="font-size:11px;">المصروفات</span>
+            <div class="stat-icon red" style="width:28px;height:28px;font-size:13px;"><i class="fas fa-shopping-bag"></i></div>
         </div>
-        <div class="stat-value">@ViewBag.TotalExpenses?.ToString("N3") د.ك</div>
+        <div class="stat-value" style="font-size:1.05rem;">@ViewBag.TotalExpenses?.ToString("N3") د.ك</div>
     </div>
-    <div class="stat-card" style="border-right:4px solid #9f1239;">
-        <div class="stat-card-header">
-            <span class="stat-label">السلف</span>
-            <div class="stat-icon" style="background:#9f1239;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-hand-holding-usd"></i></div>
+    <div class="stat-card" style="border-right:4px solid #9f1239;padding:12px 14px;">
+        <div class="stat-card-header" style="margin-bottom:6px;">
+            <span class="stat-label" style="font-size:11px;">السلف</span>
+            <div class="stat-icon" style="background:#9f1239;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;"><i class="fas fa-hand-holding-usd"></i></div>
         </div>
-        <div class="stat-value" style="color:#9f1239;">@ViewBag.TotalAdvances?.ToString("N3") د.ك</div>
+        <div class="stat-value" style="font-size:1.05rem;color:#9f1239;">@ViewBag.TotalAdvances?.ToString("N3") د.ك</div>
     </div>
-    <div class="stat-card orange">
-        <div class="stat-card-header">
-            <span class="stat-label">صافي الربح</span>
-            <div class="stat-icon orange"><i class="fas fa-chart-line"></i></div>
+    <div class="stat-card orange" style="padding:12px 14px;">
+        <div class="stat-card-header" style="margin-bottom:6px;">
+            <span class="stat-label" style="font-size:11px;">صافي الربح</span>
+            <div class="stat-icon orange" style="width:28px;height:28px;font-size:13px;"><i class="fas fa-chart-line"></i></div>
         </div>
-        <div class="stat-value">@ViewBag.NetProfit?.ToString("N3") د.ك</div>
+        <div class="stat-value" style="font-size:1.05rem;">@ViewBag.NetProfit?.ToString("N3") د.ك</div>
     </div>
-    <div class="stat-card blue">
-        <div class="stat-card-header">
-            <span class="stat-label">عدد الفواتير</span>
-            <div class="stat-icon blue"><i class="fas fa-file-invoice"></i></div>
+    <div class="stat-card blue" style="padding:12px 14px;">
+        <div class="stat-card-header" style="margin-bottom:6px;">
+            <span class="stat-label" style="font-size:11px;">عدد الفواتير</span>
+            <div class="stat-icon blue" style="width:28px;height:28px;font-size:13px;"><i class="fas fa-file-invoice"></i></div>
         </div>
-        <div class="stat-value">@ViewBag.TotalCount</div>
+        <div class="stat-value" style="font-size:1.05rem;">@ViewBag.TotalCount</div>
+    </div>
+    <div class="stat-card" style="border-right:4px solid #0891b2;padding:12px 14px;">
+        <div class="stat-card-header" style="margin-bottom:6px;">
+            <span class="stat-label" style="font-size:11px;">كاش</span>
+            <div class="stat-icon" style="background:#0891b2;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;"><i class="fas fa-money-bill-wave"></i></div>
+        </div>
+        <div class="stat-value" style="font-size:1.05rem;">@ViewBag.CashTotal?.ToString("N3") د.ك</div>
+    </div>
+    <div class="stat-card" style="border-right:4px solid #059669;padding:12px 14px;">
+        <div class="stat-card-header" style="margin-bottom:6px;">
+            <span class="stat-label" style="font-size:11px;">كي نت</span>
+            <div class="stat-icon" style="background:#059669;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;"><i class="fas fa-credit-card"></i></div>
+        </div>
+        <div class="stat-value" style="font-size:1.05rem;">@ViewBag.KnetTotal?.ToString("N3") د.ك</div>
     </div>
 </div>
 
-<div class="stat-cards mb-4">
+<div class="stat-cards mb-4" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;">
     @if (!isMassage)
     {
-        <div class="stat-card" style="border-right:4px solid #6c757d;background:#f8f9fa;">
-            <div class="stat-card-header">
-                <span class="stat-label">حلاقة</span>
-                <div class="stat-icon" style="background:#6c757d;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-cut"></i></div>
+        <div class="stat-card" style="border-right:4px solid #6c757d;background:#f8f9fa;padding:12px 14px;">
+            <div class="stat-card-header" style="margin-bottom:6px;">
+                <span class="stat-label" style="font-size:11px;">حلاقة</span>
+                <div class="stat-icon" style="background:#6c757d;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;"><i class="fas fa-cut"></i></div>
             </div>
-            <div class="stat-value" style="font-size:1.2rem;">@ViewBag.TotalHaircut?.ToString("N3") د.ك</div>
+            <div class="stat-value" style="font-size:1.05rem;">@ViewBag.TotalHaircut?.ToString("N3") د.ك</div>
         </div>
     }
     @if (!isHaircut)
     {
-        <div class="stat-card" style="border-right:4px solid #6f42c1;background:#f8f9fa;">
-            <div class="stat-card-header">
-                <span class="stat-label">مساج</span>
-                <div class="stat-icon" style="background:#6f42c1;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-spa"></i></div>
+        <div class="stat-card" style="border-right:4px solid #6f42c1;background:#f8f9fa;padding:12px 14px;">
+            <div class="stat-card-header" style="margin-bottom:6px;">
+                <span class="stat-label" style="font-size:11px;">مساج</span>
+                <div class="stat-icon" style="background:#6f42c1;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;"><i class="fas fa-spa"></i></div>
             </div>
-            <div class="stat-value" style="font-size:1.2rem;">@ViewBag.TotalMassage?.ToString("N3") د.ك</div>
+            <div class="stat-value" style="font-size:1.05rem;">@ViewBag.TotalMassage?.ToString("N3") د.ك</div>
         </div>
     }
-    <div class="stat-card" style="border-right:4px solid #fd7e14;background:#f8f9fa;">
-        <div class="stat-card-header">
-            <span class="stat-label">منتجات</span>
-            <div class="stat-icon" style="background:#fd7e14;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-box"></i></div>
+    <div class="stat-card" style="border-right:4px solid #fd7e14;background:#f8f9fa;padding:12px 14px;">
+        <div class="stat-card-header" style="margin-bottom:6px;">
+            <span class="stat-label" style="font-size:11px;">منتجات</span>
+            <div class="stat-icon" style="background:#fd7e14;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;"><i class="fas fa-box"></i></div>
         </div>
-        <div class="stat-value" style="font-size:1.2rem;">@ViewBag.TotalProducts?.ToString("N3") د.ك</div>
+        <div class="stat-value" style="font-size:1.05rem;">@ViewBag.TotalProducts?.ToString("N3") د.ك</div>
     </div>
-    <div class="stat-card" style="border-right:4px solid #0891b2;">
-        <div class="stat-card-header">
-            <span class="stat-label">كاش</span>
-            <div class="stat-icon" style="background:#0891b2;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-money-bill-wave"></i></div>
+    <div class="stat-card" style="border-right:4px solid #dc2626;padding:12px 14px;">
+        <div class="stat-card-header" style="margin-bottom:6px;">
+            <span class="stat-label" style="font-size:11px;">دين على العميل</span>
+            <div class="stat-icon" style="background:#dc2626;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;"><i class="fas fa-user"></i></div>
         </div>
-        <div class="stat-value">@ViewBag.CashTotal?.ToString("N3") د.ك</div>
+        <div class="stat-value" style="font-size:1.05rem;color:#dc2626;">@ViewBag.CustomerDebt?.ToString("N3") د.ك</div>
     </div>
-    <div class="stat-card" style="border-right:4px solid #059669;">
-        <div class="stat-card-header">
-            <span class="stat-label">كي نت</span>
-            <div class="stat-icon" style="background:#059669;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-credit-card"></i></div>
+    <div class="stat-card" style="border-right:4px solid #b45309;padding:12px 14px;">
+        <div class="stat-card-header" style="margin-bottom:6px;">
+            <span class="stat-label" style="font-size:11px;">دين على الموظف</span>
+            <div class="stat-icon" style="background:#b45309;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;"><i class="fas fa-hard-hat"></i></div>
         </div>
-        <div class="stat-value">@ViewBag.KnetTotal?.ToString("N3") د.ك</div>
+        <div class="stat-value" style="font-size:1.05rem;color:#b45309;">@ViewBag.EmployeeDebt?.ToString("N3") د.ك</div>
     </div>
-</div>
-
-<div class="stat-cards mb-4">
-    <div class="stat-card" style="border-right:4px solid #dc2626;">
-        <div class="stat-card-header">
-            <span class="stat-label">دين على العميل</span>
-            <div class="stat-icon" style="background:#dc2626;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-user"></i></div>
+    <div class="stat-card" style="border-right:4px solid #7c3aed;padding:12px 14px;">
+        <div class="stat-card-header" style="margin-bottom:6px;">
+            <span class="stat-label" style="font-size:11px;">دين على صاحب المكان</span>
+            <div class="stat-icon" style="background:#7c3aed;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;"><i class="fas fa-building"></i></div>
         </div>
-        <div class="stat-value" style="color:#dc2626;">@ViewBag.CustomerDebt?.ToString("N3") د.ك</div>
-    </div>
-    <div class="stat-card" style="border-right:4px solid #b45309;">
-        <div class="stat-card-header">
-            <span class="stat-label">دين على الموظف</span>
-            <div class="stat-icon" style="background:#b45309;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-hard-hat"></i></div>
-        </div>
-        <div class="stat-value" style="color:#b45309;">@ViewBag.EmployeeDebt?.ToString("N3") د.ك</div>
-    </div>
-    <div class="stat-card" style="border-right:4px solid #7c3aed;">
-        <div class="stat-card-header">
-            <span class="stat-label">دين على صاحب المكان</span>
-            <div class="stat-icon" style="background:#7c3aed;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-building"></i></div>
-        </div>
-        <div class="stat-value" style="color:#7c3aed;">@ViewBag.OwnerDebt?.ToString("N3") د.ك</div>
+        <div class="stat-value" style="font-size:1.05rem;color:#7c3aed;">@ViewBag.OwnerDebt?.ToString("N3") د.ك</div>
     </div>
 </div>
 
