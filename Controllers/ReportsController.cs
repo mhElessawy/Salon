@@ -65,13 +65,28 @@ namespace Salon.Controllers
                 .OrderBy(c => c.FullName)
                 .ToListAsync();
 
+            string[] cashMethods  = { "كاش", "نقدي", "Cash" };
+            string[] knetMethods  = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
+            var completed = sales.Where(s => s.Status == "مكتمل").ToList();
+            var cancelled = sales.Where(s => s.Status != "مكتمل").ToList();
+
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
-            ViewBag.TotalSales = sales.Sum(s => s.NetAmount);
-            ViewBag.TotalCount = sales.Count;
-            ViewBag.TotalHaircut = sales.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount);
-            ViewBag.TotalMassage = sales.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount);
+            ViewBag.TotalSales  = completed.Sum(s => s.NetAmount);
+            ViewBag.TotalCount  = sales.Count;
+            ViewBag.TotalHaircut  = completed.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount);
+            ViewBag.TotalMassage  = completed.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount);
             ViewBag.TotalProducts = sales.Where(s => s.SaleType == "منتجات").Sum(s => s.NetAmount);
+            ViewBag.TotalCancelled = cancelled.Sum(s => s.NetAmount);
+            ViewBag.TotalCancelledCount = cancelled.Count;
+            ViewBag.TotalCash = completed.Sum(s =>
+                cashMethods.Contains(s.PaymentMethod)  ? s.NetAmount :
+                mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+            ViewBag.TotalKnet = completed.Sum(s =>
+                knetMethods.Contains(s.PaymentMethod)  ? s.NetAmount :
+                mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
             ViewBag.Employees = employees;
             ViewBag.Customers = customers;
             ViewBag.SelectedEmployeeId = employeeId;
