@@ -35,7 +35,6 @@ namespace Salon.Controllers
             var query = _context.Sales
                 .Include(s => s.Customer)
                 .Include(s => s.Employee)
-                .Include(s => s.SaleItems)
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo);
 
             if (userDept == "مساج")
