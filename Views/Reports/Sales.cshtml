@@ -70,6 +70,7 @@
             <div class="col-auto">
                 <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
                 <a href="@Url.Action("Sales")" class="btn btn-secondary btn-sm ms-1"><i class="fas fa-undo"></i> إعادة تعيين</a>
+                <button type="button" class="btn btn-dark btn-sm ms-1 no-print" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
             </div>
         </form>
     </div>
@@ -113,6 +114,8 @@
         </div>
     </div>
 </div>
+
+<span class="print-title">تقرير المبيعات — من: @ViewBag.From إلى: @ViewBag.To</span>
 
 <div class="card">
     <div class="card-body">
@@ -172,6 +175,26 @@
         </div>
     </div>
 </div>
+
+@section Styles {
+<style>
+    @@media print {
+        .no-print, nav, .sidebar, .page-header, .navbar, footer,
+        form, .card:first-of-type { display: none !important; }
+        body { direction: rtl; font-family: Arial, sans-serif; }
+        .card { border: none !important; box-shadow: none !important; }
+        .card-body { padding: 0 !important; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { border: 1px solid #333; padding: 5px 8px; text-align: right; }
+        thead { background-color: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .badge { border: 1px solid #999; padding: 2px 5px; border-radius: 3px; }
+        .row.g-3.mb-3 { display: flex !important; flex-wrap: wrap; margin-bottom: 10px !important; }
+        .stat-card { border: 1px solid #ccc; padding: 8px; margin: 4px; border-radius: 4px; }
+        .print-title { display: block !important; text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+    }
+    .print-title { display: none; }
+</style>
+}
 
 @section Scripts {
 <script>
