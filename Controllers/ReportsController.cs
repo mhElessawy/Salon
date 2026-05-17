@@ -203,6 +203,15 @@ namespace Salon.Controllers
             ViewBag.DebtTotal = allSales
                 .Where(s => debtMethods.Contains(s.PaymentMethod))
                 .Sum(s => s.NetAmount);
+            ViewBag.CustomerDebt = allSales
+                .Where(s => s.PaymentMethod == "دين على العميل" || s.PaymentMethod == "Customer Debit")
+                .Sum(s => s.NetAmount);
+            ViewBag.EmployeeDebt = allSales
+                .Where(s => s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "Employee Debit")
+                .Sum(s => s.NetAmount);
+            ViewBag.OwnerDebt = allSales
+                .Where(s => s.PaymentMethod == "دين على صاحب المكان" || s.PaymentMethod == "Owner Debit")
+                .Sum(s => s.NetAmount);
 
             // تشخيص: تفاصيل طرق الدفع الفعلية في قاعدة البيانات
             ViewBag.PaymentBreakdown = allSales
