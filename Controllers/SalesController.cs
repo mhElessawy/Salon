@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -13,11 +14,15 @@ namespace Salon.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IEmailService _emailService;
 
-        public SalesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public SalesController(ApplicationDbContext context,
+            UserManager<ApplicationUser> userManager,
+            IEmailService emailService)
         {
             _context = context;
             _userManager = userManager;
+            _emailService = emailService;
         }
 
         // ===== قائمة الفواتير =====
@@ -484,6 +489,15 @@ namespace Salon.Controllers
                 }
 
                 TempData["Success"] = $"تم إنشاء الفاتورة {model.InvoiceNumber} بنجاح";
+
+                // Send email notification (fire-and-forget, never blocks the response)
+                var currentUser = await _userManager.GetUserAsync(User);
+                var cashierName = currentUser?.FullName ?? User.Identity?.Name ?? "—";
+                var saleWithItems = await _context.Sales
+                    .Include(s => s.Employee)
+                    .Include(s => s.SaleItems)
+                    .FirstAsync(s => s.Id == model.Id);
+                _ = Task.Run(() => _emailService.SendInvoiceNotificationAsync(saleWithItems, cashierName));
 
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                     return Json(new { success = true, invoiceId = model.Id });
