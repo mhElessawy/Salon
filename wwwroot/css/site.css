@@ -22,36 +22,35 @@ body {
 }
 
 @media print {
-  .no-print,
-  .navbar,
-  .sidebar,
-  nav,
-  footer,
-  .btn,
-  form {
+  .no-print {
     display: none !important;
   }
 
-  body {
-    margin: 0;
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
     font-size: 12px;
   }
 
-  .card {
-    border: 1px solid #ddd !important;
-    box-shadow: none !important;
-  }
-
-  .stat-card {
-    border: 1px solid #ddd !important;
-    box-shadow: none !important;
-  }
-
-  .page-header {
-    margin-bottom: 16px;
-  }
-
-  .table {
+  .print-area .table {
     font-size: 11px;
+    width: 100%;
+  }
+
+  .print-area .badge {
+    border: 1px solid #ccc;
+    color: #000 !important;
+    background: none !important;
   }
 }
