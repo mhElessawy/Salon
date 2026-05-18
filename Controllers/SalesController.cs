@@ -60,6 +60,29 @@ namespace Salon.Controllers
             ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
             ViewBag.FilterType = type;
             ViewBag.TotalSales = sales.Sum(s => s.NetAmount);
+
+            ViewBag.TotalCash = sales
+                .Where(s => s.PaymentMethod == "كاش")
+                .Sum(s => s.NetAmount)
+                + sales
+                .Where(s => s.PaymentMethod == "كي نت و كاش")
+                .Sum(s => s.CashAmount ?? 0);
+
+            ViewBag.TotalKnet = sales
+                .Where(s => s.PaymentMethod == "كي نت")
+                .Sum(s => s.NetAmount)
+                + sales
+                .Where(s => s.PaymentMethod == "كي نت و كاش")
+                .Sum(s => s.LinkAmount ?? 0);
+
+            ViewBag.TotalEmployeeDebt = sales
+                .Where(s => s.PaymentMethod == "دين على الموظف")
+                .Sum(s => s.NetAmount);
+
+            ViewBag.TotalOwnerDebt = sales
+                .Where(s => s.PaymentMethod == "دين على صاحب المكان")
+                .Sum(s => s.NetAmount);
+
             ViewBag.UserDepartment = userDept;
             ViewBag.IsEmployee = isEmployee;
             return View(sales);
