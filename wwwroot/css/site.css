@@ -20,3 +20,38 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+@media print {
+  .no-print,
+  .navbar,
+  .sidebar,
+  nav,
+  footer,
+  .btn,
+  form {
+    display: none !important;
+  }
+
+  body {
+    margin: 0;
+    font-size: 12px;
+  }
+
+  .card {
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+  }
+
+  .stat-card {
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+  }
+
+  .page-header {
+    margin-bottom: 16px;
+  }
+
+  .table {
+    font-size: 11px;
+  }
+}

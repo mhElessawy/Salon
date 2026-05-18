@@ -13,8 +13,11 @@
     bool isDeptUser = isHaircut || isMassage;
 }
 
-<div class="page-header">
+<div class="page-header d-flex justify-content-between align-items-center">
     <h1><i class="fas fa-chart-bar me-2"></i>تقرير المبيعات</h1>
+    <button onclick="window.print()" class="btn btn-dark btn-sm no-print">
+        <i class="fas fa-print me-1"></i> طباعة
+    </button>
 </div>
 
 <div class="card mb-3">
@@ -115,21 +118,33 @@
 </div>
 
 <div class="row g-3 mb-3">
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="stat-card" style="border-right:4px solid #0891b2;">
             <div class="stat-label">إجمالي الكاش</div>
             <div class="stat-value" style="color:#0891b2;">@ViewBag.TotalCash?.ToString("N3") د.ك</div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="stat-card" style="border-right:4px solid #059669;">
             <div class="stat-label">إجمالي الكي نت</div>
             <div class="stat-value" style="color:#059669;">@ViewBag.TotalKnet?.ToString("N3") د.ك</div>
         </div>
     </div>
+    <div class="col-md-2">
+        <div class="stat-card" style="border-right:4px solid #fd7e14;">
+            <div class="stat-label">دين على الموظف</div>
+            <div class="stat-value" style="color:#fd7e14;">@ViewBag.TotalEmployeeDebt?.ToString("N3") د.ك</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="stat-card" style="border-right:4px solid #7c3aed;">
+            <div class="stat-label">دين على صاحب المكان</div>
+            <div class="stat-value" style="color:#7c3aed;">@ViewBag.TotalOwnerDebt?.ToString("N3") د.ك</div>
+        </div>
+    </div>
     @if ((decimal)(ViewBag.TotalCancelled ?? 0m) > 0)
     {
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="stat-card" style="border-right:4px solid #dc2626;">
                 <div class="stat-label">إجمالي الملغاة (@ViewBag.TotalCancelledCount فاتورة)</div>
                 <div class="stat-value" style="color:#dc2626;">@ViewBag.TotalCancelled?.ToString("N3") د.ك</div>
