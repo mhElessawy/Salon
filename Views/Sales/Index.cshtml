@@ -31,6 +31,9 @@
                 <i class="fas fa-box me-1"></i> فاتورة منتجات
             </a>
         }
+        <button onclick="window.print()" class="btn btn-dark btn-sm no-print">
+            <i class="fas fa-print me-1"></i> طباعة
+        </button>
     </div>
 </div>
 
@@ -75,6 +78,14 @@
             </div>
         </div>
     </div>
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card text-center h-100 border-0 shadow-sm" style="border-top:3px solid #dc2626!important">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-ban me-1"></i>إجمالي الملغاة</div>
+                <div class="fw-bold fs-5" style="color:#dc2626;">@(((decimal)(ViewBag.TotalCancelled ?? 0m)).ToString("N3")) <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="card mb-3">
@@ -107,7 +118,7 @@
     </div>
 </div>
 
-<div class="card">
+<div class="card print-area">
     <div class="card-body">
         <div class="table-responsive">
             <table class="table">
