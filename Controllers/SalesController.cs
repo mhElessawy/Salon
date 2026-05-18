@@ -42,11 +42,11 @@ namespace Salon.Controllers
                 .Include(s => s.SaleItems)
                 .Where(s => s.SaleDate >= filterDate && s.SaleDate < nextDay);
 
-            // Hide opposing department's invoices from restricted users
+            // Department users see only their own department's invoices
             if (userDept == "مساج")
-                query = query.Where(s => s.SaleType != "حلاقة");
+                query = query.Where(s => s.SaleType == "مساج");
             else if (userDept == "حلاقة")
-                query = query.Where(s => s.SaleType != "مساج");
+                query = query.Where(s => s.SaleType == "حلاقة");
 
             // Employees see only their own invoices
             if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
@@ -60,6 +60,29 @@ namespace Salon.Controllers
             ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
             ViewBag.FilterType = type;
             ViewBag.TotalSales = sales.Sum(s => s.NetAmount);
+
+            ViewBag.TotalCash = sales
+                .Where(s => s.PaymentMethod == "كاش")
+                .Sum(s => s.NetAmount)
+                + sales
+                .Where(s => s.PaymentMethod == "كي نت و كاش")
+                .Sum(s => s.CashAmount ?? 0);
+
+            ViewBag.TotalKnet = sales
+                .Where(s => s.PaymentMethod == "كي نت")
+                .Sum(s => s.NetAmount)
+                + sales
+                .Where(s => s.PaymentMethod == "كي نت و كاش")
+                .Sum(s => s.LinkAmount ?? 0);
+
+            ViewBag.TotalEmployeeDebt = sales
+                .Where(s => s.PaymentMethod == "دين على الموظف")
+                .Sum(s => s.NetAmount);
+
+            ViewBag.TotalOwnerDebt = sales
+                .Where(s => s.PaymentMethod == "دين على صاحب المكان")
+                .Sum(s => s.NetAmount);
+
             ViewBag.UserDepartment = userDept;
             ViewBag.IsEmployee = isEmployee;
             return View(sales);
@@ -132,7 +155,7 @@ namespace Salon.Controllers
         {
             var user = await _userManager.GetUserAsync(User);
             var roles = await _userManager.GetRolesAsync(user!);
-            if (roles.Contains("Employee"))
+            if (roles.Contains("Employee") || !string.IsNullOrEmpty(user?.UserDepartment))
                 return Forbid();
 
             await PopulateProductDropdowns();
@@ -154,7 +177,7 @@ namespace Salon.Controllers
         {
             var user = await _userManager.GetUserAsync(User);
             var roles = await _userManager.GetRolesAsync(user!);
-            if (roles.Contains("Employee"))
+            if (roles.Contains("Employee") || !string.IsNullOrEmpty(user?.UserDepartment))
                 return Forbid();
 
             model.SaleType = "منتجات";

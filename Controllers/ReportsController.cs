@@ -35,7 +35,6 @@ namespace Salon.Controllers
             var query = _context.Sales
                 .Include(s => s.Customer)
                 .Include(s => s.Employee)
-                .Include(s => s.SaleItems)
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo);
 
             if (userDept == "مساج")
@@ -65,13 +64,53 @@ namespace Salon.Controllers
                 .OrderBy(c => c.FullName)
                 .ToListAsync();
 
+            var expenses = await _context.Expenses
+                .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo)
+                .OrderByDescending(e => e.ExpenseDate)
+                .ToListAsync();
+
+            var advancesQuery = _context.EmployeeAdvances
+                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo);
+
+            if (userDept == "حلاقة" || userDept == "مساج")
+                advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
+
+            var totalAdvances = await advancesQuery.SumAsync(a => (decimal?)a.Amount) ?? 0;
+
+            string[] cashMethods = { "كاش", "نقدي", "Cash" };
+            string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
+            decimal totalSales = sales.Sum(s => s.NetAmount);
+            decimal totalExpenses = expenses.Sum(e => e.Amount);
+
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
-            ViewBag.TotalSales = sales.Sum(s => s.NetAmount);
+            ViewBag.TotalSales = totalSales;
             ViewBag.TotalCount = sales.Count;
             ViewBag.TotalHaircut = sales.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount);
             ViewBag.TotalMassage = sales.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount);
             ViewBag.TotalProducts = sales.Where(s => s.SaleType == "منتجات").Sum(s => s.NetAmount);
+            ViewBag.TotalExpenses = totalExpenses;
+            ViewBag.TotalAdvances = totalAdvances;
+            ViewBag.NetProfit = totalSales - totalExpenses - totalAdvances;
+            ViewBag.CashTotal = sales.Sum(s =>
+                cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+            ViewBag.KnetTotal = sales.Sum(s =>
+                knetMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
+            ViewBag.EmployeeDebt = sales
+                .Where(s => s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "Employee Debit")
+                .Sum(s => s.NetAmount);
+            ViewBag.OwnerDebt = sales
+                .Where(s => s.PaymentMethod == "دين على صاحب المكان" || s.PaymentMethod == "Owner Debit")
+                .Sum(s => s.NetAmount);
+            ViewBag.CustomerDebt = sales
+                .Where(s => s.PaymentMethod == "دين على العميل" || s.PaymentMethod == "Customer Debit")
+                .Sum(s => s.NetAmount);
+            ViewBag.ExpensesList = expenses;
             ViewBag.Employees = employees;
             ViewBag.Customers = customers;
             ViewBag.SelectedEmployeeId = employeeId;
@@ -143,10 +182,10 @@ namespace Salon.Controllers
 
             var salesToday = allSales.Sum(s => s.NetAmount);
 
-            string[] cashMethods = { "كاش", "نقدي" , "Cash" };
+            string[] cashMethods = { "كاش", "نقدي", "Cash" };
             string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
-            string[] mixedMethods = { "كي نت و كاش", "مناصفة" ,"Cash & K-Net" };
-            string[] debtMethods = { "دين على العميل", "دين على الموظف", "دين على صاحب المكان", "آجل" ,"Customer Debit","Employee Debit","Owner Debit"};
+            string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+            string[] debtMethods = { "دين على العميل", "دين على الموظف", "دين على صاحب المكان", "آجل", "Customer Debit", "Employee Debit", "Owner Debit" };
 
             ViewBag.SalesToday = salesToday;
             ViewBag.ExpensesToday = expensesToday;
@@ -162,6 +201,15 @@ namespace Salon.Controllers
                 mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
             ViewBag.DebtTotal = allSales
                 .Where(s => debtMethods.Contains(s.PaymentMethod))
+                .Sum(s => s.NetAmount);
+            ViewBag.CustomerDebt = allSales
+                .Where(s => s.PaymentMethod == "دين على العميل" || s.PaymentMethod == "Customer Debit")
+                .Sum(s => s.NetAmount);
+            ViewBag.EmployeeDebt = allSales
+                .Where(s => s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "Employee Debit")
+                .Sum(s => s.NetAmount);
+            ViewBag.OwnerDebt = allSales
+                .Where(s => s.PaymentMethod == "دين على صاحب المكان" || s.PaymentMethod == "Owner Debit")
                 .Sum(s => s.NetAmount);
 
             // تشخيص: تفاصيل طرق الدفع الفعلية في قاعدة البيانات

@@ -11,7 +11,6 @@
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
         <h1><i class="fas fa-file-invoice me-2"></i>الفواتير</h1>
-        <p>إجمالي اليوم: <strong>@ViewBag.TotalSales?.ToString("N3") د.ك</strong></p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
         @if (showBarber)
@@ -26,12 +25,55 @@
                 <i class="fas fa-spa me-1"></i> فاتورة مساج
             </a>
         }
-        @if (!isEmployee)
+        @if (!isEmployee && string.IsNullOrEmpty(userDept))
         {
             <a href="@Url.Action("CreateProduct")" class="btn btn-success btn-sm">
                 <i class="fas fa-box me-1"></i> فاتورة منتجات
             </a>
         }
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card text-center h-100 border-0 shadow-sm">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-file-invoice me-1"></i>إجمالي الفواتير</div>
+                <div class="fw-bold fs-5 text-dark">@(((decimal)(ViewBag.TotalSales ?? 0m)).ToString("N3")) <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card text-center h-100 border-0 shadow-sm" style="border-top:3px solid #198754!important">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-money-bill-wave me-1"></i>إجمالي الكاش</div>
+                <div class="fw-bold fs-5 text-success">@(((decimal)(ViewBag.TotalCash ?? 0m)).ToString("N3")) <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card text-center h-100 border-0 shadow-sm" style="border-top:3px solid #0d6efd!important">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-credit-card me-1"></i>إجمالي الكي نت</div>
+                <div class="fw-bold fs-5 text-primary">@(((decimal)(ViewBag.TotalKnet ?? 0m)).ToString("N3")) <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card text-center h-100 border-0 shadow-sm" style="border-top:3px solid #fd7e14!important">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-user-tag me-1"></i>دين على الموظف</div>
+                <div class="fw-bold fs-5 text-warning">@(((decimal)(ViewBag.TotalEmployeeDebt ?? 0m)).ToString("N3")) <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card text-center h-100 border-0 shadow-sm" style="border-top:3px solid #dc3545!important">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-building me-1"></i>دين على صاحب العمل</div>
+                <div class="fw-bold fs-5 text-danger">@(((decimal)(ViewBag.TotalOwnerDebt ?? 0m)).ToString("N3")) <small>د.ك</small></div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -51,7 +93,10 @@
                 {
                     <option value="مساج" selected="@(filterType == "مساج" ? "selected" : null)">فواتير مساج (MAS)</option>
                 }
-                <option value="منتجات" selected="@(filterType == "منتجات" ? "selected" : null)">فواتير منتجات (PRD)</option>
+                @if (string.IsNullOrEmpty(userDept))
+                {
+                    <option value="منتجات" selected="@(filterType == "منتجات" ? "selected" : null)">فواتير منتجات (PRD)</option>
+                }
             </select>
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> بحث</button>
             @if (!string.IsNullOrEmpty(filterType))
