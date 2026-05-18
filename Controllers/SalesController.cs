@@ -42,11 +42,11 @@ namespace Salon.Controllers
                 .Include(s => s.SaleItems)
                 .Where(s => s.SaleDate >= filterDate && s.SaleDate < nextDay);
 
-            // Hide opposing department's invoices from restricted users
+            // Department users see only their own department's invoices
             if (userDept == "مساج")
-                query = query.Where(s => s.SaleType != "حلاقة");
+                query = query.Where(s => s.SaleType == "مساج");
             else if (userDept == "حلاقة")
-                query = query.Where(s => s.SaleType != "مساج");
+                query = query.Where(s => s.SaleType == "حلاقة");
 
             // Employees see only their own invoices
             if (isEmployee && user?.LinkedEmployeeId.HasValue == true)

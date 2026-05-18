@@ -93,7 +93,10 @@
                 {
                     <option value="مساج" selected="@(filterType == "مساج" ? "selected" : null)">فواتير مساج (MAS)</option>
                 }
-                <option value="منتجات" selected="@(filterType == "منتجات" ? "selected" : null)">فواتير منتجات (PRD)</option>
+                @if (string.IsNullOrEmpty(userDept))
+                {
+                    <option value="منتجات" selected="@(filterType == "منتجات" ? "selected" : null)">فواتير منتجات (PRD)</option>
+                }
             </select>
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> بحث</button>
             @if (!string.IsNullOrEmpty(filterType))
