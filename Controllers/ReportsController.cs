@@ -39,9 +39,9 @@ namespace Salon.Controllers
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo);
 
             if (userDept == "مساج")
-                query = query.Where(s => s.SaleType != "حلاقة");
+                query = query.Where(s => s.SaleType == "مساج");
             else if (userDept == "حلاقة")
-                query = query.Where(s => s.SaleType != "مساج");
+                query = query.Where(s => s.SaleType == "حلاقة");
 
             if (employeeId.HasValue)
                 query = query.Where(s => s.EmployeeId == employeeId);
@@ -68,6 +68,10 @@ namespace Salon.Controllers
                 .OrderBy(c => c.FullName)
                 .ToListAsync();
 
+            string[] cashMethodsSales  = { "كاش", "نقدي", "Cash" };
+            string[] knetMethodsSales  = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedMethodsSales = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
             ViewBag.TotalSales = activeSales.Sum(s => s.NetAmount);
@@ -75,6 +79,12 @@ namespace Salon.Controllers
             ViewBag.TotalHaircut = activeSales.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount);
             ViewBag.TotalMassage = activeSales.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount);
             ViewBag.TotalProducts = activeSales.Where(s => s.SaleType == "منتجات").Sum(s => s.NetAmount);
+            ViewBag.TotalCash = activeSales.Sum(s =>
+                cashMethodsSales.Contains(s.PaymentMethod) ? s.NetAmount :
+                mixedMethodsSales.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+            ViewBag.TotalKnet = activeSales.Sum(s =>
+                knetMethodsSales.Contains(s.PaymentMethod) ? s.NetAmount :
+                mixedMethodsSales.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
             ViewBag.TotalCancelled = cancelledSales.Sum(s => s.NetAmount);
             ViewBag.TotalCancelledCount = cancelledSales.Count;
             ViewBag.Employees = employees;

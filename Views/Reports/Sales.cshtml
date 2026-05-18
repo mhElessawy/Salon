@@ -78,13 +78,13 @@
 <div class="row g-3 mb-3">
     <div class="col-md-3">
         <div class="stat-card green">
-            <div class="stat-label">إجمالي المبيعات</div>
+            <div class="stat-label">إجمالي المبيعات (مكتملة)</div>
             <div class="stat-value">@ViewBag.TotalSales?.ToString("N3") د.ك</div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="stat-card blue">
-            <div class="stat-label">عدد الفواتير</div>
+            <div class="stat-label">عدد الفواتير (مكتملة)</div>
             <div class="stat-value">@ViewBag.TotalCount</div>
         </div>
     </div>
@@ -92,7 +92,7 @@
     {
         <div class="col-md-2">
             <div class="stat-card" style="border-right: 4px solid #6c757d; background:#f8f9fa;">
-                <div class="stat-label">حلاقة</div>
+                <div class="stat-label">حلاقة (مكتملة)</div>
                 <div class="stat-value" style="font-size:1.2rem;">@ViewBag.TotalHaircut?.ToString("N3") د.ك</div>
             </div>
         </div>
@@ -101,7 +101,7 @@
     {
         <div class="col-md-2">
             <div class="stat-card" style="border-right: 4px solid #6f42c1; background:#f8f9fa;">
-                <div class="stat-label">مساج</div>
+                <div class="stat-label">مساج (مكتملة)</div>
                 <div class="stat-value" style="font-size:1.2rem;">@ViewBag.TotalMassage?.ToString("N3") د.ك</div>
             </div>
         </div>
@@ -112,12 +112,27 @@
             <div class="stat-value" style="font-size:1.2rem;">@ViewBag.TotalProducts?.ToString("N3") د.ك</div>
         </div>
     </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="stat-card" style="border-right:4px solid #0891b2;">
+            <div class="stat-label">إجمالي الكاش</div>
+            <div class="stat-value" style="color:#0891b2;">@ViewBag.TotalCash?.ToString("N3") د.ك</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="border-right:4px solid #059669;">
+            <div class="stat-label">إجمالي الكي نت</div>
+            <div class="stat-value" style="color:#059669;">@ViewBag.TotalKnet?.ToString("N3") د.ك</div>
+        </div>
+    </div>
     @if ((decimal)(ViewBag.TotalCancelled ?? 0m) > 0)
     {
-        <div class="col-md-2">
-            <div class="stat-card" style="border-right: 4px solid #6c757d; background:#f8f9fa;">
-                <div class="stat-label">ملغي (@ViewBag.TotalCancelledCount)</div>
-                <div class="stat-value" style="font-size:1.2rem; color:#6c757d;">@ViewBag.TotalCancelled?.ToString("N3") د.ك</div>
+        <div class="col-md-3">
+            <div class="stat-card" style="border-right:4px solid #dc2626;">
+                <div class="stat-label">إجمالي الملغاة (@ViewBag.TotalCancelledCount فاتورة)</div>
+                <div class="stat-value" style="color:#dc2626;">@ViewBag.TotalCancelled?.ToString("N3") د.ك</div>
             </div>
         </div>
     }
