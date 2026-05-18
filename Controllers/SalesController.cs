@@ -57,29 +57,33 @@ namespace Salon.Controllers
 
             var sales = await query.OrderByDescending(s => s.SaleDate).ToListAsync();
 
+            var activeSales    = sales.Where(s => s.Status != "ملغي").ToList();
+            var cancelledSales = sales.Where(s => s.Status == "ملغي").ToList();
+
             ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
             ViewBag.FilterType = type;
-            ViewBag.TotalSales = sales.Sum(s => s.NetAmount);
+            ViewBag.TotalSales = activeSales.Sum(s => s.NetAmount);
+            ViewBag.TotalCancelled = cancelledSales.Sum(s => s.NetAmount);
 
-            ViewBag.TotalCash = sales
+            ViewBag.TotalCash = activeSales
                 .Where(s => s.PaymentMethod == "كاش")
                 .Sum(s => s.NetAmount)
-                + sales
+                + activeSales
                 .Where(s => s.PaymentMethod == "كي نت و كاش")
                 .Sum(s => s.CashAmount ?? 0);
 
-            ViewBag.TotalKnet = sales
+            ViewBag.TotalKnet = activeSales
                 .Where(s => s.PaymentMethod == "كي نت")
                 .Sum(s => s.NetAmount)
-                + sales
+                + activeSales
                 .Where(s => s.PaymentMethod == "كي نت و كاش")
                 .Sum(s => s.LinkAmount ?? 0);
 
-            ViewBag.TotalEmployeeDebt = sales
+            ViewBag.TotalEmployeeDebt = activeSales
                 .Where(s => s.PaymentMethod == "دين على الموظف")
                 .Sum(s => s.NetAmount);
 
-            ViewBag.TotalOwnerDebt = sales
+            ViewBag.TotalOwnerDebt = activeSales
                 .Where(s => s.PaymentMethod == "دين على صاحب المكان")
                 .Sum(s => s.NetAmount);
 

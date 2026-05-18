@@ -112,6 +112,15 @@
             <div class="stat-value" style="font-size:1.2rem;">@ViewBag.TotalProducts?.ToString("N3") د.ك</div>
         </div>
     </div>
+    @if ((decimal)(ViewBag.TotalCancelled ?? 0m) > 0)
+    {
+        <div class="col-md-2">
+            <div class="stat-card" style="border-right: 4px solid #6c757d; background:#f8f9fa;">
+                <div class="stat-label">ملغي (@ViewBag.TotalCancelledCount)</div>
+                <div class="stat-value" style="font-size:1.2rem; color:#6c757d;">@ViewBag.TotalCancelled?.ToString("N3") د.ك</div>
+            </div>
+        </div>
+    }
 </div>
 
 <div class="card">
