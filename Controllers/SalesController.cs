@@ -12,6 +12,14 @@ namespace Salon.Controllers
     [Authorize]
     public class SalesController : Controller
     {
+        // Kuwait is permanently UTC+3 with no DST
+        private static readonly TimeZoneInfo _kuwaitTz =
+            TimeZoneInfo.CreateCustomTimeZone("Kuwait Standard Time",
+                TimeSpan.FromHours(3), "Kuwait Standard Time", "Kuwait Standard Time");
+
+        private static DateTime KuwaitNow => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _kuwaitTz);
+        private static DateTime KuwaitToday => KuwaitNow.Date;
+
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailService _emailService;
@@ -28,7 +36,7 @@ namespace Salon.Controllers
         // ===== قائمة الفواتير =====
         public async Task<IActionResult> Index(string? date, string? type)
         {
-            DateTime filterDate = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
+            DateTime filterDate = string.IsNullOrEmpty(date) ? KuwaitToday : DateTime.Parse(date);
             var nextDay = filterDate.AddDays(1);
 
             var user = await _userManager.GetUserAsync(User);
@@ -107,7 +115,7 @@ namespace Salon.Controllers
             var sale = new Sale
             {
                 InvoiceNumber = await GenerateInvoiceNumber("PAR"),
-                SaleDate = DateTime.Now,
+                SaleDate = KuwaitNow,
                 SaleType = "حلاقة"
             };
             return View(sale);
@@ -138,7 +146,7 @@ namespace Salon.Controllers
             var sale = new Sale
             {
                 InvoiceNumber = await GenerateInvoiceNumber("MAS"),
-                SaleDate = DateTime.Now,
+                SaleDate = KuwaitNow,
                 SaleType = "مساج"
             };
             return View(sale);
@@ -166,7 +174,7 @@ namespace Salon.Controllers
             var sale = new Sale
             {
                 InvoiceNumber = await GenerateInvoiceNumber("PRD"),
-                SaleDate = DateTime.Now,
+                SaleDate = KuwaitNow,
                 SaleType = "منتجات"
             };
             return View(sale);
@@ -239,7 +247,7 @@ namespace Salon.Controllers
                             UnitPrice = price,
                             EmployeeId = employeeRecipientId,
                             Notes = model.Notes,
-                            MovementDate = DateTime.Today
+                            MovementDate = KuwaitToday
                         });
                     }
                 }
@@ -272,7 +280,7 @@ namespace Salon.Controllers
                 }
 
                 model.TotalAmount = 0;
-                model.SaleDate = DateTime.Now;
+                model.SaleDate = KuwaitNow;
                 _context.Sales.Add(model);
                 await _context.SaveChangesAsync();
 
@@ -403,7 +411,7 @@ namespace Salon.Controllers
             var empList = await empQuery.ToListAsync();
 
             // Today's queue positions — join on Departments to avoid OPENJSON / '$' issue (EF Core 8 + SQL Server)
-            var today = DateTime.Today;
+            var today = KuwaitToday;
             var todayQueue = await (
                 from a in _context.Attendances
                 join e in _context.Employees on a.EmployeeId equals e.Id
@@ -466,7 +474,7 @@ namespace Salon.Controllers
             if (ModelState.IsValid)
             {
                 model.TotalAmount = 0;
-                model.SaleDate = DateTime.Now;
+                model.SaleDate = KuwaitNow;
                 _context.Sales.Add(model);
                 await _context.SaveChangesAsync();
 
@@ -497,7 +505,7 @@ namespace Salon.Controllers
                 // Move the employee to the end of today's queue after serving a customer
                 if (model.EmployeeId.HasValue)
                 {
-                    var today2 = DateTime.Today;
+                    var today2 = KuwaitToday;
                     var todayAttendance = await _context.Attendances
                         .FirstOrDefaultAsync(a => a.EmployeeId == model.EmployeeId.Value
                                                && a.AttendanceDate == today2);
