@@ -269,6 +269,230 @@ namespace Salon.Controllers
             return View(vm);
         }
 
+        public async Task<IActionResult> BarberDailyReport(string? date)
+        {
+            var today = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
+            var tomorrow = today.AddDays(1);
+            var monthStart = new DateTime(today.Year, today.Month, 1);
+
+            string[] cashMethods = { "كاش", "نقدي", "Cash" };
+            string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
+            var barbers = await _context.Employees
+                .Include(e => e.DepartmentNav)
+                .Where(e => e.IsActive && e.DepartmentNav != null && e.DepartmentNav.Name == "حلاقة")
+                .OrderBy(e => e.FullName)
+                .ToListAsync();
+
+            var barberIds = barbers.Select(b => b.Id).ToList();
+
+            var barberSales = await _context.Sales
+                .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow
+                         && s.Status != "ملغي" && s.SaleType == "حلاقة")
+                .ToListAsync();
+
+            var productSales = await _context.Sales
+                .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow
+                         && s.Status != "ملغي" && s.SaleType == "منتجات")
+                .ToListAsync();
+
+            var barberAttendances = await _context.Attendances
+                .Where(a => a.AttendanceDate >= today && a.AttendanceDate < tomorrow
+                         && barberIds.Contains(a.EmployeeId))
+                .ToListAsync();
+
+            var todayAdvances = await _context.EmployeeAdvances
+                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow
+                         && barberIds.Contains(a.EmployeeId))
+                .ToListAsync();
+
+            var shift = await _context.Shifts
+                .Where(s => s.ShiftDate >= today && s.ShiftDate < tomorrow)
+                .OrderByDescending(s => s.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            var barberRows = barbers.Select(barber =>
+            {
+                var sales = barberSales.Where(s => s.EmployeeId == barber.Id).ToList();
+                var totalWork = sales.Sum(s => s.NetAmount);
+                var knet = sales.Sum(s =>
+                    knetMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                    mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
+                var cash = sales.Sum(s =>
+                    cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                    mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+                var debts = sales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
+                var advance = todayAdvances.Where(a => a.EmployeeId == barber.Id).Sum(a => a.Amount);
+                var commission = barber.Commission;
+                var dueAmount = Math.Round(totalWork * commission / 100, 3);
+                var deductions = advance + debts;
+                var netAfterDeduction = dueAmount - deductions;
+                var shopNet = totalWork - dueAmount;
+
+                return new BarberDailyRow
+                {
+                    Employee = barber,
+                    TotalWork = totalWork,
+                    KNet = knet,
+                    Cash = cash,
+                    Debts = debts,
+                    Advance = advance,
+                    CommissionPercent = commission,
+                    DueAmount = dueAmount,
+                    Deductions = deductions,
+                    NetAfterDeduction = netAfterDeduction,
+                    ShopNet = shopNet
+                };
+            }).ToList();
+
+            var totalRevenue = barberSales.Sum(s => s.NetAmount);
+            var totalKNet = barberSales.Sum(s =>
+                knetMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
+            var totalCash = barberSales.Sum(s =>
+                cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+
+            var totalDue = barberRows.Sum(r => r.DueAmount);
+            var netShopIncome = totalRevenue - totalDue;
+
+            var attendedIds = barberAttendances.Select(a => a.EmployeeId).Distinct().ToList();
+            var presentCount = barberAttendances.Count(a => a.Status == "حاضر");
+            var absentCount = barberAttendances.Count(a => a.Status == "غائب")
+                            + barberIds.Count(id => !attendedIds.Contains(id));
+            var vacationCount = barberAttendances.Count(a => a.Status == "إجازة");
+            var lateCount = barberAttendances.Count(a => a.Status == "متأخر");
+            var earlyLeaveCount = barberAttendances.Count(a => a.Status == "منصرف مبكراً");
+
+            var reportCount = await _context.Sales
+                .Where(s => s.SaleDate.Date <= today)
+                .Select(s => s.SaleDate.Date)
+                .Distinct()
+                .CountAsync();
+
+            string[] arabicDays = { "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت" };
+            var dayName = arabicDays[(int)today.DayOfWeek];
+
+            var closingTime = shift?.EndTime != null
+                ? DateTime.Today.Add(shift.EndTime.Value).ToString("hh:mm tt")
+                : DateTime.Now.ToString("hh:mm tt");
+            var cashierName = shift?.CashierName ?? "-";
+
+            // Cash movement from start of month to today
+            var monthAllSales = await _context.Sales
+                .Where(s => s.SaleDate >= monthStart && s.SaleDate < tomorrow && s.Status != "ملغي")
+                .ToListAsync();
+
+            var monthExpenses = await _context.Expenses
+                .Where(e => e.ExpenseDate >= monthStart && e.ExpenseDate < tomorrow)
+                .OrderBy(e => e.ExpenseDate).ThenBy(e => e.Id)
+                .ToListAsync();
+
+            var monthAdvances = await _context.EmployeeAdvances
+                .Include(a => a.Employee)
+                .Where(a => a.AdvanceDate >= monthStart && a.AdvanceDate < tomorrow)
+                .OrderBy(a => a.AdvanceDate).ThenBy(a => a.Id)
+                .ToListAsync();
+
+            var firstDayShift = await _context.Shifts
+                .Where(s => s.ShiftDate >= monthStart && s.ShiftDate < monthStart.AddDays(1))
+                .OrderBy(s => s.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            decimal runningBalance = firstDayShift?.OpeningBalance ?? 0;
+
+            // Build withdrawal events (expenses + advances)
+            var withdrawalEvents = new List<(DateTime Date, decimal Amount, string Type, string Notes)>();
+            foreach (var exp in monthExpenses)
+                withdrawalEvents.Add((exp.ExpenseDate.Date, exp.Amount,
+                    !string.IsNullOrEmpty(exp.Category) ? $"سحب لـ{exp.Category}" : "سحب لمصروفات",
+                    exp.Description));
+            foreach (var adv in monthAdvances)
+                withdrawalEvents.Add((adv.AdvanceDate.Date, adv.Amount,
+                    "سحب لدفع سلف موظفين",
+                    $"سلفة {adv.Employee?.FullName ?? ""}".Trim()));
+
+            withdrawalEvents = withdrawalEvents.OrderBy(x => x.Date).ThenBy(x => x.Type).ToList();
+
+            var cashMovement = new List<CashMovementRow>();
+            for (var d = monthStart; d <= today; d = d.AddDays(1))
+            {
+                var dailyCashRev = monthAllSales
+                    .Where(s => s.SaleDate.Date == d)
+                    .Sum(s =>
+                        cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                        mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+
+                var dayWithdrawals = withdrawalEvents.Where(e => e.Date == d).ToList();
+
+                if (!dayWithdrawals.Any())
+                {
+                    var closing = runningBalance + dailyCashRev;
+                    cashMovement.Add(new CashMovementRow
+                    {
+                        Date = d,
+                        OpeningBalance = runningBalance,
+                        CashRevenue = dailyCashRev,
+                        Withdrawal = 0,
+                        WithdrawalType = "-",
+                        WithdrawnBy = "-",
+                        ClosingBalance = closing,
+                        Notes = "-"
+                    });
+                    runningBalance = closing;
+                }
+                else
+                {
+                    bool first = true;
+                    foreach (var (_, amount, type, notes) in dayWithdrawals)
+                    {
+                        var rev = first ? dailyCashRev : 0;
+                        var closing = runningBalance + rev - amount;
+                        cashMovement.Add(new CashMovementRow
+                        {
+                            Date = d,
+                            OpeningBalance = runningBalance,
+                            CashRevenue = rev,
+                            Withdrawal = amount,
+                            WithdrawalType = type,
+                            WithdrawnBy = "المدير",
+                            ClosingBalance = closing,
+                            Notes = notes
+                        });
+                        runningBalance = closing;
+                        first = false;
+                    }
+                }
+            }
+
+            var vm = new BarberDailyReportViewModel
+            {
+                ReportDate = today,
+                ReportNumber = $"DY-{reportCount:D6}",
+                DayName = dayName,
+                CashierName = cashierName,
+                ClosingTime = closingTime,
+                TotalRevenue = totalRevenue,
+                TotalKNet = totalKNet,
+                TotalCash = totalCash,
+                ProductSalesTotal = productSales.Sum(s => s.NetAmount),
+                NetShopIncome = netShopIncome,
+                RegisteredBarbers = barbers.Count,
+                PresentToday = presentCount,
+                AbsentToday = absentCount,
+                VacationToday = vacationCount,
+                LateToday = lateCount,
+                EarlyLeaveToday = earlyLeaveCount,
+                BarberRows = barberRows,
+                CashMovement = cashMovement,
+                MonthStart = monthStart
+            };
+
+            return View(vm);
+        }
+
         public async Task<IActionResult> EmployeeEvaluation(int? employeeId, string? from, string? to)
         {
             var currentUser = await _userManager.GetUserAsync(User);
