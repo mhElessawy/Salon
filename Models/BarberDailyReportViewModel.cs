@@ -3,6 +3,7 @@ namespace Salon.Models
     public class BarberDailyRow
     {
         public Employee Employee { get; set; } = null!;
+        public string DepartmentName => Employee.DepartmentNav?.Name ?? "";
         public decimal TotalWork { get; set; }
         public decimal KNet { get; set; }
         public decimal Cash { get; set; }
@@ -34,13 +35,31 @@ namespace Salon.Models
         public string DayName { get; set; } = string.Empty;
         public string CashierName { get; set; } = string.Empty;
         public string ClosingTime { get; set; } = string.Empty;
+        public string? UserDepartment { get; set; }
 
+        // Department display helpers
+        public bool IsBarberOnly => UserDepartment == "حلاقة";
+        public bool IsMassageOnly => UserDepartment == "مساج";
+        public bool ShowBoth => !IsBarberOnly && !IsMassageOnly;
+
+        public string ReportTitle => ShowBoth
+            ? "تقرير يومي للإيرادات (الحلاقة والمساج)"
+            : IsBarberOnly ? "تقرير يومي للإيرادات والحلاقين"
+            : "تقرير يومي للإيرادات والمساجين";
+
+        public string EmployeeLabel => ShowBoth ? "الموظف" : IsBarberOnly ? "الحلاق" : "المعالج";
+        public string RegisteredLabel => ShowBoth ? "الموظفين المسجلين" : IsBarberOnly ? "الحلاقين المسجلين" : "المعالجين المسجلين";
+        public string TableTitle => ShowBoth ? "إيرادات الموظفين" : IsBarberOnly ? "إيرادات الحلاقين" : "إيرادات المعالجين";
+        public string CommissionNoteLabel => ShowBoth ? "الموظفين" : IsBarberOnly ? "الحلاقين" : "المعالجين";
+
+        // Revenue summary
         public decimal TotalRevenue { get; set; }
         public decimal TotalKNet { get; set; }
         public decimal TotalCash { get; set; }
         public decimal ProductSalesTotal { get; set; }
         public decimal NetShopIncome { get; set; }
 
+        // Employee summary
         public int RegisteredBarbers { get; set; }
         public int PresentToday { get; set; }
         public int AbsentToday { get; set; }
@@ -48,8 +67,10 @@ namespace Salon.Models
         public int LateToday { get; set; }
         public int EarlyLeaveToday { get; set; }
 
+        // Employee rows
         public List<BarberDailyRow> BarberRows { get; set; } = new();
 
+        // Computed totals
         public decimal TotalWork => BarberRows.Sum(r => r.TotalWork);
         public decimal TotalKNetWork => BarberRows.Sum(r => r.KNet);
         public decimal TotalCashWork => BarberRows.Sum(r => r.Cash);
@@ -63,6 +84,7 @@ namespace Salon.Models
         public decimal TotalNetAfterDeduction => BarberRows.Sum(r => r.NetAfterDeduction);
         public decimal TotalShopNet => BarberRows.Sum(r => r.ShopNet);
 
+        // Cash movement
         public List<CashMovementRow> CashMovement { get; set; } = new();
         public decimal CurrentCashBalance => CashMovement.LastOrDefault()?.ClosingBalance ?? 0;
         public DateTime MonthStart { get; set; }

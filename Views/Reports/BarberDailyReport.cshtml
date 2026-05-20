@@ -1,6 +1,6 @@
 @model Salon.Models.BarberDailyReportViewModel
 @{
-    ViewData["Title"] = "تقرير يومي للإيرادات والحلاقين";
+    ViewData["Title"] = Model.ReportTitle;
     var selectedDate = Model.ReportDate.ToString("yyyy-MM-dd");
 }
 
@@ -228,7 +228,7 @@
 
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 no-print">
     <div>
-        <h1><i class="fas fa-file-alt me-2"></i>تقرير يومي للإيرادات والحلاقين</h1>
+        <h1><i class="fas fa-file-alt me-2"></i>@Model.ReportTitle</h1>
         <p class="mb-0">@Model.ReportDate.ToString("yyyy/MM/dd") — @Model.DayName</p>
     </div>
     <button onclick="window.print()" class="btn btn-dark btn-sm">
@@ -265,7 +265,7 @@
         </div>
         <div class="bdr-title-center">
             <h1>معهد وصالون موس للرجال</h1>
-            <h2>تقرير يومي للإيرادات والحلاقين</h2>
+            <h2>@Model.ReportTitle</h2>
             <div class="bdr-meta-row">
                 <div class="bdr-meta-cell">
                     <span class="meta-icon"><i class="fas fa-calendar-alt"></i></span>
@@ -345,7 +345,7 @@
                 <div class="bdr-emp-cell">
                     <div class="emp-icon"><i class="fas fa-users"></i></div>
                     <div class="emp-num">@Model.RegisteredBarbers</div>
-                    <div class="emp-label">عدد الحلاقين المسجلين</div>
+                    <div class="emp-label">عدد @Model.RegisteredLabel</div>
                 </div>
                 <div class="bdr-emp-cell">
                     <div class="emp-icon" style="color:#16a34a;"><i class="fas fa-user-check"></i></div>
@@ -379,30 +379,31 @@
 
     <!-- -->
     <div class="bdr-table-wrap">
-        <div class="bdr-section-title">إيرادات الحلاقين</div>
+        <div class="bdr-section-title">@Model.TableTitle</div>
         <table class="bdr-table">
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>الحلاق</th>
+                    @if (Model.ShowBoth) { <th>القسم</th> }
+                    <th>@Model.EmployeeLabel</th>
                     <th>إجمالي الشغل<br/><small>د.ك</small></th>
                     <th>كي نت<br/><small>د.ك</small></th>
                     <th>كاش<br/><small>د.ك</small></th>
                     <th>الديون<br/><small>د.ك</small></th>
                     <th>السلف<br/><small>د.ك</small></th>
-                    <th>نسبة<br/>الحلاق %</th>
+                    <th>نسبة<br/>%</th>
                     <th>المبلغ<br/>المستحق<br/><small>د.ك</small></th>
                     <th>خصم السلف<br/>والديون<br/><small>د.ك</small></th>
-                    <th>خافي الحلاق<br/>بعد الخصم<br/><small>د.ك</small></th>
-                    <th>صافي المحل<br/>من الحلاق<br/><small>د.ك</small></th>
+                    <th>الصافي<br/>بعد الخصم<br/><small>د.ك</small></th>
+                    <th>صافي المحل<br/><small>د.ك</small></th>
                 </tr>
             </thead>
             <tbody>
                 @if (!Model.BarberRows.Any())
                 {
                     <tr>
-                        <td colspan="12" class="text-center text-muted py-4">
-                            <i class="fas fa-inbox me-1"></i> لا يوجد حلاقون نشطون أو لا توجد مبيعات لهذا اليوم
+                        <td colspan="@(Model.ShowBoth ? 13 : 12)" class="text-center text-muted py-4">
+                            <i class="fas fa-inbox me-1"></i> لا يوجد موظفون نشطون أو لا توجد مبيعات لهذا اليوم
                         </td>
                     </tr>
                 }
@@ -411,6 +412,19 @@
                 {
                     <tr>
                         <td>@(rowNum++)</td>
+                        @if (Model.ShowBoth)
+                        {
+                            <td>
+                                @if (row.DepartmentName == "حلاقة")
+                                {
+                                    <span class="badge" style="background:#1a1a2e;">✂ حلاقة</span>
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background:#0891b2;">🌿 مساج</span>
+                                }
+                            </td>
+                        }
                         <td><strong>@row.Employee.FullName</strong></td>
                         <td>@row.TotalWork.ToString("N3")</td>
                         <td>@row.KNet.ToString("N3")</td>
@@ -429,7 +443,7 @@
             {
                 <tfoot>
                     <tr>
-                        <td colspan="2">الإجمالي</td>
+                        <td colspan="@(Model.ShowBoth ? 3 : 2)">الإجمالي</td>
                         <td>@Model.TotalWork.ToString("N3")</td>
                         <td>@Model.TotalKNetWork.ToString("N3")</td>
                         <td>@Model.TotalCashWork.ToString("N3")</td>
@@ -458,7 +472,7 @@
             </div>
             <div class="bdr-sum-cell">
                 <div class="sum-icon"><i class="fas fa-users"></i></div>
-                <div class="sum-label">نسبة الحلاقين الإجمالية</div>
+                <div class="sum-label">نسبة @Model.CommissionNoteLabel الإجمالية</div>
                 <div class="sum-val">@Model.OverallCommissionPercent.ToString("N0")%</div>
             </div>
             <div class="bdr-sum-cell">
@@ -475,19 +489,19 @@
             </div>
             <div class="bdr-sum-cell">
                 <div class="sum-icon"><i class="fas fa-wallet"></i></div>
-                <div class="sum-label">إجمالي صافي ما سيستلم للحلاقين بعد الخصم</div>
+                <div class="sum-label">إجمالي صافي ما سيستلم لـ@Model.CommissionNoteLabel بعد الخصم</div>
                 <div class="sum-val green">@Model.TotalNetAfterDeduction.ToString("N3")</div>
                 <div class="sum-cur">د.ك</div>
             </div>
             <div class="bdr-sum-cell">
                 <div class="sum-icon"><i class="fas fa-store"></i></div>
-                <div class="sum-label">صافي المحل من الحلاقين</div>
+                <div class="sum-label">صافي المحل من @Model.CommissionNoteLabel</div>
                 <div class="sum-val blue">@Model.TotalShopNet.ToString("N3")</div>
                 <div class="sum-cur">د.ك</div>
             </div>
         </div>
         <div class="bdr-note-bar">
-            ملاحظة: تم اعتماد نسبة الحلاقين @Model.OverallCommissionPercent.ToString("N0")% من إجمالي الشغل
+            ملاحظة: تم اعتماد نسبة @Model.CommissionNoteLabel @Model.OverallCommissionPercent.ToString("N0")% من إجمالي الشغل
         </div>
     }
 
