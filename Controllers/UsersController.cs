@@ -238,6 +238,38 @@ namespace Salon.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // ===== نشاط المستخدمين =====
+        public async Task<IActionResult> Activity()
+        {
+            var users = await _userManager.Users.OrderBy(u => u.FullName).ToListAsync();
+
+            var auditStats = await _context.AuditLogs
+                .GroupBy(l => l.UserId)
+                .Select(g => new
+                {
+                    UserId = g.Key,
+                    Count = g.Count(),
+                    LastAt = g.Max(l => l.CreatedAt)
+                })
+                .ToDictionaryAsync(x => x.UserId, x => new { x.Count, x.LastAt });
+
+            var result = new List<UserActivityViewModel>();
+            foreach (var user in users)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                auditStats.TryGetValue(user.Id, out var stats);
+                result.Add(new UserActivityViewModel
+                {
+                    User = user,
+                    Role = roles.FirstOrDefault() ?? "-",
+                    ActivityCount = stats?.Count ?? 0,
+                    LastActivityAt = stats?.LastAt
+                });
+            }
+
+            return View(result);
+        }
+
         // ===== تعطيل مستخدم =====
         private async Task PopulateUserDropdowns()
         {

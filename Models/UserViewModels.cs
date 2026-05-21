@@ -2,6 +2,14 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Salon.Models
 {
+    public class UserActivityViewModel
+    {
+        public ApplicationUser User { get; set; } = null!;
+        public string Role { get; set; } = string.Empty;
+        public int ActivityCount { get; set; }
+        public DateTime? LastActivityAt { get; set; }
+    }
+
     public class CreateUserViewModel
     {
         [Required(ErrorMessage = "الاسم الكامل مطلوب")]
