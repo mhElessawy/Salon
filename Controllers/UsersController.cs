@@ -243,27 +243,46 @@ namespace Salon.Controllers
         {
             var users = await _userManager.Users.OrderBy(u => u.FullName).ToListAsync();
 
-            var auditStats = await _context.AuditLogs
+            // Group by UserId (for properly-logged entries)
+            var statsByUserId = await _context.AuditLogs
+                .Where(l => l.UserId != null && l.UserId != "")
                 .GroupBy(l => l.UserId)
-                .Select(g => new
-                {
-                    UserId = g.Key,
-                    Count = g.Count(),
-                    LastAt = g.Max(l => l.CreatedAt)
-                })
-                .ToDictionaryAsync(x => x.UserId, x => new { x.Count, x.LastAt });
+                .Select(g => new { Key = g.Key, Count = g.Count(), LastAt = g.Max(l => l.CreatedAt) })
+                .ToDictionaryAsync(x => x.Key, x => (x.Count, x.LastAt));
+
+            // Group by UserName for entries without UserId (older logs)
+            var statsByName = await _context.AuditLogs
+                .Where(l => l.UserId == null || l.UserId == "")
+                .GroupBy(l => l.UserName)
+                .Select(g => new { Key = g.Key, Count = g.Count(), LastAt = g.Max(l => l.CreatedAt) })
+                .ToDictionaryAsync(x => x.Key, x => (x.Count, x.LastAt));
 
             var result = new List<UserActivityViewModel>();
             foreach (var user in users)
             {
                 var roles = await _userManager.GetRolesAsync(user);
-                auditStats.TryGetValue(user.Id, out var stats);
+
+                int count = 0;
+                DateTime? lastAt = null;
+
+                if (statsByUserId.TryGetValue(user.Id, out var byId))
+                {
+                    count += byId.Count;
+                    lastAt = byId.LastAt;
+                }
+                if (statsByName.TryGetValue(user.FullName, out var byName))
+                {
+                    count += byName.Count;
+                    if (!lastAt.HasValue || byName.LastAt > lastAt.Value)
+                        lastAt = byName.LastAt;
+                }
+
                 result.Add(new UserActivityViewModel
                 {
                     User = user,
                     Role = roles.FirstOrDefault() ?? "-",
-                    ActivityCount = stats?.Count ?? 0,
-                    LastActivityAt = stats?.LastAt
+                    ActivityCount = count,
+                    LastActivityAt = lastAt
                 });
             }
 

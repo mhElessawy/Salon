@@ -33,12 +33,21 @@ namespace Salon.Controllers
 
             var query = _context.AuditLogs.AsQueryable();
 
-            // Filter by userId (preferred, exact match)
+            // When userId is given: match by UserId OR by UserName (covers logs saved before UserId was stored)
             if (!string.IsNullOrEmpty(userId))
-                query = query.Where(l => l.UserId == userId);
-            // Fallback: filter by userName text (partial match)
-            else if (!string.IsNullOrEmpty(userName))
-                query = query.Where(l => l.UserName.Contains(userName));
+            {
+                var allUsers = await _userManager.Users.OrderBy(u => u.FullName).ToListAsync();
+                var targetUser = allUsers.FirstOrDefault(u => u.Id == userId);
+                var targetName = targetUser?.FullName ?? "";
+                query = query.Where(l => l.UserId == userId || l.UserName == targetName);
+                ViewBag.AllUsers = allUsers;
+            }
+            else
+            {
+                ViewBag.AllUsers = await _userManager.Users.OrderBy(u => u.FullName).ToListAsync();
+                if (!string.IsNullOrEmpty(userName))
+                    query = query.Where(l => l.UserName.Contains(userName));
+            }
 
             if (!string.IsNullOrEmpty(module))
                 query = query.Where(l => l.Module == module);
@@ -60,14 +69,14 @@ namespace Salon.Controllers
                 .Take(pageSize)
                 .ToListAsync();
 
-            // All users for dropdown
-            var allUsers = await _userManager.Users.OrderBy(u => u.FullName).ToListAsync();
+            // Resolve display name for selected user
+            var allUsersForBag = ViewBag.AllUsers as List<ApplicationUser>
+                ?? await _userManager.Users.OrderBy(u => u.FullName).ToListAsync();
 
-            // Resolve selected user name for display
             string? selectedUserName = userName;
             if (!string.IsNullOrEmpty(userId))
             {
-                var selectedUser = allUsers.FirstOrDefault(u => u.Id == userId);
+                var selectedUser = allUsersForBag.FirstOrDefault(u => u.Id == userId);
                 selectedUserName = selectedUser?.FullName;
             }
 
@@ -82,7 +91,8 @@ namespace Salon.Controllers
             ViewBag.Total = total;
             ViewBag.TotalPages = (int)Math.Ceiling((double)total / pageSize);
 
-            ViewBag.AllUsers = allUsers;
+            if (ViewBag.AllUsers == null)
+                ViewBag.AllUsers = allUsersForBag;
 
             ViewBag.Modules = await _context.AuditLogs
                 .Select(l => l.Module).Distinct().OrderBy(m => m).ToListAsync();
