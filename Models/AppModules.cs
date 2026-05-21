@@ -11,6 +11,8 @@ namespace Salon.Models
             ("BarberInvoice",     "فاتورة الحلاقة",     "fas fa-cut",              "المبيعات"),
             ("MassageInvoice",    "فاتورة المساج",      "fas fa-spa",              "المبيعات"),
             ("ProductInvoice",    "فاتورة المنتجات",    "fas fa-box",              "المبيعات"),
+            ("Discount",          "منح الخصم",          "fas fa-percent",          "المبيعات"),
+            ("CustomerDebt",      "دين على العميل",     "fas fa-user-clock",       "المبيعات"),
             ("Appointments",      "المواعيد",           "fas fa-calendar-check",   "المبيعات"),
             ("Services",          "الخدمات",            "fas fa-concierge-bell",   "التعريفات"),
             ("ServiceCategories", "فئات الخدمات",       "fas fa-tags",             "التعريفات"),
