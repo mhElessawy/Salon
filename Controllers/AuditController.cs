@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
+using Salon.Models;
 
 namespace Salon.Controllers
 {
@@ -9,13 +11,17 @@ namespace Salon.Controllers
     public class AuditController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public AuditController(ApplicationDbContext context)
+        public AuditController(ApplicationDbContext context,
+            UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         public async Task<IActionResult> Index(
+            string? userId,
             string? userName,
             string? module,
             string? action,
@@ -27,7 +33,11 @@ namespace Salon.Controllers
 
             var query = _context.AuditLogs.AsQueryable();
 
-            if (!string.IsNullOrEmpty(userName))
+            // Filter by userId (preferred, exact match)
+            if (!string.IsNullOrEmpty(userId))
+                query = query.Where(l => l.UserId == userId);
+            // Fallback: filter by userName text (partial match)
+            else if (!string.IsNullOrEmpty(userName))
                 query = query.Where(l => l.UserName.Contains(userName));
 
             if (!string.IsNullOrEmpty(module))
@@ -50,7 +60,19 @@ namespace Salon.Controllers
                 .Take(pageSize)
                 .ToListAsync();
 
-            ViewBag.UserName = userName;
+            // All users for dropdown
+            var allUsers = await _userManager.Users.OrderBy(u => u.FullName).ToListAsync();
+
+            // Resolve selected user name for display
+            string? selectedUserName = userName;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var selectedUser = allUsers.FirstOrDefault(u => u.Id == userId);
+                selectedUserName = selectedUser?.FullName;
+            }
+
+            ViewBag.UserId = userId;
+            ViewBag.UserName = selectedUserName;
             ViewBag.Module = module;
             ViewBag.Action = action;
             ViewBag.DateFrom = dateFrom?.ToString("yyyy-MM-dd");
@@ -59,6 +81,8 @@ namespace Salon.Controllers
             ViewBag.PageSize = pageSize;
             ViewBag.Total = total;
             ViewBag.TotalPages = (int)Math.Ceiling((double)total / pageSize);
+
+            ViewBag.AllUsers = allUsers;
 
             ViewBag.Modules = await _context.AuditLogs
                 .Select(l => l.Module).Distinct().OrderBy(m => m).ToListAsync();
