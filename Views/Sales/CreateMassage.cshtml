@@ -7,6 +7,8 @@
     var linkedEmpId = ViewBag.LinkedEmployeeId as int?;
     var queuePositions = ViewBag.EmployeeQueuePositions as Dictionary<int, int> ?? new();
     var checkInTimes = ViewBag.EmployeeCheckInTimes as Dictionary<int, TimeSpan?> ?? new();
+    var canDiscount = (bool)(ViewBag.CanDiscount ?? true);
+    var canCustomerDebt = (bool)(ViewBag.CanCustomerDebt ?? true);
 
     int onDutyEmpId = queuePositions.Any()
         ? queuePositions.OrderBy(x => x.Value).First().Key
@@ -703,11 +705,18 @@
             </div>
             <div class="invoice-totals">
                 <div class="total-row"><span>الإجمالي:</span><span id="subtotalDisplay">0.000 د.ك</span></div>
-                <div class="total-row">
-                    <span>الخصم:</span>
-                    <input type="number" name="Discount" id="discountInput" class="discount-input"
-                           value="0" step="0.001" min="0" oninput="recalc()" />
-                </div>
+                @if (canDiscount)
+                {
+                    <div class="total-row">
+                        <span>الخصم:</span>
+                        <input type="number" name="Discount" id="discountInput" class="discount-input"
+                               value="0" step="0.001" min="0" oninput="recalc()" />
+                    </div>
+                }
+                else
+                {
+                    <input type="hidden" name="Discount" id="discountInput" value="0" />
+                }
                 <div class="total-row net"><span>الصافي:</span><span id="netDisplay">0.000 د.ك</span></div>
                 <div class="total-row" style="border-top:1px dashed #a8e6ef;padding-top:8px;margin-top:4px;">
                     <span style="color:#17a2b8;font-size:12px;"><i class="fas fa-gift me-1"></i>هدية الموظف:</span>
@@ -729,9 +738,12 @@
                     <button type="button" class="pay-btn" data-value="كي نت و كاش" onclick="selectPayment(this)">
                         <i class="fas fa-exchange-alt"></i> كي نت و كاش
                     </button>
-                    <button type="button" class="pay-btn" data-value="دين على العميل" onclick="selectPayment(this)">
-                        <i class="fas fa-user-clock"></i> دين على العميل
-                    </button>
+                    @if (canCustomerDebt)
+                    {
+                        <button type="button" class="pay-btn" data-value="دين على العميل" onclick="selectPayment(this)">
+                            <i class="fas fa-user-clock"></i> دين على العميل
+                        </button>
+                    }
                     <button type="button" class="pay-btn" data-value="دين على الموظف" onclick="selectPayment(this)">
                         <i class="fas fa-user-tag"></i> دين على الموظف
                     </button>
@@ -784,17 +796,17 @@
 
         @if (isEmployee && linkedEmpId.HasValue)
         {
-                    <text>
-                    document.querySelectorAll('.emp-item').forEach(function(el) {
-                        el.style.cursor = 'default'; el.onclick = null;
-                    });
-                    </text>
+                        <text>
+                        document.querySelectorAll('.emp-item').forEach(function(el) {
+                            el.style.cursor = 'default'; el.onclick = null;
+                        });
+                        </text>
         }
 
         function selectEmployee(id, el) {
             @if (isEmployee)
             {
-                    <text>return;</text>
+                        <text>return;</text>
             }
             document.querySelectorAll('.emp-item').forEach(function(e) { e.classList.remove('emp-selected'); });
             el.classList.add('emp-selected');

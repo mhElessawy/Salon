@@ -446,6 +446,24 @@ namespace Salon.Controllers
                 .Where(e => e.IsActive)
                 .OrderBy(e => e.FullName)
                 .ToListAsync();
+
+            // Feature permissions: Discount & CustomerDebt
+            var userId = user?.Id ?? "";
+            var featurePerms = await _context.UserPermissions
+                .Where(p => p.UserId == userId)
+                .ToListAsync();
+
+            if (!featurePerms.Any())
+            {
+                ViewBag.CanDiscount = true;
+                ViewBag.CanCustomerDebt = true;
+            }
+            else
+            {
+                var pd = featurePerms.ToDictionary(p => p.Module, p => p.CanAccess);
+                ViewBag.CanDiscount = !pd.ContainsKey("Discount") || pd["Discount"];
+                ViewBag.CanCustomerDebt = !pd.ContainsKey("CustomerDebt") || pd["CustomerDebt"];
+            }
         }
 
         private async Task PopulateProductDropdowns()
@@ -473,6 +491,20 @@ namespace Salon.Controllers
         {
             if (ModelState.IsValid)
             {
+                // Server-side permission enforcement for Discount and CustomerDebt
+                var currentUser = await _userManager.GetUserAsync(User);
+                var serverPerms = await _context.UserPermissions
+                    .Where(p => p.UserId == currentUser!.Id)
+                    .ToListAsync();
+                if (serverPerms.Any())
+                {
+                    var pd = serverPerms.ToDictionary(p => p.Module, p => p.CanAccess);
+                    if (pd.TryGetValue("Discount", out var canDisc) && !canDisc)
+                        model.Discount = 0;
+                    if (pd.TryGetValue("CustomerDebt", out var canDebt) && !canDebt && model.PaymentMethod == "دين على العميل")
+                        model.PaymentMethod = "كاش";
+                }
+
                 model.TotalAmount = 0;
                 model.SaleDate = KuwaitNow;
                 _context.Sales.Add(model);
@@ -526,8 +558,8 @@ namespace Salon.Controllers
                 TempData["Success"] = $"تم إنشاء الفاتورة {model.InvoiceNumber} بنجاح";
 
                 // Send email notification (fire-and-forget, never blocks the response)
-                var currentUser = await _userManager.GetUserAsync(User);
-                var cashierName = currentUser?.FullName ?? User.Identity?.Name ?? "—";
+                var currentUser1 = await _userManager.GetUserAsync(User);
+                var cashierName = currentUser1?.FullName ?? User.Identity?.Name ?? "—";
                 var saleWithItems = await _context.Sales
                     .Include(s => s.Employee)
                     .Include(s => s.SaleItems)

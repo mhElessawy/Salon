@@ -24,6 +24,7 @@
     bool hrOpen = IsGroupOpen("employees", "salaries", "advances", "attendance");
     bool financeOpen = IsGroupOpen("expenses", "reports");
     bool settingsOpen = IsGroupOpen("settings", "users");
+    bool barberDailyOpen = IsGroupOpen("barberdaily");
 }
 
 <nav class="sidebar" id="sidebar">
@@ -364,12 +365,6 @@
                             </a>
                         </li>
                         <li>
-                            <a href="@Url.Action("BarberDailyReport", "Reports")" class="@IsActive("Reports", "BarberDailyReport")">
-                                <i class="fas fa-cut"></i>
-                                <span data-i18n-en="Daily Staff Report">التقرير اليومي للحلاقين</span>
-                            </a>
-                        </li>
-                        <li>
                             <a href="@Url.Action("EmployeeEvaluation", "Reports")" class="@IsActive("Reports", "EmployeeEvaluation")">
                                 <i class="fas fa-user-check"></i>
                                 <span data-i18n-en="Employee Evaluation">تقييم الموظف</span>
@@ -377,6 +372,17 @@
                         </li>
                     }
                 </ul>
+            </li>
+        }
+
+        @* يومية الصلاخية *@
+        @if (canSee("BarberDaily"))
+        {
+            <li>
+                <a href="@Url.Action("Index", "BarberDaily")" class="@IsActive("BarberDaily")">
+                    <i class="fas fa-cut" style="color:#F7941D"></i>
+                    <span data-i18n-en="Barber Daily Report">يومية الصلاخية</span>
+                </a>
             </li>
         }
 

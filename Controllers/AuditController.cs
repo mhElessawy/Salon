@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
+using Salon.Models;
 
 namespace Salon.Controllers
 {
@@ -9,13 +11,17 @@ namespace Salon.Controllers
     public class AuditController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public AuditController(ApplicationDbContext context)
+        public AuditController(ApplicationDbContext context,
+            UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         public async Task<IActionResult> Index(
+            string? userId,
             string? userName,
             string? module,
             string? action,
@@ -27,8 +33,21 @@ namespace Salon.Controllers
 
             var query = _context.AuditLogs.AsQueryable();
 
-            if (!string.IsNullOrEmpty(userName))
-                query = query.Where(l => l.UserName.Contains(userName));
+            // When userId is given: match by UserId OR by UserName (covers logs saved before UserId was stored)
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var allUsers = await _userManager.Users.OrderBy(u => u.FullName).ToListAsync();
+                var targetUser = allUsers.FirstOrDefault(u => u.Id == userId);
+                var targetName = targetUser?.FullName ?? "";
+                query = query.Where(l => l.UserId == userId || l.UserName == targetName);
+                ViewBag.AllUsers = allUsers;
+            }
+            else
+            {
+                ViewBag.AllUsers = await _userManager.Users.OrderBy(u => u.FullName).ToListAsync();
+                if (!string.IsNullOrEmpty(userName))
+                    query = query.Where(l => l.UserName.Contains(userName));
+            }
 
             if (!string.IsNullOrEmpty(module))
                 query = query.Where(l => l.Module == module);
@@ -50,7 +69,19 @@ namespace Salon.Controllers
                 .Take(pageSize)
                 .ToListAsync();
 
-            ViewBag.UserName = userName;
+            // Resolve display name for selected user
+            var allUsersForBag = ViewBag.AllUsers as List<ApplicationUser>
+                ?? await _userManager.Users.OrderBy(u => u.FullName).ToListAsync();
+
+            string? selectedUserName = userName;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var selectedUser = allUsersForBag.FirstOrDefault(u => u.Id == userId);
+                selectedUserName = selectedUser?.FullName;
+            }
+
+            ViewBag.UserId = userId;
+            ViewBag.UserName = selectedUserName;
             ViewBag.Module = module;
             ViewBag.Action = action;
             ViewBag.DateFrom = dateFrom?.ToString("yyyy-MM-dd");
@@ -59,6 +90,9 @@ namespace Salon.Controllers
             ViewBag.PageSize = pageSize;
             ViewBag.Total = total;
             ViewBag.TotalPages = (int)Math.Ceiling((double)total / pageSize);
+
+            if (ViewBag.AllUsers == null)
+                ViewBag.AllUsers = allUsersForBag;
 
             ViewBag.Modules = await _context.AuditLogs
                 .Select(l => l.Module).Distinct().OrderBy(m => m).ToListAsync();

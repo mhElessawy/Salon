@@ -1,0 +1,843 @@
+﻿@model Salon.Models.BarberDailyReportViewModel
+@{
+    ViewData["Title"] = Model.ReportTitle;
+    var selectedDate = Model.ReportDate.ToString("yyyy-MM-dd");
+}
+
+<style>
+    .bdr-page {
+        font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+        direction: rtl;
+        max-width: 1100px;
+        margin: 0 auto;
+        background: #fff;
+        color: #111;
+        font-size: 13px;
+    }
+    /* ===== Header ===== */
+    .bdr-header {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 3px solid #111;
+        padding-bottom: 12px;
+        margin-bottom: 14px;
+    }
+
+    .bdr-logo {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .bdr-logo-circle {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: #1a1a2e;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        font-weight: bold;
+    }
+
+    .bdr-logo-text {
+        font-size: 11px;
+        text-align: center;
+        color: #555;
+        line-height: 1.3;
+    }
+
+    .bdr-title-center {
+        text-align: center;
+    }
+
+        .bdr-title-center h1 {
+            font-size: 22px;
+            font-weight: bold;
+            margin: 0 0 4px;
+        }
+
+        .bdr-title-center h2 {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0 0 10px;
+            color: #333;
+        }
+
+    .bdr-meta-row {
+        display: flex;
+        justify-content: center;
+        gap: 0;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .bdr-meta-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 5px 16px;
+        border-left: 1px solid #ccc;
+        min-width: 110px;
+    }
+
+        .bdr-meta-cell:last-child {
+            border-left: none;
+        }
+
+        .bdr-meta-cell .meta-label {
+            font-size: 11px;
+            color: #555;
+        }
+
+        .bdr-meta-cell .meta-val {
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .bdr-meta-cell .meta-icon {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+    .bdr-num-box {
+        border: 2px solid #1a1a2e;
+        border-radius: 8px;
+        padding: 8px 14px;
+        text-align: center;
+        min-width: 130px;
+    }
+
+        .bdr-num-box .num-label {
+            font-size: 11px;
+            color: #555;
+        }
+
+        .bdr-num-box .num-val {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1a1a2e;
+            letter-spacing: 1px;
+        }
+    /* ===== Section title ===== */
+    .bdr-section-title {
+        background: #1a1a2e;
+        color: #fff;
+        text-align: center;
+        font-weight: bold;
+        font-size: 14px;
+        padding: 6px 10px;
+        border-radius: 4px 4px 0 0;
+        margin-bottom: 0;
+    }
+    /* ===== Summary panels ===== */
+    .bdr-summary-row {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .bdr-panel {
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+    /* Revenue boxes */
+    .bdr-rev-boxes {
+        display: flex;
+        padding: 12px;
+        gap: 8px;
+    }
+
+    .bdr-rev-box {
+        flex: 1;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 10px 8px;
+        text-align: center;
+        position: relative;
+    }
+
+        .bdr-rev-box .badge-num {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 22px;
+            height: 22px;
+            background: #1a1a2e;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bdr-rev-box .rev-icon {
+            font-size: 20px;
+            color: #555;
+            margin-bottom: 4px;
+        }
+
+        .bdr-rev-box .rev-label {
+            font-size: 11px;
+            color: #333;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .bdr-rev-box .rev-val {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .bdr-rev-box .rev-cur {
+            font-size: 11px;
+            color: #555;
+        }
+
+    .rev-val.green {
+        color: #16a34a;
+    }
+
+    .rev-val.blue {
+        color: #1d4ed8;
+    }
+
+    .rev-val.red {
+        color: #dc2626;
+    }
+    /* Employee summary */
+    .bdr-emp-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0;
+        padding: 10px;
+    }
+
+    .bdr-emp-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 6px 4px;
+        text-align: center;
+        border-left: 1px dashed #ddd;
+    }
+
+        .bdr-emp-cell:nth-child(3n) {
+            border-left: none;
+        }
+
+        .bdr-emp-cell .emp-icon {
+            font-size: 22px;
+            color: #555;
+            margin-bottom: 3px;
+        }
+
+        .bdr-emp-cell .emp-num {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .bdr-emp-cell .emp-label {
+            font-size: 10px;
+            color: #555;
+        }
+
+    .emp-num.present {
+        color: #16a34a;
+    }
+
+    .emp-num.absent {
+        color: #dc2626;
+    }
+
+    .bdr-emp-divider {
+        grid-column: 1 / -1;
+        border-top: 1px solid #ddd;
+        margin: 4px 0;
+    }
+    /* ===== Barber table ===== */
+    .bdr-table-wrap {
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+
+    .bdr-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+
+        .bdr-table thead tr {
+            background: #1a1a2e;
+            color: #fff;
+        }
+
+        .bdr-table thead th {
+            padding: 8px 6px;
+            text-align: center;
+            font-weight: 600;
+            border-left: 1px solid #333;
+        }
+
+            .bdr-table thead th:last-child {
+                border-left: none;
+            }
+
+        .bdr-table tbody tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .bdr-table tbody td {
+            padding: 7px 6px;
+            text-align: center;
+            border-left: 1px solid #eee;
+        }
+
+        .bdr-table tfoot tr {
+            background: #1a1a2e;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .bdr-table tfoot td {
+            padding: 8px 6px;
+            text-align: center;
+            border-left: 1px solid #333;
+        }
+    /* ===== Bottom summary ===== */
+    .bdr-bottom-summary {
+        display: flex;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+
+    .bdr-sum-cell {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 10px 6px;
+        text-align: center;
+        border-left: 1px solid #ddd;
+    }
+
+        .bdr-sum-cell:last-child {
+            border-left: none;
+        }
+
+        .bdr-sum-cell .sum-icon {
+            font-size: 22px;
+            color: #555;
+            margin-bottom: 4px;
+        }
+
+        .bdr-sum-cell .sum-label {
+            font-size: 10px;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        .bdr-sum-cell .sum-val {
+            font-size: 17px;
+            font-weight: bold;
+        }
+
+        .bdr-sum-cell .sum-cur {
+            font-size: 11px;
+            color: #666;
+        }
+
+    .sum-val.green {
+        color: #16a34a;
+    }
+
+    .sum-val.red {
+        color: #dc2626;
+    }
+
+    .sum-val.blue {
+        color: #1d4ed8;
+    }
+
+    .bdr-note-bar {
+        background: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        text-align: center;
+        padding: 6px;
+        font-size: 12px;
+        color: #444;
+        margin-bottom: 14px;
+    }
+    /* ===== Cash movement ===== */
+    .cash-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+
+        .cash-table thead tr {
+            background: #1a1a2e;
+            color: #fff;
+        }
+
+        .cash-table thead th {
+            padding: 7px 6px;
+            text-align: center;
+            border-left: 1px solid #333;
+        }
+
+            .cash-table thead th:last-child {
+                border-left: none;
+            }
+
+        .cash-table tbody tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .cash-table tbody td {
+            padding: 6px 6px;
+            text-align: center;
+            border-left: 1px solid #eee;
+        }
+
+        .cash-table tfoot tr {
+            background: #1a1a2e;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .cash-table tfoot td {
+            padding: 7px 6px;
+            text-align: center;
+        }
+
+    .cash-withdraw {
+        color: #dc2626;
+        font-weight: 600;
+    }
+
+    .bdr-balance-box {
+        background: #1a1a2e;
+        color: #fff;
+        text-align: center;
+        padding: 10px;
+        border-radius: 4px;
+        font-size: 15px;
+        font-weight: bold;
+        margin-top: 10px;
+    }
+
+        .bdr-balance-box span {
+            color: #fbbf24;
+        }
+
+    .bdr-footer {
+        text-align: center;
+        color: #888;
+        font-size: 11px;
+        margin-top: 14px;
+        border-top: 1px solid #eee;
+        padding-top: 8px;
+    }
+    /* Print */
+    @@media print {
+        .no-print {
+            display: none !important;
+        }
+
+        .bdr-page {
+            max-width: 100%;
+        }
+
+        body {
+            background: #fff;
+        }
+
+        .bdr-table tbody tr:nth-child(even) {
+            background: #f5f5f5 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .bdr-table thead tr, .bdr-table tfoot tr, .cash-table thead tr, .cash-table tfoot tr {
+            background: #1a1a2e !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .bdr-section-title, .bdr-balance-box {
+            background: #1a1a2e !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
+</style>
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 no-print">
+    <div>
+        <h1><i class="fas fa-cut me-2"></i>@Model.ReportTitle</h1>
+        <p class="mb-0">@Model.ReportDate.ToString("yyyy/MM/dd") — @Model.DayName</p>
+    </div>
+    <button onclick="window.print()" class="btn btn-dark btn-sm">
+        <i class="fas fa-print me-1"></i>طباعة
+    </button>
+</div>
+
+<div class="card mb-3 no-print">
+    <div class="card-body py-2">
+        <form method="get" action="@Url.Action("Index", "BarberDaily")" class="d-flex align-items-end gap-3">
+            <div>
+                <label class="form-label small fw-semibold mb-1">التاريخ</label>
+                <div class="input-group input-group-sm">
+                    <input type="date" id="dateInput" name="date" value="@selectedDate" class="form-control" style="max-width:160px;" />
+                    <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('dateInput').value=new Date().toISOString().slice(0,10);this.form.submit();" title="اليوم">
+                        <i class="fas fa-calendar-day"></i>
+                    </button>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="fas fa-search me-1"></i>عرض
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="bdr-page" dir="rtl">
+
+    <!-- -->
+    <div class="bdr-header">
+        <div class="bdr-logo">
+            <div class="bdr-logo-circle"><i class="fas fa-cut"></i></div>
+            <div class="bdr-logo-text">معهد وصالون<br />للرجال</div>
+        </div>
+        <div class="bdr-title-center">
+            <h1>معهد وصالون موس للرجال</h1>
+            <h2>@Model.ReportTitle</h2>
+            <div class="bdr-meta-row">
+                <div class="bdr-meta-cell">
+                    <span class="meta-icon"><i class="fas fa-calendar-alt"></i></span>
+                    <span class="meta-label">التاريخ</span>
+                    <span class="meta-val">@Model.ReportDate.ToString("yyyy/MM/dd")</span>
+                </div>
+                <div class="bdr-meta-cell">
+                    <span class="meta-icon"><i class="fas fa-calendar-day"></i></span>
+                    <span class="meta-label">اليوم</span>
+                    <span class="meta-val">@Model.DayName</span>
+                </div>
+                <div class="bdr-meta-cell">
+                    <span class="meta-icon"><i class="fas fa-user-tie"></i></span>
+                    <span class="meta-label">الكاشير</span>
+                    <span class="meta-val">@Model.CashierName</span>
+                </div>
+                <div class="bdr-meta-cell">
+                    <span class="meta-icon"><i class="fas fa-clock"></i></span>
+                    <span class="meta-label">وقت الإغلاق</span>
+                    <span class="meta-val">@Model.ClosingTime</span>
+                </div>
+            </div>
+        </div>
+        <div class="bdr-num-box">
+            <div class="num-label">رقم اليومية</div>
+            <div class="num-val">@Model.ReportNumber</div>
+        </div>
+    </div>
+
+    <!-- -->
+    <div class="bdr-summary-row">
+        <!-- -->
+        <div class="bdr-panel">
+            <div class="bdr-section-title">ملخص الإيرادات</div>
+            <div class="bdr-rev-boxes">
+                <div class="bdr-rev-box">
+                    <div class="badge-num">1</div>
+                    <div class="rev-icon"><i class="fas fa-cash-register"></i></div>
+                    <div class="rev-label">الإيراد الإجمالي</div>
+                    <div class="rev-val blue">@Model.TotalRevenue.ToString("N3")</div>
+                    <div class="rev-cur">د.ك</div>
+                </div>
+                <div class="bdr-rev-box">
+                    <div class="badge-num">2</div>
+                    <div class="rev-icon"><i class="fas fa-credit-card"></i></div>
+                    <div class="rev-label">كي نت</div>
+                    <div class="rev-val blue">@Model.TotalKNet.ToString("N3")</div>
+                    <div class="rev-cur">د.ك</div>
+                </div>
+                <div class="bdr-rev-box">
+                    <div class="badge-num">3</div>
+                    <div class="rev-icon"><i class="fas fa-money-bill-wave"></i></div>
+                    <div class="rev-label">الكاش</div>
+                    <div class="rev-val blue">@Model.TotalCash.ToString("N3")</div>
+                    <div class="rev-cur">د.ك</div>
+                </div>
+                <div class="bdr-rev-box">
+                    <div class="badge-num">4</div>
+                    <div class="rev-icon"><i class="fas fa-cut"></i></div>
+                    <div class="rev-label">مبيعات الصالون</div>
+                    <div class="rev-val @(Model.ProductSalesTotal > 0 ? "blue" : "red")">@Model.ProductSalesTotal.ToString("N3")</div>
+                    <div class="rev-cur">د.ك</div>
+                </div>
+                <div class="bdr-rev-box">
+                    <div class="badge-num">5</div>
+                    <div class="rev-icon"><i class="fas fa-chart-bar"></i></div>
+                    <div class="rev-label">صافي الدخل</div>
+                    <div class="rev-val green">@Model.NetShopIncome.ToString("N3")</div>
+                    <div class="rev-cur">د.ك</div>
+                </div>
+            </div>
+        </div>
+        <!-- -->
+        <div class="bdr-panel">
+            <div class="bdr-section-title">ملخص الموظفين</div>
+            <div class="bdr-emp-grid">
+                <div class="bdr-emp-cell">
+                    <div class="emp-icon"><i class="fas fa-users"></i></div>
+                    <div class="emp-num">@Model.RegisteredBarbers</div>
+                    <div class="emp-label">عدد @Model.RegisteredLabel</div>
+                </div>
+                <div class="bdr-emp-cell">
+                    <div class="emp-icon" style="color:#16a34a;"><i class="fas fa-user-check"></i></div>
+                    <div class="emp-num present">@Model.PresentToday</div>
+                    <div class="emp-label">الحضور</div>
+                </div>
+                <div class="bdr-emp-cell">
+                    <div class="emp-icon" style="color:#dc2626;"><i class="fas fa-user-times"></i></div>
+                    <div class="emp-num absent">@Model.AbsentToday</div>
+                    <div class="emp-label">الغياب</div>
+                </div>
+                <div class="bdr-emp-divider"></div>
+                <div class="bdr-emp-cell">
+                    <div class="emp-icon"><i class="fas fa-umbrella-beach"></i></div>
+                    <div class="emp-num">@Model.VacationToday</div>
+                    <div class="emp-label">إجازة</div>
+                </div>
+                <div class="bdr-emp-cell">
+                    <div class="emp-icon"><i class="fas fa-user-clock"></i></div>
+                    <div class="emp-num">@Model.LateToday</div>
+                    <div class="emp-label">متأخرين</div>
+                </div>
+                <div class="bdr-emp-cell">
+                    <div class="emp-icon"><i class="fas fa-sign-out-alt"></i></div>
+                    <div class="emp-num">@Model.EarlyLeaveToday</div>
+                    <div class="emp-label">منصرفين مبكراً</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- -->
+    <div class="bdr-table-wrap">
+        <div class="bdr-section-title">@Model.TableTitle</div>
+        <table class="bdr-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    @if (Model.ShowBoth)
+                    {
+                        <th>القسم</th>
+                    }
+                    <th>@Model.EmployeeLabel</th>
+                    <th>إجمالي الشغل<br /><small>د.ك</small></th>
+                    <th>كي نت<br /><small>د.ك</small></th>
+                    <th>كاش<br /><small>د.ك</small></th>
+                    <th>الديون<br /><small>د.ك</small></th>
+                    <th>السلف<br /><small>د.ك</small></th>
+                    <th>نسبة<br />%</th>
+                    <th>المبلغ<br />المستحق<br /><small>د.ك</small></th>
+                    <th>خصم السلف<br />والديون<br /><small>د.ك</small></th>
+                    <th>الصافي<br />بعد الخصم<br /><small>د.ك</small></th>
+                    <th>صافي المحل<br /><small>د.ك</small></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.BarberRows.Any())
+                {
+                    <tr>
+                        <td colspan="@(Model.ShowBoth ? 13 : 12)" class="text-center text-muted py-4">
+                            <i class="fas fa-inbox me-1"></i> لا يوجد موظفون نشطون أو لا توجد مبيعات لهذا اليوم
+                        </td>
+                    </tr>
+                }
+                @{
+                    int rowNum = 1;
+                }
+                @foreach (var row in Model.BarberRows)
+                {
+                    <tr>
+                        <td>@(rowNum++)</td>
+                        @if (Model.ShowBoth)
+                        {
+                            <td>
+                                @if (row.DepartmentName == "حلاقة")
+                                {
+                                    <span class="badge" style="background:#1a1a2e;">✂ حلاقة</span>
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background:#0891b2;">🌿 مساج</span>
+                                }
+                            </td>
+                        }
+                        <td><strong>@row.Employee.FullName</strong></td>
+                        <td>@row.TotalWork.ToString("N3")</td>
+                        <td>@row.KNet.ToString("N3")</td>
+                        <td>@row.Cash.ToString("N3")</td>
+                        <td class="@(row.Debts > 0 ? "text-danger" : "")">@row.Debts.ToString("N3")</td>
+                        <td class="@(row.Advance > 0 ? "text-danger" : "")">@row.Advance.ToString("N3")</td>
+                        <td><strong>@row.CommissionPercent.ToString("N0")%</strong></td>
+                        <td><strong>@row.DueAmount.ToString("N3")</strong></td>
+                        <td class="@(row.Deductions > 0 ? "text-danger" : "")">@row.Deductions.ToString("N3")</td>
+                        <td style="color:#16a34a;font-weight:bold;">@row.NetAfterDeduction.ToString("N3")</td>
+                        <td style="color:#1d4ed8;font-weight:bold;">@row.ShopNet.ToString("N3")</td>
+                    </tr>
+                }
+            </tbody>
+            @if (Model.BarberRows.Any())
+            {
+                <tfoot>
+                    <tr>
+                        <td colspan="@(Model.ShowBoth ? 3 : 2)">الإجمالي</td>
+                        <td>@Model.TotalWork.ToString("N3")</td>
+                        <td>@Model.TotalKNetWork.ToString("N3")</td>
+                        <td>@Model.TotalCashWork.ToString("N3")</td>
+                        <td>@Model.TotalDebts.ToString("N3")</td>
+                        <td>@Model.TotalAdvances.ToString("N3")</td>
+                        <td>@Model.OverallCommissionPercent.ToString("N0")%</td>
+                        <td>@Model.TotalDueAmount.ToString("N3")</td>
+                        <td>@Model.TotalDeductions.ToString("N3")</td>
+                        <td>@Model.TotalNetAfterDeduction.ToString("N3")</td>
+                        <td>@Model.TotalShopNet.ToString("N3")</td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+
+    <!-- -->
+    @if (Model.BarberRows.Any())
+    {
+        <div class="bdr-bottom-summary">
+            <div class="bdr-sum-cell">
+                <div class="sum-icon"><i class="fas fa-dollar-sign"></i></div>
+                <div class="sum-label">إجمالي الشغل</div>
+                <div class="sum-val blue">@Model.TotalWork.ToString("N3")</div>
+                <div class="sum-cur">د.ك</div>
+            </div>
+            <div class="bdr-sum-cell">
+                <div class="sum-icon"><i class="fas fa-users"></i></div>
+                <div class="sum-label">نسبة @Model.CommissionNoteLabel الإجمالية</div>
+                <div class="sum-val">@Model.OverallCommissionPercent.ToString("N0")%</div>
+            </div>
+            <div class="bdr-sum-cell">
+                <div class="sum-icon"><i class="fas fa-hand-holding-usd"></i></div>
+                <div class="sum-label">إجمالي السلف</div>
+                <div class="sum-val red">@Model.TotalAdvances.ToString("N3")</div>
+                <div class="sum-cur">د.ك</div>
+            </div>
+            <div class="bdr-sum-cell">
+                <div class="sum-icon"><i class="fas fa-minus-circle"></i></div>
+                <div class="sum-label">إجمالي خصم الديون والسلف</div>
+                <div class="sum-val red">@Model.TotalDeductions.ToString("N3")</div>
+                <div class="sum-cur">د.ك</div>
+            </div>
+            <div class="bdr-sum-cell">
+                <div class="sum-icon"><i class="fas fa-wallet"></i></div>
+                <div class="sum-label">إجمالي صافي ما سيستلم لـ@Model.CommissionNoteLabel بعد الخصم</div>
+                <div class="sum-val green">@Model.TotalNetAfterDeduction.ToString("N3")</div>
+                <div class="sum-cur">د.ك</div>
+            </div>
+            <div class="bdr-sum-cell">
+                <div class="sum-icon"><i class="fas fa-store"></i></div>
+                <div class="sum-label">صافي المحل من @Model.CommissionNoteLabel</div>
+                <div class="sum-val blue">@Model.TotalShopNet.ToString("N3")</div>
+                <div class="sum-cur">د.ك</div>
+            </div>
+        </div>
+        <div class="bdr-note-bar">
+            ملاحظة: تم اعتماد نسبة @Model.CommissionNoteLabel @Model.OverallCommissionPercent.ToString("N0")% من إجمالي الشغل
+        </div>
+    }
+
+    <!-- -->
+    @if (Model.CashMovement.Any())
+    {
+        <div class="bdr-table-wrap">
+            <div class="bdr-section-title">
+                حركة الكاش في الصندوق (من تاريخ 1 إلى @Model.ReportDate.Day)
+            </div>
+            <table class="cash-table">
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>رصيد بداية اليوم<br /><small>د.ك</small></th>
+                        <th>إيرادات كاش<br /><small>د.ك</small></th>
+                        <th>سحب من الصندوق<br /><small>د.ك</small></th>
+                        <th>نوع السحب</th>
+                        <th>سحب من قبل</th>
+                        <th>رصيد نهاية اليوم<br /><small>د.ك</small></th>
+                        <th>ملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var cm in Model.CashMovement)
+                    {
+                        <tr>
+                            <td dir="ltr">@cm.Date.ToString("(yyyy/MM/dd)") @cm.Date.Day</td>
+                            <td>@cm.OpeningBalance.ToString("N3")</td>
+                            <td>
+                                @if (cm.CashRevenue > 0)
+                                {
+                                    <span style="color:#16a34a;font-weight:600;">@cm.CashRevenue.ToString("N3")</span>
+                                }
+                                else
+                                {
+                                    <span>@cm.CashRevenue.ToString("N3")</span>
+                                }
+                            </td>
+                            <td>
+                                @if (cm.Withdrawal > 0)
+                                {
+                                    <span class="cash-withdraw">@cm.Withdrawal.ToString("N3")</span>
+                                }
+                                else
+                                {
+                                    <span>-</span>
+                                }
+                            </td>
+                            <td>@cm.WithdrawalType</td>
+                            <td>@cm.WithdrawnBy</td>
+                            <td><strong>@cm.ClosingBalance.ToString("N3")</strong></td>
+                            <td>@cm.Notes</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bdr-balance-box">
+            الكاش الحالي في الصندوق (كما في @Model.ReportDate.ToString("yyyy/MM/dd")) =
+            <span>@Model.CurrentCashBalance.ToString("N3") د.ك</span>
+        </div>
+    }
+
+    <div class="bdr-footer">
+        ملاحظة: جميع المبالغ بالدينار الكويتي (د.ك)
+    </div>
+</div>

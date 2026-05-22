@@ -1,0 +1,285 @@
+﻿@model List<Salon.Models.UserActivityViewModel>
+@{
+    ViewData["Title"] = "نشاط المستخدمين";
+
+    string RoleAr(string r) => r switch
+    {
+        "Admin" => "مدير النظام",
+        "Manager" => "مدير",
+        "Cashier" => "كاشير",
+        "Employee" => "موظف",
+        _ => r
+    };
+    string RoleColor(string r) => r switch
+    {
+        "Admin" => "#c0392b",
+        "Manager" => "#e67e22",
+        "Cashier" => "#2980b9",
+        "Employee" => "#7f8c8d",
+        _ => "#2980b9"
+    };
+    string RoleGradient(string r) => r switch
+    {
+        "Admin" => "linear-gradient(135deg,#e74c3c,#c0392b)",
+        "Manager" => "linear-gradient(135deg,#f39c12,#e67e22)",
+        "Cashier" => "linear-gradient(135deg,#3498db,#2980b9)",
+        "Employee" => "linear-gradient(135deg,#95a5a6,#7f8c8d)",
+        _ => "linear-gradient(135deg,#3498db,#2980b9)"
+    };
+}
+
+@section Styles {
+    <style>
+        .activity-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+        }
+
+        .user-card {
+            background: #fff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 3px 15px rgba(0,0,0,.09);
+            transition: transform .2s, box-shadow .2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+            .user-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 8px 25px rgba(0,0,0,.14);
+            }
+
+        .card-header-area {
+            padding: 22px 18px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            direction: rtl;
+        }
+
+        .avatar-circle {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.25);
+            color: #fff;
+            font-size: 22px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 2px solid rgba(255,255,255,.5);
+        }
+
+        .card-user-info {
+            flex: 1;
+        }
+
+        .card-user-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            margin: 0 0 3px;
+            line-height: 1.3;
+        }
+
+        .card-user-role {
+            font-size: 12px;
+            color: rgba(255,255,255,.85);
+            margin: 0;
+        }
+
+        .inactive-badge {
+            background: rgba(0,0,0,.25);
+            color: #fff;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-top: 4px;
+            display: inline-block;
+        }
+
+        .card-body-area {
+            padding: 16px 18px;
+            flex: 1;
+            direction: rtl;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 5px 0;
+            font-size: 13px;
+            color: #555;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+            .info-row:last-child {
+                border-bottom: none;
+            }
+
+            .info-row i {
+                width: 18px;
+                text-align: center;
+                font-size: 13px;
+                flex-shrink: 0;
+            }
+
+        .info-val {
+            font-weight: 600;
+            color: #222;
+        }
+
+        .stat-count {
+            font-size: 20px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .card-footer-area {
+            padding: 0 18px 16px;
+        }
+
+        .btn-detail {
+            display: block;
+            width: 100%;
+            padding: 9px;
+            border-radius: 10px;
+            border: none;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+            cursor: pointer;
+            text-decoration: none;
+            transition: filter .2s;
+        }
+
+            .btn-detail:hover {
+                filter: brightness(1.1);
+                color: #fff;
+            }
+
+        .summary-bar {
+            background: #fff;
+            border-radius: 12px;
+            padding: 14px 20px;
+            margin-bottom: 22px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.06);
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            direction: rtl;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-num {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .summary-lbl {
+            font-size: 12px;
+            color: #888;
+        }
+    </style>
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="fas fa-chart-line me-2"></i>نشاط المستخدمين</h1>
+        <p>عدد النشاطات وآخر تسجيل لكل مستخدم</p>
+    </div>
+    <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-right me-1"></i> رجوع
+    </a>
+</div>
+
+<!-- Summary Bar -->
+<div class="summary-bar">
+    <div class="summary-item">
+        <div class="summary-num">@Model.Count</div>
+        <div class="summary-lbl">إجمالي المستخدمين</div>
+    </div>
+    <div class="summary-item">
+        <div class="summary-num" style="color:#27ae60">@Model.Count(u => u.User.IsActive)</div>
+        <div class="summary-lbl">نشط</div>
+    </div>
+    <div class="summary-item">
+        <div class="summary-num" style="color:#e74c3c">@Model.Count(u => !u.User.IsActive)</div>
+        <div class="summary-lbl">معطّل</div>
+    </div>
+    <div class="summary-item">
+        <div class="summary-num" style="color:#8e44ad">@Model.Sum(u => u.ActivityCount)</div>
+        <div class="summary-lbl">إجمالي النشاطات</div>
+    </div>
+</div>
+
+<!-- Cards Grid -->
+<div class="activity-grid">
+    @foreach (var vm in Model.OrderByDescending(u => u.ActivityCount))
+    {
+        var gradient = RoleGradient(vm.Role);
+        var color = RoleColor(vm.Role);
+        var roleAr = RoleAr(vm.Role);
+        var initials = vm.User.FullName.Length > 0 ? vm.User.FullName[0].ToString() : "؟";
+
+        <div class="user-card">
+            <!-- Header -->
+            <div class="card-header-area" style="background: @gradient">
+                <div class="avatar-circle">@initials</div>
+                <div class="card-user-info">
+                    <p class="card-user-name">@vm.User.FullName</p>
+                    <p class="card-user-role">@roleAr</p>
+                    @if (!vm.User.IsActive)
+                    {
+                        <span class="inactive-badge"><i class="fas fa-ban me-1"></i>معطّل</span>
+                    }
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="card-body-area">
+                <div class="info-row">
+                    <i class="fas fa-envelope" style="color:#3498db"></i>
+                    <span class="text-muted" style="font-size:12px">@vm.User.Email</span>
+                </div>
+                @if (!string.IsNullOrEmpty(vm.User.UserDepartment))
+                {
+                    <div class="info-row">
+                        <i class="fas fa-user-friends" style="color:#27ae60"></i>
+                        <span class="info-val">@vm.User.UserDepartment</span>
+                    </div>
+                }
+                <div class="info-row">
+                    <i class="fas fa-bolt" style="color:@color"></i>
+                    <span>النشاطات:</span>
+                    <span class="stat-count ms-auto" style="color:@color">@vm.ActivityCount</span>
+                </div>
+                <div class="info-row">
+                    <i class="fas fa-clock" style="color:#8e44ad"></i>
+                    <span>آخر نشاط:</span>
+                    <span class="info-val ms-auto" style="font-size:12px">
+                        @(vm.LastActivityAt.HasValue? vm.LastActivityAt.Value.ToString("yyyy/MM/dd") : "—")
+                    </span>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="card-footer-area">
+                <a href="@Url.Action("Index", "Audit", new { userName = vm.User.FullName })"
+                   class="btn-detail" style="background:@gradient">
+                    <i class="fas fa-eye me-1"></i> عرض التفاصيل
+                </a>
+            </div>
+        </div>
+    }
+</div>

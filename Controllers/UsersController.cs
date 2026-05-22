@@ -238,6 +238,57 @@ namespace Salon.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // ===== نشاط المستخدمين =====
+        public async Task<IActionResult> Activity()
+        {
+            var users = await _userManager.Users.OrderBy(u => u.FullName).ToListAsync();
+
+            // Group by UserId (for properly-logged entries)
+            var statsByUserId = await _context.AuditLogs
+                .Where(l => l.UserId != null && l.UserId != "")
+                .GroupBy(l => l.UserId)
+                .Select(g => new { Key = g.Key, Count = g.Count(), LastAt = g.Max(l => l.CreatedAt) })
+                .ToDictionaryAsync(x => x.Key, x => (x.Count, x.LastAt));
+
+            // Group by UserName for entries without UserId (older logs)
+            var statsByName = await _context.AuditLogs
+                .Where(l => l.UserId == null || l.UserId == "")
+                .GroupBy(l => l.UserName)
+                .Select(g => new { Key = g.Key, Count = g.Count(), LastAt = g.Max(l => l.CreatedAt) })
+                .ToDictionaryAsync(x => x.Key, x => (x.Count, x.LastAt));
+
+            var result = new List<UserActivityViewModel>();
+            foreach (var user in users)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+
+                int count = 0;
+                DateTime? lastAt = null;
+
+                if (statsByUserId.TryGetValue(user.Id, out var byId))
+                {
+                    count += byId.Count;
+                    lastAt = byId.LastAt;
+                }
+                if (statsByName.TryGetValue(user.FullName, out var byName))
+                {
+                    count += byName.Count;
+                    if (!lastAt.HasValue || byName.LastAt > lastAt.Value)
+                        lastAt = byName.LastAt;
+                }
+
+                result.Add(new UserActivityViewModel
+                {
+                    User = user,
+                    Role = roles.FirstOrDefault() ?? "-",
+                    ActivityCount = count,
+                    LastActivityAt = lastAt
+                });
+            }
+
+            return View(result);
+        }
+
         // ===== تعطيل مستخدم =====
         private async Task PopulateUserDropdowns()
         {
