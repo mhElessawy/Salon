@@ -43,8 +43,8 @@ namespace Salon.Controllers
                 .Where(e => e.IsActive && e.DepartmentNav != null);
 
             // Employee role → only their own record; Cashier → filter by department
-            if (isEmployee && linkedEmpId.HasValue)
-                empQuery = empQuery.Where(e => e.Id == linkedEmpId.Value);
+            if (isEmployee)
+                empQuery = empQuery.Where(e => e.Id == (linkedEmpId ?? -1));
             else if (isBarberOnly)
                 empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "حلاقة");
             else if (isMassageOnly)
@@ -63,8 +63,8 @@ namespace Salon.Controllers
                 .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow && s.Status != "ملغي");
 
             // Employee sees only their own sales; Cashier sees their department
-            if (isEmployee && linkedEmpId.HasValue)
-                staffSalesQuery = staffSalesQuery.Where(s => s.EmployeeId == linkedEmpId.Value);
+            if (isEmployee)
+                staffSalesQuery = staffSalesQuery.Where(s => s.EmployeeId == (linkedEmpId ?? -1));
             else if (isBarberOnly)
                 staffSalesQuery = staffSalesQuery.Where(s => s.SaleType == "حلاقة");
             else if (isMassageOnly)
