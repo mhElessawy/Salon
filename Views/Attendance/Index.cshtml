@@ -1,6 +1,16 @@
 @model IEnumerable<Salon.Models.Attendance>
 @{
     ViewData["Title"] = "الحضور والانصراف";
+
+    string FmtDuration(TimeSpan t)
+    {
+        if (t <= TimeSpan.Zero) return "-";
+        var h = (int)t.TotalHours;
+        var m = t.Minutes;
+        if (h > 0 && m > 0) return $"{h}س {m}د";
+        if (h > 0) return $"{h}س";
+        return $"{m}د";
+    }
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -35,6 +45,8 @@
                         <th>وقت الحضور</th>
                         <th>وقت الانصراف</th>
                         <th>الاستئذان</th>
+                        <th>مدة الاستئذان</th>
+                        <th>وقت العمل الفعلي</th>
                         <th>الحالة</th>
                         <th>الإجراءات</th>
                     </tr>
@@ -42,7 +54,7 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="9" class="text-center text-muted py-4">لا توجد سجلات حضور في هذا اليوم</td></tr>
+                        <tr><td colspan="11" class="text-center text-muted py-4">لا توجد سجلات حضور في هذا اليوم</td></tr>
                     }
                     @foreach (var a in Model)
                     {
@@ -98,6 +110,16 @@
                                 @{
                                     var openPerm = a.Permissions.FirstOrDefault(p => p.ReturnTime == null);
                                     var closedPerms = a.Permissions.Where(p => p.ReturnTime != null).ToList();
+
+                                    var totalPermTime = closedPerms.Aggregate(TimeSpan.Zero,
+                                        (acc, p) => acc + (p.ReturnTime!.Value - p.LeaveTime));
+
+                                    TimeSpan? actualWork = null;
+                                    if (a.CheckIn.HasValue && a.CheckOut.HasValue)
+                                    {
+                                        var raw = a.CheckOut.Value - a.CheckIn.Value - totalPermTime;
+                                        actualWork = raw < TimeSpan.Zero ? TimeSpan.Zero : raw;
+                                    }
                                 }
                                 @if (openPerm != null)
                                 {
@@ -133,6 +155,30 @@
                                         &rarr;
                                         <i class="fas fa-undo"></i> @cp.ReturnTime!.Value.ToString(@"hh\:mm")
                                     </div>
+                                }
+                            </td>
+                            <td>
+                                @if (totalPermTime > TimeSpan.Zero)
+                                {
+                                    <span class="badge text-white" style="background-color:#fd7e14">
+                                        <i class="fas fa-hourglass-half me-1"></i>@FmtDuration(totalPermTime)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (actualWork.HasValue)
+                                {
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-briefcase me-1"></i>@FmtDuration(actualWork.Value)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
                                 }
                             </td>
                             <td>
