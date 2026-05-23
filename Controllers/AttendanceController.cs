@@ -221,6 +221,25 @@ namespace Salon.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeletePermission(int id)
+        {
+            var perm = await _context.AttendancePermissions
+                .Include(p => p.Attendance)
+                .FirstOrDefaultAsync(p => p.Id == id);
+            if (perm == null) return RedirectToAction(nameof(Index));
+
+            var linkedId = await GetLinkedEmployeeIdIfEmployee();
+            if (linkedId.HasValue && perm.Attendance?.EmployeeId != linkedId.Value)
+                return Forbid();
+
+            var date = perm.Attendance!.AttendanceDate.ToString("yyyy-MM-dd");
+            _context.AttendancePermissions.Remove(perm);
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "تم حذف الاستئذان بنجاح";
+            return RedirectToAction(nameof(Index), new { date });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> ReturnFromPermission(int id)
         {
             var perm = await _context.AttendancePermissions

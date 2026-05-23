@@ -127,12 +127,20 @@
                                         <span class="badge bg-orange text-white" style="background-color:#fd7e14!important">
                                             <i class="fas fa-door-open me-1"></i>@openPerm.LeaveTime.ToString(@"hh\:mm")
                                         </span>
-                                        <form method="post" action="@Url.Action("ReturnFromPermission", new { id = a.Id })" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-success py-0">
-                                                <i class="fas fa-undo me-1"></i> عودة
-                                            </button>
-                                        </form>
+                                        <div class="d-flex gap-1">
+                                            <form method="post" action="@Url.Action("ReturnFromPermission", new { id = a.Id })" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-success py-0">
+                                                    <i class="fas fa-undo me-1"></i> عودة
+                                                </button>
+                                            </form>
+                                            <form method="post" action="@Url.Action("DeletePermission", new { id = openPerm.Id })" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-danger py-0" title="حذف الاستئذان">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
                                     </div>
                                 }
                                 else if (a.CheckIn.HasValue && !a.CheckOut.HasValue)
@@ -150,10 +158,18 @@
                                 }
                                 @foreach (var cp in closedPerms)
                                 {
-                                    <div class="mt-1 small text-muted">
-                                        <i class="fas fa-door-open"></i> @cp.LeaveTime.ToString(@"hh\:mm")
-                                        &rarr;
-                                        <i class="fas fa-undo"></i> @cp.ReturnTime!.Value.ToString(@"hh\:mm")
+                                    <div class="mt-1 small d-flex align-items-center gap-1">
+                                        <span class="text-muted">
+                                            <i class="fas fa-door-open"></i> @cp.LeaveTime.ToString(@"hh\:mm")
+                                            &rarr;
+                                            <i class="fas fa-undo"></i> @cp.ReturnTime!.Value.ToString(@"hh\:mm")
+                                        </span>
+                                        <form method="post" action="@Url.Action("DeletePermission", new { id = cp.Id })" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" title="حذف">
+                                                <i class="fas fa-trash" style="font-size:10px"></i>
+                                            </button>
+                                        </form>
                                     </div>
                                 }
                             </td>
