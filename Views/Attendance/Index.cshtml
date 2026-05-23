@@ -34,6 +34,7 @@
                         <th>التاريخ</th>
                         <th>وقت الحضور</th>
                         <th>وقت الانصراف</th>
+                        <th>الاستئذان</th>
                         <th>الحالة</th>
                         <th>الإجراءات</th>
                     </tr>
@@ -41,7 +42,7 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="8" class="text-center text-muted py-4">لا توجد سجلات حضور في هذا اليوم</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted py-4">لا توجد سجلات حضور في هذا اليوم</td></tr>
                     }
                     @foreach (var a in Model)
                     {
@@ -91,6 +92,47 @@
                                 {
 
                                     <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @{
+                                    var openPerm = a.Permissions.FirstOrDefault(p => p.ReturnTime == null);
+                                    var closedPerms = a.Permissions.Where(p => p.ReturnTime != null).ToList();
+                                }
+                                @if (openPerm != null)
+                                {
+                                    <div class="d-flex flex-column gap-1">
+                                        <span class="badge bg-orange text-white" style="background-color:#fd7e14!important">
+                                            <i class="fas fa-door-open me-1"></i>@openPerm.LeaveTime.ToString(@"hh\:mm")
+                                        </span>
+                                        <form method="post" action="@Url.Action("ReturnFromPermission", new { id = a.Id })" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-success py-0">
+                                                <i class="fas fa-undo me-1"></i> عودة
+                                            </button>
+                                        </form>
+                                    </div>
+                                }
+                                else if (a.CheckIn.HasValue && !a.CheckOut.HasValue)
+                                {
+                                    <form method="post" action="@Url.Action("RequestPermission", new { id = a.Id })" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-warning">
+                                            <i class="fas fa-door-open me-1"></i> استئذان
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                                @foreach (var cp in closedPerms)
+                                {
+                                    <div class="mt-1 small text-muted">
+                                        <i class="fas fa-door-open"></i> @cp.LeaveTime.ToString(@"hh\:mm")
+                                        &rarr;
+                                        <i class="fas fa-undo"></i> @cp.ReturnTime!.Value.ToString(@"hh\:mm")
+                                    </div>
                                 }
                             </td>
                             <td>

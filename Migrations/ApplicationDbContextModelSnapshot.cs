@@ -338,6 +338,36 @@ namespace Salon.Migrations
                 b.ToTable("Attendances", (string)null);
             });
 
+            modelBuilder.Entity("Salon.Models.AttendancePermission", b =>
+            {
+                b.Property<int>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("int");
+
+                SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                b.Property<int>("AttendanceId")
+                    .HasColumnType("int");
+
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("datetime2");
+
+                b.Property<TimeSpan>("LeaveTime")
+                    .HasColumnType("time");
+
+                b.Property<string>("Notes")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<TimeSpan?>("ReturnTime")
+                    .HasColumnType("time");
+
+                b.HasKey("Id");
+
+                b.HasIndex("AttendanceId");
+
+                b.ToTable("AttendancePermissions", (string)null);
+            });
+
             modelBuilder.Entity("Salon.Models.Customer", b =>
             {
                 b.Property<int>("Id")
@@ -1125,6 +1155,19 @@ namespace Salon.Migrations
                     .IsRequired();
 
                 b.Navigation("Employee");
+
+                b.Navigation("Permissions");
+            });
+
+            modelBuilder.Entity("Salon.Models.AttendancePermission", b =>
+            {
+                b.HasOne("Salon.Models.Attendance", "Attendance")
+                    .WithMany("Permissions")
+                    .HasForeignKey("AttendanceId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired();
+
+                b.Navigation("Attendance");
             });
 
             modelBuilder.Entity("Salon.Models.Employee", b =>
