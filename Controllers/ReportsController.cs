@@ -277,6 +277,8 @@ namespace Salon.Controllers
 
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment; // null or "الكل" = admin (see all)
+            bool isEmployee = User.IsInRole("Employee");
+            int? linkedEmpId = currentUser?.LinkedEmployeeId;
 
             bool isBarberOnly = userDept == "حلاقة";
             bool isMassageOnly = userDept == "مساج";
@@ -291,7 +293,10 @@ namespace Salon.Controllers
                 .Include(e => e.DepartmentNav)
                 .Where(e => e.IsActive && e.DepartmentNav != null);
 
-            if (isBarberOnly)
+            // Employee role → only their own record; Cashier → filter by department
+            if (isEmployee)
+                empQuery = empQuery.Where(e => e.Id == (linkedEmpId ?? -1));
+            else if (isBarberOnly)
                 empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "حلاقة");
             else if (isMassageOnly)
                 empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "مساج");
@@ -309,7 +314,10 @@ namespace Salon.Controllers
             var staffSalesQuery = _context.Sales
                 .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow && s.Status != "ملغي");
 
-            if (isBarberOnly)
+            // Employee sees only their own sales; Cashier sees their department
+            if (isEmployee)
+                staffSalesQuery = staffSalesQuery.Where(s => s.EmployeeId == (linkedEmpId ?? -1));
+            else if (isBarberOnly)
                 staffSalesQuery = staffSalesQuery.Where(s => s.SaleType == "حلاقة");
             else if (isMassageOnly)
                 staffSalesQuery = staffSalesQuery.Where(s => s.SaleType == "مساج");
@@ -401,95 +409,99 @@ namespace Salon.Controllers
                 : DateTime.Now.ToString("hh:mm tt");
             var cashierName = shift?.CashierName ?? "-";
 
-            // Cash movement (always uses all cash sales — the safe is shared)
-            var monthAllSales = await _context.Sales
-                .Where(s => s.SaleDate >= monthStart && s.SaleDate < tomorrow && s.Status != "ملغي")
-                .ToListAsync();
-
-            // For dept-specific users, show only their dept cash in the movement
-            if (isBarberOnly)
-                monthAllSales = monthAllSales.Where(s => s.SaleType == "حلاقة").ToList();
-            else if (isMassageOnly)
-                monthAllSales = monthAllSales.Where(s => s.SaleType == "مساج").ToList();
-
-            var monthExpenses = await _context.Expenses
-                .Where(e => e.ExpenseDate >= monthStart && e.ExpenseDate < tomorrow)
-                .OrderBy(e => e.ExpenseDate).ThenBy(e => e.Id)
-                .ToListAsync();
-
-            var monthAdvances = await _context.EmployeeAdvances
-                .Include(a => a.Employee)
-                .Where(a => a.AdvanceDate >= monthStart && a.AdvanceDate < tomorrow
-                         && employeeIds.Contains(a.EmployeeId))
-                .OrderBy(a => a.AdvanceDate).ThenBy(a => a.Id)
-                .ToListAsync();
-
-            var firstDayShift = await _context.Shifts
-                .Where(s => s.ShiftDate >= monthStart && s.ShiftDate < monthStart.AddDays(1))
-                .OrderBy(s => s.CreatedAt)
-                .FirstOrDefaultAsync();
-
-            decimal runningBalance = firstDayShift?.OpeningBalance ?? 0;
-
-            var withdrawalEvents = new List<(DateTime Date, decimal Amount, string Type, string Notes)>();
-            foreach (var exp in monthExpenses)
-                withdrawalEvents.Add((exp.ExpenseDate.Date, exp.Amount,
-                    !string.IsNullOrEmpty(exp.Category) ? $"سحب لـ{exp.Category}" : "سحب لمصروفات",
-                    exp.Description));
-            foreach (var adv in monthAdvances)
-                withdrawalEvents.Add((adv.AdvanceDate.Date, adv.Amount,
-                    "سحب لدفع سلف موظفين",
-                    $"سلفة {adv.Employee?.FullName ?? ""}".Trim()));
-
-            withdrawalEvents = withdrawalEvents.OrderBy(x => x.Date).ThenBy(x => x.Type).ToList();
-
+            // Employees don't see the cash movement (store treasury is not their concern)
             var cashMovement = new List<CashMovementRow>();
-            for (var d = monthStart; d <= today; d = d.AddDays(1))
+            if (!isEmployee)
             {
-                var dailyCashRev = monthAllSales
-                    .Where(s => s.SaleDate.Date == d)
-                    .Sum(s =>
-                        cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
-                        mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+                // Cash movement (always uses all cash sales — the safe is shared)
+                var monthAllSales = await _context.Sales
+                    .Where(s => s.SaleDate >= monthStart && s.SaleDate < tomorrow && s.Status != "ملغي")
+                    .ToListAsync();
 
-                var dayWithdrawals = withdrawalEvents.Where(e => e.Date == d).ToList();
+                // For dept-specific users, show only their dept cash in the movement
+                if (isBarberOnly)
+                    monthAllSales = monthAllSales.Where(s => s.SaleType == "حلاقة").ToList();
+                else if (isMassageOnly)
+                    monthAllSales = monthAllSales.Where(s => s.SaleType == "مساج").ToList();
 
-                if (!dayWithdrawals.Any())
+                var monthExpenses = await _context.Expenses
+                    .Where(e => e.ExpenseDate >= monthStart && e.ExpenseDate < tomorrow)
+                    .OrderBy(e => e.ExpenseDate).ThenBy(e => e.Id)
+                    .ToListAsync();
+
+                var monthAdvances = await _context.EmployeeAdvances
+                    .Include(a => a.Employee)
+                    .Where(a => a.AdvanceDate >= monthStart && a.AdvanceDate < tomorrow
+                             && employeeIds.Contains(a.EmployeeId))
+                    .OrderBy(a => a.AdvanceDate).ThenBy(a => a.Id)
+                    .ToListAsync();
+
+                var firstDayShift = await _context.Shifts
+                    .Where(s => s.ShiftDate >= monthStart && s.ShiftDate < monthStart.AddDays(1))
+                    .OrderBy(s => s.CreatedAt)
+                    .FirstOrDefaultAsync();
+
+                decimal runningBalance = firstDayShift?.OpeningBalance ?? 0;
+
+                var withdrawalEvents = new List<(DateTime Date, decimal Amount, string Type, string Notes)>();
+                foreach (var exp in monthExpenses)
+                    withdrawalEvents.Add((exp.ExpenseDate.Date, exp.Amount,
+                        !string.IsNullOrEmpty(exp.Category) ? $"سحب لـ{exp.Category}" : "سحب لمصروفات",
+                        exp.Description));
+                foreach (var adv in monthAdvances)
+                    withdrawalEvents.Add((adv.AdvanceDate.Date, adv.Amount,
+                        "سحب لدفع سلف موظفين",
+                        $"سلفة {adv.Employee?.FullName ?? ""}".Trim()));
+
+                withdrawalEvents = withdrawalEvents.OrderBy(x => x.Date).ThenBy(x => x.Type).ToList();
+
+                for (var d = monthStart; d <= today; d = d.AddDays(1))
                 {
-                    var closing = runningBalance + dailyCashRev;
-                    cashMovement.Add(new CashMovementRow
+                    var dailyCashRev = monthAllSales
+                        .Where(s => s.SaleDate.Date == d)
+                        .Sum(s =>
+                            cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                            mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+
+                    var dayWithdrawals = withdrawalEvents.Where(e => e.Date == d).ToList();
+
+                    if (!dayWithdrawals.Any())
                     {
-                        Date = d,
-                        OpeningBalance = runningBalance,
-                        CashRevenue = dailyCashRev,
-                        Withdrawal = 0,
-                        WithdrawalType = "-",
-                        WithdrawnBy = "-",
-                        ClosingBalance = closing,
-                        Notes = "-"
-                    });
-                    runningBalance = closing;
-                }
-                else
-                {
-                    bool first = true;
-                    foreach (var (_, amount, type, notes) in dayWithdrawals)
-                    {
-                        var rev = first ? dailyCashRev : 0;
-                        var closing = runningBalance + rev - amount;
+                        var closing = runningBalance + dailyCashRev;
                         cashMovement.Add(new CashMovementRow
                         {
                             Date = d,
                             OpeningBalance = runningBalance,
-                            CashRevenue = rev,
-                            Withdrawal = amount,
-                            WithdrawalType = type,
-                            WithdrawnBy = "المدير",
+                            CashRevenue = dailyCashRev,
+                            Withdrawal = 0,
+                            WithdrawalType = "-",
+                            WithdrawnBy = "-",
                             ClosingBalance = closing,
-                            Notes = notes
+                            Notes = "-"
                         });
                         runningBalance = closing;
-                        first = false;
+                    }
+                    else
+                    {
+                        bool first = true;
+                        foreach (var (_, amount, type, notes) in dayWithdrawals)
+                        {
+                            var rev = first ? dailyCashRev : 0;
+                            var closing = runningBalance + rev - amount;
+                            cashMovement.Add(new CashMovementRow
+                            {
+                                Date = d,
+                                OpeningBalance = runningBalance,
+                                CashRevenue = rev,
+                                Withdrawal = amount,
+                                WithdrawalType = type,
+                                WithdrawnBy = "المدير",
+                                ClosingBalance = closing,
+                                Notes = notes
+                            });
+                            runningBalance = closing;
+                            first = false;
+                        }
                     }
                 }
             }

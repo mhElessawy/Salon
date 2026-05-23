@@ -22,7 +22,7 @@ namespace Salon.Models
             ("Attendance",        "الحضور والانصراف",   "fas fa-calendar-alt",     "الموظفون"),
             ("Expenses",          "المصروفات",          "fas fa-receipt",          "المالية"),
             ("Reports",           "التقارير",           "fas fa-chart-bar",        "المالية"),
-            ("BarberDaily",       "يومية الصلاخية",     "fas fa-cut",              "المالية"),
+            ("BarberDaily",       "تقرير الأداء اليومي", "fas fa-cut",              "المالية"),
             ("Messages",          "الرسائل",            "fas fa-envelope",         "عام"),
             ("Settings",          "الإعدادات",          "fas fa-cog",              "الإدارة"),
             ("Users",             "المستخدمين",         "fas fa-user-shield",      "الإدارة"),

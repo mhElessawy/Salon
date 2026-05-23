@@ -375,13 +375,13 @@
             </li>
         }
 
-        @* يومية الصلاخية *@
+        @* تقرير الأداء اليومي *@
         @if (canSee("BarberDaily"))
         {
             <li>
                 <a href="@Url.Action("Index", "BarberDaily")" class="@IsActive("BarberDaily")">
                     <i class="fas fa-cut" style="color:#F7941D"></i>
-                    <span data-i18n-en="Barber Daily Report">يومية الصلاخية</span>
+                    <span data-i18n-en="Daily Performance Report">تقرير الأداء اليومي</span>
                 </a>
             </li>
         }
@@ -441,7 +441,7 @@
                             <a href="@Url.Action("UserCards", "Settings")" class="@IsActive("Settings", "UserCards")">
                                 <i class="fas fa-id-card"></i>
                                 <span data-i18n-en="User Cards">بطاقات المستخدمين</span>
-                            </a>
+                            </a>    
                         </li>
                         <li>
                             <a href="@Url.Action("Training", "Settings")" class="@IsActive("Settings", "Training")">
