@@ -117,20 +117,18 @@
                         }
                         else
                         {
-                            @{
-                                var allPerms = a!.Permissions.OrderBy(p => p.LeaveTime).ToList();
-                                var openPerm = allPerms.FirstOrDefault(p => p.ReturnTime == null);
-                                var closedPerms = allPerms.Where(p => p.ReturnTime != null).ToList();
+                            var allPerms = a!.Permissions.OrderBy(p => p.LeaveTime).ToList();
+                            var openPerm = allPerms.FirstOrDefault(p => p.ReturnTime == null);
+                            var closedPerms = allPerms.Where(p => p.ReturnTime != null).ToList();
 
-                                var totalPermTime = closedPerms.Aggregate(TimeSpan.Zero,
-                                    (acc, p) => acc + (p.ReturnTime!.Value - p.LeaveTime));
+                            var totalPermTime = closedPerms.Aggregate(TimeSpan.Zero,
+                                (acc, p) => acc + (p.ReturnTime!.Value - p.LeaveTime));
 
-                                TimeSpan? actualWork = null;
-                                if (a.CheckIn.HasValue && a.CheckOut.HasValue)
-                                {
-                                    var raw = a.CheckOut.Value - a.CheckIn.Value - totalPermTime;
-                                    actualWork = raw < TimeSpan.Zero ? TimeSpan.Zero : raw;
-                                }
+                            TimeSpan? actualWork = null;
+                            if (a.CheckIn.HasValue && a.CheckOut.HasValue)
+                            {
+                                var raw = a.CheckOut.Value - a.CheckIn.Value - totalPermTime;
+                                actualWork = raw < TimeSpan.Zero ? TimeSpan.Zero : raw;
                             }
                             <tr>
                                 <td>
