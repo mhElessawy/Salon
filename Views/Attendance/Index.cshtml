@@ -63,7 +63,14 @@
                         var deptColor = dept == "مساج" ? "bg-info" : "bg-warning text-dark";
                         <tr>
                             <td>
-                                <span class="badge bg-primary fs-6 px-3">@(a.QueuePosition?.ToString() ?? "-")</span>
+                                @if (!a.CheckOut.HasValue && a.QueuePosition.HasValue)
+                                {
+                                    <span class="badge bg-primary fs-6 px-3">@a.QueuePosition.Value</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
                             </td>
                             <td><strong>@(a.Employee?.FullName ?? "-")</strong></td>
                             <td>
