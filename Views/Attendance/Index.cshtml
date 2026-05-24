@@ -15,50 +15,45 @@
 }
 
 <style>
-    .attendance-table { font-size: 0.82rem; }
-    .attendance-table th { font-size: 0.78rem; padding: 5px 6px; white-space: nowrap; }
-    .attendance-table td { padding: 4px 6px; vertical-align: middle; }
-    .attendance-table .btn-sm { font-size: 0.72rem; padding: 2px 7px; }
-    .attendance-table .badge { font-size: 0.72rem; }
+    .attendance-table { font-size: 0.80rem; table-layout: fixed; width: 100%; }
+    .attendance-table th { font-size: 0.75rem; padding: 5px 5px; white-space: nowrap; text-align: center; }
+    .attendance-table td { padding: 4px 5px; vertical-align: middle; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .attendance-table td.emp-name { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .attendance-table .btn-sm { font-size: 0.70rem; padding: 2px 6px; }
+    .attendance-table .badge { font-size: 0.70rem; }
     .no-attend-row { background-color: #fff8f0; }
-    .checkin-btn { min-width: 80px; }
+    .checkin-btn { min-width: 75px; }
 </style>
 
-<div class="page-header d-flex justify-content-between align-items-center mb-2">
-    <h1 class="h4 mb-0"><i class="fas fa-calendar-alt me-2"></i>الحضور والانصراف</h1>
-</div>
-
-<div class="card mb-2">
-    <div class="card-body py-2">
-        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
-            <label class="form-label mb-0 small">التاريخ:</label>
-            <input type="date" name="date" value="@ViewBag.FilterDate" class="form-control form-control-sm" style="max-width:160px;" />
-            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
-            @if (!isToday)
-            {
-                <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">اليوم</a>
-            }
-        </form>
-    </div>
+<div class="d-flex justify-content-between align-items-center mb-2 mt-1">
+    <h5 class="mb-0 fw-bold"><i class="fas fa-calendar-alt me-2 text-primary"></i>الحضور والانصراف</h5>
+    <form method="get" class="d-flex gap-2 align-items-center">
+        <input type="date" name="date" value="@ViewBag.FilterDate" class="form-control form-control-sm" style="max-width:145px;" />
+        <button type="submit" class="btn btn-primary btn-sm px-2"><i class="fas fa-search"></i></button>
+        @if (!isToday)
+        {
+            <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">اليوم</a>
+        }
+    </form>
 </div>
 
 <div class="card">
-    <div class="card-body p-2">
+    <div class="card-body p-1">
         <div class="table-responsive">
             <table class="table table-sm table-hover align-middle attendance-table mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th style="width:38px">الدور</th>
-                        <th>الموظف</th>
-                        <th style="width:70px">القسم</th>
-                        <th style="width:75px">حضور</th>
-                        <th style="width:75px">انصراف</th>
-                        <th style="width:90px">استئذان</th>
-                        <th style="width:75px">عودة</th>
-                        <th style="width:55px">مدة</th>
-                        <th style="width:60px">فعلي</th>
-                        <th style="width:62px">الحالة</th>
-                        <th style="width:50px"></th>
+                        <th style="width:34px">الدور</th>
+                        <th style="width:110px; text-align:right">الموظف</th>
+                        <th style="width:58px">القسم</th>
+                        <th style="width:68px">حضور</th>
+                        <th style="width:80px">انصراف</th>
+                        <th style="width:88px">استئذان</th>
+                        <th style="width:68px">عودة</th>
+                        <th style="width:48px">مدة</th>
+                        <th style="width:52px">فعلي</th>
+                        <th style="width:56px">الحالة</th>
+                        <th style="width:40px"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -77,7 +72,7 @@
                         {
                             <tr class="no-attend-row">
                                 <td><span class="text-muted">-</span></td>
-                                <td><strong>@emp.FullName</strong></td>
+                                <td class="emp-name"><strong>@emp.FullName</strong></td>
                                 <td>
                                     @if (!string.IsNullOrEmpty(dept))
                                     {
@@ -141,7 +136,7 @@
                                         <span class="text-muted">-</span>
                                     }
                                 </td>
-                                <td><strong>@emp.FullName</strong></td>
+                                <td class="emp-name"><strong>@emp.FullName</strong></td>
                                 <td>
                                     @if (!string.IsNullOrEmpty(dept))
                                     {
