@@ -69,7 +69,11 @@ namespace Salon.Controllers
                 attQuery = attQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
 
             var records = await attQuery.ToListAsync();
-            var recordsByEmpId = records.ToDictionary(a => a.EmployeeId);
+
+            // تجميع كل سجلات اليوم لكل موظف (يدعم ورديات متعددة)
+            var allTodayRecords = records
+                .GroupBy(a => a.EmployeeId)
+                .ToDictionary(g => g.Key, g => g.OrderBy(a => a.CheckIn).ToList());
 
             // ── موظفو الليل: سجّلوا حضور امبارح ولسه لم ينصرفوا ──────
             var prevDate = filterDate.AddDays(-1);
@@ -86,25 +90,8 @@ namespace Salon.Controllers
             var overnightRecords = await overnightQuery.ToListAsync();
             // نستخدم سجل الليل فقط إذا لم يكن للموظف سجل بتاريخ اليوم
             var overnightByEmpId = overnightRecords
-                .Where(a => !recordsByEmpId.ContainsKey(a.EmployeeId))
+                .Where(a => !allTodayRecords.ContainsKey(a.EmployeeId))
                 .ToDictionary(a => a.EmployeeId);
-
-            // ── كل الموظفين النشطين ───────────────────────────────────
-            var empQuery = _context.Employees
-                .Include(e => e.DepartmentNav)
-                .Where(e => e.IsActive);
-
-            if (linkedId.HasValue)
-                empQuery = empQuery.Where(e => e.Id == linkedId.Value);
-            else if (userDept == "حلاقة" || userDept == "مساج")
-                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
-
-            var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
-
-            // ── تجميع كل السجلات لكل موظف ──────────────────────────
-            var allTodayRecords = records
-                .GroupBy(a => a.EmployeeId)
-                .ToDictionary(g => g.Key, g => g.OrderBy(a => a.CheckIn).ToList());
 
             // ── بناء الصفوف ───────────────────────────────────────────
             var rows = employees.Select(e =>
