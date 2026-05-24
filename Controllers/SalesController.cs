@@ -403,29 +403,40 @@ namespace Salon.Controllers
             ViewBag.IsEmployee = isEmployee;
             ViewBag.LinkedEmployeeId = user?.LinkedEmployeeId;
 
-            var empQuery = _context.Employees.Where(e => e.IsActive && e.DepartmentNav!.Name == dept);
+            // Today's date for attendance checks
+            var today = KuwaitToday;
+
+            // Only employees who are currently present (checked in, NOT checked out)
+            var presentEmpIds = await _context.Attendances
+                .Where(a => a.AttendanceDate == today && a.CheckIn != null && a.CheckOut == null)
+                .Select(a => a.EmployeeId)
+                .ToListAsync();
+
+            var empQuery = _context.Employees.Where(e => e.IsActive && e.DepartmentNav!.Name == dept
+                                                         && presentEmpIds.Contains(e.Id));
 
             if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
                 empQuery = empQuery.Where(e => e.Id == user.LinkedEmployeeId!.Value);
 
             var empList = await empQuery.ToListAsync();
 
-            // Today's queue positions — join on Departments to avoid OPENJSON / '$' issue (EF Core 8 + SQL Server)
-            var today = KuwaitToday;
+            // Today's queue positions — only for employees who haven't checked out
             var todayQueue = await (
                 from a in _context.Attendances
                 join e in _context.Employees on a.EmployeeId equals e.Id
                 join d in _context.Departments on e.DepartmentId equals d.Id
-                where a.AttendanceDate == today && a.QueuePosition != null && d.Name == dept && e.IsActive
+                where a.AttendanceDate == today && a.QueuePosition != null && d.Name == dept
+                      && e.IsActive && a.CheckOut == null
                 select new { a.EmployeeId, QueuePos = (int)a.QueuePosition! }
             ).ToDictionaryAsync(x => x.EmployeeId, x => x.QueuePos);
 
-            // Today's check-in times
+            // Today's check-in times — only for employees who haven't checked out
             var checkInRows = await (
                 from a in _context.Attendances
                 join e in _context.Employees on a.EmployeeId equals e.Id
                 join d in _context.Departments on e.DepartmentId equals d.Id
-                where a.AttendanceDate == today && d.Name == dept && e.IsActive && a.CheckIn != null
+                where a.AttendanceDate == today && d.Name == dept && e.IsActive
+                      && a.CheckIn != null && a.CheckOut == null
                 select new { a.EmployeeId, a.CheckIn }
             ).ToListAsync();
             ViewBag.EmployeeCheckInTimes = checkInRows
@@ -538,16 +549,20 @@ namespace Salon.Controllers
                 if (model.EmployeeId.HasValue)
                 {
                     var today2 = KuwaitToday;
+                    // Only move the employee in queue if they haven't checked out yet
                     var todayAttendance = await _context.Attendances
                         .FirstOrDefaultAsync(a => a.EmployeeId == model.EmployeeId.Value
-                                               && a.AttendanceDate == today2);
+                                               && a.AttendanceDate == today2
+                                               && a.CheckOut == null);
                     if (todayAttendance != null)
                     {
+                        // Calculate max position only among employees still present (not checked out)
                         var maxPos = await (
                             from a in _context.Attendances
                             join e in _context.Employees on a.EmployeeId equals e.Id
                             join d in _context.Departments on e.DepartmentId equals d.Id
-                            where a.AttendanceDate == today2 && a.QueuePosition != null && d.Name == dept
+                            where a.AttendanceDate == today2 && a.QueuePosition != null
+                                  && d.Name == dept && a.CheckOut == null
                             select a.QueuePosition
                         ).MaxAsync();
                         todayAttendance.QueuePosition = (maxPos ?? 0) + 1;
