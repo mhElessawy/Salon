@@ -47,9 +47,17 @@ namespace Salon.Controllers
                 .Distinct()
                 .CountAsync();
 
-            var expensesToday = await _context.Expenses
-                .Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow)
-                .SumAsync(e => (decimal?)e.Amount) ?? 0;
+            var expensesQuery = _context.Expenses
+                .Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow);
+
+            // فلترة المصاريف حسب قسم المستخدم
+            if (userDept == "حلاقة")
+                expensesQuery = expensesQuery.Where(e => e.Department == "حلاقة" || e.Department == null);
+            else if (userDept == "مساج")
+                expensesQuery = expensesQuery.Where(e => e.Department == "مساج" || e.Department == null);
+            // الأدمن يرى كل المصاريف
+
+            var expensesToday = await expensesQuery.SumAsync(e => (decimal?)e.Amount) ?? 0;
 
             var advancesQuery = _context.EmployeeAdvances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
@@ -104,7 +112,8 @@ namespace Salon.Controllers
                 NetProfitToday = netProfit,
                 NewCustomersToday = newCustomersToday,
                 UpcomingBirthdays = birthdayList,
-                ExpiringProducts = expiringProducts
+                ExpiringProducts = expiringProducts,
+                UserDepartment = userDept
             };
 
             return View(vm);

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
@@ -10,10 +11,12 @@ namespace Salon.Controllers
     public class ExpensesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public ExpensesController(ApplicationDbContext context)
+        public ExpensesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         public async Task<IActionResult> Index(string? date)
@@ -21,29 +24,59 @@ namespace Salon.Controllers
             DateTime filterDate = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
             var nextDay = filterDate.AddDays(1);
 
-            var expenses = await _context.Expenses
-                .Where(e => e.ExpenseDate >= filterDate && e.ExpenseDate < nextDay)
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
+            var query = _context.Expenses
+                .Where(e => e.ExpenseDate >= filterDate && e.ExpenseDate < nextDay);
+
+            // فلترة حسب قسم المستخدم
+            if (userDept == "حلاقة")
+                query = query.Where(e => e.Department == "حلاقة" || e.Department == null);
+            else if (userDept == "مساج")
+                query = query.Where(e => e.Department == "مساج" || e.Department == null);
+            // الأدمن يرى الكل
+
+            var expenses = await query
                 .OrderByDescending(e => e.CreatedAt)
                 .ToListAsync();
 
             ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
             ViewBag.Total = expenses.Sum(e => e.Amount);
+            ViewBag.UserDept = userDept;
             return View(expenses);
         }
 
-        public IActionResult Create() => View(new Expense { ExpenseDate = DateTime.Today });
+        public async Task<IActionResult> Create()
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            ViewBag.UserDept = currentUser?.UserDepartment;
+            return View(new Expense { ExpenseDate = DateTime.Today });
+        }
 
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Expense model)
         {
             if (ModelState.IsValid)
             {
+                // إذا لم يُحدَّد القسم يدوياً، ضعه تلقائياً حسب قسم المستخدم
+                if (string.IsNullOrEmpty(model.Department))
+                {
+                    var currentUser = await _userManager.GetUserAsync(User);
+                    var userDept = currentUser?.UserDepartment;
+                    if (userDept == "حلاقة" || userDept == "مساج")
+                        model.Department = userDept;
+                }
+
                 model.CreatedAt = DateTime.Now;
                 _context.Expenses.Add(model);
                 await _context.SaveChangesAsync();
                 TempData["Success"] = "تم إضافة المصروف بنجاح";
                 return RedirectToAction(nameof(Index));
             }
+
+            var user = await _userManager.GetUserAsync(User);
+            ViewBag.UserDept = user?.UserDepartment;
             return View(model);
         }
 
@@ -51,6 +84,9 @@ namespace Salon.Controllers
         {
             var expense = await _context.Expenses.FindAsync(id);
             if (expense == null) return NotFound();
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            ViewBag.UserDept = currentUser?.UserDepartment;
             return View(expense);
         }
 
@@ -65,6 +101,9 @@ namespace Salon.Controllers
                 TempData["Success"] = "تم تعديل المصروف بنجاح";
                 return RedirectToAction(nameof(Index));
             }
+
+            var user = await _userManager.GetUserAsync(User);
+            ViewBag.UserDept = user?.UserDepartment;
             return View(model);
         }
 

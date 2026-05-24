@@ -18,6 +18,12 @@ namespace Salon.Models
         [Display(Name = "الفئة")]
         public string? Category { get; set; }
 
+        /// <summary>
+        /// القسم: "حلاقة" | "مساج" | null (مشترك للكل)
+        /// </summary>
+        [Display(Name = "القسم")]
+        public string? Department { get; set; }
+
         [Display(Name = "تاريخ المصروف")]
         [DataType(DataType.Date)]
         public DateTime ExpenseDate { get; set; } = DateTime.Today;

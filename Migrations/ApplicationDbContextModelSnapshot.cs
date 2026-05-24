@@ -567,6 +567,9 @@ namespace Salon.Migrations
                 b.Property<string>("Category")
                     .HasColumnType("nvarchar(max)");
 
+                b.Property<string>("Department")
+                    .HasColumnType("nvarchar(max)");
+
                 b.Property<DateTime>("CreatedAt")
                     .HasColumnType("datetime2");
 
