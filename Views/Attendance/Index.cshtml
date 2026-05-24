@@ -1,6 +1,16 @@
 @model IEnumerable<Salon.Models.Attendance>
 @{
     ViewData["Title"] = "الحضور والانصراف";
+
+    string FmtDuration(TimeSpan t)
+    {
+        if (t <= TimeSpan.Zero) return "-";
+        var h = (int)t.TotalHours;
+        var m = t.Minutes;
+        if (h > 0 && m > 0) return $"{h}س {m}د";
+        if (h > 0) return $"{h}س";
+        return $"{m}د";
+    }
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -34,6 +44,10 @@
                         <th>التاريخ</th>
                         <th>وقت الحضور</th>
                         <th>وقت الانصراف</th>
+                        <th>الاستئذان</th>
+                        <th>عودة من الاستئذان</th>
+                        <th>مدة الاستئذان</th>
+                        <th>وقت العمل الفعلي</th>
                         <th>الحالة</th>
                         <th>الإجراءات</th>
                     </tr>
@@ -41,7 +55,7 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="8" class="text-center text-muted py-4">لا توجد سجلات حضور في هذا اليوم</td></tr>
+                        <tr><td colspan="12" class="text-center text-muted py-4">لا توجد سجلات حضور في هذا اليوم</td></tr>
                     }
                     @foreach (var a in Model)
                     {
@@ -90,6 +104,99 @@
                                 else
                                 {
 
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            @{
+                                var allPerms = a.Permissions.OrderBy(p => p.LeaveTime).ToList();
+                                var openPerm = allPerms.FirstOrDefault(p => p.ReturnTime == null);
+                                var closedPerms = allPerms.Where(p => p.ReturnTime != null).ToList();
+
+                                var totalPermTime = closedPerms.Aggregate(TimeSpan.Zero,
+                                (acc, p) => acc + (p.ReturnTime!.Value - p.LeaveTime));
+
+                                TimeSpan? actualWork = null;
+                                if (a.CheckIn.HasValue && a.CheckOut.HasValue)
+                                {
+                                    var raw = a.CheckOut.Value - a.CheckIn.Value - totalPermTime;
+                                    actualWork = raw < TimeSpan.Zero ? TimeSpan.Zero : raw;
+                                }
+                            }
+                            @* عمود الاستئذان *@
+                            <td>
+                                @foreach (var p in allPerms)
+                                {
+                                    <div class="d-flex align-items-center gap-1 mb-1">
+                                        <span class="badge text-white" style="background-color:#fd7e14">
+                                            <i class="fas fa-door-open me-1"></i>@p.LeaveTime.ToString(@"hh\:mm")
+                                        </span>
+                                        <form method="post" action="@Url.Action("DeletePermission", new { id = p.Id })" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" title="حذف الاستئذان">
+                                                <i class="fas fa-trash" style="font-size:10px"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                }
+                                @if (openPerm == null && a.CheckIn.HasValue && !a.CheckOut.HasValue)
+                                {
+                                    <form method="post" action="@Url.Action("RequestPermission", new { id = a.Id })" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-warning">
+                                            <i class="fas fa-door-open me-1"></i> استئذان
+                                        </button>
+                                    </form>
+                                }
+                                @if (!allPerms.Any() && !(a.CheckIn.HasValue && !a.CheckOut.HasValue))
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            @* عمود عودة من الاستئذان *@
+                            <td>
+                                @foreach (var cp in closedPerms)
+                                {
+                                    <div class="mb-1">
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-undo me-1"></i>@cp.ReturnTime!.Value.ToString(@"hh\:mm")
+                                        </span>
+                                    </div>
+                                }
+                                @if (openPerm != null)
+                                {
+                                    <form method="post" action="@Url.Action("ReturnFromPermission", new { id = a.Id })" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="fas fa-undo me-1"></i> عودة
+                                        </button>
+                                    </form>
+                                }
+                                @if (!allPerms.Any())
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (totalPermTime > TimeSpan.Zero)
+                                {
+                                    <span class="badge text-white" style="background-color:#fd7e14">
+                                        <i class="fas fa-hourglass-half me-1"></i>@FmtDuration(totalPermTime)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (actualWork.HasValue)
+                                {
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-briefcase me-1"></i>@FmtDuration(actualWork.Value)
+                                    </span>
+                                }
+                                else
+                                {
                                     <span class="text-muted">-</span>
                                 }
                             </td>
@@ -185,48 +292,48 @@
 
         @if (User.IsInRole("Employee"))
         {
-                    <text>
-                    let checkOutClockInterval = null;
-                    function updateCheckOutClock() {
-                        const d = new Date();
-                        const h = String(d.getHours()).padStart(2, '0');
-                        const m = String(d.getMinutes()).padStart(2, '0');
-                        const val = h + ':' + m;
-                        const disp = document.getElementById('checkOutTimeDisplay');
-                        if (disp) disp.textContent = val;
-                        document.getElementById('checkOutTimeHidden').value = val;
-                    }
-                    function confirmCheckOut(id, name) {
-                        document.getElementById('checkOutEmployeeName').textContent = name;
-                        document.getElementById('checkOutForm').action = '@Url.Action("CheckOut")/' + id;
-                        updateCheckOutClock();
-                        if (checkOutClockInterval) clearInterval(checkOutClockInterval);
-                        checkOutClockInterval = setInterval(updateCheckOutClock, 1000);
-                        new bootstrap.Modal(document.getElementById('checkOutModal')).show();
-                    }
-                    document.getElementById('checkOutModal').addEventListener('hidden.bs.modal', function () {
-                        if (checkOutClockInterval) { clearInterval(checkOutClockInterval); checkOutClockInterval = null; }
-                    });
-                    </text>
+                        <text>
+                        let checkOutClockInterval = null;
+                        function updateCheckOutClock() {
+                            const d = new Date();
+                            const h = String(d.getHours()).padStart(2, '0');
+                            const m = String(d.getMinutes()).padStart(2, '0');
+                            const val = h + ':' + m;
+                            const disp = document.getElementById('checkOutTimeDisplay');
+                            if (disp) disp.textContent = val;
+                            document.getElementById('checkOutTimeHidden').value = val;
+                        }
+                        function confirmCheckOut(id, name) {
+                            document.getElementById('checkOutEmployeeName').textContent = name;
+                            document.getElementById('checkOutForm').action = '@Url.Action("CheckOut")/' + id;
+                            updateCheckOutClock();
+                            if (checkOutClockInterval) clearInterval(checkOutClockInterval);
+                            checkOutClockInterval = setInterval(updateCheckOutClock, 1000);
+                            new bootstrap.Modal(document.getElementById('checkOutModal')).show();
+                        }
+                        document.getElementById('checkOutModal').addEventListener('hidden.bs.modal', function () {
+                            if (checkOutClockInterval) { clearInterval(checkOutClockInterval); checkOutClockInterval = null; }
+                        });
+                        </text>
         }
         else
         {
-                    <text>
-                    function confirmCheckOut(id, name) {
-                        document.getElementById('checkOutEmployeeName').textContent = name;
-                        document.getElementById('checkOutForm').action = '@Url.Action("CheckOut")/' + id;
-                        const now = new Date();
-                        const hh = String(now.getHours()).padStart(2, '0');
-                        const mm = String(now.getMinutes()).padStart(2, '0');
-                        const val = hh + ':' + mm;
-                        document.getElementById('checkOutTimeEditable').value = val;
-                        document.getElementById('checkOutTimeHidden').value = val;
-                        document.getElementById('checkOutTimeEditable').oninput = function () {
-                            document.getElementById('checkOutTimeHidden').value = this.value;
-                        };
-                        new bootstrap.Modal(document.getElementById('checkOutModal')).show();
-                    }
-                    </text>
+                        <text>
+                        function confirmCheckOut(id, name) {
+                            document.getElementById('checkOutEmployeeName').textContent = name;
+                            document.getElementById('checkOutForm').action = '@Url.Action("CheckOut")/' + id;
+                            const now = new Date();
+                            const hh = String(now.getHours()).padStart(2, '0');
+                            const mm = String(now.getMinutes()).padStart(2, '0');
+                            const val = hh + ':' + mm;
+                            document.getElementById('checkOutTimeEditable').value = val;
+                            document.getElementById('checkOutTimeHidden').value = val;
+                            document.getElementById('checkOutTimeEditable').oninput = function () {
+                                document.getElementById('checkOutTimeHidden').value = this.value;
+                            };
+                            new bootstrap.Modal(document.getElementById('checkOutModal')).show();
+                        }
+                        </text>
         }
     </script>
 }

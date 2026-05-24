@@ -59,6 +59,7 @@ namespace Salon.Controllers
 
             var query = _context.Attendances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Include(a => a.Permissions)
                 .Where(a => a.AttendanceDate == filterDate);
 
             if (linkedId.HasValue)
@@ -186,6 +187,79 @@ namespace Salon.Controllers
             await _context.SaveChangesAsync();
             TempData["Success"] = "تم تسجيل الانصراف بنجاح";
             return RedirectToAction(nameof(Index), new { date = record.AttendanceDate.ToString("yyyy-MM-dd") });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> RequestPermission(int id)
+        {
+            var record = await _context.Attendances.FindAsync(id);
+            if (record == null) return RedirectToAction(nameof(Index));
+
+            var linkedId = await GetLinkedEmployeeIdIfEmployee();
+            if (linkedId.HasValue && record.EmployeeId != linkedId.Value)
+                return Forbid();
+
+            // Check no active permission already open
+            bool hasOpen = await _context.AttendancePermissions
+                .AnyAsync(p => p.AttendanceId == id && p.ReturnTime == null);
+            if (hasOpen)
+            {
+                TempData["Error"] = "يوجد استئذان مفتوح بالفعل، يرجى تسجيل العودة أولاً";
+                return RedirectToAction(nameof(Index), new { date = record.AttendanceDate.ToString("yyyy-MM-dd") });
+            }
+
+            var perm = new AttendancePermission
+            {
+                AttendanceId = id,
+                LeaveTime = DateTime.Now.TimeOfDay,
+                CreatedAt = DateTime.Now
+            };
+            _context.AttendancePermissions.Add(perm);
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "تم تسجيل الاستئذان بنجاح";
+            return RedirectToAction(nameof(Index), new { date = record.AttendanceDate.ToString("yyyy-MM-dd") });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeletePermission(int id)
+        {
+            var perm = await _context.AttendancePermissions
+                .Include(p => p.Attendance)
+                .FirstOrDefaultAsync(p => p.Id == id);
+            if (perm == null) return RedirectToAction(nameof(Index));
+
+            var linkedId = await GetLinkedEmployeeIdIfEmployee();
+            if (linkedId.HasValue && perm.Attendance?.EmployeeId != linkedId.Value)
+                return Forbid();
+
+            var date = perm.Attendance!.AttendanceDate.ToString("yyyy-MM-dd");
+            _context.AttendancePermissions.Remove(perm);
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "تم حذف الاستئذان بنجاح";
+            return RedirectToAction(nameof(Index), new { date });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReturnFromPermission(int id)
+        {
+            var perm = await _context.AttendancePermissions
+                .Include(p => p.Attendance)
+                .FirstOrDefaultAsync(p => p.AttendanceId == id && p.ReturnTime == null);
+
+            if (perm == null)
+            {
+                TempData["Error"] = "لا يوجد استئذان مفتوح لهذا الموظف";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var linkedId = await GetLinkedEmployeeIdIfEmployee();
+            if (linkedId.HasValue && perm.Attendance?.EmployeeId != linkedId.Value)
+                return Forbid();
+
+            perm.ReturnTime = DateTime.Now.TimeOfDay;
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "تم تسجيل العودة من الاستئذان بنجاح";
+            return RedirectToAction(nameof(Index), new { date = perm.Attendance!.AttendanceDate.ToString("yyyy-MM-dd") });
         }
 
         [HttpPost, ValidateAntiForgeryToken]

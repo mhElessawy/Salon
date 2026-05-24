@@ -132,6 +132,14 @@ using (var scope = app.Services.CreateScope())
                 Notes TEXT,
                 MovementDate TEXT NOT NULL DEFAULT (date('now')),
                 CreatedAt TEXT NOT NULL DEFAULT (datetime('now')))");
+            TryExec(@"CREATE TABLE IF NOT EXISTS AttendancePermissions (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                AttendanceId INTEGER NOT NULL,
+                LeaveTime TEXT NOT NULL,
+                ReturnTime TEXT NULL,
+                Notes TEXT,
+                CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+                FOREIGN KEY (AttendanceId) REFERENCES Attendances(Id) ON DELETE CASCADE)");
         }
         else
         {
@@ -150,6 +158,12 @@ using (var scope = app.Services.CreateScope())
                 MovementType NVARCHAR(50) NOT NULL DEFAULT N'??????', Quantity INT NOT NULL,
                 UnitPrice DECIMAL(18,3) NOT NULL DEFAULT 0, EmployeeId INT NULL, SupplierId INT NULL,
                 Notes NVARCHAR(MAX), MovementDate DATE NOT NULL DEFAULT GETDATE(), CreatedAt DATETIME NOT NULL DEFAULT GETDATE())");
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='AttendancePermissions')
+                CREATE TABLE AttendancePermissions (Id INT IDENTITY PRIMARY KEY,
+                AttendanceId INT NOT NULL, LeaveTime TIME NOT NULL, ReturnTime TIME NULL,
+                Notes NVARCHAR(MAX), CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                CONSTRAINT FK_AttendancePermissions_Attendances FOREIGN KEY (AttendanceId)
+                    REFERENCES Attendances(Id) ON DELETE CASCADE)");
         }
 
         await SeedData.InitializeAsync(services);

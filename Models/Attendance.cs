@@ -35,5 +35,7 @@ namespace Salon.Models
         public int? QueuePosition { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public List<AttendancePermission> Permissions { get; set; } = new();
     }
 }
