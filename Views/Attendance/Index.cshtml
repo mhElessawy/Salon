@@ -14,6 +14,15 @@
         return $"{m}د";
     }
 
+    // حساب ساعات العمل مع دعم شيفت الليل (الانصراف في اليوم التالي)
+    TimeSpan? CalcActualWork(TimeSpan checkIn, TimeSpan checkOut, TimeSpan permTime)
+    {
+        var co = checkOut;
+        if (co < checkIn) co = co.Add(TimeSpan.FromHours(24)); // عبر منتصف الليل
+        var raw = co - checkIn - permTime;
+        return raw < TimeSpan.Zero ? TimeSpan.Zero : raw;
+    }
+
     string GetEmpCode(Salon.Models.Employee e)
     {
         var dept = e.DepartmentNav?.Name ?? "";
@@ -226,17 +235,13 @@
 
                             TimeSpan? actualWork = null;
                             if (a.CheckIn.HasValue && a.CheckOut.HasValue)
-                            {
-                                var raw = a.CheckOut.Value - a.CheckIn.Value - totalPermTime;
-                                actualWork = raw < TimeSpan.Zero ? TimeSpan.Zero : raw;
-                            }
+                                actualWork = CalcActualWork(a.CheckIn.Value, a.CheckOut.Value, totalPermTime);
 
                             string statusLabel, statusCss;
-                            if (a.CheckOut.HasValue)                                              { statusLabel = "انصرف";       statusCss = "badge bg-secondary"; }
-                            else if (openPerm != null)                                            { statusLabel = "استئذان";     statusCss = "badge text-white"; }
-                            else if (a.CheckIn.HasValue)                                          { statusLabel = "حاضر - متاح"; statusCss = "badge bg-success"; }
-                            else                                                                  { statusLabel = a.Status;      statusCss = "badge bg-warning text-dark"; }
-                            string permCss = "background:#fd7e14";
+                            if (a.CheckOut.HasValue)        { statusLabel = "انصرف";       statusCss = "badge bg-secondary"; }
+                            else if (openPerm != null)      { statusLabel = "استئذان";     statusCss = "badge text-white"; }
+                            else if (a.CheckIn.HasValue)    { statusLabel = "حاضر - متاح"; statusCss = "badge bg-success"; }
+                            else                            { statusLabel = a.Status;      statusCss = "badge bg-warning text-dark"; }
 
                             <tr data-name="@emp.FullName.ToLower()">
                                 <!-- الموظف -->
@@ -244,7 +249,13 @@
                                     <div class="emp-cell">
                                         <div class="avatar" style="background:@avatarBg">@initial</div>
                                         <div class="emp-info">
-                                            <div class="name">@emp.FullName</div>
+                                            <div class="name">
+                                                @emp.FullName
+                                                @if (row.IsOvernight)
+                                                {
+                                                    <span title="شيفت ليلي — سجّل من @a!.AttendanceDate.ToString("dd/MM")" style="color:#6f42c1;font-size:.75rem;margin-right:3px">🌙</span>
+                                                }
+                                            </div>
                                             <div class="title">@(emp.JobTitle ?? dept)</div>
                                         </div>
                                     </div>

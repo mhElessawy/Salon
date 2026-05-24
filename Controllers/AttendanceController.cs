@@ -57,7 +57,7 @@ namespace Salon.Controllers
             var linkedId = await GetLinkedEmployeeIdIfEmployee();
             var userDept = await GetUserDepartmentAsync();
 
-            // Load attendance records for the day
+            // ── سجلات يوم الفلتر ──────────────────────────────────────
             var attQuery = _context.Attendances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Include(a => a.Permissions)
@@ -71,7 +71,25 @@ namespace Salon.Controllers
             var records = await attQuery.ToListAsync();
             var recordsByEmpId = records.ToDictionary(a => a.EmployeeId);
 
-            // Load all active employees (same dept filter)
+            // ── موظفو الليل: سجّلوا حضور امبارح ولسه لم ينصرفوا ──────
+            var prevDate = filterDate.AddDays(-1);
+            var overnightQuery = _context.Attendances
+                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Include(a => a.Permissions)
+                .Where(a => a.AttendanceDate == prevDate && a.CheckIn.HasValue && !a.CheckOut.HasValue);
+
+            if (linkedId.HasValue)
+                overnightQuery = overnightQuery.Where(a => a.EmployeeId == linkedId.Value);
+            else if (userDept == "حلاقة" || userDept == "مساج")
+                overnightQuery = overnightQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
+
+            var overnightRecords = await overnightQuery.ToListAsync();
+            // نستخدم سجل الليل فقط إذا لم يكن للموظف سجل بتاريخ اليوم
+            var overnightByEmpId = overnightRecords
+                .Where(a => !recordsByEmpId.ContainsKey(a.EmployeeId))
+                .ToDictionary(a => a.EmployeeId);
+
+            // ── كل الموظفين النشطين ───────────────────────────────────
             var empQuery = _context.Employees
                 .Include(e => e.DepartmentNav)
                 .Where(e => e.IsActive);
@@ -83,11 +101,14 @@ namespace Salon.Controllers
 
             var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
 
-            // Build combined rows: employees with attendance first (sorted by queue), then without
-            var rows = employees.Select(e => new AttendanceIndexRow
+            // ── بناء الصفوف ───────────────────────────────────────────
+            var rows = employees.Select(e =>
             {
-                Employee = e,
-                Record = recordsByEmpId.TryGetValue(e.Id, out var rec) ? rec : null
+                if (recordsByEmpId.TryGetValue(e.Id, out var rec))
+                    return new AttendanceIndexRow { Employee = e, Record = rec, IsOvernight = false };
+                if (overnightByEmpId.TryGetValue(e.Id, out var overnight))
+                    return new AttendanceIndexRow { Employee = e, Record = overnight, IsOvernight = true };
+                return new AttendanceIndexRow { Employee = e, Record = null, IsOvernight = false };
             })
             .OrderBy(r => r.Employee.DepartmentNav?.Name == "مساج" ? 1 : 0)
             .ThenBy(r => r.Record?.QueuePosition ?? int.MaxValue)
@@ -198,6 +219,17 @@ namespace Salon.Controllers
                 return Forbid();
 
             var attendanceDate = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
+
+            // منع التسجيل لو في سجل مفتوح امبارح (موظف ليلي لسه شغال)
+            var prevDate = attendanceDate.AddDays(-1);
+            bool hasOpenOvernight = await _context.Attendances.AnyAsync(a =>
+                a.EmployeeId == employeeId && a.AttendanceDate == prevDate
+                && a.CheckIn.HasValue && !a.CheckOut.HasValue);
+            if (hasOpenOvernight)
+            {
+                TempData["Error"] = "يوجد سجل حضور مفتوح من البارحة — سجّل الانصراف أولاً";
+                return RedirectToAction(nameof(Index), new { date });
+            }
 
             bool duplicate = await _context.Attendances.AnyAsync(a =>
                 a.EmployeeId == employeeId && a.AttendanceDate == attendanceDate);
