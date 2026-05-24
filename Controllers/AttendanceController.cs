@@ -57,26 +57,47 @@ namespace Salon.Controllers
             var linkedId = await GetLinkedEmployeeIdIfEmployee();
             var userDept = await GetUserDepartmentAsync();
 
-            var query = _context.Attendances
+            // Load attendance records for the day
+            var attQuery = _context.Attendances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Include(a => a.Permissions)
                 .Where(a => a.AttendanceDate == filterDate);
 
             if (linkedId.HasValue)
-                query = query.Where(a => a.EmployeeId == linkedId.Value);
+                attQuery = attQuery.Where(a => a.EmployeeId == linkedId.Value);
             else if (userDept == "حلاقة" || userDept == "مساج")
-                query = query.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
+                attQuery = attQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
 
-            var records = await query.ToListAsync();
-            // Sort in memory after loading — avoids EF Core generating OPENJSON / '$' SQL
-            var sorted = records
-                .OrderBy(a => a.Employee?.DepartmentNav?.Name == "مساج" ? 1 : 0)
-                .ThenBy(a => a.QueuePosition ?? int.MaxValue)
-                .ToList();
+            var records = await attQuery.ToListAsync();
+            var recordsByEmpId = records.ToDictionary(a => a.EmployeeId);
+
+            // Load all active employees (same dept filter)
+            var empQuery = _context.Employees
+                .Include(e => e.DepartmentNav)
+                .Where(e => e.IsActive);
+
+            if (linkedId.HasValue)
+                empQuery = empQuery.Where(e => e.Id == linkedId.Value);
+            else if (userDept == "حلاقة" || userDept == "مساج")
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
+
+            var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+
+            // Build combined rows: employees with attendance first (sorted by queue), then without
+            var rows = employees.Select(e => new AttendanceIndexRow
+            {
+                Employee = e,
+                Record = recordsByEmpId.TryGetValue(e.Id, out var rec) ? rec : null
+            })
+            .OrderBy(r => r.Employee.DepartmentNav?.Name == "مساج" ? 1 : 0)
+            .ThenBy(r => r.Record?.QueuePosition ?? int.MaxValue)
+            .ThenBy(r => r.Employee.FullName)
+            .ToList();
 
             ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
             ViewBag.IsEmployee = linkedId.HasValue;
-            return View(sorted);
+            ViewBag.IsToday = filterDate.Date == DateTime.Today;
+            return View(rows);
         }
 
         public async Task<IActionResult> Create()
@@ -167,6 +188,46 @@ namespace Salon.Controllers
                     "Id", "FullName");
             }
             return View(model);
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> QuickCheckIn(int employeeId, string? date)
+        {
+            var linkedId = await GetLinkedEmployeeIdIfEmployee();
+            if (linkedId.HasValue && linkedId.Value != employeeId)
+                return Forbid();
+
+            var attendanceDate = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
+
+            bool duplicate = await _context.Attendances.AnyAsync(a =>
+                a.EmployeeId == employeeId && a.AttendanceDate == attendanceDate);
+
+            if (!duplicate)
+            {
+                var employee = await _context.Employees
+                    .Include(e => e.DepartmentNav)
+                    .FirstOrDefaultAsync(e => e.Id == employeeId);
+                var dept = employee?.DepartmentNav?.Name;
+                var queuePosition = await NextQueuePosition(dept);
+
+                var attendance = new Attendance
+                {
+                    EmployeeId = employeeId,
+                    AttendanceDate = attendanceDate,
+                    CheckIn = DateTime.Now.TimeOfDay,
+                    QueuePosition = queuePosition,
+                    CreatedAt = DateTime.Now
+                };
+                _context.Attendances.Add(attendance);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = $"تم تسجيل حضور {employee?.FullName} — الدور: {queuePosition}";
+            }
+            else
+            {
+                TempData["Error"] = "تم تسجيل حضور هذا الموظف مسبقاً";
+            }
+
+            return RedirectToAction(nameof(Index), new { date });
         }
 
         [HttpPost, ValidateAntiForgeryToken]
