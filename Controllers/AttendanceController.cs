@@ -101,14 +101,39 @@ namespace Salon.Controllers
 
             var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
 
+            // ── تجميع كل السجلات لكل موظف ──────────────────────────
+            var allTodayRecords = records
+                .GroupBy(a => a.EmployeeId)
+                .ToDictionary(g => g.Key, g => g.OrderBy(a => a.CheckIn).ToList());
+
             // ── بناء الصفوف ───────────────────────────────────────────
             var rows = employees.Select(e =>
             {
-                if (recordsByEmpId.TryGetValue(e.Id, out var rec))
-                    return new AttendanceIndexRow { Employee = e, Record = rec, IsOvernight = false };
-                if (overnightByEmpId.TryGetValue(e.Id, out var overnight))
-                    return new AttendanceIndexRow { Employee = e, Record = overnight, IsOvernight = true };
-                return new AttendanceIndexRow { Employee = e, Record = null, IsOvernight = false };
+                // السجل النشط = مفتوح (بدون انصراف)، أو آخر سجل في اليوم
+                Attendance? activeRec = null;
+                List<Attendance> empRecords = new();
+                bool isOvernight = false;
+
+                if (allTodayRecords.TryGetValue(e.Id, out var todayRecs))
+                {
+                    empRecords = todayRecs;
+                    activeRec = todayRecs.FirstOrDefault(a => !a.CheckOut.HasValue)
+                                ?? todayRecs.Last();
+                }
+                else if (overnightByEmpId.TryGetValue(e.Id, out var overnight))
+                {
+                    activeRec = overnight;
+                    empRecords = new List<Attendance> { overnight };
+                    isOvernight = true;
+                }
+
+                return new AttendanceIndexRow
+                {
+                    Employee   = e,
+                    Record     = activeRec,
+                    AllRecords = empRecords,
+                    IsOvernight = isOvernight
+                };
             })
             .OrderBy(r => r.Employee.DepartmentNav?.Name == "مساج" ? 1 : 0)
             .ThenBy(r => r.Record?.QueuePosition ?? int.MaxValue)
@@ -231,33 +256,34 @@ namespace Salon.Controllers
                 return RedirectToAction(nameof(Index), new { date });
             }
 
-            bool duplicate = await _context.Attendances.AnyAsync(a =>
-                a.EmployeeId == employeeId && a.AttendanceDate == attendanceDate);
+            // يُمنع التسجيل فقط لو في سجل مفتوح (بدون انصراف) في نفس اليوم
+            bool hasOpenToday = await _context.Attendances.AnyAsync(a =>
+                a.EmployeeId == employeeId && a.AttendanceDate == attendanceDate
+                && !a.CheckOut.HasValue);
 
-            if (!duplicate)
+            if (hasOpenToday)
             {
-                var employee = await _context.Employees
-                    .Include(e => e.DepartmentNav)
-                    .FirstOrDefaultAsync(e => e.Id == employeeId);
-                var dept = employee?.DepartmentNav?.Name;
-                var queuePosition = await NextQueuePosition(dept);
+                TempData["Error"] = "يوجد سجل حضور مفتوح لهذا الموظف — سجّل الانصراف أولاً";
+                return RedirectToAction(nameof(Index), new { date });
+            }
 
-                var attendance = new Attendance
-                {
-                    EmployeeId = employeeId,
-                    AttendanceDate = attendanceDate,
-                    CheckIn = DateTime.Now.TimeOfDay,
-                    QueuePosition = queuePosition,
-                    CreatedAt = DateTime.Now
-                };
-                _context.Attendances.Add(attendance);
-                await _context.SaveChangesAsync();
-                TempData["Success"] = $"تم تسجيل حضور {employee?.FullName} — الدور: {queuePosition}";
-            }
-            else
+            var employee = await _context.Employees
+                .Include(e => e.DepartmentNav)
+                .FirstOrDefaultAsync(e => e.Id == employeeId);
+            var dept = employee?.DepartmentNav?.Name;
+            var queuePosition = await NextQueuePosition(dept);
+
+            var attendance = new Attendance
             {
-                TempData["Error"] = "تم تسجيل حضور هذا الموظف مسبقاً";
-            }
+                EmployeeId = employeeId,
+                AttendanceDate = attendanceDate,
+                CheckIn = DateTime.Now.TimeOfDay,
+                QueuePosition = queuePosition,
+                CreatedAt = DateTime.Now
+            };
+            _context.Attendances.Add(attendance);
+            await _context.SaveChangesAsync();
+            TempData["Success"] = $"تم تسجيل حضور {employee?.FullName} — الدور: {queuePosition}";
 
             return RedirectToAction(nameof(Index), new { date });
         }
@@ -279,7 +305,13 @@ namespace Salon.Controllers
             record.CheckOut = time;
             await _context.SaveChangesAsync();
             TempData["Success"] = "تم تسجيل الانصراف بنجاح";
-            return RedirectToAction(nameof(Index), new { date = record.AttendanceDate.ToString("yyyy-MM-dd") });
+
+            // لو كان موظفاً ليلياً (تاريخ الحضور قبل النهارده) → ارجع لصفحة النهارده
+            var redirectDate = record.AttendanceDate.Date < DateTime.Today
+                ? DateTime.Today.ToString("yyyy-MM-dd")
+                : record.AttendanceDate.ToString("yyyy-MM-dd");
+
+            return RedirectToAction(nameof(Index), new { date = redirectDate });
         }
 
         [HttpPost, ValidateAntiForgeryToken]

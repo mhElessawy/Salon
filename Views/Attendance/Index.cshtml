@@ -332,8 +332,9 @@
                                 <!-- إجراءات — آخر الجدول -->
                                 <td style="text-align:left">
                                     <div class="act-group">
-                                        @if (!a.CheckOut.HasValue && a.CheckIn.HasValue)
+                                        @if (!a!.CheckOut.HasValue && a.CheckIn.HasValue)
                                         {
+                                            @* موظف حاضر: أزرار الاستئذان والانصراف *@
                                             @if (openPerm == null)
                                             {
                                                 <form method="post" action="@Url.Action("RequestPermission", new { id = a.Id })" class="d-inline">
@@ -356,6 +357,18 @@
                                                     onclick="confirmCheckOut(@a.Id, '@Html.Raw(emp.FullName.Replace("'","\\\'"))')">
                                                 <i class="fas fa-sign-out-alt me-1"></i>انصراف
                                             </button>
+                                        }
+                                        else if (a.CheckOut.HasValue && isToday && !isEmployee)
+                                        {
+                                            @* موظف انصرف — اعرض زرار وردية جديدة (للورديات الليلية التي تعود بالليل) *@
+                                            <form method="post" action="@Url.Action("QuickCheckIn")" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="employeeId" value="@emp.Id" />
+                                                <input type="hidden" name="date" value="@ViewBag.FilterDate" />
+                                                <button type="submit" class="btn-checkin" style="background:#6f42c1" title="وردية جديدة لنفس اليوم">
+                                                    <i class="fas fa-redo me-1"></i>وردية جديدة
+                                                </button>
+                                            </form>
                                         }
                                         @if (!isEmployee)
                                         {
