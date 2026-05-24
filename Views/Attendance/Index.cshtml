@@ -2,122 +2,227 @@
 @{
     ViewData["Title"] = "الحضور والانصراف";
     bool isToday = (bool)(ViewBag.IsToday ?? false);
+    bool isEmployee = (bool)(ViewBag.IsEmployee ?? false);
 
     string FmtDuration(TimeSpan t)
     {
-        if (t <= TimeSpan.Zero) return "-";
+        if (t <= TimeSpan.Zero) return "--";
         var h = (int)t.TotalHours;
         var m = t.Minutes;
         if (h > 0 && m > 0) return $"{h}س {m}د";
         if (h > 0) return $"{h}س";
         return $"{m}د";
     }
+
+    string GetEmpCode(Salon.Models.Employee e)
+    {
+        var dept = e.DepartmentNav?.Name ?? "";
+        var prefix = dept == "مساج" ? "MAS" : dept == "حلاقة" ? "BAR" : "EMP";
+        return $"{prefix}-{e.Id:D3}";
+    }
+
+    string[] avatarColors = { "#4e73df", "#1cc88a", "#36b9cc", "#e74a3b", "#fd7e14", "#6f42c1", "#20c9a6", "#f6c23e" };
+    string AvatarColor(int id) => avatarColors[id % avatarColors.Length];
+    string Initial(string name) => string.IsNullOrEmpty(name) ? "?" : name.Trim()[0].ToString().ToUpper();
+
+    var rows = Model.ToList();
+    int total        = rows.Count;
+    int presentAvail = rows.Count(r => r.HasAttendance && r.Record!.CheckIn.HasValue && !r.Record!.CheckOut.HasValue && !r.Record!.Permissions.Any(p => p.ReturnTime == null));
+    int onPermission = rows.Count(r => r.HasAttendance && r.Record!.CheckIn.HasValue && !r.Record!.CheckOut.HasValue &&  r.Record!.Permissions.Any(p => p.ReturnTime == null));
+    int checkedOut   = rows.Count(r => r.HasAttendance && r.Record!.CheckOut.HasValue);
+    int notReg       = rows.Count(r => !r.HasAttendance);
 }
 
 <style>
-    .attendance-table { font-size: 0.80rem; table-layout: fixed; width: 100%; }
-    .attendance-table th { font-size: 0.75rem; padding: 5px 5px; white-space: nowrap; text-align: center; }
-    .attendance-table td { padding: 4px 5px; vertical-align: middle; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .attendance-table td.emp-name { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .attendance-table .btn-sm { font-size: 0.70rem; padding: 2px 6px; }
-    .attendance-table .badge { font-size: 0.70rem; }
-    .no-attend-row { background-color: #fff8f0; }
-    .checkin-btn { min-width: 75px; }
+    /* ======= Header ======= */
+    .att-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; }
+    .att-header h4 { font-size:1.35rem; font-weight:700; margin:0; }
+    .att-header .subtitle { color:#6c757d; font-size:.83rem; }
+    .clock-box { text-align:center; min-width:80px; }
+    .clock-box .lbl { font-size:.72rem; color:#6c757d; }
+    .clock-box .val { font-size:1.25rem; font-weight:700; color:#1a1a2e; }
+
+    /* ======= Stat Cards ======= */
+    .stat-cards { display:flex; gap:.6rem; margin-bottom:1rem; flex-wrap:wrap; }
+    .stat-card  { flex:1; min-width:130px; border-radius:12px; padding:.65rem .9rem; display:flex; align-items:center; justify-content:space-between; }
+    .stat-card .info .num  { font-size:1.6rem; font-weight:800; line-height:1; }
+    .stat-card .info .lbl  { font-size:.72rem; margin-top:2px; opacity:.85; }
+    .stat-card .ico        { width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.1rem; opacity:.85; }
+    .sc-green  { background:#e8f8f0; color:#198754; } .sc-green  .ico { background:#d1f2e2; }
+    .sc-orange { background:#fff3e6; color:#fd7e14; } .sc-orange .ico { background:#ffe5c8; }
+    .sc-blue   { background:#e8f0ff; color:#0d6efd; } .sc-blue   .ico { background:#cfe2ff; }
+    .sc-red    { background:#fdecea; color:#dc3545; } .sc-red    .ico { background:#f8d7da; }
+    .sc-yellow { background:#fffbe6; color:#d4a017; } .sc-yellow .ico { background:#fff0c2; }
+
+    /* ======= Search ======= */
+    .search-wrap { position:relative; margin-bottom:.85rem; }
+    .search-wrap input { padding-right:2.4rem; border-radius:8px; font-size:.88rem; }
+    .search-wrap .ico  { position:absolute; right:.8rem; top:50%; transform:translateY(-50%); color:#aaa; }
+
+    /* ======= Table ======= */
+    .att-table { font-size:.80rem; width:100%; table-layout:fixed; }
+    .att-table thead th { font-size:.73rem; font-weight:600; color:#6c757d; padding:6px 8px; white-space:nowrap; text-align:center; background:#f8f9fc; border-bottom:2px solid #e3e6f0; }
+    .att-table tbody td { padding:7px 8px; vertical-align:middle; text-align:center; border-bottom:1px solid #f0f0f0; }
+    .att-table tbody tr:hover { background:#f8f9fc; }
+    .att-table .emp-cell  { text-align:right; display:flex; align-items:center; gap:9px; overflow:hidden; }
+    .att-table td.emp-td  { text-align:right; overflow:hidden; }
+    .avatar { width:36px; height:36px; border-radius:50%; color:#fff; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:.92rem; flex-shrink:0; }
+    .emp-info .name  { font-weight:600; font-size:.82rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px; }
+    .emp-info .title { font-size:.70rem; color:#aaa; }
+    .emp-code        { font-size:.70rem; color:#6c757d; }
+    .no-reg-row td   { background:#fffbf5; }
+
+    /* time cell */
+    .t-cell { display:inline-flex; align-items:center; gap:4px; color:#444; }
+    .t-cell i { color:#bbb; font-size:.72rem; }
+
+    /* action btn group */
+    .act-group { display:flex; gap:4px; align-items:center; flex-wrap:nowrap; justify-content:flex-end; }
+    .btn-checkin   { background:#198754; color:#fff; border:none; border-radius:7px; font-size:.76rem; padding:4px 10px; cursor:pointer; white-space:nowrap; }
+    .btn-checkin:hover { background:#157347; color:#fff; }
+    .btn-perm      { background:#fd7e14; color:#fff; border:none; border-radius:7px; font-size:.76rem; padding:4px 10px; cursor:pointer; white-space:nowrap; }
+    .btn-perm:hover { background:#e8720c; color:#fff; }
+    .btn-checkout  { background:#fff; color:#0d6efd; border:1.5px solid #0d6efd; border-radius:7px; font-size:.76rem; padding:3px 10px; cursor:pointer; white-space:nowrap; }
+    .btn-checkout:hover { background:#0d6efd; color:#fff; }
+    .btn-return    { background:#198754; color:#fff; border:none; border-radius:7px; font-size:.76rem; padding:4px 10px; cursor:pointer; }
+    .btn-del       { background:transparent; border:none; color:#dc3545; font-size:.80rem; padding:3px 5px; cursor:pointer; }
+
+    /* perm badge inside time cell */
+    .perm-time  { font-size:.72rem; color:#fd7e14; display:inline-flex; align-items:center; gap:3px; }
+    .ret-time   { font-size:.72rem; color:#198754; display:inline-flex; align-items:center; gap:3px; }
 </style>
 
-<div class="d-flex justify-content-between align-items-center mb-2 mt-1">
-    <h5 class="mb-0 fw-bold"><i class="fas fa-calendar-alt me-2 text-primary"></i>الحضور والانصراف</h5>
-    <form method="get" class="d-flex gap-2 align-items-center">
-        <input type="date" name="date" value="@ViewBag.FilterDate" class="form-control form-control-sm" style="max-width:145px;" />
-        <button type="submit" class="btn btn-primary btn-sm px-2"><i class="fas fa-search"></i></button>
-        @if (!isToday)
-        {
-            <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">اليوم</a>
-        }
-    </form>
+<!-- ===== HEADER ===== -->
+<div class="att-header">
+    <div>
+        <h4>الحضور والانصراف</h4>
+        <span class="subtitle">إدارة حضور وانصراف الموظفين</span>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <div class="clock-box">
+            <div class="lbl">الوقت الحالي</div>
+            <div class="val" id="liveClock">--:--</div>
+        </div>
+        <form method="get" class="d-flex align-items-center gap-2">
+            <input type="date" name="date" value="@ViewBag.FilterDate"
+                   class="form-control form-control-sm" style="max-width:148px;" />
+            @if (!isToday)
+            {
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">اليوم</a>
+            }
+        </form>
+    </div>
 </div>
 
-<div class="card">
-    <div class="card-body p-1">
+<!-- ===== STAT CARDS ===== -->
+<div class="stat-cards">
+    <div class="stat-card sc-green">
+        <div class="info"><div class="num">@presentAvail</div><div class="lbl">حاضر - متاح</div></div>
+        <div class="ico"><i class="fas fa-user-check"></i></div>
+    </div>
+    <div class="stat-card sc-orange">
+        <div class="info"><div class="num">@onPermission</div><div class="lbl">استئذان</div></div>
+        <div class="ico"><i class="fas fa-coffee"></i></div>
+    </div>
+    <div class="stat-card sc-blue">
+        <div class="info"><div class="num">@checkedOut</div><div class="lbl">انصرف</div></div>
+        <div class="ico"><i class="fas fa-sign-out-alt"></i></div>
+    </div>
+    <div class="stat-card sc-red">
+        <div class="info"><div class="num">@notReg</div><div class="lbl">لم يسجل</div></div>
+        <div class="ico"><i class="fas fa-user-times"></i></div>
+    </div>
+    <div class="stat-card sc-yellow">
+        <div class="info"><div class="num">@total</div><div class="lbl">الإجمالي</div></div>
+        <div class="ico"><i class="fas fa-users"></i></div>
+    </div>
+</div>
+
+<!-- ===== SEARCH ===== -->
+<div class="search-wrap">
+    <i class="fas fa-search ico"></i>
+    <input type="text" id="empSearch" class="form-control" placeholder="البحث عن موظف..." />
+</div>
+
+<!-- ===== TABLE ===== -->
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle attendance-table mb-0">
-                <thead class="table-light">
+            <table class="table att-table mb-0">
+                <thead>
                     <tr>
-                        <th style="width:34px">الدور</th>
-                        <th style="width:110px; text-align:right">الموظف</th>
-                        <th style="width:58px">القسم</th>
-                        <th style="width:68px">حضور</th>
-                        <th style="width:80px">انصراف</th>
-                        <th style="width:88px">استئذان</th>
-                        <th style="width:68px">عودة</th>
-                        <th style="width:48px">مدة</th>
-                        <th style="width:52px">فعلي</th>
-                        <th style="width:56px">الحالة</th>
-                        <th style="width:40px"></th>
+                        <th style="width:160px; text-align:right">الإجراءات</th>
+                        <th style="width:170px; text-align:right">الموظف</th>
+                        <th style="width:65px">كود</th>
+                        <th style="width:62px">القسم</th>
+                        <th style="width:68px">الحالة</th>
+                        <th style="width:72px">وقت الحضور</th>
+                        <th style="width:72px">وقت الاستئذان</th>
+                        <th style="width:72px">وقت العودة</th>
+                        <th style="width:56px">مدة الاستئذان</th>
+                        <th style="width:72px">وقت الانصراف</th>
+                        <th style="width:60px">ساعات العمل</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @if (!Model.Any())
+                <tbody id="attBody">
+                    @if (!rows.Any())
                     {
-                        <tr><td colspan="11" class="text-center text-muted py-4">لا يوجد موظفون</td></tr>
+                        <tr><td colspan="11" class="text-center text-muted py-5">لا يوجد موظفون</td></tr>
                     }
-                    @foreach (var row in Model)
+                    @foreach (var row in rows)
                     {
-                        var emp = row.Employee;
-                        var a = row.Record;
-                        var dept = emp.DepartmentNav?.Name;
-                        var deptColor = dept == "مساج" ? "bg-info" : "bg-warning text-dark";
+                        var emp  = row.Employee;
+                        var a    = row.Record;
+                        var dept = emp.DepartmentNav?.Name ?? "";
+                        var deptBadge = dept == "مساج" ? "badge bg-info text-white" : dept == "حلاقة" ? "badge bg-warning text-dark" : "badge bg-secondary";
+                        var avatarBg  = AvatarColor(emp.Id);
+                        var initial   = Initial(emp.FullName);
+                        var empCode   = GetEmpCode(emp);
 
                         if (!row.HasAttendance)
                         {
-                            <tr class="no-attend-row">
-                                <td><span class="text-muted">-</span></td>
-                                <td class="emp-name"><strong>@emp.FullName</strong></td>
-                                <td>
-                                    @if (!string.IsNullOrEmpty(dept))
-                                    {
-                                        <span class="badge @deptColor">@dept</span>
-                                    }
-                                </td>
-                                <td colspan="7">
-                                    @if (isToday && !(bool)(ViewBag.IsEmployee ?? false))
+                            <tr class="no-reg-row" data-name="@emp.FullName.ToLower()">
+                                <!-- إجراءات -->
+                                <td style="text-align:right">
+                                    @if (isToday)
                                     {
                                         <form method="post" action="@Url.Action("QuickCheckIn")" class="d-inline">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="employeeId" value="@emp.Id" />
                                             <input type="hidden" name="date" value="@ViewBag.FilterDate" />
-                                            <button type="submit" class="btn btn-sm btn-success checkin-btn">
-                                                <i class="fas fa-sign-in-alt me-1"></i> تسجيل حضور
+                                            <button type="submit" class="btn-checkin">
+                                                <i class="fas fa-user-check me-1"></i>@(isEmployee ? "تسجيل حضوري" : "حضور")
                                             </button>
                                         </form>
-                                    }
-                                    else if (isToday && (bool)(ViewBag.IsEmployee ?? false))
-                                    {
-                                        <form method="post" action="@Url.Action("QuickCheckIn")" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="employeeId" value="@emp.Id" />
-                                            <input type="hidden" name="date" value="@ViewBag.FilterDate" />
-                                            <button type="submit" class="btn btn-sm btn-success checkin-btn">
-                                                <i class="fas fa-sign-in-alt me-1"></i> تسجيل حضوري
-                                            </button>
-                                        </form>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary">غائب</span>
                                     }
                                 </td>
-                                <td></td>
+                                <!-- الموظف -->
+                                <td class="emp-td">
+                                    <div class="emp-cell">
+                                        <div class="avatar" style="background:@avatarBg">@initial</div>
+                                        <div class="emp-info">
+                                            <div class="name">@emp.FullName</div>
+                                            <div class="title">@(emp.JobTitle ?? dept)</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="emp-code">@empCode</span></td>
+                                <td><span class="@deptBadge">@dept</span></td>
+                                <td><span class="badge bg-secondary" style="font-size:.70rem">لم يسجل</span></td>
+                                <td><span class="text-muted">----</span></td>
+                                <td><span class="text-muted">----</span></td>
+                                <td><span class="text-muted">----</span></td>
+                                <td><span class="text-muted">--</span></td>
+                                <td><span class="text-muted">----</span></td>
+                                <td><span class="text-muted">--</span></td>
                             </tr>
                         }
                         else
                         {
-                            var allPerms = a!.Permissions.OrderBy(p => p.LeaveTime).ToList();
-                            var openPerm = allPerms.FirstOrDefault(p => p.ReturnTime == null);
-                            var closedPerms = allPerms.Where(p => p.ReturnTime != null).ToList();
-
-                            var totalPermTime = closedPerms.Aggregate(TimeSpan.Zero,
-                                (acc, p) => acc + (p.ReturnTime!.Value - p.LeaveTime));
+                            var allPerms     = a!.Permissions.OrderBy(p => p.LeaveTime).ToList();
+                            var openPerm     = allPerms.FirstOrDefault(p => p.ReturnTime == null);
+                            var closedPerms  = allPerms.Where(p => p.ReturnTime != null).ToList();
+                            var totalPermTime = closedPerms.Aggregate(TimeSpan.Zero, (acc, p) => acc + (p.ReturnTime!.Value - p.LeaveTime));
 
                             TimeSpan? actualWork = null;
                             if (a.CheckIn.HasValue && a.CheckOut.HasValue)
@@ -125,129 +230,130 @@
                                 var raw = a.CheckOut.Value - a.CheckIn.Value - totalPermTime;
                                 actualWork = raw < TimeSpan.Zero ? TimeSpan.Zero : raw;
                             }
-                            <tr>
-                                <td>
-                                    @if (!a!.CheckOut.HasValue && a.QueuePosition.HasValue)
-                                    {
-                                        <span class="badge bg-primary px-2">@a.QueuePosition.Value</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted">-</span>
-                                    }
+
+                            string statusLabel, statusCss;
+                            if (a.CheckOut.HasValue)                                              { statusLabel = "انصرف";       statusCss = "badge bg-secondary"; }
+                            else if (openPerm != null)                                            { statusLabel = "استئذان";     statusCss = "badge text-white"; }
+                            else if (a.CheckIn.HasValue)                                          { statusLabel = "حاضر - متاح"; statusCss = "badge bg-success"; }
+                            else                                                                  { statusLabel = a.Status;      statusCss = "badge bg-warning text-dark"; }
+                            string permCss = "background:#fd7e14";
+
+                            <tr data-name="@emp.FullName.ToLower()">
+                                <!-- إجراءات -->
+                                <td style="text-align:right">
+                                    <div class="act-group">
+                                        @if (!a.CheckOut.HasValue && a.CheckIn.HasValue)
+                                        {
+                                            @if (openPerm == null)
+                                            {
+                                                <form method="post" action="@Url.Action("RequestPermission", new { id = a.Id })" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn-perm">
+                                                        <i class="fas fa-coffee me-1"></i>استئذان
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <form method="post" action="@Url.Action("ReturnFromPermission", new { id = a.Id })" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn-return">
+                                                        <i class="fas fa-undo me-1"></i>عودة
+                                                    </button>
+                                                </form>
+                                            }
+                                            <button type="button" class="btn-checkout"
+                                                    onclick="confirmCheckOut(@a.Id, '@Html.Raw(emp.FullName.Replace("'","\\\'"))')">
+                                                <i class="fas fa-sign-out-alt me-1"></i>انصراف
+                                            </button>
+                                        }
+                                        @if (!isEmployee)
+                                        {
+                                            <button type="button" class="btn-del" title="حذف"
+                                                    onclick="confirmDelete(@a.Id, '@Html.Raw(emp.FullName.Replace("'","\\\'"))')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        }
+                                    </div>
                                 </td>
-                                <td class="emp-name"><strong>@emp.FullName</strong></td>
+                                <!-- الموظف -->
+                                <td class="emp-td">
+                                    <div class="emp-cell">
+                                        <div class="avatar" style="background:@avatarBg">@initial</div>
+                                        <div class="emp-info">
+                                            <div class="name">@emp.FullName</div>
+                                            <div class="title">@(emp.JobTitle ?? dept)</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="emp-code">@empCode</span></td>
+                                <td><span class="@deptBadge">@dept</span></td>
                                 <td>
-                                    @if (!string.IsNullOrEmpty(dept))
-                                    {
-                                        <span class="badge @deptColor">@dept</span>
-                                    }
+                                    <span class="@statusCss" style="@(openPerm!=null?"background:#fd7e14":"")" >@statusLabel</span>
                                 </td>
                                 <!-- وقت الحضور -->
                                 <td>
                                     @if (a.CheckIn.HasValue)
                                     {
-                                        <span class="badge bg-success"><i class="fas fa-sign-in-alt me-1"></i>@a.CheckIn.Value.ToString(@"hh\:mm")</span>
+                                        <span class="t-cell"><i class="fas fa-clock"></i>@a.CheckIn.Value.ToString(@"hh\:mm")</span>
                                     }
-                                    else { <span class="text-muted">-</span> }
+                                    else { <span class="text-muted">----</span> }
                                 </td>
-                                <!-- وقت الانصراف -->
+                                <!-- وقت الاستئذان -->
                                 <td>
-                                    @if (a.CheckOut.HasValue)
+                                    @if (allPerms.Any())
                                     {
-                                        <span class="badge bg-danger"><i class="fas fa-sign-out-alt me-1"></i>@a.CheckOut.Value.ToString(@"hh\:mm")</span>
+                                        foreach (var p in allPerms)
+                                        {
+                                            <div class="perm-time"><i class="fas fa-door-open"></i>@p.LeaveTime.ToString(@"hh\:mm")
+                                                @if (!isEmployee)
+                                                {
+                                                    <form method="post" action="@Url.Action("DeletePermission", new { id = p.Id })" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn-del" style="font-size:.65rem;padding:0 2px" title="حذف">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+                                            </div>
+                                        }
                                     }
-                                    else if (a.CheckIn.HasValue)
-                                    {
-                                        <button type="button" class="btn btn-sm btn-outline-warning"
-                                                onclick="confirmCheckOut(@a.Id, '@Html.Raw((emp.FullName).Replace("'", "\\'"))')">
-                                            <i class="fas fa-sign-out-alt me-1"></i> انصراف
-                                        </button>
-                                    }
-                                    else { <span class="text-muted">-</span> }
+                                    else { <span class="text-muted">----</span> }
                                 </td>
-                                <!-- الاستئذان -->
+                                <!-- وقت العودة -->
                                 <td>
-                                    @foreach (var p in allPerms)
+                                    @if (closedPerms.Any())
                                     {
-                                        <div class="d-flex align-items-center gap-1 mb-1">
-                                            <span class="badge text-white" style="background-color:#fd7e14">
-                                                <i class="fas fa-door-open me-1"></i>@p.LeaveTime.ToString(@"hh\:mm")
-                                            </span>
-                                            <form method="post" action="@Url.Action("DeletePermission", new { id = p.Id })" class="d-inline">
-                                                @Html.AntiForgeryToken()
-                                                <button type="submit" class="btn btn-outline-danger py-0 px-1" style="font-size:10px" title="حذف">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        </div>
+                                        foreach (var cp in closedPerms)
+                                        {
+                                            <div class="ret-time"><i class="fas fa-undo"></i>@cp.ReturnTime!.Value.ToString(@"hh\:mm")</div>
+                                        }
                                     }
-                                    @if (openPerm == null && a.CheckIn.HasValue && !a.CheckOut.HasValue)
-                                    {
-                                        <form method="post" action="@Url.Action("RequestPermission", new { id = a.Id })" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-outline-warning">
-                                                <i class="fas fa-door-open me-1"></i> استئذان
-                                            </button>
-                                        </form>
-                                    }
-                                    @if (!allPerms.Any() && !(a.CheckIn.HasValue && !a.CheckOut.HasValue))
-                                    {
-                                        <span class="text-muted">-</span>
-                                    }
-                                </td>
-                                <!-- عودة من الاستئذان -->
-                                <td>
-                                    @foreach (var cp in closedPerms)
-                                    {
-                                        <div class="mb-1">
-                                            <span class="badge bg-success">
-                                                <i class="fas fa-undo me-1"></i>@cp.ReturnTime!.Value.ToString(@"hh\:mm")
-                                            </span>
-                                        </div>
-                                    }
-                                    @if (openPerm != null)
-                                    {
-                                        <form method="post" action="@Url.Action("ReturnFromPermission", new { id = a.Id })" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-success">
-                                                <i class="fas fa-undo me-1"></i> عودة
-                                            </button>
-                                        </form>
-                                    }
-                                    @if (!allPerms.Any())
-                                    {
-                                        <span class="text-muted">-</span>
-                                    }
+                                    else { <span class="text-muted">----</span> }
                                 </td>
                                 <!-- مدة الاستئذان -->
                                 <td>
                                     @if (totalPermTime > TimeSpan.Zero)
                                     {
-                                        <span class="badge text-white" style="background-color:#fd7e14">@FmtDuration(totalPermTime)</span>
+                                        <span style="color:#fd7e14;font-size:.75rem"><i class="fas fa-hourglass-half me-1"></i>@FmtDuration(totalPermTime)</span>
                                     }
-                                    else { <span class="text-muted">-</span> }
+                                    else { <span class="text-muted">--</span> }
                                 </td>
-                                <!-- وقت العمل الفعلي -->
+                                <!-- وقت الانصراف -->
+                                <td>
+                                    @if (a.CheckOut.HasValue)
+                                    {
+                                        <span class="t-cell" style="color:#dc3545"><i class="fas fa-clock"></i>@a.CheckOut.Value.ToString(@"hh\:mm")</span>
+                                    }
+                                    else { <span class="text-muted">----</span> }
+                                </td>
+                                <!-- ساعات العمل -->
                                 <td>
                                     @if (actualWork.HasValue)
                                     {
-                                        <span class="badge bg-primary">@FmtDuration(actualWork.Value)</span>
+                                        <span style="color:#0d6efd;font-size:.75rem;font-weight:600">@FmtDuration(actualWork.Value)</span>
                                     }
-                                    else { <span class="text-muted">-</span> }
-                                </td>
-                                <!-- الحالة -->
-                                <td>
-                                    <span class="badge @(a.Status == "حاضر" ? "bg-success" : a.Status == "غائب" ? "bg-danger" : "bg-warning text-dark")">
-                                        @a.Status
-                                    </span>
-                                </td>
-                                <!-- حذف -->
-                                <td>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" title="حذف"
-                                            onclick="confirmDelete(@a.Id, '@Html.Raw((emp.FullName).Replace("'", "\\'"))')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    else { <span class="text-muted">--</span> }
                                 </td>
                             </tr>
                         }
@@ -258,20 +364,20 @@
     </div>
 </div>
 
-<!-- CheckOut Modal -->
+<!-- ===== CheckOut Modal ===== -->
 <div class="modal fade" id="checkOutModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-warning text-dark py-2">
-                <h6 class="modal-title fw-bold"><i class="fas fa-sign-out-alt me-2"></i>تسجيل الانصراف</h6>
-                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+    <div class="modal-dialog modal-dialog-centered" style="max-width:360px">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header py-2" style="background:#fd7e14">
+                <h6 class="modal-title fw-bold text-white"><i class="fas fa-sign-out-alt me-2"></i>تسجيل الانصراف</h6>
+                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-3">
                 <p class="mb-2 small">انصراف: <strong id="checkOutEmployeeName"></strong></p>
                 <form id="checkOutForm" method="post">
                     @Html.AntiForgeryToken()
                     <input type="hidden" id="checkOutTimeHidden" name="checkOutTime" />
-                    <div class="mb-2">
+                    <div class="mb-3">
                         <label class="form-label fw-bold small">وقت الانصراف</label>
                         @if (User.IsInRole("Employee"))
                         {
@@ -287,8 +393,10 @@
                         }
                     </div>
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-warning btn-sm fw-bold px-3"><i class="fas fa-save me-1"></i> تأكيد</button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-sm fw-bold px-4" style="background:#fd7e14;color:#fff">
+                            <i class="fas fa-save me-1"></i>تأكيد
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm px-4" data-bs-dismiss="modal">إلغاء</button>
                     </div>
                 </form>
             </div>
@@ -296,10 +404,10 @@
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
+<!-- ===== Delete Modal ===== -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content border-0 shadow-lg delete-modal-red">
+        <div class="modal-content border-0 shadow delete-modal-red">
             <div class="modal-body text-center p-4">
                 <div class="delete-icon-wrap mb-3"><i class="fas fa-times"></i></div>
                 <h5 class="fw-bold mb-1 text-white">تأكيد الحذف</h5>
@@ -317,57 +425,74 @@
 </div>
 
 @section Scripts {
-    <script>
-        function confirmDelete(id, name) {
-            document.getElementById('deleteItemName').textContent = name;
-            document.getElementById('deleteForm').action = '@Url.Action("Delete")/' + id;
-            new bootstrap.Modal(document.getElementById('deleteModal')).show();
-        }
+<script>
+    // ساعة حية
+    function updateClock() {
+        const d = new Date();
+        const h = String(d.getHours()).padStart(2,'0');
+        const m = String(d.getMinutes()).padStart(2,'0');
+        const el = document.getElementById('liveClock');
+        if (el) el.textContent = h + ':' + m;
+    }
+    updateClock();
+    setInterval(updateClock, 30000);
 
-        @if (User.IsInRole("Employee"))
-        {
-            <text>
-            let checkOutClockInterval = null;
-            function updateCheckOutClock() {
-                const d = new Date();
-                const h = String(d.getHours()).padStart(2, '0');
-                const m = String(d.getMinutes()).padStart(2, '0');
-                const val = h + ':' + m;
-                const disp = document.getElementById('checkOutTimeDisplay');
-                if (disp) disp.textContent = val;
-                document.getElementById('checkOutTimeHidden').value = val;
-            }
-            function confirmCheckOut(id, name) {
-                document.getElementById('checkOutEmployeeName').textContent = name;
-                document.getElementById('checkOutForm').action = '@Url.Action("CheckOut")/' + id;
-                updateCheckOutClock();
-                if (checkOutClockInterval) clearInterval(checkOutClockInterval);
-                checkOutClockInterval = setInterval(updateCheckOutClock, 1000);
-                new bootstrap.Modal(document.getElementById('checkOutModal')).show();
-            }
-            document.getElementById('checkOutModal').addEventListener('hidden.bs.modal', function () {
-                if (checkOutClockInterval) { clearInterval(checkOutClockInterval); checkOutClockInterval = null; }
-            });
-            </text>
+    // بحث
+    document.getElementById('empSearch').addEventListener('input', function() {
+        const q = this.value.trim().toLowerCase();
+        document.querySelectorAll('#attBody tr').forEach(tr => {
+            const name = tr.dataset.name || '';
+            tr.style.display = (!q || name.includes(q)) ? '' : 'none';
+        });
+    });
+
+    // حذف
+    function confirmDelete(id, name) {
+        document.getElementById('deleteItemName').textContent = name;
+        document.getElementById('deleteForm').action = '@Url.Action("Delete")/' + id;
+        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    }
+
+    @if (User.IsInRole("Employee"))
+    {
+        <text>
+        let coInterval = null;
+        function updateCoTime() {
+            const d = new Date();
+            const val = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+            const disp = document.getElementById('checkOutTimeDisplay');
+            if (disp) disp.textContent = val;
+            document.getElementById('checkOutTimeHidden').value = val;
         }
-        else
-        {
-            <text>
-            function confirmCheckOut(id, name) {
-                document.getElementById('checkOutEmployeeName').textContent = name;
-                document.getElementById('checkOutForm').action = '@Url.Action("CheckOut")/' + id;
-                const now = new Date();
-                const hh = String(now.getHours()).padStart(2, '0');
-                const mm = String(now.getMinutes()).padStart(2, '0');
-                const val = hh + ':' + mm;
-                document.getElementById('checkOutTimeEditable').value = val;
-                document.getElementById('checkOutTimeHidden').value = val;
-                document.getElementById('checkOutTimeEditable').oninput = function () {
-                    document.getElementById('checkOutTimeHidden').value = this.value;
-                };
-                new bootstrap.Modal(document.getElementById('checkOutModal')).show();
-            }
-            </text>
+        function confirmCheckOut(id, name) {
+            document.getElementById('checkOutEmployeeName').textContent = name;
+            document.getElementById('checkOutForm').action = '@Url.Action("CheckOut")/' + id;
+            updateCoTime();
+            if (coInterval) clearInterval(coInterval);
+            coInterval = setInterval(updateCoTime, 1000);
+            new bootstrap.Modal(document.getElementById('checkOutModal')).show();
         }
-    </script>
+        document.getElementById('checkOutModal').addEventListener('hidden.bs.modal', () => {
+            if (coInterval) { clearInterval(coInterval); coInterval = null; }
+        });
+        </text>
+    }
+    else
+    {
+        <text>
+        function confirmCheckOut(id, name) {
+            document.getElementById('checkOutEmployeeName').textContent = name;
+            document.getElementById('checkOutForm').action = '@Url.Action("CheckOut")/' + id;
+            const now = new Date();
+            const val = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+            document.getElementById('checkOutTimeEditable').value = val;
+            document.getElementById('checkOutTimeHidden').value = val;
+            document.getElementById('checkOutTimeEditable').oninput = function() {
+                document.getElementById('checkOutTimeHidden').value = this.value;
+            };
+            new bootstrap.Modal(document.getElementById('checkOutModal')).show();
+        }
+        </text>
+    }
+</script>
 }
