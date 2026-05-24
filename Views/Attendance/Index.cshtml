@@ -151,7 +151,6 @@
             <table class="table att-table mb-0">
                 <thead>
                     <tr>
-                        <th style="width:160px; text-align:right">الإجراءات</th>
                         <th style="width:170px; text-align:right">الموظف</th>
                         <th style="width:65px">كود</th>
                         <th style="width:62px">القسم</th>
@@ -162,6 +161,7 @@
                         <th style="width:56px">مدة الاستئذان</th>
                         <th style="width:72px">وقت الانصراف</th>
                         <th style="width:60px">ساعات العمل</th>
+                        <th style="width:160px; text-align:left">الإجراءات</th>
                     </tr>
                 </thead>
                 <tbody id="attBody">
@@ -182,20 +182,6 @@
                         if (!row.HasAttendance)
                         {
                             <tr class="no-reg-row" data-name="@emp.FullName.ToLower()">
-                                <!-- إجراءات -->
-                                <td style="text-align:right">
-                                    @if (isToday)
-                                    {
-                                        <form method="post" action="@Url.Action("QuickCheckIn")" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="employeeId" value="@emp.Id" />
-                                            <input type="hidden" name="date" value="@ViewBag.FilterDate" />
-                                            <button type="submit" class="btn-checkin">
-                                                <i class="fas fa-user-check me-1"></i>@(isEmployee ? "تسجيل حضوري" : "حضور")
-                                            </button>
-                                        </form>
-                                    }
-                                </td>
                                 <!-- الموظف -->
                                 <td class="emp-td">
                                     <div class="emp-cell">
@@ -215,6 +201,20 @@
                                 <td><span class="text-muted">--</span></td>
                                 <td><span class="text-muted">----</span></td>
                                 <td><span class="text-muted">--</span></td>
+                                <!-- إجراءات — آخر الجدول -->
+                                <td style="text-align:left">
+                                    @if (isToday)
+                                    {
+                                        <form method="post" action="@Url.Action("QuickCheckIn")" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="employeeId" value="@emp.Id" />
+                                            <input type="hidden" name="date" value="@ViewBag.FilterDate" />
+                                            <button type="submit" class="btn-checkin">
+                                                <i class="fas fa-user-check me-1"></i>@(isEmployee ? "تسجيل حضوري" : "حضور")
+                                            </button>
+                                        </form>
+                                    }
+                                </td>
                             </tr>
                         }
                         else
@@ -239,43 +239,6 @@
                             string permCss = "background:#fd7e14";
 
                             <tr data-name="@emp.FullName.ToLower()">
-                                <!-- إجراءات -->
-                                <td style="text-align:right">
-                                    <div class="act-group">
-                                        @if (!a.CheckOut.HasValue && a.CheckIn.HasValue)
-                                        {
-                                            @if (openPerm == null)
-                                            {
-                                                <form method="post" action="@Url.Action("RequestPermission", new { id = a.Id })" class="d-inline">
-                                                    @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn-perm">
-                                                        <i class="fas fa-coffee me-1"></i>استئذان
-                                                    </button>
-                                                </form>
-                                            }
-                                            else
-                                            {
-                                                <form method="post" action="@Url.Action("ReturnFromPermission", new { id = a.Id })" class="d-inline">
-                                                    @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn-return">
-                                                        <i class="fas fa-undo me-1"></i>عودة
-                                                    </button>
-                                                </form>
-                                            }
-                                            <button type="button" class="btn-checkout"
-                                                    onclick="confirmCheckOut(@a.Id, '@Html.Raw(emp.FullName.Replace("'","\\\'"))')">
-                                                <i class="fas fa-sign-out-alt me-1"></i>انصراف
-                                            </button>
-                                        }
-                                        @if (!isEmployee)
-                                        {
-                                            <button type="button" class="btn-del" title="حذف"
-                                                    onclick="confirmDelete(@a.Id, '@Html.Raw(emp.FullName.Replace("'","\\\'"))')">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        }
-                                    </div>
-                                </td>
                                 <!-- الموظف -->
                                 <td class="emp-td">
                                     <div class="emp-cell">
@@ -354,6 +317,43 @@
                                         <span style="color:#0d6efd;font-size:.75rem;font-weight:600">@FmtDuration(actualWork.Value)</span>
                                     }
                                     else { <span class="text-muted">--</span> }
+                                </td>
+                                <!-- إجراءات — آخر الجدول -->
+                                <td style="text-align:left">
+                                    <div class="act-group">
+                                        @if (!a.CheckOut.HasValue && a.CheckIn.HasValue)
+                                        {
+                                            @if (openPerm == null)
+                                            {
+                                                <form method="post" action="@Url.Action("RequestPermission", new { id = a.Id })" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn-perm">
+                                                        <i class="fas fa-coffee me-1"></i>استئذان
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <form method="post" action="@Url.Action("ReturnFromPermission", new { id = a.Id })" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn-return">
+                                                        <i class="fas fa-undo me-1"></i>عودة
+                                                    </button>
+                                                </form>
+                                            }
+                                            <button type="button" class="btn-checkout"
+                                                    onclick="confirmCheckOut(@a.Id, '@Html.Raw(emp.FullName.Replace("'","\\\'"))')">
+                                                <i class="fas fa-sign-out-alt me-1"></i>انصراف
+                                            </button>
+                                        }
+                                        @if (!isEmployee)
+                                        {
+                                            <button type="button" class="btn-del" title="حذف"
+                                                    onclick="confirmDelete(@a.Id, '@Html.Raw(emp.FullName.Replace("'","\\\'"))')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        }
+                                    </div>
                                 </td>
                             </tr>
                         }
