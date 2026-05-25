@@ -19,7 +19,7 @@
 
     bool shiftsOpen = IsGroupOpen("shifts");
     bool salesOpen = IsGroupOpen("sales", "appointments");
-    bool defsOpen = IsGroupOpen("services", "servicecategories", "departments");
+    bool defsOpen = IsGroupOpen("services", "servicecategories", "departments", "packages");
     bool inventoryOpen = IsGroupOpen("inventory", "suppliers");
     bool hrOpen = IsGroupOpen("employees", "salaries", "advances", "attendance");
     bool financeOpen = IsGroupOpen("expenses", "reports");
@@ -154,7 +154,7 @@
 
         @* التعريفات *@
         @{
-            bool hasDefsGroup = canSee("Services") || canSee("ServiceCategories") || canSee("Departments");
+            bool hasDefsGroup = canSee("Services") || canSee("ServiceCategories") || canSee("Departments") || canSee("Packages");
         }
         @if (hasDefsGroup)
         {
@@ -190,6 +190,15 @@
                             <a href="@Url.Action("Index", "Departments")" class="@IsActive("Departments")">
                                 <i class="fas fa-sitemap"></i>
                                 <span data-i18n-en="Departments">الأقسام</span>
+                            </a>
+                        </li>
+                    }
+                    @if (canSee("Packages"))
+                    {
+                        <li>
+                            <a href="@Url.Action("Index", "Packages")" class="@IsActive("Packages")">
+                                <i class="fas fa-box-open" style="color:#F7941D"></i>
+                                <span data-i18n-en="Packages">الباقات</span>
                             </a>
                         </li>
                     }
