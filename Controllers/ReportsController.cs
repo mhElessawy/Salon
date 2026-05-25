@@ -126,6 +126,7 @@ namespace Salon.Controllers
             var baseQuery = _context.Sales
                 .Include(s => s.Customer)
                 .Include(s => s.Employee)
+                .Include(s => s.SaleItems)
                 .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow);
 
             if (userDept == "حلاقة")
