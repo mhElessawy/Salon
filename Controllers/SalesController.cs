@@ -386,9 +386,12 @@ namespace Salon.Controllers
 
         private async Task PopulateDeptDropdowns(string dept, ApplicationUser? user, string role)
         {
-            // العملاء
+            // العملاء - فلتر حسب القسم
+            var customersQuery = _context.Customers.Where(c => c.IsActive);
+            if (dept == "مساج" || dept == "حلاقة")
+                customersQuery = customersQuery.Where(c => c.Department == dept);
             ViewBag.Customers = new SelectList(
-                await _context.Customers.Where(c => c.IsActive).OrderBy(c => c.FullName).ToListAsync(),
+                await customersQuery.OrderBy(c => c.FullName).ToListAsync(),
                 "Id", "FullName");
 
             // الخدمات مصنّفة حسب القسم
