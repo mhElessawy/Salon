@@ -11,5 +11,10 @@ namespace Salon.Models
         public int NewCustomersToday { get; set; }
         public List<Customer> UpcomingBirthdays { get; set; } = new();
         public List<Product> ExpiringProducts { get; set; } = new();
+
+        /// <summary>
+        /// ﬁ”„ «·„” Œœ„ «·Õ«·Ì: "Õ·«ﬁ…" | "„”«Ã" | null («·ﬂ·)
+        /// </summary>
+        public string? UserDepartment { get; set; }
     }
 }

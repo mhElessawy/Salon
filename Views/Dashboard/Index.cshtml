@@ -4,7 +4,11 @@
 }
 
 <div class="page-header">
-    <h1>لوحة التحكم - الكل</h1>
+    <h1>
+        لوحة التحكم -
+        @(Model.UserDepartment == "حلاقة" ? "الحلاقة" :
+                Model.UserDepartment == "مساج" ? "المساج" : "الكل")
+    </h1>
     <p>نظرة عامة على أداء القسم اليوم</p>
 </div>
 
@@ -39,12 +43,26 @@ else
 
         <div class="stat-card red">
             <div class="stat-card-header">
-                <span class="stat-label">المصروفات اليوم</span>
-                <div class="stat-icon red"><i class="fas fa-shopping-bag"></i></div>
-            </div>
-            <div class="stat-value">@Model.ExpensesToday.ToString("N3") د.ك</div>
-            <div class="stat-sub">إجمالي مصروفات اليوم</div>
+                <span class="stat-label">
+                    مصروفات اليوم
+                    @if (Model.UserDepartment == "حلاقة")
+                    {
+                        <small class="badge bg-secondary ms-1">الحلاقة</small>
+                    }
+                    else if (Model.UserDepartment == "مساج")
+                    {
+                        <small class="badge bg-secondary ms-1">المساج</small>
+                    }
+            </span>
+            <div class="stat-icon red"><i class="fas fa-shopping-bag"></i></div>
         </div>
+        <div class="stat-value">@Model.ExpensesToday.ToString("N3") د.ك</div>
+        <div class="stat-sub">
+            @(Model.UserDepartment == "حلاقة" ? "مصروفات الحلاقة اليوم" :
+                        Model.UserDepartment == "مساج" ? "مصروفات المساج اليوم" :
+                        "إجمالي مصروفات اليوم")
+        </div>
+    </div>
 
         <div class="stat-card" style="border-right:4px solid #9f1239;">
             <div class="stat-card-header">
@@ -104,7 +122,7 @@ else
                 <i class="fas fa-box"></i>
                 <span style="color:var(--primary);">منتجات قاربت صلاحيتها</span>
             </div>
-            @if (!Model.ExpiringProducts.Any())
+        @if (!Model.ExpiringProducts.Any())
             {
                 <div class="info-card-empty">
                     <i class="fas fa-check-circle fa-2x mb-2" style="color:#28a745;"></i>

@@ -57,26 +57,93 @@ namespace Salon.Controllers
             var linkedId = await GetLinkedEmployeeIdIfEmployee();
             var userDept = await GetUserDepartmentAsync();
 
-            var query = _context.Attendances
+            // ── سجلات يوم الفلتر ──────────────────────────────────────
+            var attQuery = _context.Attendances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Include(a => a.Permissions)
                 .Where(a => a.AttendanceDate == filterDate);
 
             if (linkedId.HasValue)
-                query = query.Where(a => a.EmployeeId == linkedId.Value);
+                attQuery = attQuery.Where(a => a.EmployeeId == linkedId.Value);
             else if (userDept == "حلاقة" || userDept == "مساج")
-                query = query.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
+                attQuery = attQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
 
-            var records = await query.ToListAsync();
-            // Sort in memory after loading — avoids EF Core generating OPENJSON / '$' SQL
-            var sorted = records
-                .OrderBy(a => a.Employee?.DepartmentNav?.Name == "مساج" ? 1 : 0)
-                .ThenBy(a => a.QueuePosition ?? int.MaxValue)
-                .ToList();
+            var records = await attQuery.ToListAsync();
+            var recordsByEmpId = records.ToDictionary(a => a.EmployeeId);
+
+            // ── موظفو الليل: سجّلوا حضور امبارح ولسه لم ينصرفوا ──────
+            var prevDate = filterDate.AddDays(-1);
+            var overnightQuery = _context.Attendances
+                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Include(a => a.Permissions)
+                .Where(a => a.AttendanceDate == prevDate && a.CheckIn.HasValue && !a.CheckOut.HasValue);
+
+            if (linkedId.HasValue)
+                overnightQuery = overnightQuery.Where(a => a.EmployeeId == linkedId.Value);
+            else if (userDept == "حلاقة" || userDept == "مساج")
+                overnightQuery = overnightQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
+
+            var overnightRecords = await overnightQuery.ToListAsync();
+            // نستخدم سجل الليل فقط إذا لم يكن للموظف سجل بتاريخ اليوم
+            var overnightByEmpId = overnightRecords
+                .Where(a => !recordsByEmpId.ContainsKey(a.EmployeeId))
+                .ToDictionary(a => a.EmployeeId);
+
+            // ── كل الموظفين النشطين ───────────────────────────────────
+            var empQuery = _context.Employees
+                .Include(e => e.DepartmentNav)
+                .Where(e => e.IsActive);
+
+            if (linkedId.HasValue)
+                empQuery = empQuery.Where(e => e.Id == linkedId.Value);
+            else if (userDept == "حلاقة" || userDept == "مساج")
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
+
+            var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+
+            // ── تجميع كل السجلات لكل موظف ──────────────────────────
+            var allTodayRecords = records
+                .GroupBy(a => a.EmployeeId)
+                .ToDictionary(g => g.Key, g => g.OrderBy(a => a.CheckIn).ToList());
+
+            // ── بناء الصفوف ───────────────────────────────────────────
+            var rows = employees.Select(e =>
+            {
+                // السجل النشط = مفتوح (بدون انصراف)، أو آخر سجل في اليوم
+                Attendance? activeRec = null;
+                List<Attendance> empRecords = new();
+                bool isOvernight = false;
+
+                if (allTodayRecords.TryGetValue(e.Id, out var todayRecs))
+                {
+                    empRecords = todayRecs;
+                    activeRec = todayRecs.FirstOrDefault(a => !a.CheckOut.HasValue)
+                                ?? todayRecs.Last();
+                }
+                else if (overnightByEmpId.TryGetValue(e.Id, out var overnight))
+                {
+                    activeRec = overnight;
+                    empRecords = new List<Attendance> { overnight };
+                    isOvernight = true;
+                }
+
+                return new AttendanceIndexRow
+                {
+                    Employee = e,
+                    Record = activeRec,
+                    AllRecords = empRecords,
+                    IsOvernight = isOvernight
+                };
+            })
+            .OrderBy(r => r.Employee.DepartmentNav?.Name == "مساج" ? 1 : 0)
+            .ThenBy(r => r.Record?.QueuePosition ?? int.MaxValue)
+            .ThenBy(r => r.Employee.FullName)
+            .ToList();
 
             ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
             ViewBag.IsEmployee = linkedId.HasValue;
-            return View(sorted);
+            ViewBag.IsToday = filterDate.Date == DateTime.Today;
+            return View(rows);
         }
 
         public async Task<IActionResult> Create()
@@ -170,6 +237,58 @@ namespace Salon.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> QuickCheckIn(int employeeId, string? date)
+        {
+            var linkedId = await GetLinkedEmployeeIdIfEmployee();
+            if (linkedId.HasValue && linkedId.Value != employeeId)
+                return Forbid();
+
+            var attendanceDate = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
+
+            // منع التسجيل لو في سجل مفتوح امبارح (موظف ليلي لسه شغال)
+            var prevDate = attendanceDate.AddDays(-1);
+            bool hasOpenOvernight = await _context.Attendances.AnyAsync(a =>
+                a.EmployeeId == employeeId && a.AttendanceDate == prevDate
+                && a.CheckIn.HasValue && !a.CheckOut.HasValue);
+            if (hasOpenOvernight)
+            {
+                TempData["Error"] = "يوجد سجل حضور مفتوح من البارحة — سجّل الانصراف أولاً";
+                return RedirectToAction(nameof(Index), new { date });
+            }
+
+            // يُمنع التسجيل فقط لو في سجل مفتوح (بدون انصراف) في نفس اليوم
+            bool hasOpenToday = await _context.Attendances.AnyAsync(a =>
+                a.EmployeeId == employeeId && a.AttendanceDate == attendanceDate
+                && !a.CheckOut.HasValue);
+
+            if (hasOpenToday)
+            {
+                TempData["Error"] = "يوجد سجل حضور مفتوح لهذا الموظف — سجّل الانصراف أولاً";
+                return RedirectToAction(nameof(Index), new { date });
+            }
+
+            var employee = await _context.Employees
+                .Include(e => e.DepartmentNav)
+                .FirstOrDefaultAsync(e => e.Id == employeeId);
+            var dept = employee?.DepartmentNav?.Name;
+            var queuePosition = await NextQueuePosition(dept);
+
+            var attendance = new Attendance
+            {
+                EmployeeId = employeeId,
+                AttendanceDate = attendanceDate,
+                CheckIn = DateTime.Now.TimeOfDay,
+                QueuePosition = queuePosition,
+                CreatedAt = DateTime.Now
+            };
+            _context.Attendances.Add(attendance);
+            await _context.SaveChangesAsync();
+            TempData["Success"] = $"تم تسجيل حضور {employee?.FullName} — الدور: {queuePosition}";
+
+            return RedirectToAction(nameof(Index), new { date });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> CheckOut(int id, string checkOutTime)
         {
             var record = await _context.Attendances.FindAsync(id);
@@ -186,7 +305,13 @@ namespace Salon.Controllers
             record.CheckOut = time;
             await _context.SaveChangesAsync();
             TempData["Success"] = "تم تسجيل الانصراف بنجاح";
-            return RedirectToAction(nameof(Index), new { date = record.AttendanceDate.ToString("yyyy-MM-dd") });
+
+            // لو كان موظفاً ليلياً (تاريخ الحضور قبل النهارده) → ارجع لصفحة النهارده
+            var redirectDate = record.AttendanceDate.Date < DateTime.Today
+                ? DateTime.Today.ToString("yyyy-MM-dd")
+                : record.AttendanceDate.ToString("yyyy-MM-dd");
+
+            return RedirectToAction(nameof(Index), new { date = redirectDate });
         }
 
         [HttpPost, ValidateAntiForgeryToken]
