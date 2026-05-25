@@ -407,31 +407,46 @@ namespace Salon.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        public async Task<IActionResult> Reports(string? month)
+        public async Task<IActionResult> Reports(string? dateFrom, string? dateTo, int? employeeId)
         {
-            DateTime filterMonth = string.IsNullOrEmpty(month)
-                ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)
-                : DateTime.Parse(month + "-01");
+            var today = DateTime.Today;
+            var from = string.IsNullOrEmpty(dateFrom)
+                ? new DateTime(today.Year, today.Month, 1)
+                : DateTime.Parse(dateFrom);
+            var to = string.IsNullOrEmpty(dateTo) ? today : DateTime.Parse(dateTo);
 
-            var nextMonth = filterMonth.AddMonths(1);
             var linkedId = await GetLinkedEmployeeIdIfEmployee();
             var userDept = await GetUserDepartmentAsync();
 
             var query = _context.Attendances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
-                .Where(a => a.AttendanceDate >= filterMonth && a.AttendanceDate < nextMonth);
+                .Include(a => a.Permissions)
+                .Where(a => a.AttendanceDate >= from && a.AttendanceDate <= to);
 
             if (linkedId.HasValue)
                 query = query.Where(a => a.EmployeeId == linkedId.Value);
             else if (userDept == "حلاقة" || userDept == "مساج")
                 query = query.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
+            else if (employeeId.HasValue)
+                query = query.Where(a => a.EmployeeId == employeeId.Value);
 
             var records = await query
                 .OrderBy(a => a.Employee!.FullName)
                 .ThenBy(a => a.AttendanceDate)
+                .ThenBy(a => a.CheckIn)
                 .ToListAsync();
 
-            ViewBag.FilterMonth = filterMonth.ToString("yyyy-MM");
+            // قائمة الموظفين للـ dropdown
+            var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+            if (userDept == "حلاقة" || userDept == "مساج")
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
+            var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+
+            ViewBag.DateFrom   = from.ToString("yyyy-MM-dd");
+            ViewBag.DateTo     = to.ToString("yyyy-MM-dd");
+            ViewBag.EmployeeId = employeeId;
+            ViewBag.Employees  = employees;
+            ViewBag.IsEmployee = linkedId.HasValue;
             return View(records);
         }
     }

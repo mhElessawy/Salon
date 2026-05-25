@@ -1,56 +1,329 @@
 @model IEnumerable<Salon.Models.Attendance>
+@using System.Linq
 @{
     ViewData["Title"] = "تقارير الحضور";
+    bool isEmployee = (bool)(ViewBag.IsEmployee ?? false);
+
+    // ── دوال مساعدة ──────────────────────────────────────────────────────
+    TimeSpan CalcPerm(Salon.Models.Attendance a)
+        => a.Permissions
+            .Where(p => p.ReturnTime != null)
+            .Aggregate(TimeSpan.Zero, (s, p) => s + (p.ReturnTime!.Value - p.LeaveTime));
+
+    TimeSpan? CalcWork(Salon.Models.Attendance a)
+    {
+        if (!a.CheckIn.HasValue || !a.CheckOut.HasValue) return null;
+        var co = a.CheckOut.Value < a.CheckIn.Value
+            ? a.CheckOut.Value.Add(TimeSpan.FromHours(24))   // ليلي
+            : a.CheckOut.Value;
+        var raw = co - a.CheckIn.Value - CalcPerm(a);
+        return raw < TimeSpan.Zero ? TimeSpan.Zero : raw;
+    }
+
+    string Fmt(TimeSpan? t)
+    {
+        if (t == null || t <= TimeSpan.Zero) return "--";
+        var h = (int)t.Value.TotalHours;
+        var m = t.Value.Minutes;
+        if (h > 0 && m > 0) return $"{h}س {m}د";
+        if (h > 0) return $"{h}س";
+        return $"{m}د";
+    }
+
+    // ── إحصاء الملخص لكل موظف ────────────────────────────────────────────
+    var grouped = Model
+        .GroupBy(a => new { a.EmployeeId, Name = a.Employee?.FullName ?? "-", Dept = a.Employee?.DepartmentNav?.Name ?? "-" })
+        .OrderBy(g => g.Key.Name)
+        .ToList();
+
+    int totalDays   = Model.Count();
+    var totalWork   = Model.Aggregate(TimeSpan.Zero, (s, a) => s + (CalcWork(a) ?? TimeSpan.Zero));
+    var totalPerm   = Model.Aggregate(TimeSpan.Zero, (s, a) => s + CalcPerm(a));
+    int totalPerms  = Model.Sum(a => a.Permissions.Count);
 }
 
-<div class="page-header">
-    <h1><i class="fas fa-file-alt me-2"></i>تقارير الحضور</h1>
+<style>
+    .rpt-filter .form-label { font-size:.82rem; font-weight:600; }
+    .rpt-filter .form-control, .rpt-filter .form-select { font-size:.84rem; }
+
+    .summary-card { border-radius:10px; padding:.7rem 1rem; text-align:center; }
+    .summary-card .num { font-size:1.5rem; font-weight:800; }
+    .summary-card .lbl { font-size:.72rem; color:#666; }
+
+    .rpt-table { font-size:.80rem; }
+    .rpt-table th { font-size:.73rem; font-weight:600; color:#6c757d; background:#f8f9fc;
+                    padding:6px 8px; white-space:nowrap; text-align:center; border-bottom:2px solid #e3e6f0; }
+    .rpt-table td { padding:5px 8px; vertical-align:middle; text-align:center; border-bottom:1px solid #f0f0f0; }
+    .rpt-table td.name-cell { text-align:right; font-weight:600; }
+    .rpt-table tr:hover { background:#f8f9fc; }
+
+    .emp-group-header { background:#f0f4ff !important; font-weight:700; font-size:.78rem; }
+    .emp-total-row    { background:#fffbe6 !important; font-weight:600; font-size:.78rem; }
+
+    .perm-badge { font-size:.68rem; background:#fff3e6; color:#e07b00;
+                  border:1px solid #ffd599; border-radius:4px; padding:1px 5px; margin:1px; display:inline-block; }
+    .t-in  { color:#198754; font-weight:600; }
+    .t-out { color:#dc3545; font-weight:600; }
+    .t-work{ color:#0d6efd; font-weight:600; }
+    .t-perm{ color:#fd7e14; }
+    .night-icon { font-size:.75rem; color:#6f42c1; }
+</style>
+
+<!-- ===== Header ===== -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="fw-bold mb-0"><i class="fas fa-file-chart-line me-2 text-primary"></i>تقارير الحضور</h4>
+        <small class="text-muted">الاستئذانات · ساعات العمل · الملخص</small>
+    </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-body">
-        <form method="get" class="d-flex gap-2 align-items-center">
-            <label class="form-label mb-0">الشهر:</label>
-            <input type="month" name="month" value="@ViewBag.FilterMonth" class="form-control" style="max-width:200px;" />
-            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
+<!-- ===== Filter ===== -->
+<div class="card mb-3 shadow-sm border-0">
+    <div class="card-body py-3">
+        <form method="get" class="rpt-filter">
+            <div class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label">من تاريخ</label>
+                    <input type="date" name="dateFrom" value="@ViewBag.DateFrom"
+                           class="form-control form-control-sm" style="max-width:150px" />
+                </div>
+                <div class="col-auto">
+                    <label class="form-label">إلى تاريخ</label>
+                    <input type="date" name="dateTo" value="@ViewBag.DateTo"
+                           class="form-control form-control-sm" style="max-width:150px" />
+                </div>
+                @if (!isEmployee)
+                {
+                    <div class="col-auto">
+                        <label class="form-label">الموظف</label>
+                        <select name="employeeId" class="form-select form-select-sm" style="max-width:220px">
+                            <option value="">— كل الموظفين —</option>
+                            @foreach (var emp in (List<Salon.Models.Employee>)ViewBag.Employees)
+                            {
+                                var sel = (ViewBag.EmployeeId != null && (int)ViewBag.EmployeeId == emp.Id) ? "selected" : "";
+                                <option value="@emp.Id" @sel>@emp.FullName</option>
+                            }
+                        </select>
+                    </div>
+                }
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary btn-sm px-4">
+                        <i class="fas fa-search me-1"></i>بحث
+                    </button>
+                    <a href="@Url.Action("Reports")" class="btn btn-outline-secondary btn-sm ms-1">إعادة تعيين</a>
+                </div>
+            </div>
         </form>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>الموظف</th>
-                        <th>التاريخ</th>
-                        <th>الحضور</th>
-                        <th>الانصراف</th>
-                        <th>الحالة</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var a in Model)
-                    {
-                        <tr>
-                            <td>@(a.Employee?.FullName ?? "-")</td>
-                            <td>@a.AttendanceDate.ToString("yyyy/MM/dd")</td>
-                            <td>@(a.CheckIn?.ToString(@"hh\:mm") ?? "-")</td>
-                            <td>@(a.CheckOut?.ToString(@"hh\:mm") ?? "-")</td>
-                            <td>
-                                <span class="badge @(a.Status == "حاضر" ? "bg-success" : a.Status == "غائب" ? "bg-danger" : "bg-warning text-dark")">
-                                    @a.Status
-                                </span>
-                            </td>
-                        </tr>
-                    }
-                    @if (!Model.Any())
-                    {
-                        <tr><td colspan="5" class="text-center text-muted py-4">لا توجد سجلات في هذا الشهر</td></tr>
-                    }
-                </tbody>
-            </table>
+@if (!Model.Any())
+{
+    <div class="card shadow-sm border-0">
+        <div class="card-body text-center py-5 text-muted">
+            <i class="fas fa-inbox fa-2x mb-2"></i><br/>لا توجد سجلات في هذه الفترة
         </div>
     </div>
-</div>
+}
+else
+{
+    <!-- ===== Summary Cards ===== -->
+    <div class="row g-2 mb-3">
+        <div class="col">
+            <div class="summary-card" style="background:#e8f0ff">
+                <div class="num text-primary">@totalDays</div>
+                <div class="lbl">إجمالي أيام الحضور</div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="summary-card" style="background:#e8f8f0">
+                <div class="num text-success">@Fmt(totalWork)</div>
+                <div class="lbl">إجمالي ساعات العمل</div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="summary-card" style="background:#fff3e6">
+                <div class="num" style="color:#fd7e14">@totalPerms</div>
+                <div class="lbl">عدد الاستئذانات</div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="summary-card" style="background:#fff3e6">
+                <div class="num" style="color:#e07b00">@Fmt(totalPerm)</div>
+                <div class="lbl">إجمالي مدة الاستئذانات</div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="summary-card" style="background:#f0f4ff">
+                <div class="num" style="color:#495057">@grouped.Count</div>
+                <div class="lbl">عدد الموظفين</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ملخص لكل موظف ===== -->
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-header bg-white fw-bold py-2">
+            <i class="fas fa-users me-2 text-primary"></i>ملخص الموظفين
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table rpt-table mb-0">
+                    <thead>
+                        <tr>
+                            <th style="text-align:right">الموظف</th>
+                            <th>القسم</th>
+                            <th>أيام الحضور</th>
+                            <th>ساعات العمل</th>
+                            <th>عدد الاستئذانات</th>
+                            <th>مدة الاستئذانات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var g in grouped)
+                        {
+                            var gWork = g.Aggregate(TimeSpan.Zero, (s, a) => s + (CalcWork(a) ?? TimeSpan.Zero));
+                            var gPerm = g.Aggregate(TimeSpan.Zero, (s, a) => s + CalcPerm(a));
+                            var gPerms = g.Sum(a => a.Permissions.Count);
+                            var dept = g.Key.Dept;
+                            var deptBadge = dept == "مساج" ? "badge bg-info text-white" : dept == "حلاقة" ? "badge bg-warning text-dark" : "badge bg-secondary";
+                            <tr>
+                                <td class="name-cell">@g.Key.Name</td>
+                                <td><span class="@deptBadge">@dept</span></td>
+                                <td><span class="badge bg-light text-dark border">@g.Count() يوم</span></td>
+                                <td><span class="t-work">@Fmt(gWork)</span></td>
+                                <td>
+                                    @if (gPerms > 0)
+                                    { <span class="badge bg-warning text-dark">@gPerms</span> }
+                                    else
+                                    { <span class="text-muted">-</span> }
+                                </td>
+                                <td><span class="t-perm">@Fmt(gPerm)</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== التفاصيل اليومية ===== -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white fw-bold py-2">
+            <i class="fas fa-calendar-alt me-2 text-primary"></i>التفاصيل اليومية
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table rpt-table mb-0">
+                    <thead>
+                        <tr>
+                            <th style="text-align:right; width:160px">الموظف</th>
+                            <th style="width:90px">التاريخ</th>
+                            <th style="width:70px">حضور</th>
+                            <th style="width:70px">انصراف</th>
+                            <th style="width:70px">ساعات العمل</th>
+                            <th>الاستئذانات</th>
+                            <th style="width:70px">مدة الاستئذان</th>
+                            <th style="width:65px">الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var g in grouped)
+                        {
+                            var gRecs = g.OrderBy(a => a.AttendanceDate).ThenBy(a => a.CheckIn).ToList();
+                            var gWork = g.Aggregate(TimeSpan.Zero, (s, a) => s + (CalcWork(a) ?? TimeSpan.Zero));
+                            var gPerm = g.Aggregate(TimeSpan.Zero, (s, a) => s + CalcPerm(a));
+
+                            @* رأس الموظف *@
+                            <tr class="emp-group-header">
+                                <td colspan="8" style="text-align:right">
+                                    <i class="fas fa-user me-2 text-primary"></i>@g.Key.Name
+                                    <span class="ms-3 text-muted fw-normal" style="font-size:.72rem">
+                                        @gRecs.Count يوم &nbsp;|&nbsp;
+                                        <span class="t-work">@Fmt(gWork)</span> ساعات عمل &nbsp;|&nbsp;
+                                        <span class="t-perm">@Fmt(gPerm)</span> استئذان
+                                    </span>
+                                </td>
+                            </tr>
+
+                            @* سجلات الموظف *@
+                            @foreach (var a in gRecs)
+                            {
+                                var permTime = CalcPerm(a);
+                                var workTime = CalcWork(a);
+                                var isNight  = a.CheckIn.HasValue && a.CheckOut.HasValue && a.CheckOut.Value < a.CheckIn.Value;
+                                var perms    = a.Permissions.OrderBy(p => p.LeaveTime).ToList();
+                                var statusCss = a.Status == "حاضر" ? "bg-success" : a.Status == "غائب" ? "bg-danger" : "bg-warning text-dark";
+
+                                <tr>
+                                    <td class="name-cell" style="padding-right:1.5rem; color:#555">
+                                        @a.AttendanceDate.ToString("ddd", new System.Globalization.CultureInfo("ar"))
+                                    </td>
+                                    <td>@a.AttendanceDate.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        @if (a.CheckIn.HasValue)
+                                        {
+                                            <span class="t-in">@a.CheckIn.Value.ToString(@"hh\:mm")</span>
+                                            @if (isNight) { <span class="night-icon ms-1">🌙</span> }
+                                        }
+                                        else { <span class="text-muted">--</span> }
+                                    </td>
+                                    <td>
+                                        @if (a.CheckOut.HasValue)
+                                        {
+                                            <span class="t-out">@a.CheckOut.Value.ToString(@"hh\:mm")</span>
+                                        }
+                                        else { <span class="text-muted">--</span> }
+                                    </td>
+                                    <td>
+                                        @if (workTime.HasValue)
+                                        { <span class="t-work">@Fmt(workTime)</span> }
+                                        else { <span class="text-muted">--</span> }
+                                    </td>
+                                    <td style="text-align:right">
+                                        @if (perms.Any())
+                                        {
+                                            foreach (var p in perms)
+                                            {
+                                                var ret = p.ReturnTime.HasValue ? p.ReturnTime.Value.ToString(@"hh\:mm") : "مفتوح";
+                                                <span class="perm-badge">
+                                                    <i class="fas fa-door-open me-1"></i>@p.LeaveTime.ToString(@"hh\:mm")
+                                                    → @ret
+                                                </span>
+                                            }
+                                        }
+                                        else { <span class="text-muted">-</span> }
+                                    </td>
+                                    <td>
+                                        @if (permTime > TimeSpan.Zero)
+                                        { <span class="t-perm">@Fmt(permTime)</span> }
+                                        else { <span class="text-muted">-</span> }
+                                    </td>
+                                    <td>
+                                        <span class="badge @statusCss" style="font-size:.68rem">@a.Status</span>
+                                    </td>
+                                </tr>
+                            }
+
+                            @* صف إجمالي الموظف *@
+                            <tr class="emp-total-row">
+                                <td colspan="4" style="text-align:right">
+                                    <i class="fas fa-calculator me-1 text-warning"></i> إجمالي @g.Key.Name
+                                </td>
+                                <td><span class="t-work">@Fmt(gWork)</span></td>
+                                <td style="text-align:right">
+                                    @{ var totalPermsEmp = g.Sum(a => a.Permissions.Count); }
+                                    @if (totalPermsEmp > 0)
+                                    { <span class="badge bg-warning text-dark">@totalPermsEmp استئذان</span> }
+                                    else { <span class="text-muted">-</span> }
+                                </td>
+                                <td><span class="t-perm">@Fmt(gPerm)</span></td>
+                                <td></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
