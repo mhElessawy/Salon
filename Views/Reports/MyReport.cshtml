@@ -19,7 +19,7 @@
         <h1><i class="fas fa-file-invoice me-2"></i>تقريري اليومي</h1>
         <p class="mb-0"><span data-i18n-en="Summary of">ملخص يوم</span> @ViewBag.Date</p>
     </div>
-    <button onclick="window.print()" class="btn btn-dark btn-sm no-print">
+    <button onclick="printTableOnly()" class="btn btn-dark btn-sm no-print">
         <i class="fas fa-print me-1"></i> طباعة
     </button>
 </div>
@@ -211,7 +211,7 @@
             }
         </h5>
         <div class="table-responsive">
-            <table class="table table-hover align-middle">
+            <table id="invoiceTable" class="table table-hover align-middle">
                 <thead class="table-light">
                     <tr>
                         <th>رقم الفاتورة</th>
@@ -354,5 +354,52 @@
             document.getElementById('dateInput').value = today;
             document.getElementById('dateInput').form.submit();
         });
+
+        function printTableOnly() {
+            var tableHtml = document.getElementById('invoiceTable').outerHTML;
+            var reportDate = '@ViewBag.Date';
+
+            var win = window.open('', '_blank', 'width=900,height=700');
+            win.document.write(`<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="utf-8"/>
+    <title>تقريري اليومي - ${reportDate}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            color: #000;
+            background: #fff;
+            padding: 16px;
+            direction: rtl;
+        }
+        h2 { font-size: 15px; margin-bottom: 12px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ccc; padding: 5px 8px; text-align: right; font-size: 11px; }
+        thead th { background: #f0f0f0; font-weight: bold; }
+        tfoot td { background: #222; color: #fff; font-weight: bold; }
+        tfoot .text-success { color: #6fcf97 !important; }
+        tfoot .text-warning { color: #f2c94c !important; }
+        ul { padding-right: 16px; margin: 0; }
+        .badge { border: 1px solid #999; padding: 1px 5px; font-size: 10px; border-radius: 4px; }
+        .text-muted { color: #666; }
+        .small { font-size: 10px; }
+        @media print {
+            body { padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    <h2>🧾 تقريري اليومي — ${reportDate}</h2>
+    ${tableHtml}
+    <script>
+        window.onload = function() { window.print(); window.close(); };
+    <\/script>
+</body>
+</html>`);
+            win.document.close();
+        }
     </script>
 }
