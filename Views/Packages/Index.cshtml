@@ -1,0 +1,560 @@
+@model Salon.Models.ServicePackage
+@using Salon.Models
+@{
+    ViewData["Title"] = "الباقات";
+    var activeTab = ViewBag.ActiveTab as string ?? "packages";
+    var packages = ViewBag.Packages as IEnumerable<ServicePackage> ?? Enumerable.Empty<ServicePackage>();
+    var customerPackages = ViewBag.CustomerPackages as IEnumerable<CustomerPackage> ?? Enumerable.Empty<CustomerPackage>();
+    var transactions = ViewBag.Transactions as IEnumerable<CustomerPackageTransaction> ?? Enumerable.Empty<CustomerPackageTransaction>();
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="fas fa-box-open me-2"></i>الباقات</h1>
+        <p>إدارة باقات الجلسات وأرصدة العملاء</p>
+    </div>
+    <a href="@Url.Action("Index", "Services")" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-right me-1"></i> رجوع
+    </a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4" id="packagesTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "packages" ? "active" : "")"
+                id="packages-tab" data-bs-toggle="tab" data-bs-target="#tab-packages"
+                type="button" role="tab">
+            <i class="fas fa-box-open me-1"></i> الباقات
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "balances" ? "active" : "")"
+                id="balances-tab" data-bs-toggle="tab" data-bs-target="#tab-balances"
+                type="button" role="tab">
+            <i class="fas fa-users me-1"></i> أرصدة العملاء
+            @if (customerPackages.Any())
+            {
+                <span class="badge bg-primary ms-1">@customerPackages.Count()</span>
+            }
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "transactions" ? "active" : "")"
+                id="transactions-tab" data-bs-toggle="tab" data-bs-target="#tab-transactions"
+                type="button" role="tab">
+            <i class="fas fa-history me-1"></i> سجل المعاملات
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="packagesTabContent">
+
+    <!-- ══════════════════ تاب الباقات ══════════════════ -->
+    <div class="tab-pane fade @(activeTab == "packages" ? "show active" : "")" id="tab-packages" role="tabpanel">
+
+        <!-- فورم إضافة باقة جديدة -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-plus-circle me-2 text-primary"></i>إضافة باقة جديدة</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="NameAr" class="form-label"></label>
+                            <input asp-for="NameAr" class="form-control" placeholder="مثال: باقة المساج الشهرية" />
+                            <span asp-validation-for="NameAr" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="NameEn" class="form-label"></label>
+                            <input asp-for="NameEn" class="form-control" placeholder="e.g. Monthly Massage Package" />
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="SessionCount" class="form-label"></label>
+                            <input asp-for="SessionCount" type="number" min="1" max="1000" class="form-control" />
+                            <span asp-validation-for="SessionCount" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="Price" class="form-label"></label>
+                            <div class="input-group">
+                                <input asp-for="Price" type="number" step="0.001" min="0" class="form-control" />
+                                <span class="input-group-text">د.ك</span>
+                            </div>
+                            <span asp-validation-for="Price" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="ValidityDays" class="form-label"></label>
+                            <div class="input-group">
+                                <input asp-for="ValidityDays" type="number" min="1" max="3650" class="form-control" />
+                                <span class="input-group-text">يوم</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="ServiceCategoryId" class="form-label">فئة الخدمة</label>
+                            <select asp-for="ServiceCategoryId" asp-items="ViewBag.Categories" class="form-select">
+                                <option value="">-- كل الفئات --</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" class="form-control" rows="2" placeholder="وصف اختياري للباقة..."></textarea>
+                        </div>
+                        <div class="col-12 d-flex align-items-center gap-3">
+                            <div class="form-check form-switch">
+                                <input asp-for="IsActive" class="form-check-input" role="switch" />
+                                <label asp-for="IsActive" class="form-check-label fw-semibold">مفعّل</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="fas fa-save me-1"></i> حفظ
+                            </button>
+                            <button type="reset" class="btn btn-outline-secondary px-4">
+                                <i class="fas fa-times me-1"></i> إلغاء
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- جدول الباقات -->
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>اسم الباقة</th>
+                                <th>عدد الجلسات</th>
+                                <th>السعر</th>
+                                <th>الصلاحية</th>
+                                <th>الفئة</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!packages.Any())
+                            {
+                                <tr><td colspan="8" class="text-center text-muted py-4">لا توجد باقات مسجلة</td></tr>
+                            }
+                            @foreach (var p in packages)
+                            {
+                                <tr>
+                                    <td>@p.Id</td>
+                                    <td>
+                                        <strong>@p.NameAr</strong>
+                                        @if (!string.IsNullOrEmpty(p.NameEn))
+                                        {
+                                            <br /><small class="text-muted">@p.NameEn</small>
+                                        }
+                                        @if (!string.IsNullOrEmpty(p.Description))
+                                        {
+                                            <br /><small class="text-secondary"><i class="fas fa-info-circle me-1"></i>@p.Description</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info text-dark fs-6">@p.SessionCount</span>
+                                        <small class="text-muted ms-1">جلسة</small>
+                                    </td>
+                                    <td class="fw-bold text-success">@p.Price.ToString("N3") د.ك</td>
+                                    <td>@p.ValidityDays يوم</td>
+                                    <td>
+                                        @if (p.ServiceCategory != null)
+                                        {
+                                            <span class="badge rounded-pill" style="background-color:@(p.ServiceCategory.Color ?? "#F7941D")">
+                                                <i class="@(p.ServiceCategory.Icon ?? "fas fa-tag") me-1"></i>@p.ServiceCategory.Name
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (p.IsActive)
+                                        {
+                                            <span class="badge bg-success">مفعّل</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">معطّل</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a href="@Url.Action("Edit", new { id = p.Id })" class="btn btn-sm btn-outline-warning me-1" title="تعديل">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="حذف"
+                                                onclick="confirmDeletePackage(@p.Id, '@Html.Raw(p.NameAr.Replace("'", "\\'"))')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════ تاب أرصدة العملاء ══════════════════ -->
+    <div class="tab-pane fade @(activeTab == "balances" ? "show active" : "")" id="tab-balances" role="tabpanel">
+
+        <!-- فورم تعيين باقة لعميل -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-user-plus me-2 text-success"></i>تعيين باقة لعميل</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="AssignPackage" method="post" id="assignForm">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">العميل <span class="text-danger">*</span></label>
+                            <select name="customerId" class="form-select" required>
+                                <option value="">-- اختر العميل --</option>
+                                @foreach (var item in (ViewBag.Customers as SelectList ?? new SelectList(new List<object>())))
+                                {
+                                    <option value="@item.Value">@item.Text</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">الباقة <span class="text-danger">*</span></label>
+                            <select name="servicePackageId" class="form-select" required id="packageSelect" onchange="loadPackageDetails(this.value)">
+                                <option value="">-- اختر الباقة --</option>
+                                @foreach (var p in packages.Where(p => p.IsActive))
+                                {
+                                    <option value="@p.Id">@p.NameAr (@p.SessionCount جلسة)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">السعر المدفوع</label>
+                            <div class="input-group">
+                                <input type="number" name="pricePaid" step="0.001" min="0" class="form-control" id="pricePaidInput" placeholder="0.000" />
+                                <span class="input-group-text">د.ك</span>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">ملاحظات</label>
+                            <input type="text" name="notes" class="form-control" placeholder="اختياري" />
+                        </div>
+                        <div class="col-12">
+                            <div id="packageInfo" class="alert alert-info py-2 px-3 d-none">
+                                <i class="fas fa-info-circle me-1"></i>
+                                <span id="packageInfoText"></span>
+                            </div>
+                            <button type="submit" class="btn btn-success px-4">
+                                <i class="fas fa-plus me-1"></i> تعيين الباقة
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- جدول أرصدة العملاء -->
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>العميل</th>
+                                <th>الباقة</th>
+                                <th>تاريخ الشراء</th>
+                                <th>تاريخ الانتهاء</th>
+                                <th>الجلسات المتبقية</th>
+                                <th>السعر المدفوع</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!customerPackages.Any())
+                            {
+                                <tr><td colspan="9" class="text-center text-muted py-4">لا توجد اشتراكات نشطة</td></tr>
+                            }
+                            @foreach (var cp in customerPackages)
+                            {
+                                var isExpired = cp.ExpiryDate.HasValue && cp.ExpiryDate.Value < DateTime.Today;
+                                var progressPct = cp.TotalSessions > 0
+                                    ? (int)((double)cp.RemainingSessions / cp.TotalSessions * 100)
+                                    : 0;
+                                <tr class="@(isExpired ? "table-warning" : "")">
+                                    <td>@cp.Id</td>
+                                    <td>
+                                        <strong>@cp.Customer?.FullName</strong>
+                                        @if (!string.IsNullOrEmpty(cp.Customer?.Phone))
+                                        {
+                                            <br /><small class="text-muted"><i class="fas fa-phone me-1"></i>@cp.Customer.Phone</small>
+                                        }
+                                    </td>
+                                    <td>@cp.ServicePackage?.NameAr</td>
+                                    <td>@cp.PurchaseDate.ToString("yyyy/MM/dd")</td>
+                                    <td>
+                                        @if (cp.ExpiryDate.HasValue)
+                                        {
+                                            <span class="@(isExpired ? "text-danger fw-bold" : "")">
+                                                @cp.ExpiryDate.Value.ToString("yyyy/MM/dd")
+                                                @if (isExpired)
+                                                {
+                                                    <i class="fas fa-exclamation-triangle ms-1"></i>
+                                                }
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="fw-bold @(cp.RemainingSessions == 0 ? "text-danger" : "text-success")">
+                                                @cp.RemainingSessions / @cp.TotalSessions
+                                            </span>
+                                            <div class="progress flex-grow-1" style="height:6px; min-width:60px">
+                                                <div class="progress-bar @(progressPct < 30 ? "bg-danger" : progressPct < 60 ? "bg-warning" : "bg-success")"
+                                                     style="width:@progressPct%"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>@cp.PricePaid.ToString("N3") د.ك</td>
+                                    <td>
+                                        @if (!cp.IsActive || cp.RemainingSessions == 0)
+                                        {
+                                            <span class="badge bg-secondary">منتهي</span>
+                                        }
+                                        else if (isExpired)
+                                        {
+                                            <span class="badge bg-warning text-dark">منتهي الصلاحية</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">نشط</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (cp.IsActive && cp.RemainingSessions > 0 && !isExpired)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-primary me-1" title="تسجيل جلسة"
+                                                    onclick="showUseSessionModal(@cp.Id, '@Html.Raw((cp.Customer?.FullName ?? "").Replace("'", "\\'"))', '@Html.Raw((cp.ServicePackage?.NameAr ?? "").Replace("'", "\\'"))', @cp.RemainingSessions)">
+                                                <i class="fas fa-check-circle"></i> جلسة
+                                            </button>
+                                        }
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="إلغاء الاشتراك"
+                                                onclick="confirmDeactivate(@cp.Id, '@Html.Raw((cp.Customer?.FullName ?? "").Replace("'", "\\'"))')">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════ تاب سجل المعاملات ══════════════════ -->
+    <div class="tab-pane fade @(activeTab == "transactions" ? "show active" : "")" id="tab-transactions" role="tabpanel">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>سجل استخدام الجلسات</h5>
+                <small class="text-muted">آخر 100 معاملة</small>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>العميل</th>
+                                <th>الباقة</th>
+                                <th>الموظف</th>
+                                <th>تاريخ الاستخدام</th>
+                                <th>ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!transactions.Any())
+                            {
+                                <tr><td colspan="6" class="text-center text-muted py-4">لا توجد معاملات مسجلة</td></tr>
+                            }
+                            @foreach (var t in transactions)
+                            {
+                                <tr>
+                                    <td>@t.Id</td>
+                                    <td>@t.CustomerPackage?.Customer?.FullName</td>
+                                    <td>@t.CustomerPackage?.ServicePackage?.NameAr</td>
+                                    <td>@(t.Employee?.FullName ?? "-")</td>
+                                    <td>@t.UsedDate.ToString("yyyy/MM/dd hh:mm tt")</td>
+                                    <td>@(t.Notes ?? "-")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal: حذف باقة -->
+<div class="modal fade" id="deletePackageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg delete-modal-red">
+            <div class="modal-body text-center p-5">
+                <div class="delete-icon-wrap mb-4"><i class="fas fa-times"></i></div>
+                <h4 class="fw-bold mb-2 text-white">تأكيد الحذف</h4>
+                <p class="text-white-50 mb-1">هل أنت متأكد من حذف الباقة:</p>
+                <p class="fw-bold fs-5 mb-4 text-white" id="deletePackageName"></p>
+                <div class="d-flex justify-content-center gap-3">
+                    <form id="deletePackageForm" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn delete-confirm-btn px-4 fw-bold">تأكيد</button>
+                    </form>
+                    <button type="button" class="btn delete-cancel-btn px-4 fw-bold" data-bs-dismiss="modal">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: استخدام جلسة -->
+<div class="modal fade" id="useSessionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-check-circle me-2"></i>تسجيل جلسة</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">
+                    <strong id="sessionCustomerName"></strong> -
+                    <span id="sessionPackageName" class="text-muted"></span>
+                </p>
+                <p class="mb-3">الجلسات المتبقية: <strong class="text-success" id="sessionRemaining"></strong></p>
+                <form id="useSessionForm" method="post" action="@Url.Action("UseSession")">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="customerPackageId" id="sessionPackageId" />
+                    <div class="mb-3">
+                        <label class="form-label">الموظف (اختياري)</label>
+                        <select name="employeeId" class="form-select">
+                            <option value="">-- بدون تحديد --</option>
+                            @foreach (var item in (ViewBag.Employees as SelectList ?? new SelectList(new List<object>())))
+                            {
+                                <option value="@item.Value">@item.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ملاحظات (اختياري)</label>
+                        <input type="text" name="notes" class="form-control" placeholder="ملاحظات..." />
+                    </div>
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-check me-1"></i> تأكيد الجلسة
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: إلغاء اشتراك -->
+<div class="modal fade" id="deactivateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg delete-modal-red">
+            <div class="modal-body text-center p-5">
+                <div class="delete-icon-wrap mb-4"><i class="fas fa-ban"></i></div>
+                <h4 class="fw-bold mb-2 text-white">إلغاء الاشتراك</h4>
+                <p class="text-white-50 mb-4">هل أنت متأكد من إلغاء اشتراك: <strong id="deactivateCustomerName"></strong></p>
+                <div class="d-flex justify-content-center gap-3">
+                    <form id="deactivateForm" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn delete-confirm-btn px-4 fw-bold">تأكيد</button>
+                    </form>
+                    <button type="button" class="btn delete-cancel-btn px-4 fw-bold" data-bs-dismiss="modal">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // حذف باقة
+    function confirmDeletePackage(id, name) {
+        document.getElementById('deletePackageName').textContent = name;
+        document.getElementById('deletePackageForm').action = '@Url.Action("Delete")/' + id;
+        new bootstrap.Modal(document.getElementById('deletePackageModal')).show();
+    }
+
+    // استخدام جلسة
+    function showUseSessionModal(cpId, customerName, packageName, remaining) {
+        document.getElementById('sessionPackageId').value = cpId;
+        document.getElementById('sessionCustomerName').textContent = customerName;
+        document.getElementById('sessionPackageName').textContent = packageName;
+        document.getElementById('sessionRemaining').textContent = remaining;
+        new bootstrap.Modal(document.getElementById('useSessionModal')).show();
+    }
+
+    // إلغاء اشتراك
+    function confirmDeactivate(id, name) {
+        document.getElementById('deactivateCustomerName').textContent = name;
+        document.getElementById('deactivateForm').action = '@Url.Action("DeactivateCustomerPackage")/' + id;
+        new bootstrap.Modal(document.getElementById('deactivateModal')).show();
+    }
+
+    // جلب تفاصيل الباقة المختارة
+    function loadPackageDetails(pkgId) {
+        if (!pkgId) {
+            document.getElementById('packageInfo').classList.add('d-none');
+            document.getElementById('pricePaidInput').value = '';
+            return;
+        }
+        fetch('@Url.Action("GetPackageDetails")/' + pkgId)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('pricePaidInput').value = data.price.toFixed(3);
+                document.getElementById('packageInfoText').textContent =
+                    `${data.sessionCount} جلسة | صلاحية ${data.validityDays} يوم | السعر ${data.price.toFixed(3)} د.ك`;
+                document.getElementById('packageInfo').classList.remove('d-none');
+            });
+    }
+
+    // حافظ على التاب النشط بعد الرجوع
+    document.addEventListener('DOMContentLoaded', function () {
+        var activeTabId = '@activeTab';
+        if (activeTabId === 'balances') {
+            document.getElementById('balances-tab').click();
+        } else if (activeTabId === 'transactions') {
+            document.getElementById('transactions-tab').click();
+        }
+    });
+</script>
+}
