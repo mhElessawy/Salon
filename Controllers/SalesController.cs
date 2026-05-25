@@ -503,24 +503,31 @@ namespace Salon.Controllers
         [HttpGet]
         public async Task<IActionResult> GetCustomerPackagesForSale(int customerId, string dept)
         {
-            var pkgs = await _context.CustomerPackages
-                .Include(cp => cp.ServicePackage)
-                .Where(cp => cp.CustomerId == customerId
-                          && cp.IsActive
-                          && cp.RemainingSessions > 0
-                          && (cp.ExpiryDate == null || cp.ExpiryDate >= DateTime.Today))
-                .Select(cp => new
-                {
-                    id            = cp.Id,
-                    name          = cp.ServicePackage!.NameAr,
-                    remaining     = cp.RemainingSessions,
-                    total         = cp.TotalSessions,
-                    expiry        = cp.ExpiryDate.HasValue
+            try
+            {
+                var pkgs = await _context.CustomerPackages
+                    .Include(cp => cp.ServicePackage)
+                    .Where(cp => cp.CustomerId == customerId
+                              && cp.IsActive
+                              && cp.RemainingSessions > 0
+                              && (cp.ExpiryDate == null || cp.ExpiryDate >= DateTime.Today))
+                    .Select(cp => new
+                    {
+                        id        = cp.Id,
+                        name      = cp.ServicePackage!.NameAr,
+                        remaining = cp.RemainingSessions,
+                        total     = cp.TotalSessions,
+                        expiry    = cp.ExpiryDate.HasValue
                                         ? cp.ExpiryDate.Value.ToString("yyyy/MM/dd")
                                         : "—"
-                })
-                .ToListAsync();
-            return Json(pkgs);
+                    })
+                    .ToListAsync();
+                return Json(pkgs);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
         }
 
         private async Task<IActionResult> SaveServiceInvoice(
