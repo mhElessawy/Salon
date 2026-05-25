@@ -57,7 +57,7 @@ namespace Salon.Controllers
             var linkedId = await GetLinkedEmployeeIdIfEmployee();
             var userDept = await GetUserDepartmentAsync();
 
-            // ── سجلات يوم الفلتر ──────────────────────────────────────
+            // ── 1. سجلات يوم الفلتر (GroupBy بدل ToDictionary لدعم ورديات متعددة) ──
             var attQuery = _context.Attendances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Include(a => a.Permissions)
@@ -70,12 +70,12 @@ namespace Salon.Controllers
 
             var records = await attQuery.ToListAsync();
 
-            // تجميع كل سجلات اليوم لكل موظف (يدعم ورديات متعددة)
-            var allTodayRecords = records
+            // GroupBy يتعامل مع وردية + وردية جديدة لنفس الموظف
+            var allTodayByEmpId = records
                 .GroupBy(a => a.EmployeeId)
                 .ToDictionary(g => g.Key, g => g.OrderBy(a => a.CheckIn).ToList());
 
-            // ── موظفو الليل: سجّلوا حضور امبارح ولسه لم ينصرفوا ──────
+            // ── 2. موظفو الليل: حضروا امبارح ولسه لم ينصرفوا ──────────
             var prevDate = filterDate.AddDays(-1);
             var overnightQuery = _context.Attendances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
@@ -87,39 +87,55 @@ namespace Salon.Controllers
             else if (userDept == "حلاقة" || userDept == "مساج")
                 overnightQuery = overnightQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
 
-            var overnightRecords = await overnightQuery.ToListAsync();
-            // نستخدم سجل الليل فقط إذا لم يكن للموظف سجل بتاريخ اليوم
-            var overnightByEmpId = overnightRecords
-                .Where(a => !allTodayRecords.ContainsKey(a.EmployeeId))
-                .ToDictionary(a => a.EmployeeId);
+            var overnightByEmpId = (await overnightQuery.ToListAsync())
+                .Where(a => !allTodayByEmpId.ContainsKey(a.EmployeeId))
+                .GroupBy(a => a.EmployeeId)
+                .ToDictionary(g => g.Key, g => g.First());
 
-            // ── بناء الصفوف ───────────────────────────────────────────
+            // ── 3. كل الموظفين النشطين ───────────────────────────────
+            var empQuery = _context.Employees
+                .Include(e => e.DepartmentNav)
+                .Where(e => e.IsActive);
+
+            if (linkedId.HasValue)
+                empQuery = empQuery.Where(e => e.Id == linkedId.Value);
+            else if (userDept == "حلاقة" || userDept == "مساج")
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
+
+            var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+
+            // ── 4. بناء الصفوف ────────────────────────────────────────
             var rows = employees.Select(e =>
             {
-                // السجل النشط = مفتوح (بدون انصراف)، أو آخر سجل في اليوم
-                Attendance? activeRec = null;
-                List<Attendance> empRecords = new();
-                bool isOvernight = false;
-
-                if (allTodayRecords.TryGetValue(e.Id, out var todayRecs))
+                if (allTodayByEmpId.TryGetValue(e.Id, out var todayRecs))
                 {
-                    empRecords = todayRecs;
-                    activeRec = todayRecs.FirstOrDefault(a => !a.CheckOut.HasValue)
-                                ?? todayRecs.Last();
+                    // السجل النشط = المفتوح (بدون انصراف)، أو الأحدث
+                    var active = todayRecs.FirstOrDefault(a => !a.CheckOut.HasValue)
+                                 ?? todayRecs.Last();
+                    return new AttendanceIndexRow
+                    {
+                        Employee    = e,
+                        Record      = active,
+                        AllRecords  = todayRecs,
+                        IsOvernight = false
+                    };
                 }
-                else if (overnightByEmpId.TryGetValue(e.Id, out var overnight))
+                if (overnightByEmpId.TryGetValue(e.Id, out var overnight))
                 {
-                    activeRec = overnight;
-                    empRecords = new List<Attendance> { overnight };
-                    isOvernight = true;
+                    return new AttendanceIndexRow
+                    {
+                        Employee    = e,
+                        Record      = overnight,
+                        AllRecords  = new List<Attendance> { overnight },
+                        IsOvernight = true
+                    };
                 }
-
                 return new AttendanceIndexRow
                 {
-                    Employee   = e,
-                    Record     = activeRec,
-                    AllRecords = empRecords,
-                    IsOvernight = isOvernight
+                    Employee    = e,
+                    Record      = null,
+                    AllRecords  = new List<Attendance>(),
+                    IsOvernight = false
                 };
             })
             .OrderBy(r => r.Employee.DepartmentNav?.Name == "مساج" ? 1 : 0)
