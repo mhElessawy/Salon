@@ -19,6 +19,7 @@ public class EmailSettings
 public interface IEmailService
 {
     Task SendInvoiceNotificationAsync(Sale sale, string cashierName);
+    Task SendAttendanceNotificationAsync(string employeeName, string department, string action, TimeSpan actionTime, DateTime date, string? extra = null);
 }
 
 public class EmailService : IEmailService
@@ -59,6 +60,130 @@ public class EmailService : IEmailService
         {
             _logger.LogError(ex, "Failed to send invoice email for {InvoiceNumber}", sale.InvoiceNumber);
         }
+    }
+
+    public async Task SendAttendanceNotificationAsync(
+        string employeeName, string department, string action,
+        TimeSpan actionTime, DateTime date, string? extra = null)
+    {
+        if (string.IsNullOrWhiteSpace(_settings.SenderEmail) ||
+            _settings.SenderEmail.StartsWith("YOUR_"))
+        {
+            _logger.LogWarning("Email not configured — skipping attendance notification.");
+            return;
+        }
+        try
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(_settings.SenderName, _settings.SenderEmail));
+            message.To.Add(MailboxAddress.Parse(_settings.NotificationEmail));
+            message.Subject = $"{action} — {employeeName}  |  {date:dd/MM/yyyy}";
+            message.Body = new TextPart("html")
+            {
+                Text = BuildAttendanceEmailBody(employeeName, department, action, actionTime, date, extra)
+            };
+
+            using var smtp = new MailKit.Net.Smtp.SmtpClient();
+            await smtp.ConnectAsync(_settings.SmtpHost, _settings.SmtpPort, SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_settings.SenderEmail, _settings.SenderPassword);
+            await smtp.SendAsync(message);
+            await smtp.DisconnectAsync(true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send attendance email for {Employee} — {Action}", employeeName, action);
+        }
+    }
+
+    private static string BuildAttendanceEmailBody(
+        string employeeName, string department, string action,
+        TimeSpan actionTime, DateTime date, string? extra)
+    {
+        // لون ورمز حسب نوع الإجراء
+        var (headerColor, icon, actionAr) = action switch
+        {
+            "حضور"    => ("#1a7a4a", "✅", "تسجيل حضور"),
+            "استئذان" => ("#e07b00", "🚪", "خروج باستئذان"),
+            "عودة"    => ("#0d6efd", "↩️", "عودة من الاستئذان"),
+            "انصراف"  => ("#c0392b", "🔴", "تسجيل انصراف"),
+            _         => ("#555",    "📋", action)
+        };
+
+        var timeStr  = $"{actionTime.Hours:D2}:{actionTime.Minutes:D2}";
+        var dateStr  = date.ToString("dddd dd/MM/yyyy", new System.Globalization.CultureInfo("ar-EG"));
+        var extraRow = string.IsNullOrEmpty(extra) ? "" : $@"
+        <tr>
+          <td style='padding:5px 0;font-size:14px;color:#555;'>ملاحظة:</td>
+          <td style='padding:5px 0;font-size:14px;color:#1a1a2e;font-weight:600;text-align:left;'>{extra}</td>
+        </tr>";
+
+        return $@"<!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head><meta charset='utf-8'/></head>
+<body style='margin:0;padding:0;background:#f0f2f5;font-family:Segoe UI,Tahoma,Arial,sans-serif;direction:rtl;'>
+<table width='100%' cellpadding='0' cellspacing='0' style='background:#f0f2f5;padding:30px 0;'>
+<tr><td align='center'>
+<table width='520' cellpadding='0' cellspacing='0'
+       style='background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.10);'>
+
+  <!-- Header -->
+  <tr>
+    <td style='background:linear-gradient(135deg,#1a1a2e,#0f3460);padding:22px 28px;'>
+      <h2 style='margin:0;color:#F7941D;font-size:20px;'>{icon} {actionAr}</h2>
+      <p style='margin:4px 0 0;color:rgba(255,255,255,0.65);font-size:13px;'>معهد موس للرجال</p>
+    </td>
+  </tr>
+
+  <!-- Action Badge -->
+  <tr>
+    <td style='padding:18px 28px 8px;'>
+      <div style='display:inline-block;background:{headerColor};color:#fff;
+                  border-radius:8px;padding:8px 18px;font-size:16px;font-weight:700;'>
+        {actionAr}
+      </div>
+    </td>
+  </tr>
+
+  <!-- Details -->
+  <tr>
+    <td style='padding:10px 28px 20px;'>
+      <table width='100%' cellpadding='0' cellspacing='0'
+             style='background:#f7f8fa;border-radius:10px;padding:16px 18px;'>
+        <tr>
+          <td style='padding:6px 0;font-size:14px;color:#555;'>الموظف:</td>
+          <td style='padding:6px 0;font-size:15px;font-weight:700;color:#1a1a2e;text-align:left;'>{employeeName}</td>
+        </tr>
+        <tr>
+          <td style='padding:6px 0;font-size:14px;color:#555;'>القسم:</td>
+          <td style='padding:6px 0;font-size:14px;color:#1a1a2e;text-align:left;'>{department}</td>
+        </tr>
+        <tr>
+          <td style='padding:6px 0;font-size:14px;color:#555;'>التاريخ:</td>
+          <td style='padding:6px 0;font-size:14px;color:#1a1a2e;text-align:left;'>{dateStr}</td>
+        </tr>
+        <tr>
+          <td style='padding:6px 0;font-size:15px;font-weight:700;color:#555;'>الوقت:</td>
+          <td style='padding:6px 0;font-size:20px;font-weight:800;color:{headerColor};
+                     letter-spacing:2px;text-align:left;'>{timeStr}</td>
+        </tr>
+        {extraRow}
+      </table>
+    </td>
+  </tr>
+
+  <!-- Footer -->
+  <tr>
+    <td style='background:#f7f8fa;padding:12px 28px;border-top:1px solid #eee;
+               font-size:12px;color:#aaa;text-align:center;'>
+      نظام معهد موس &nbsp;|&nbsp; {DateTime.Now:HH:mm  dd/MM/yyyy}
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>";
     }
 
     private static string BuildEmailBody(Sale sale, string cashierName)

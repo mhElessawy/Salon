@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -13,11 +14,15 @@ namespace Salon.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IEmailService _emailService;
 
-        public AttendanceController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public AttendanceController(ApplicationDbContext context,
+            UserManager<ApplicationUser> userManager,
+            IEmailService emailService)
         {
             _context = context;
             _userManager = userManager;
+            _emailService = emailService;
         }
 
         private async Task<int?> GetLinkedEmployeeIdIfEmployee()
@@ -288,6 +293,10 @@ namespace Salon.Controllers
             await _context.SaveChangesAsync();
             TempData["Success"] = $"تم تسجيل حضور {employee?.FullName} — الدور: {queuePosition}";
 
+            _ = Task.Run(() => _emailService.SendAttendanceNotificationAsync(
+                employee?.FullName ?? "-", dept ?? "-", "حضور",
+                attendance.CheckIn!.Value, attendanceDate, $"الدور: {queuePosition}"));
+
             return RedirectToAction(nameof(Index), new { date });
         }
 
@@ -308,6 +317,12 @@ namespace Salon.Controllers
             record.CheckOut = time;
             await _context.SaveChangesAsync();
             TempData["Success"] = "تم تسجيل الانصراف بنجاح";
+
+            var empForMail = await _context.Employees.Include(e => e.DepartmentNav)
+                .FirstOrDefaultAsync(e => e.Id == record.EmployeeId);
+            _ = Task.Run(() => _emailService.SendAttendanceNotificationAsync(
+                empForMail?.FullName ?? "-", empForMail?.DepartmentNav?.Name ?? "-",
+                "انصراف", time, record.AttendanceDate));
 
             // لو كان موظفاً ليلياً (تاريخ الحضور قبل النهارده) → ارجع لصفحة النهارده
             var redirectDate = record.AttendanceDate.Date < DateTime.Today
@@ -345,6 +360,13 @@ namespace Salon.Controllers
             _context.AttendancePermissions.Add(perm);
             await _context.SaveChangesAsync();
             TempData["Success"] = "تم تسجيل الاستئذان بنجاح";
+
+            var empPerm = await _context.Employees.Include(e => e.DepartmentNav)
+                .FirstOrDefaultAsync(e => e.Id == record.EmployeeId);
+            _ = Task.Run(() => _emailService.SendAttendanceNotificationAsync(
+                empPerm?.FullName ?? "-", empPerm?.DepartmentNav?.Name ?? "-",
+                "استئذان", perm.LeaveTime, record.AttendanceDate));
+
             return RedirectToAction(nameof(Index), new { date = record.AttendanceDate.ToString("yyyy-MM-dd") });
         }
 
@@ -387,6 +409,13 @@ namespace Salon.Controllers
             perm.ReturnTime = DateTime.Now.TimeOfDay;
             await _context.SaveChangesAsync();
             TempData["Success"] = "تم تسجيل العودة من الاستئذان بنجاح";
+
+            var empRet = await _context.Employees.Include(e => e.DepartmentNav)
+                .FirstOrDefaultAsync(e => e.Id == perm.Attendance!.EmployeeId);
+            _ = Task.Run(() => _emailService.SendAttendanceNotificationAsync(
+                empRet?.FullName ?? "-", empRet?.DepartmentNav?.Name ?? "-",
+                "عودة", perm.ReturnTime!.Value, perm.Attendance!.AttendanceDate));
+
             return RedirectToAction(nameof(Index), new { date = perm.Attendance!.AttendanceDate.ToString("yyyy-MM-dd") });
         }
 
