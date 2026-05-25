@@ -8,6 +8,49 @@
     var transactions = ViewBag.Transactions as IEnumerable<CustomerPackageTransaction> ?? Enumerable.Empty<CustomerPackageTransaction>();
 }
 
+@section Styles {
+<style>
+    /* ═══════ بطاقة الباقة ═══════ */
+    .pkg-card {
+        border-radius: 14px;
+        overflow: hidden;
+        transition: transform .18s, box-shadow .18s;
+    }
+    .pkg-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0,0,0,.13) !important;
+    }
+    .pkg-card-banner {
+        padding: 18px 18px 14px;
+        color: #fff;
+    }
+    .pkg-sessions-badge {
+        display: inline-block;
+        background: rgba(255,255,255,.22);
+        backdrop-filter: blur(4px);
+        border-radius: 20px;
+        padding: 3px 12px;
+        font-size: .82rem;
+        font-weight: 600;
+        letter-spacing: .3px;
+    }
+    .pkg-price {
+        font-size: 1.75rem;
+        font-weight: 800;
+        line-height: 1.1;
+        text-shadow: 0 1px 4px rgba(0,0,0,.15);
+    }
+    .pkg-price small { font-size: .85rem; font-weight: 400; }
+    .pkg-info-chip {
+        background: #f4f6f9;
+        border-radius: 20px;
+        padding: 3px 10px;
+        font-size: .78rem;
+        color: #555;
+    }
+</style>
+}
+
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
         <h1><i class="fas fa-box-open me-2"></i>الباقات</h1>
@@ -132,87 +175,89 @@
             </div>
         </div>
 
-        <!-- جدول الباقات -->
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>اسم الباقة</th>
-                                <th>عدد الجلسات</th>
-                                <th>السعر</th>
-                                <th>الصلاحية</th>
-                                <th>الفئة</th>
-                                <th>الحالة</th>
-                                <th>الإجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (!packages.Any())
-                            {
-                                <tr><td colspan="8" class="text-center text-muted py-4">لا توجد باقات مسجلة</td></tr>
-                            }
-                            @foreach (var p in packages)
-                            {
-                                <tr>
-                                    <td>@p.Id</td>
-                                    <td>
-                                        <strong>@p.NameAr</strong>
-                                        @if (!string.IsNullOrEmpty(p.NameEn))
-                                        {
-                                            <br /><small class="text-muted">@p.NameEn</small>
-                                        }
-                                        @if (!string.IsNullOrEmpty(p.Description))
-                                        {
-                                            <br /><small class="text-secondary"><i class="fas fa-info-circle me-1"></i>@p.Description</small>
-                                        }
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-info text-dark fs-6">@p.SessionCount</span>
-                                        <small class="text-muted ms-1">جلسة</small>
-                                    </td>
-                                    <td class="fw-bold text-success">@p.Price.ToString("N3") د.ك</td>
-                                    <td>@p.ValidityDays يوم</td>
-                                    <td>
-                                        @if (p.ServiceCategory != null)
-                                        {
-                                            <span class="badge rounded-pill" style="background-color:@(p.ServiceCategory.Color ?? "#F7941D")">
-                                                <i class="@(p.ServiceCategory.Icon ?? "fas fa-tag") me-1"></i>@p.ServiceCategory.Name
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">-</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        @if (p.IsActive)
-                                        {
-                                            <span class="badge bg-success">مفعّل</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary">معطّل</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        <a href="@Url.Action("Edit", new { id = p.Id })" class="btn btn-sm btn-outline-warning me-1" title="تعديل">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" title="حذف"
-                                                onclick="confirmDeletePackage(@p.Id, '@Html.Raw(p.NameAr.Replace("'", "\\'"))')">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+        <!-- بطاقات الباقات -->
+        @if (!packages.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-box-open fa-3x mb-3 opacity-50"></i>
+                <p class="fs-5">لا توجد باقات مسجلة حتى الآن</p>
             </div>
-        </div>
+        }
+        else
+        {
+            <div class="row g-3">
+                @foreach (var p in packages)
+                {
+                    var catColor = p.ServiceCategory?.Color ?? "#F7941D";
+                    <div class="col-sm-6 col-xl-4">
+                        <div class="card h-100 shadow-sm border-0 pkg-card @(!p.IsActive ? "opacity-75" : "")">
+                            <!-- شريط لوني علوي -->
+                            <div class="pkg-card-banner" style="background: linear-gradient(135deg, @catColor, @catColor&#x31;&#x31;);">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="pkg-sessions-badge">
+                                            <i class="fas fa-calendar-check me-1"></i>@p.SessionCount جلسة
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        @if (!p.IsActive)
+                                        {
+                                            <span class="badge bg-dark bg-opacity-50">معطّل</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-white bg-opacity-25 text-white">مفعّل</span>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="pkg-price mt-2">@p.Price.ToString("N3") <small>د.ك</small></div>
+                            </div>
+
+                            <div class="card-body d-flex flex-column gap-2 pt-3">
+                                <!-- الاسم -->
+                                <div>
+                                    <h6 class="fw-bold mb-0">@p.NameAr</h6>
+                                    @if (!string.IsNullOrEmpty(p.NameEn))
+                                    {
+                                        <small class="text-muted">@p.NameEn</small>
+                                    }
+                                </div>
+
+                                <!-- تفاصيل -->
+                                <div class="d-flex flex-wrap gap-2 mt-1">
+                                    <span class="pkg-info-chip">
+                                        <i class="fas fa-clock me-1 text-warning"></i>@p.ValidityDays يوم
+                                    </span>
+                                    @if (p.ServiceCategory != null)
+                                    {
+                                        <span class="pkg-info-chip">
+                                            <i class="@(p.ServiceCategory.Icon ?? "fas fa-tag") me-1" style="color:@catColor"></i>@p.ServiceCategory.Name
+                                        </span>
+                                    }
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(p.Description))
+                                {
+                                    <p class="text-muted small mb-0">@p.Description</p>
+                                }
+
+                                <!-- أزرار -->
+                                <div class="d-flex gap-2 mt-auto pt-2 border-top">
+                                    <a href="@Url.Action("Edit", new { id = p.Id })"
+                                       class="btn btn-sm btn-outline-warning flex-fill">
+                                        <i class="fas fa-edit me-1"></i> تعديل
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            onclick="confirmDeletePackage(@p.Id, '@Html.Raw(p.NameAr.Replace("'", "\\'"))')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
     </div>
 
     <!-- ══════════════════ تاب أرصدة العملاء ══════════════════ -->
