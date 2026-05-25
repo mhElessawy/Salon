@@ -359,47 +359,49 @@
             var tableHtml = document.getElementById('invoiceTable').outerHTML;
             var reportDate = '@ViewBag.Date';
 
-            var win = window.open('', '_blank', 'width=900,height=700');
-            win.document.write(`<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-    <meta charset="utf-8"/>
-    <title>تقريري اليومي - ${reportDate}</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
-            font-size: 12px;
-            color: #000;
-            background: #fff;
-            padding: 16px;
-            direction: rtl;
-        }
-        h2 { font-size: 15px; margin-bottom: 12px; text-align: center; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ccc; padding: 5px 8px; text-align: right; font-size: 11px; }
-        thead th { background: #f0f0f0; font-weight: bold; }
-        tfoot td { background: #222; color: #fff; font-weight: bold; }
-        tfoot .text-success { color: #6fcf97 !important; }
-        tfoot .text-warning { color: #f2c94c !important; }
-        ul { padding-right: 16px; margin: 0; }
-        .badge { border: 1px solid #999; padding: 1px 5px; font-size: 10px; border-radius: 4px; }
-        .text-muted { color: #666; }
-        .small { font-size: 10px; }
-        @@media print {
-            body { padding: 0; }
-        }
-    </style>
-</head>
-<body>
-    <h2>🧾 تقريري اليومي — ${reportDate}</h2>
-    ${tableHtml}
-    <script>
-        window.onload = function() { window.print(); window.close(); };
-    <\/script>
-</body>
-</html>`);
-            win.document.close();
+            var html = '<!DOCTYPE html>' +
+                '<html dir="rtl" lang="ar"><head>' +
+                '<meta charset="utf-8"/>' +
+                '<title>تقريري اليومي - ' + reportDate + '</title>' +
+                '<style>' +
+                '* { box-sizing: border-box; margin: 0; padding: 0; }' +
+                'body { font-family: Tahoma, Arial, sans-serif; font-size: 12px; color: #000; background: #fff; padding: 12px; direction: rtl; }' +
+                'h2 { font-size: 14px; margin-bottom: 10px; text-align: center; border-bottom: 2px solid #333; padding-bottom: 6px; }' +
+                'table { width: 100%; border-collapse: collapse; }' +
+                'th, td { border: 1px solid #999; padding: 4px 7px; text-align: right; font-size: 11px; }' +
+                'thead th { background: #e0e0e0; font-weight: bold; }' +
+                'tfoot td { background: #333; color: #fff; font-weight: bold; }' +
+                'ul { padding-right: 14px; margin: 0; }' +
+                '.badge { border: 1px solid #999; padding: 1px 4px; font-size: 10px; border-radius: 3px; }' +
+                '.text-muted { color: #666; }' +
+                '.text-success { color: #1a7a3f; }' +
+                '.text-warning { color: #7a5200; }' +
+                '.text-danger { color: #8b0000; }' +
+                '.small { font-size: 10px; }' +
+                '.fw-bold { font-weight: bold; }' +
+                '</style>' +
+                '</head><body>' +
+                '<h2>&#x1F9FE; تقريري اليومي &mdash; ' + reportDate + '</h2>' +
+                tableHtml +
+                '</body></html>';
+
+            // استخدام iframe مخفي لتجنب حجب النوافذ المنبثقة
+            var iframe = document.createElement('iframe');
+            iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:none;opacity:0;';
+            document.body.appendChild(iframe);
+
+            var doc = iframe.contentDocument || iframe.contentWindow.document;
+            doc.open();
+            doc.write(html);
+            doc.close();
+
+            setTimeout(function () {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                setTimeout(function () {
+                    document.body.removeChild(iframe);
+                }, 1000);
+            }, 400);
         }
     </script>
 }
