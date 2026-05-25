@@ -1240,3 +1240,59 @@ html[dir="ltr"] .password-toggle {
         color: #fff;
         border-color: #fff;
     }
+
+
+/* ===== طباعة التقرير اليومي ===== */
+@media print {
+    /* إخفاء عناصر الواجهة */
+    .sidebar-overlay,
+    .sidebar-close-btn,
+    .sidebar,
+    #sidebar,
+    .topbar,
+    .page-header,
+    .stat-cards,
+    .no-print,
+    .card:not(.print-area) {
+        display: none !important;
+    }
+
+    /* إزالة المسافات من الـ layout */
+    body,
+    .app-wrapper,
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    /* بطاقة الجدول تملأ الصفحة */
+    .print-area {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 8px !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    /* حجم خط الجدول */
+    .print-area .table {
+        font-size: 11px;
+        width: 100%;
+    }
+
+    /* الشارات في الطباعة */
+    .print-area .badge {
+        border: 1px solid #999;
+        color: #000 !important;
+        background: none !important;
+        -webkit-print-color-adjust: exact;
+    }
+
+    /* ألوان الإجمالي في الطباعة */
+    tfoot.table-dark {
+        background: #333 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
