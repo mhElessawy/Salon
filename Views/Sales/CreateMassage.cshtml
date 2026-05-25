@@ -542,6 +542,7 @@
     <input asp-for="InvoiceNumber" type="hidden" />
     <input asp-for="SaleType" type="hidden" value="مساج" />
     <input type="hidden" id="selectedEmployeeId" name="EmployeeId" value="@autoSelectEmpId" />
+    <input type="hidden" id="customerPackageId" name="customerPackageId" value="" />
     <div id="hiddenItems"></div>
 
     <!-- ══ Top: Customer / Payment / Notes ══ -->
@@ -549,12 +550,15 @@
         <div class="pos-info-grid">
             <div>
                 <label class="form-label">العميل</label>
-                <select name="CustomerId" id="customerSelect" asp-items="@ViewBag.Customers" class="form-select form-select-sm">
+                <select name="CustomerId" id="customerSelect" asp-items="@ViewBag.Customers"
+                        class="form-select form-select-sm" onchange="onCustomerChange(this.value)">
                     <option value="">👤 زائر</option>
                 </select>
                 <small id="customerDebtWarning" class="text-danger mt-1" style="display:none">
                     <i class="fas fa-exclamation-circle me-1"></i>يتطلب اختيار عميل مسجل
                 </small>
+                <!-- ── باقات العميل ── -->
+                <div id="customerPackagesArea" style="display:none; margin-top:8px;"></div>
             </div>
             <div>
                 <input type="hidden" asp-for="PaymentMethod" id="paymentMethodSelect" value="كاش" />
@@ -749,6 +753,10 @@
                     </button>
                     <button type="button" class="pay-btn" data-value="دين على صاحب المكان" onclick="selectPayment(this)">
                         <i class="fas fa-building"></i> دين على صاحب المكان
+                    </button>
+                    <button type="button" class="pay-btn pay-btn-package" id="packagePayBtn"
+                            data-value="باقة" onclick="selectPayment(this)" style="display:none;border-color:#1a6fc4;color:#1a6fc4;">
+                        <i class="fas fa-box-open"></i> باقة
                     </button>
                 </div>
             </div>
@@ -950,6 +958,81 @@
             document.getElementById('printFrame').src = '';
         }
 
+        /* ══ باقات العميل ══ */
+        var selectedPackageId = null;
+
+        function onCustomerChange(customerId) {
+            // إعادة ضبط الباقة المختارة
+            clearPackageSelection();
+            var area = document.getElementById('customerPackagesArea');
+            if (!customerId) { area.style.display = 'none'; return; }
+
+            fetch('/Sales/GetCustomerPackagesForSale?customerId=' + customerId + '&dept=مساج')
+                .then(function(r) { return r.json(); })
+                .then(function(pkgs) {
+                    if (!pkgs || pkgs.length === 0) { area.style.display = 'none'; return; }
+                    var html = '<div style="font-size:11px;font-weight:700;color:#1a6fc4;margin-bottom:5px;">' +
+                               '<i class="fas fa-box-open me-1"></i>الباقات النشطة:</div>' +
+                               '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
+                    pkgs.forEach(function(p) {
+                        html += '<button type="button" class="customer-pkg-btn" id="cpbtn-' + p.id + '" ' +
+                                'onclick="selectPackage(' + p.id + ',\'' + p.name.replace(/'/g,"\\'") + '\',' + p.remaining + ',' + p.total + ')" ' +
+                                'style="border:1.5px solid #1a6fc4;border-radius:7px;background:#fff;color:#1a6fc4;' +
+                                'padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;">' +
+                                '<i class="fas fa-calendar-check me-1"></i>' + p.name +
+                                ' <span style="background:#1a6fc4;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;">' +
+                                p.remaining + '/' + p.total + '</span>' +
+                                '<br><small style="opacity:.7;font-size:9px;">ينتهي: ' + p.expiry + '</small>' +
+                                '</button>';
+                    });
+                    html += '</div>';
+                    area.innerHTML = html;
+                    area.style.display = '';
+                });
+        }
+
+        function selectPackage(pkgId, pkgName, remaining, total) {
+            // إلغاء تحديد قديم
+            document.querySelectorAll('.customer-pkg-btn').forEach(function(b) {
+                b.style.background = '#fff';
+                b.style.color = '#1a6fc4';
+            });
+            selectedPackageId = pkgId;
+            document.getElementById('customerPackageId').value = pkgId;
+
+            // تمييز الزر المحدد
+            var btn = document.getElementById('cpbtn-' + pkgId);
+            if (btn) { btn.style.background = '#1a6fc4'; btn.style.color = '#fff'; }
+
+            // تفعيل زر "باقة" وتحديده
+            var pkgPayBtn = document.getElementById('packagePayBtn');
+            pkgPayBtn.style.display = '';
+            pkgPayBtn.innerHTML = '<i class="fas fa-box-open"></i> باقة: ' + pkgName;
+            selectPayment(pkgPayBtn);
+
+            // إضافة الخدمة بسعر 0
+            var existingPkg = items.find(function(i) { return i.id === -999; });
+            if (!existingPkg) {
+                addItem(-999, 'باقة: ' + pkgName, 0);
+            }
+        }
+
+        function clearPackageSelection() {
+            selectedPackageId = null;
+            document.getElementById('customerPackageId').value = '';
+            var pkgPayBtn = document.getElementById('packagePayBtn');
+            pkgPayBtn.style.display = 'none';
+            // إزالة عنصر الباقة من الفاتورة إن وُجد
+            var pkgItem = items.find(function(i) { return i.id === -999; });
+            if (pkgItem) removeItem(pkgItem.rowId);
+            // الرجوع لكاش إن كانت باقة
+            var pm = document.getElementById('paymentMethodSelect').value;
+            if (pm === 'باقة') {
+                var cashBtn = document.querySelector('.pay-btn[data-value="كاش"]');
+                if (cashBtn) selectPayment(cashBtn);
+            }
+        }
+
         function resetForm() {
             items = []; rowId = 0;
             document.getElementById('invoiceBody').innerHTML =
@@ -965,6 +1048,8 @@
             document.querySelectorAll('.pay-btn').forEach(function(b) { b.classList.remove('active'); });
             document.querySelector('.pay-btn[data-value="كاش"]').classList.add('active');
             onPaymentChange();
+            clearPackageSelection();
+            document.getElementById('customerPackagesArea').style.display = 'none';
             var saveBtn = document.getElementById('saveBtn');
             saveBtn.disabled = true;
             saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> حفظ فاتورة المساج';

@@ -125,10 +125,10 @@ namespace Salon.Controllers
         [ActionName("CreateBarber")]
         public async Task<IActionResult> CreateBarberPost(
             Sale model, int[]? itemIds, string[]? itemNames,
-            decimal[]? itemPrices, int[]? itemQtys)
+            decimal[]? itemPrices, int[]? itemQtys, int? customerPackageId)
         {
             model.SaleType = "حلاقة";
-            return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "حلاقة");
+            return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "حلاقة", customerPackageId);
         }
 
         // ===== فاتورة مساج (MAS-) =====
@@ -156,10 +156,10 @@ namespace Salon.Controllers
         [ActionName("CreateMassage")]
         public async Task<IActionResult> CreateMassagePost(
             Sale model, int[]? itemIds, string[]? itemNames,
-            decimal[]? itemPrices, int[]? itemQtys)
+            decimal[]? itemPrices, int[]? itemQtys, int? customerPackageId)
         {
             model.SaleType = "مساج";
-            return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "مساج");
+            return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "مساج", customerPackageId);
         }
 
         // ===== فاتورة مبيعات منتجات (PRD-) =====
@@ -499,9 +499,34 @@ namespace Salon.Controllers
                 .ToListAsync();
         }
 
+        // ===== API: باقات العميل النشطة للكاشير =====
+        [HttpGet]
+        public async Task<IActionResult> GetCustomerPackagesForSale(int customerId, string dept)
+        {
+            var pkgs = await _context.CustomerPackages
+                .Include(cp => cp.ServicePackage)
+                .Where(cp => cp.CustomerId == customerId
+                          && cp.IsActive
+                          && cp.RemainingSessions > 0
+                          && (cp.ExpiryDate == null || cp.ExpiryDate >= DateTime.Today))
+                .Select(cp => new
+                {
+                    id            = cp.Id,
+                    name          = cp.ServicePackage!.NameAr,
+                    remaining     = cp.RemainingSessions,
+                    total         = cp.TotalSessions,
+                    expiry        = cp.ExpiryDate.HasValue
+                                        ? cp.ExpiryDate.Value.ToString("yyyy/MM/dd")
+                                        : "—"
+                })
+                .ToListAsync();
+            return Json(pkgs);
+        }
+
         private async Task<IActionResult> SaveServiceInvoice(
             Sale model, int[]? itemIds, string[]? itemNames,
-            decimal[]? itemPrices, int[]? itemQtys, string dept)
+            decimal[]? itemPrices, int[]? itemQtys, string dept,
+            int? customerPackageId = null)
         {
             if (ModelState.IsValid)
             {
@@ -569,6 +594,28 @@ namespace Salon.Controllers
                             select a.QueuePosition
                         ).MaxAsync();
                         todayAttendance.QueuePosition = (maxPos ?? 0) + 1;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                // ── خصم جلسة من باقة العميل ──
+                if (customerPackageId.HasValue && customerPackageId.Value > 0)
+                {
+                    var cp = await _context.CustomerPackages
+                        .FirstOrDefaultAsync(x => x.Id == customerPackageId.Value
+                                               && x.IsActive && x.RemainingSessions > 0);
+                    if (cp != null)
+                    {
+                        cp.RemainingSessions--;
+                        if (cp.RemainingSessions == 0) cp.IsActive = false;
+
+                        _context.CustomerPackageTransactions.Add(new CustomerPackageTransaction
+                        {
+                            CustomerPackageId = cp.Id,
+                            UsedDate          = KuwaitNow,
+                            EmployeeId        = model.EmployeeId,
+                            Notes             = $"فاتورة رقم {model.InvoiceNumber}"
+                        });
                         await _context.SaveChangesAsync();
                     }
                 }
