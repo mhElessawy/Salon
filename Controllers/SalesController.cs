@@ -394,6 +394,16 @@ namespace Salon.Controllers
                 await customersQuery.OrderBy(c => c.FullName).ToListAsync(),
                 "Id", "FullName");
 
+            // الباقات المتاحة للتعيين
+            var packagesQuery = _context.ServicePackages
+                .Include(p => p.ServiceCategory)
+                .Where(p => p.IsActive);
+            if (dept == "مساج" || dept == "حلاقة")
+                packagesQuery = packagesQuery.Where(p =>
+                    p.ServiceCategory == null || p.ServiceCategory.Department == dept);
+            ViewBag.AvailablePackages = await packagesQuery
+                .OrderBy(p => p.NameAr).ToListAsync();
+
             // الخدمات مصنّفة حسب القسم
             ViewBag.ServiceCategories = await _context.ServiceCategories
                 .Include(c => c.Services.Where(s => s.IsActive))

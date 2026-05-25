@@ -559,6 +559,14 @@
                 </small>
                 <!-- ── باقات العميل ── -->
                 <div id="customerPackagesArea" style="display:none; margin-top:8px;"></div>
+                <!-- زر تعيين باقة -->
+                <div id="assignPackageBtnWrap" style="display:none; margin-top:6px;">
+                    <button type="button" class="btn btn-sm btn-outline-primary"
+                            onclick="openAssignPackageModal()"
+                            style="font-size:11px;padding:3px 10px;">
+                        <i class="fas fa-plus-circle me-1"></i>تعيين باقة لهذا العميل
+                    </button>
+                </div>
             </div>
             <div>
                 <input type="hidden" asp-for="PaymentMethod" id="paymentMethodSelect" value="كاش" />
@@ -798,6 +806,64 @@
     </div>
 </div>
 
+<!-- ══ Modal: تعيين باقة للعميل ══ -->
+<div class="modal fade" id="assignPackageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background:#1a6fc4;color:#fff;">
+                <h6 class="modal-title fw-bold mb-0">
+                    <i class="fas fa-box-open me-2"></i>تعيين باقة للعميل
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">العميل</label>
+                    <input type="text" id="assignCustomerName" class="form-control" readonly
+                           style="background:#f8f9fa;font-weight:600;" />
+                    <input type="hidden" id="assignCustomerId" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">الباقة <span class="text-danger">*</span></label>
+                    <select id="assignPackageSelect" class="form-select" onchange="onAssignPackageChange(this.value)">
+                        <option value="">-- اختر الباقة --</option>
+                        @foreach (var p in ViewBag.AvailablePackages as IEnumerable<Salon.Models.ServicePackage> ?? Enumerable.Empty<Salon.Models.ServicePackage>())
+                        {
+                            <option value="@p.Id" data-price="@p.Price" data-sessions="@p.SessionCount" data-days="@p.ValidityDays">
+                                @p.NameAr (@p.SessionCount جلسة — @p.Price.ToString("N3") د.ك)
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div id="assignPackageInfo" class="alert alert-info py-2 px-3 d-none small">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <span id="assignPackageInfoText"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">السعر المدفوع</label>
+                    <div class="input-group">
+                        <input type="number" id="assignPricePaid" class="form-control"
+                               step="0.001" min="0" placeholder="0.000" />
+                        <span class="input-group-text">د.ك</span>
+                    </div>
+                </div>
+                <div class="mb-1">
+                    <label class="form-label fw-semibold">ملاحظات</label>
+                    <input type="text" id="assignNotes" class="form-control" placeholder="اختياري" />
+                </div>
+                <div id="assignError" class="alert alert-danger py-2 d-none small mt-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary px-4" id="assignPackageSubmit"
+                        onclick="submitAssignPackage()">
+                    <i class="fas fa-save me-1"></i> تعيين الباقة
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         let items = [], rowId = 0;
@@ -963,8 +1029,14 @@
 
         function onCustomerChange(customerId) {
             clearPackageSelection();
-            var area = document.getElementById('customerPackagesArea');
-            if (!customerId) { area.style.display = 'none'; return; }
+            var area    = document.getElementById('customerPackagesArea');
+            var btnWrap = document.getElementById('assignPackageBtnWrap');
+            if (!customerId) {
+                area.style.display = 'none';
+                btnWrap.style.display = 'none';
+                return;
+            }
+            btnWrap.style.display = '';
 
             area.innerHTML = '<small class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>جاري التحميل...</small>';
             area.style.display = '';
@@ -1030,6 +1102,68 @@
             if (!existingPkg) {
                 addItem(-999, 'باقة: ' + pkgName, 0);
             }
+        }
+
+        /* ══ Modal تعيين باقة ══ */
+        function openAssignPackageModal() {
+            var sel = document.getElementById('customerSelect');
+            var customerId = sel.value;
+            var customerName = sel.options[sel.selectedIndex]?.text || '';
+            if (!customerId) { alert('اختر عميلاً أولاً'); return; }
+            document.getElementById('assignCustomerId').value = customerId;
+            document.getElementById('assignCustomerName').value = customerName;
+            document.getElementById('assignPackageSelect').value = '';
+            document.getElementById('assignPricePaid').value = '';
+            document.getElementById('assignNotes').value = '';
+            document.getElementById('assignPackageInfo').classList.add('d-none');
+            document.getElementById('assignError').classList.add('d-none');
+            new bootstrap.Modal(document.getElementById('assignPackageModal')).show();
+        }
+
+        function onAssignPackageChange(pkgId) {
+            var sel = document.getElementById('assignPackageSelect');
+            var opt = sel.options[sel.selectedIndex];
+            if (!pkgId || !opt) { document.getElementById('assignPackageInfo').classList.add('d-none'); return; }
+            var price = opt.dataset.price || '0';
+            var sessions = opt.dataset.sessions || '0';
+            var days = opt.dataset.days || '0';
+            document.getElementById('assignPricePaid').value = parseFloat(price).toFixed(3);
+            document.getElementById('assignPackageInfoText').textContent =
+                sessions + ' جلسة | صلاحية ' + days + ' يوم | السعر الأصلي ' + parseFloat(price).toFixed(3) + ' د.ك';
+            document.getElementById('assignPackageInfo').classList.remove('d-none');
+        }
+
+        function submitAssignPackage() {
+            var customerId = document.getElementById('assignCustomerId').value;
+            var packageId  = document.getElementById('assignPackageSelect').value;
+            var pricePaid  = document.getElementById('assignPricePaid').value || '0';
+            var notes      = document.getElementById('assignNotes').value;
+            var errEl      = document.getElementById('assignError');
+            var submitBtn  = document.getElementById('assignPackageSubmit');
+            if (!packageId) { errEl.textContent = 'اختر الباقة أولاً'; errEl.classList.remove('d-none'); return; }
+            errEl.classList.add('d-none');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري الحفظ...';
+            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            var body  = new URLSearchParams({ customerId: customerId, servicePackageId: packageId,
+                pricePaid: pricePaid, notes: notes, __RequestVerificationToken: token });
+            fetch('/Packages/AssignPackage', { method: 'POST', body: body,
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded',
+                           'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) {
+                if (r.ok || r.redirected) {
+                    bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide();
+                    onCustomerChange(customerId);
+                } else {
+                    errEl.textContent = 'حدث خطأ (HTTP ' + r.status + ')';
+                    errEl.classList.remove('d-none');
+                }
+            })
+            .catch(function(e) { errEl.textContent = 'خطأ: ' + e.message; errEl.classList.remove('d-none'); })
+            .finally(function() {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> تعيين الباقة';
+            });
         }
 
         function clearPackageSelection() {

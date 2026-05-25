@@ -152,6 +152,11 @@ namespace Salon.Controllers
             _context.CustomerPackages.Add(customerPkg);
             await _context.SaveChangesAsync();
             TempData["Success"] = "تم تعيين الباقة للعميل بنجاح";
+
+            // إذا كان الطلب AJAX ارجع JSON
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = true, customerPackageId = customerPkg.Id });
+
             return RedirectToAction(nameof(Index), new { tab = "balances" });
         }
 
