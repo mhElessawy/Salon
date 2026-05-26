@@ -1074,6 +1074,14 @@
                 saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري الحفظ...';
 
                 var formData = new FormData(document.getElementById('posForm'));
+                // أضف قيمة دفع الباقة مباشرة في FormData لضمان إرسالها صح
+                var pkgSecCheck = document.getElementById('packagePaymentSection');
+                if (pkgSecCheck && pkgSecCheck.style.display !== 'none') {
+                    var finalPkgAmt = parseFloat(document.getElementById('pkgPayInput').value) || 0;
+                    formData.set('packagePaymentAmount', finalPkgAmt.toFixed(3));
+                } else {
+                    formData.set('packagePaymentAmount', '0');
+                }
                 fetch(document.getElementById('posForm').action, {
                     method: 'POST',
                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
