@@ -125,10 +125,11 @@ namespace Salon.Controllers
         [ActionName("CreateBarber")]
         public async Task<IActionResult> CreateBarberPost(
             Sale model, int[]? itemIds, string[]? itemNames,
-            decimal[]? itemPrices, int[]? itemQtys, int? customerPackageId)
+            decimal[]? itemPrices, int[]? itemQtys, int? customerPackageId,
+            decimal packagePaymentAmount = 0)
         {
             model.SaleType = "حلاقة";
-            return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "حلاقة", customerPackageId);
+            return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "حلاقة", customerPackageId, packagePaymentAmount);
         }
 
         // ===== فاتورة مساج (MAS-) =====
@@ -156,10 +157,11 @@ namespace Salon.Controllers
         [ActionName("CreateMassage")]
         public async Task<IActionResult> CreateMassagePost(
             Sale model, int[]? itemIds, string[]? itemNames,
-            decimal[]? itemPrices, int[]? itemQtys, int? customerPackageId)
+            decimal[]? itemPrices, int[]? itemQtys, int? customerPackageId,
+            decimal packagePaymentAmount = 0)
         {
             model.SaleType = "مساج";
-            return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "مساج", customerPackageId);
+            return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "مساج", customerPackageId, packagePaymentAmount);
         }
 
         // ===== فاتورة مبيعات منتجات (PRD-) =====
@@ -532,7 +534,9 @@ namespace Salon.Controllers
                         total = cp.TotalSessions,
                         expiry = cp.ExpiryDate.HasValue
                                         ? cp.ExpiryDate.Value.ToString("yyyy/MM/dd")
-                                        : "—"
+                                        : "—",
+                        pricePaid = cp.PricePaid,
+                        packagePrice = cp.ServicePackage!.Price
                     })
                     .ToListAsync();
                 return Json(pkgs);
@@ -546,7 +550,8 @@ namespace Salon.Controllers
         private async Task<IActionResult> SaveServiceInvoice(
             Sale model, int[]? itemIds, string[]? itemNames,
             decimal[]? itemPrices, int[]? itemQtys, string dept,
-            int? customerPackageId = null)
+            int? customerPackageId = null,
+            decimal packagePaymentAmount = 0)
         {
             if (ModelState.IsValid)
             {
@@ -594,6 +599,27 @@ namespace Salon.Controllers
                         model.TotalAmount += item.Total;
                     }
                 }
+                // ── دفع ثمن الباقة (أول جلسة أو دفع جزئي) ──
+                if (customerPackageId.HasValue && packagePaymentAmount > 0)
+                {
+                    var cpForPay = await _context.CustomerPackages
+                        .Include(x => x.ServicePackage)
+                        .FirstOrDefaultAsync(x => x.Id == customerPackageId.Value);
+                    if (cpForPay != null)
+                    {
+                        cpForPay.PricePaid += packagePaymentAmount;
+                        _context.SaleItems.Add(new SaleItem
+                        {
+                            SaleId = model.Id,
+                            ItemName = $"دفع ثمن الباقة: {cpForPay.ServicePackage?.NameAr}",
+                            Quantity = 1,
+                            Price = packagePaymentAmount,
+                            Total = packagePaymentAmount
+                        });
+                        model.TotalAmount += packagePaymentAmount;
+                    }
+                }
+
                 model.NetAmount = model.TotalAmount - model.Discount;
                 await _context.SaveChangesAsync();
 
