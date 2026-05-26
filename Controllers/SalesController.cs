@@ -279,6 +279,9 @@ namespace Salon.Controllers
                     }
                 }
 
+                // ── توليد رقم الفاتورة عند الحفظ الفعلي لتجنّب التكرار ──
+                model.InvoiceNumber = await GenerateInvoiceNumber("PRD");
+
                 model.TotalAmount = 0;
                 model.SaleDate = KuwaitNow;
                 _context.Sales.Add(model);
@@ -368,20 +371,20 @@ namespace Salon.Controllers
 
         private async Task<string> GenerateInvoiceNumber(string prefix)
         {
-            var last = await _context.Sales
+            // نجلب أكبر رقم تسلسلي محفوظ فعلاً في قاعدة البيانات
+            var allNumbers = await _context.Sales
                 .Where(s => s.InvoiceNumber.StartsWith(prefix + "-"))
-                .OrderByDescending(s => s.Id)
                 .Select(s => s.InvoiceNumber)
-                .FirstOrDefaultAsync();
+                .ToListAsync();
 
-            int seq = 1;
-            if (last != null)
+            int maxSeq = 0;
+            foreach (var inv in allNumbers)
             {
-                var parts = last.Split('-');
+                var parts = inv.Split('-');
                 if (parts.Length == 2 && int.TryParse(parts[1], out var n))
-                    seq = n + 1;
+                    if (n > maxSeq) maxSeq = n;
             }
-            return $"{prefix}-{seq:D4}";
+            return $"{prefix}-{(maxSeq + 1):D4}";
         }
 
         private async Task PopulateDeptDropdowns(string dept, ApplicationUser? user, string role)
@@ -560,6 +563,10 @@ namespace Salon.Controllers
                     if (pd.TryGetValue("CustomerDebt", out var canDebt) && !canDebt && model.PaymentMethod == "دين على العميل")
                         model.PaymentMethod = "كاش";
                 }
+
+                // ── توليد رقم الفاتورة عند الحفظ الفعلي لتجنّب التكرار ──
+                var invoicePrefix = dept == "حلاقة" ? "PAR" : "MAS";
+                model.InvoiceNumber = await GenerateInvoiceNumber(invoicePrefix);
 
                 model.TotalAmount = 0;
                 model.SaleDate = KuwaitNow;
