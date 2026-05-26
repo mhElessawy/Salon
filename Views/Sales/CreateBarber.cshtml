@@ -81,8 +81,8 @@
         }
 
         /* ════════════════════════════════════════
-                               COLUMN 1 (RIGHT in RTL) — Employees
-                            ════════════════════════════════════════ */
+                                       COLUMN 1 (RIGHT in RTL) — Employees
+                                    ════════════════════════════════════════ */
         .pos-employees-panel {
             background: var(--emp-dark);
             border-radius: 12px;
@@ -200,8 +200,8 @@
         }
 
         /* ════════════════════════════════════════
-                               COLUMN 2 (MIDDLE) — Services
-                            ════════════════════════════════════════ */
+                                       COLUMN 2 (MIDDLE) — Services
+                                    ════════════════════════════════════════ */
         .pos-services-panel {
             background: #fff;
             border-radius: 12px;
@@ -296,8 +296,8 @@
         }
 
         /* ════════════════════════════════════════
-                               COLUMN 3 (LEFT in RTL) — Cart / Invoice
-                            ════════════════════════════════════════ */
+                                       COLUMN 3 (LEFT in RTL) — Cart / Invoice
+                                    ════════════════════════════════════════ */
         .pos-cart-panel {
             background: #fff;
             border-radius: 12px;
@@ -555,6 +555,7 @@
     <input asp-for="InvoiceNumber" type="hidden" />
     <input asp-for="SaleType" type="hidden" value="حلاقة" />
     <input type="hidden" id="selectedEmployeeId" name="EmployeeId" value="@autoSelectEmpId" />
+    <input type="hidden" id="customerPackageId" name="customerPackageId" value="" />
     <div id="hiddenItems"></div>
 
     <!-- ══ Top: Customer / Payment / Notes ══ -->
@@ -562,12 +563,23 @@
         <div class="pos-info-grid">
             <div>
                 <label class="form-label">العميل</label>
-                <select name="CustomerId" id="customerSelect" asp-items="@ViewBag.Customers" class="form-select form-select-sm">
+                <select name="CustomerId" id="customerSelect" asp-items="@ViewBag.Customers"
+                        class="form-select form-select-sm" onchange="onCustomerChange(this.value)">
                     <option value="">👤 زائر</option>
                 </select>
                 <small id="customerDebtWarning" class="text-danger mt-1" style="display:none">
                     <i class="fas fa-exclamation-circle me-1"></i>يتطلب اختيار عميل مسجل
                 </small>
+                <!-- ── باقات العميل ── -->
+                <div id="customerPackagesArea" style="display:none; margin-top:8px;"></div>
+                <!-- زر تعيين باقة -->
+                <div id="assignPackageBtnWrap" style="display:none; margin-top:6px;">
+                    <button type="button" class="btn btn-sm btn-outline-primary"
+                            onclick="openAssignPackageModal()"
+                            style="font-size:11px;padding:3px 10px;">
+                        <i class="fas fa-plus-circle me-1"></i>تعيين باقة لهذا العميل
+                    </button>
+                </div>
             </div>
             <div>
                 <input type="hidden" asp-for="PaymentMethod" id="paymentMethodSelect" value="كاش" />
@@ -776,6 +788,10 @@
                     <button type="button" class="pay-btn" data-value="دين على صاحب المكان" onclick="selectPayment(this)">
                         <i class="fas fa-building"></i> دين على صاحب المكان
                     </button>
+                    <button type="button" class="pay-btn pay-btn-package" id="packagePayBtn"
+                            data-value="باقة" onclick="selectPayment(this)" style="display:none;border-color:#1a6fc4;color:#1a6fc4;">
+                        <i class="fas fa-box-open"></i> باقة
+                    </button>
                 </div>
             </div>
             <button type="submit" class="btn-save-invoice" id="saveBtn" disabled>
@@ -816,24 +832,82 @@
     </div>
 </div>
 
+<!-- ══ Modal: تعيين باقة للعميل ══ -->
+<div class="modal fade" id="assignPackageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background:#1a6fc4;color:#fff;">
+                <h6 class="modal-title fw-bold mb-0">
+                    <i class="fas fa-box-open me-2"></i>تعيين باقة للعميل
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">العميل</label>
+                    <input type="text" id="assignCustomerName" class="form-control" readonly
+                           style="background:#f8f9fa;font-weight:600;" />
+                    <input type="hidden" id="assignCustomerId" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">الباقة <span class="text-danger">*</span></label>
+                    <select id="assignPackageSelect" class="form-select" onchange="onAssignPackageChange(this.value)">
+                        <option value="">-- اختر الباقة --</option>
+                        @foreach (var p in ViewBag.AvailablePackages as IEnumerable<Salon.Models.ServicePackage> ?? Enumerable.Empty<Salon.Models.ServicePackage>())
+                        {
+                            <option value="@p.Id" data-price="@p.Price" data-sessions="@p.SessionCount" data-days="@p.ValidityDays">
+                                @p.NameAr (@p.SessionCount جلسة — @p.Price.ToString("N3") د.ك)
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div id="assignPackageInfo" class="alert alert-info py-2 px-3 d-none small">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <span id="assignPackageInfoText"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">السعر المدفوع</label>
+                    <div class="input-group">
+                        <input type="number" id="assignPricePaid" class="form-control"
+                               step="0.001" min="0" placeholder="0.000" />
+                        <span class="input-group-text">د.ك</span>
+                    </div>
+                </div>
+                <div class="mb-1">
+                    <label class="form-label fw-semibold">ملاحظات</label>
+                    <input type="text" id="assignNotes" class="form-control" placeholder="اختياري" />
+                </div>
+                <div id="assignError" class="alert alert-danger py-2 d-none small mt-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary px-4" id="assignPackageSubmit"
+                        onclick="submitAssignPackage()">
+                    <i class="fas fa-save me-1"></i> تعيين الباقة
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
             let items = [], rowId = 0;
 
             @if (isEmployee && linkedEmpId.HasValue)
             {
-                            <text>
-                            document.querySelectorAll('.emp-item').forEach(function(el) {
-                                el.style.cursor = 'default';
-                                el.onclick = null;
-                            });
-                            </text>
+                                <text>
+                                document.querySelectorAll('.emp-item').forEach(function(el) {
+                                    el.style.cursor = 'default';
+                                    el.onclick = null;
+                                });
+                                </text>
             }
 
             function selectEmployee(id, el) {
                 @if (isEmployee)
                 {
-                            <text>return;</text>
+                                <text>return;</text>
                 }
                 document.querySelectorAll('.emp-item').forEach(function(e) { e.classList.remove('emp-selected'); });
                 el.classList.add('emp-selected');
@@ -987,6 +1061,167 @@
                 document.getElementById('printFrame').src = '';
             }
 
+            /* ══ باقات العميل ══ */
+            var selectedPackageId = null;
+
+            function onCustomerChange(customerId) {
+                clearPackageSelection();
+                var area = document.getElementById('customerPackagesArea');
+                var btnWrap = document.getElementById('assignPackageBtnWrap');
+                if (!customerId) {
+                    area.style.display = 'none';
+                    btnWrap.style.display = 'none';
+                    return;
+                }
+                btnWrap.style.display = '';
+
+                area.innerHTML = '<small class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>جاري التحميل...</small>';
+                area.style.display = '';
+
+                fetch('/Sales/GetCustomerPackagesForSale?customerId=' + encodeURIComponent(customerId) + '&dept=' + encodeURIComponent('حلاقة'))
+                    .then(function(r) {
+                        if (!r.ok) throw new Error('HTTP ' + r.status);
+                        return r.json();
+                    })
+                    .then(function(data) {
+                        if (data && data.error) {
+                            area.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>' + data.error + '</small>';
+                            return;
+                        }
+                        var pkgs = Array.isArray(data) ? data : [];
+                        if (pkgs.length === 0) {
+                            area.innerHTML = '<small class="text-muted"><i class="fas fa-box-open me-1"></i>لا توجد باقات نشطة لهذا العميل</small>';
+                            return;
+                        }
+                        var html = '<div style="font-size:11px;font-weight:700;color:#1a6fc4;margin-bottom:5px;">' +
+                                   '<i class="fas fa-box-open me-1"></i>الباقات النشطة — اختر للخصم:</div>' +
+                                   '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
+                        pkgs.forEach(function(p) {
+                            html += '<button type="button" class="customer-pkg-btn" id="cpbtn-' + p.id + '" ' +
+                                    'onclick="selectPackage(' + p.id + ',\'' + p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',' + p.remaining + ',' + p.total + ')" ' +
+                                    'style="border:1.5px solid #1a6fc4;border-radius:7px;background:#fff;color:#1a6fc4;' +
+                                    'padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;text-align:right;">' +
+                                    '<i class="fas fa-calendar-check me-1"></i>' + p.name +
+                                    ' <span style="background:#1a6fc4;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;">' +
+                                    p.remaining + '/' + p.total + '</span>' +
+                                    '<br><small style="opacity:.65;font-size:10px;font-weight:400;">ينتهي: ' + p.expiry + '</small>' +
+                                    '</button>';
+                        });
+                        html += '</div>';
+                        area.innerHTML = html;
+                    })
+                    .catch(function(err) {
+                        area.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>خطأ في تحميل الباقات: ' + err.message + '</small>';
+                    });
+            }
+
+            function selectPackage(pkgId, pkgName, remaining, total) {
+                document.querySelectorAll('.customer-pkg-btn').forEach(function(b) {
+                    b.style.background = '#fff';
+                    b.style.color = '#1a6fc4';
+                });
+                selectedPackageId = pkgId;
+                document.getElementById('customerPackageId').value = pkgId;
+                var btn = document.getElementById('cpbtn-' + pkgId);
+                if (btn) { btn.style.background = '#1a6fc4'; btn.style.color = '#fff'; }
+                var pkgPayBtn = document.getElementById('packagePayBtn');
+                pkgPayBtn.style.display = '';
+                pkgPayBtn.innerHTML = '<i class="fas fa-box-open"></i> باقة: ' + pkgName;
+                selectPayment(pkgPayBtn);
+                var existingPkg = items.find(function(i) { return i.id === -999; });
+                if (!existingPkg) { addItem(-999, 'باقة: ' + pkgName, 0); }
+            }
+
+            /* ══ Modal تعيين باقة ══ */
+            function openAssignPackageModal() {
+                var sel = document.getElementById('customerSelect');
+                var customerId = sel.value;
+                var customerName = sel.options[sel.selectedIndex]?.text || '';
+                if (!customerId) { alert('اختر عميلاً أولاً'); return; }
+                document.getElementById('assignCustomerId').value = customerId;
+                document.getElementById('assignCustomerName').value = customerName;
+                document.getElementById('assignPackageSelect').value = '';
+                document.getElementById('assignPricePaid').value = '';
+                document.getElementById('assignNotes').value = '';
+                document.getElementById('assignPackageInfo').classList.add('d-none');
+                document.getElementById('assignError').classList.add('d-none');
+                new bootstrap.Modal(document.getElementById('assignPackageModal')).show();
+            }
+
+            function onAssignPackageChange(pkgId) {
+                var sel = document.getElementById('assignPackageSelect');
+                var opt = sel.options[sel.selectedIndex];
+                if (!pkgId || !opt) {
+                    document.getElementById('assignPackageInfo').classList.add('d-none');
+                    return;
+                }
+                var price = opt.dataset.price || '0';
+                var sessions = opt.dataset.sessions || '0';
+                var days = opt.dataset.days || '0';
+                document.getElementById('assignPricePaid').value = parseFloat(price).toFixed(3);
+                document.getElementById('assignPackageInfoText').textContent =
+                    sessions + ' جلسة | صلاحية ' + days + ' يوم | السعر الأصلي ' + parseFloat(price).toFixed(3) + ' د.ك';
+                document.getElementById('assignPackageInfo').classList.remove('d-none');
+            }
+
+            function submitAssignPackage() {
+                var customerId  = document.getElementById('assignCustomerId').value;
+                var packageId   = document.getElementById('assignPackageSelect').value;
+                var pricePaid   = document.getElementById('assignPricePaid').value || '0';
+                var notes       = document.getElementById('assignNotes').value;
+                var errEl       = document.getElementById('assignError');
+                var submitBtn   = document.getElementById('assignPackageSubmit');
+
+                if (!packageId) { errEl.textContent = 'اختر الباقة أولاً'; errEl.classList.remove('d-none'); return; }
+                errEl.classList.add('d-none');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري الحفظ...';
+
+                var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                var body  = new URLSearchParams({
+                    customerId: customerId,
+                    servicePackageId: packageId,
+                    pricePaid: pricePaid,
+                    notes: notes,
+                    __RequestVerificationToken: token
+                });
+
+                fetch('/Packages/AssignPackage', { method: 'POST', body: body,
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded',
+                               'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) {
+                    if (r.ok || r.redirected) {
+                        bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide();
+                        onCustomerChange(customerId); // تحديث قائمة الباقات
+                    } else {
+                        errEl.textContent = 'حدث خطأ أثناء الحفظ (HTTP ' + r.status + ')';
+                        errEl.classList.remove('d-none');
+                    }
+                })
+                .catch(function(e) {
+                    errEl.textContent = 'خطأ: ' + e.message;
+                    errEl.classList.remove('d-none');
+                })
+                .finally(function() {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> تعيين الباقة';
+                });
+            }
+
+            function clearPackageSelection() {
+                selectedPackageId = null;
+                document.getElementById('customerPackageId').value = '';
+                var pkgPayBtn = document.getElementById('packagePayBtn');
+                pkgPayBtn.style.display = 'none';
+                var pkgItem = items.find(function(i) { return i.id === -999; });
+                if (pkgItem) removeItem(pkgItem.rowId);
+                var pm = document.getElementById('paymentMethodSelect').value;
+                if (pm === 'باقة') {
+                    var cashBtn = document.querySelector('.pay-btn[data-value="كاش"]');
+                    if (cashBtn) selectPayment(cashBtn);
+                }
+            }
+
             function resetForm() {
                 items = []; rowId = 0;
                 document.getElementById('invoiceBody').innerHTML =
@@ -1002,6 +1237,8 @@
                 document.querySelectorAll('.pay-btn').forEach(function(b) { b.classList.remove('active'); });
                 document.querySelector('.pay-btn[data-value="كاش"]').classList.add('active');
                 onPaymentChange();
+                clearPackageSelection();
+                document.getElementById('customerPackagesArea').style.display = 'none';
                 var saveBtn = document.getElementById('saveBtn');
                 saveBtn.disabled = true;
                 saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> حفظ فاتورة الحلاقة';

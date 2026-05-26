@@ -14,6 +14,7 @@ namespace Salon.Models
             ("Appointments",      "المواعيد",           "fas fa-calendar-check",   "المبيعات"),
             ("Services",          "الخدمات",            "fas fa-concierge-bell",   "التعريفات"),
             ("ServiceCategories", "فئات الخدمات",       "fas fa-tags",             "التعريفات"),
+            ("Packages",          "الباقات",             "fas fa-box-open",         "التعريفات"),
             ("Inventory",         "المخزون",            "fas fa-boxes",            "التعريفات"),
             ("Shifts",            "الشفتات",            "fas fa-clock",            "المبيعات"),
             ("Employees",         "الموظفين",           "fas fa-id-badge",         "الموظفون"),

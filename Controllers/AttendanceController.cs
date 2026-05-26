@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -13,11 +14,15 @@ namespace Salon.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IEmailService _emailService;
 
-        public AttendanceController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public AttendanceController(ApplicationDbContext context,
+            UserManager<ApplicationUser> userManager,
+            IEmailService emailService)
         {
             _context = context;
             _userManager = userManager;
+            _emailService = emailService;
         }
 
         private async Task<int?> GetLinkedEmployeeIdIfEmployee()
@@ -57,7 +62,7 @@ namespace Salon.Controllers
             var linkedId = await GetLinkedEmployeeIdIfEmployee();
             var userDept = await GetUserDepartmentAsync();
 
-            // ── سجلات يوم الفلتر ──────────────────────────────────────
+            // ── 1. سجلات يوم الفلتر (GroupBy بدل ToDictionary لدعم ورديات متعددة) ──
             var attQuery = _context.Attendances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Include(a => a.Permissions)
@@ -69,9 +74,13 @@ namespace Salon.Controllers
                 attQuery = attQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
 
             var records = await attQuery.ToListAsync();
-            var recordsByEmpId = records.ToDictionary(a => a.EmployeeId);
 
-            // ── موظفو الليل: سجّلوا حضور امبارح ولسه لم ينصرفوا ──────
+            // GroupBy يتعامل مع وردية + وردية جديدة لنفس الموظف
+            var allTodayByEmpId = records
+                .GroupBy(a => a.EmployeeId)
+                .ToDictionary(g => g.Key, g => g.OrderBy(a => a.CheckIn).ToList());
+
+            // ── 2. موظفو الليل: حضروا امبارح ولسه لم ينصرفوا ──────────
             var prevDate = filterDate.AddDays(-1);
             var overnightQuery = _context.Attendances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
@@ -83,13 +92,12 @@ namespace Salon.Controllers
             else if (userDept == "حلاقة" || userDept == "مساج")
                 overnightQuery = overnightQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
 
-            var overnightRecords = await overnightQuery.ToListAsync();
-            // نستخدم سجل الليل فقط إذا لم يكن للموظف سجل بتاريخ اليوم
-            var overnightByEmpId = overnightRecords
-                .Where(a => !recordsByEmpId.ContainsKey(a.EmployeeId))
-                .ToDictionary(a => a.EmployeeId);
+            var overnightByEmpId = (await overnightQuery.ToListAsync())
+                .Where(a => !allTodayByEmpId.ContainsKey(a.EmployeeId))
+                .GroupBy(a => a.EmployeeId)
+                .ToDictionary(g => g.Key, g => g.First());
 
-            // ── كل الموظفين النشطين ───────────────────────────────────
+            // ── 3. كل الموظفين النشطين ───────────────────────────────
             var empQuery = _context.Employees
                 .Include(e => e.DepartmentNav)
                 .Where(e => e.IsActive);
@@ -101,38 +109,38 @@ namespace Salon.Controllers
 
             var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
 
-            // ── تجميع كل السجلات لكل موظف ──────────────────────────
-            var allTodayRecords = records
-                .GroupBy(a => a.EmployeeId)
-                .ToDictionary(g => g.Key, g => g.OrderBy(a => a.CheckIn).ToList());
-
-            // ── بناء الصفوف ───────────────────────────────────────────
+            // ── 4. بناء الصفوف ────────────────────────────────────────
             var rows = employees.Select(e =>
             {
-                // السجل النشط = مفتوح (بدون انصراف)، أو آخر سجل في اليوم
-                Attendance? activeRec = null;
-                List<Attendance> empRecords = new();
-                bool isOvernight = false;
-
-                if (allTodayRecords.TryGetValue(e.Id, out var todayRecs))
+                if (allTodayByEmpId.TryGetValue(e.Id, out var todayRecs))
                 {
-                    empRecords = todayRecs;
-                    activeRec = todayRecs.FirstOrDefault(a => !a.CheckOut.HasValue)
-                                ?? todayRecs.Last();
+                    // السجل النشط = المفتوح (بدون انصراف)، أو الأحدث
+                    var active = todayRecs.FirstOrDefault(a => !a.CheckOut.HasValue)
+                                 ?? todayRecs.Last();
+                    return new AttendanceIndexRow
+                    {
+                        Employee = e,
+                        Record = active,
+                        AllRecords = todayRecs,
+                        IsOvernight = false
+                    };
                 }
-                else if (overnightByEmpId.TryGetValue(e.Id, out var overnight))
+                if (overnightByEmpId.TryGetValue(e.Id, out var overnight))
                 {
-                    activeRec = overnight;
-                    empRecords = new List<Attendance> { overnight };
-                    isOvernight = true;
+                    return new AttendanceIndexRow
+                    {
+                        Employee = e,
+                        Record = overnight,
+                        AllRecords = new List<Attendance> { overnight },
+                        IsOvernight = true
+                    };
                 }
-
                 return new AttendanceIndexRow
                 {
                     Employee = e,
-                    Record = activeRec,
-                    AllRecords = empRecords,
-                    IsOvernight = isOvernight
+                    Record = null,
+                    AllRecords = new List<Attendance>(),
+                    IsOvernight = false
                 };
             })
             .OrderBy(r => r.Employee.DepartmentNav?.Name == "مساج" ? 1 : 0)
@@ -285,6 +293,10 @@ namespace Salon.Controllers
             await _context.SaveChangesAsync();
             TempData["Success"] = $"تم تسجيل حضور {employee?.FullName} — الدور: {queuePosition}";
 
+            _ = Task.Run(() => _emailService.SendAttendanceNotificationAsync(
+                employee?.FullName ?? "-", dept ?? "-", "حضور",
+                attendance.CheckIn!.Value, attendanceDate, $"الدور: {queuePosition}"));
+
             return RedirectToAction(nameof(Index), new { date });
         }
 
@@ -305,6 +317,12 @@ namespace Salon.Controllers
             record.CheckOut = time;
             await _context.SaveChangesAsync();
             TempData["Success"] = "تم تسجيل الانصراف بنجاح";
+
+            var empForMail = await _context.Employees.Include(e => e.DepartmentNav)
+                .FirstOrDefaultAsync(e => e.Id == record.EmployeeId);
+            _ = Task.Run(() => _emailService.SendAttendanceNotificationAsync(
+                empForMail?.FullName ?? "-", empForMail?.DepartmentNav?.Name ?? "-",
+                "انصراف", time, record.AttendanceDate));
 
             // لو كان موظفاً ليلياً (تاريخ الحضور قبل النهارده) → ارجع لصفحة النهارده
             var redirectDate = record.AttendanceDate.Date < DateTime.Today
@@ -342,6 +360,13 @@ namespace Salon.Controllers
             _context.AttendancePermissions.Add(perm);
             await _context.SaveChangesAsync();
             TempData["Success"] = "تم تسجيل الاستئذان بنجاح";
+
+            var empPerm = await _context.Employees.Include(e => e.DepartmentNav)
+                .FirstOrDefaultAsync(e => e.Id == record.EmployeeId);
+            _ = Task.Run(() => _emailService.SendAttendanceNotificationAsync(
+                empPerm?.FullName ?? "-", empPerm?.DepartmentNav?.Name ?? "-",
+                "استئذان", perm.LeaveTime, record.AttendanceDate));
+
             return RedirectToAction(nameof(Index), new { date = record.AttendanceDate.ToString("yyyy-MM-dd") });
         }
 
@@ -384,6 +409,13 @@ namespace Salon.Controllers
             perm.ReturnTime = DateTime.Now.TimeOfDay;
             await _context.SaveChangesAsync();
             TempData["Success"] = "تم تسجيل العودة من الاستئذان بنجاح";
+
+            var empRet = await _context.Employees.Include(e => e.DepartmentNav)
+                .FirstOrDefaultAsync(e => e.Id == perm.Attendance!.EmployeeId);
+            _ = Task.Run(() => _emailService.SendAttendanceNotificationAsync(
+                empRet?.FullName ?? "-", empRet?.DepartmentNav?.Name ?? "-",
+                "عودة", perm.ReturnTime!.Value, perm.Attendance!.AttendanceDate));
+
             return RedirectToAction(nameof(Index), new { date = perm.Attendance!.AttendanceDate.ToString("yyyy-MM-dd") });
         }
 
@@ -404,31 +436,46 @@ namespace Salon.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        public async Task<IActionResult> Reports(string? month)
+        public async Task<IActionResult> Reports(string? dateFrom, string? dateTo, int? employeeId)
         {
-            DateTime filterMonth = string.IsNullOrEmpty(month)
-                ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)
-                : DateTime.Parse(month + "-01");
+            var today = DateTime.Today;
+            var from = string.IsNullOrEmpty(dateFrom)
+                ? new DateTime(today.Year, today.Month, 1)
+                : DateTime.Parse(dateFrom);
+            var to = string.IsNullOrEmpty(dateTo) ? today : DateTime.Parse(dateTo);
 
-            var nextMonth = filterMonth.AddMonths(1);
             var linkedId = await GetLinkedEmployeeIdIfEmployee();
             var userDept = await GetUserDepartmentAsync();
 
             var query = _context.Attendances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
-                .Where(a => a.AttendanceDate >= filterMonth && a.AttendanceDate < nextMonth);
+                .Include(a => a.Permissions)
+                .Where(a => a.AttendanceDate >= from && a.AttendanceDate <= to);
 
             if (linkedId.HasValue)
                 query = query.Where(a => a.EmployeeId == linkedId.Value);
             else if (userDept == "حلاقة" || userDept == "مساج")
                 query = query.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
+            else if (employeeId.HasValue)
+                query = query.Where(a => a.EmployeeId == employeeId.Value);
 
             var records = await query
                 .OrderBy(a => a.Employee!.FullName)
                 .ThenBy(a => a.AttendanceDate)
+                .ThenBy(a => a.CheckIn)
                 .ToListAsync();
 
-            ViewBag.FilterMonth = filterMonth.ToString("yyyy-MM");
+            // قائمة الموظفين للـ dropdown
+            var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+            if (userDept == "حلاقة" || userDept == "مساج")
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
+            var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+
+            ViewBag.DateFrom = from.ToString("yyyy-MM-dd");
+            ViewBag.DateTo = to.ToString("yyyy-MM-dd");
+            ViewBag.EmployeeId = employeeId;
+            ViewBag.Employees = employees;
+            ViewBag.IsEmployee = linkedId.HasValue;
             return View(records);
         }
     }

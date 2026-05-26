@@ -140,6 +140,41 @@ using (var scope = app.Services.CreateScope())
                 Notes TEXT,
                 CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
                 FOREIGN KEY (AttendanceId) REFERENCES Attendances(Id) ON DELETE CASCADE)");
+            TryExec(@"CREATE TABLE IF NOT EXISTS ServicePackages (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                NameAr TEXT NOT NULL,
+                NameEn TEXT,
+                SessionCount INTEGER NOT NULL DEFAULT 4,
+                Price REAL NOT NULL DEFAULT 0,
+                ValidityDays INTEGER NOT NULL DEFAULT 90,
+                Description TEXT,
+                IsActive INTEGER NOT NULL DEFAULT 1,
+                CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+                ServiceCategoryId INTEGER NULL,
+                FOREIGN KEY (ServiceCategoryId) REFERENCES ServiceCategories(Id) ON DELETE SET NULL)");
+            TryExec(@"CREATE TABLE IF NOT EXISTS CustomerPackages (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                CustomerId INTEGER NOT NULL,
+                ServicePackageId INTEGER NOT NULL,
+                PurchaseDate TEXT NOT NULL DEFAULT (date('now')),
+                ExpiryDate TEXT NULL,
+                TotalSessions INTEGER NOT NULL DEFAULT 0,
+                RemainingSessions INTEGER NOT NULL DEFAULT 0,
+                PricePaid REAL NOT NULL DEFAULT 0,
+                Notes TEXT,
+                IsActive INTEGER NOT NULL DEFAULT 1,
+                CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+                FOREIGN KEY (CustomerId) REFERENCES Customers(Id),
+                FOREIGN KEY (ServicePackageId) REFERENCES ServicePackages(Id))");
+            TryExec(@"CREATE TABLE IF NOT EXISTS CustomerPackageTransactions (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                CustomerPackageId INTEGER NOT NULL,
+                UsedDate TEXT NOT NULL DEFAULT (datetime('now')),
+                EmployeeId INTEGER NULL,
+                Notes TEXT,
+                CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+                FOREIGN KEY (CustomerPackageId) REFERENCES CustomerPackages(Id) ON DELETE CASCADE,
+                FOREIGN KEY (EmployeeId) REFERENCES Employees(Id) ON DELETE SET NULL)");
         }
         else
         {
@@ -164,6 +199,35 @@ using (var scope = app.Services.CreateScope())
                 Notes NVARCHAR(MAX), CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
                 CONSTRAINT FK_AttendancePermissions_Attendances FOREIGN KEY (AttendanceId)
                     REFERENCES Attendances(Id) ON DELETE CASCADE)");
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='ServicePackages')
+                CREATE TABLE ServicePackages (Id INT IDENTITY PRIMARY KEY,
+                NameAr NVARCHAR(200) NOT NULL, NameEn NVARCHAR(200) NULL,
+                SessionCount INT NOT NULL DEFAULT 4, Price DECIMAL(18,3) NOT NULL DEFAULT 0,
+                ValidityDays INT NOT NULL DEFAULT 90, Description NVARCHAR(MAX),
+                IsActive BIT NOT NULL DEFAULT 1, CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                ServiceCategoryId INT NULL,
+                CONSTRAINT FK_ServicePackages_ServiceCategories FOREIGN KEY (ServiceCategoryId)
+                    REFERENCES ServiceCategories(Id) ON DELETE SET NULL)");
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='CustomerPackages')
+                CREATE TABLE CustomerPackages (Id INT IDENTITY PRIMARY KEY,
+                CustomerId INT NOT NULL, ServicePackageId INT NOT NULL,
+                PurchaseDate DATE NOT NULL DEFAULT GETDATE(), ExpiryDate DATE NULL,
+                TotalSessions INT NOT NULL DEFAULT 0, RemainingSessions INT NOT NULL DEFAULT 0,
+                PricePaid DECIMAL(18,3) NOT NULL DEFAULT 0, Notes NVARCHAR(MAX),
+                IsActive BIT NOT NULL DEFAULT 1, CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                CONSTRAINT FK_CustomerPackages_Customers FOREIGN KEY (CustomerId)
+                    REFERENCES Customers(Id),
+                CONSTRAINT FK_CustomerPackages_ServicePackages FOREIGN KEY (ServicePackageId)
+                    REFERENCES ServicePackages(Id))");
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='CustomerPackageTransactions')
+                CREATE TABLE CustomerPackageTransactions (Id INT IDENTITY PRIMARY KEY,
+                CustomerPackageId INT NOT NULL, UsedDate DATETIME NOT NULL DEFAULT GETDATE(),
+                EmployeeId INT NULL, Notes NVARCHAR(MAX),
+                CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                CONSTRAINT FK_CustPkgTrans_CustomerPackages FOREIGN KEY (CustomerPackageId)
+                    REFERENCES CustomerPackages(Id) ON DELETE CASCADE,
+                CONSTRAINT FK_CustPkgTrans_Employees FOREIGN KEY (EmployeeId)
+                    REFERENCES Employees(Id) ON DELETE SET NULL)");
         }
 
         await SeedData.InitializeAsync(services);

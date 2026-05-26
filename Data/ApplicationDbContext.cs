@@ -32,6 +32,9 @@ namespace Salon.Data
         public DbSet<StockMovement> StockMovements { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<AttendancePermission> AttendancePermissions { get; set; }
+        public DbSet<ServicePackage> ServicePackages { get; set; }
+        public DbSet<CustomerPackage> CustomerPackages { get; set; }
+        public DbSet<CustomerPackageTransaction> CustomerPackageTransactions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -138,6 +141,14 @@ namespace Salon.Data
 
             builder.Entity<EmployeeAdvance>()
                 .Property(a => a.DeductedAmount)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<ServicePackage>()
+                .Property(p => p.Price)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<CustomerPackage>()
+                .Property(p => p.PricePaid)
                 .HasColumnType("decimal(18,3)");
 
             builder.Entity<Shift>()
