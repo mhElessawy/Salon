@@ -1024,6 +1024,13 @@
                     '<input type="hidden" name="itemQtys"   value="' + it.qty   + '"/>';
             });
 
+            // تأكد من قيمة دفع الباقة لحظة الإرسال
+            var pkgSection = document.getElementById('packagePaymentSection');
+            if (pkgSection && pkgSection.style.display !== 'none') {
+                var pkgPayVal = parseFloat(document.getElementById('pkgPayInput').value) || 0;
+                document.getElementById('packagePaymentAmount').value = pkgPayVal.toFixed(3);
+            }
+
             var saveBtn = document.getElementById('saveBtn');
             saveBtn.disabled = true;
             saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري الحفظ...';

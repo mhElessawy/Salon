@@ -125,9 +125,13 @@ namespace Salon.Controllers
         [ActionName("CreateBarber")]
         public async Task<IActionResult> CreateBarberPost(
             Sale model, int[]? itemIds, string[]? itemNames,
-            decimal[]? itemPrices, int[]? itemQtys, int? customerPackageId,
-            decimal packagePaymentAmount = 0)
+            decimal[]? itemPrices, int[]? itemQtys, int? customerPackageId)
         {
+            decimal.TryParse(
+                Request.Form["packagePaymentAmount"].FirstOrDefault() ?? "0",
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out decimal packagePaymentAmount);
             model.SaleType = "حلاقة";
             return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "حلاقة", customerPackageId, packagePaymentAmount);
         }
@@ -157,9 +161,13 @@ namespace Salon.Controllers
         [ActionName("CreateMassage")]
         public async Task<IActionResult> CreateMassagePost(
             Sale model, int[]? itemIds, string[]? itemNames,
-            decimal[]? itemPrices, int[]? itemQtys, int? customerPackageId,
-            decimal packagePaymentAmount = 0)
+            decimal[]? itemPrices, int[]? itemQtys, int? customerPackageId)
         {
+            decimal.TryParse(
+                Request.Form["packagePaymentAmount"].FirstOrDefault() ?? "0",
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out decimal packagePaymentAmount);
             model.SaleType = "مساج";
             return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "مساج", customerPackageId, packagePaymentAmount);
         }
@@ -550,8 +558,8 @@ namespace Salon.Controllers
         private async Task<IActionResult> SaveServiceInvoice(
             Sale model, int[]? itemIds, string[]? itemNames,
             decimal[]? itemPrices, int[]? itemQtys, string dept,
-            int? customerPackageId = null,
-            decimal packagePaymentAmount = 0)
+            int? customerPackageId,
+            decimal packagePaymentAmount)
         {
             if (ModelState.IsValid)
             {
