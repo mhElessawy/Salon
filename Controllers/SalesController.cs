@@ -561,7 +561,23 @@ namespace Salon.Controllers
             int? customerPackageId,
             decimal packagePaymentAmount)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
+            {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    return Json(new { success = false, message = string.Join("، ", errors) });
+                }
+                var user0 = await _userManager.GetUserAsync(User);
+                var roles0 = await _userManager.GetRolesAsync(user0!);
+                await PopulateDeptDropdowns(dept, user0, roles0.FirstOrDefault() ?? "");
+                return dept == "حلاقة" ? View("CreateBarber", model) : View("CreateMassage", model);
+            }
+
+            try
             {
                 // Server-side permission enforcement for Discount and CustomerDebt
                 var currentUser = await _userManager.GetUserAsync(User);
@@ -649,9 +665,9 @@ namespace Salon.Controllers
                             join d in _context.Departments on e.DepartmentId equals d.Id
                             where a.AttendanceDate == today2 && a.QueuePosition != null
                                   && d.Name == dept && a.CheckOut == null
-                            select a.QueuePosition
-                        ).MaxAsync();
-                        todayAttendance.QueuePosition = (maxPos ?? 0) + 1;
+                            select (int?)a.QueuePosition
+                        ).MaxAsync() ?? 0;
+                        todayAttendance.QueuePosition = maxPos + 1;
                         await _context.SaveChangesAsync();
                     }
                 }
@@ -694,12 +710,12 @@ namespace Salon.Controllers
 
                 return RedirectToAction(nameof(PrintInvoice), new { id = model.Id });
             }
-
-            var user = await _userManager.GetUserAsync(User);
-            var roles = await _userManager.GetRolesAsync(user!);
-            await PopulateDeptDropdowns(dept, user, roles.FirstOrDefault() ?? "");
-
-            return dept == "حلاقة" ? View("CreateBarber", model) : View("CreateMassage", model);
+            catch (Exception ex)
+            {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = false, message = "خطأ في الحفظ: " + ex.Message });
+                throw;
+            }
         }
     }
 }

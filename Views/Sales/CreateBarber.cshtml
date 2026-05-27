@@ -1100,17 +1100,24 @@
                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
                     body: formData
                 })
-                .then(function(r) { return r.json(); })
+                .then(function(r) {
+                    if (!r.ok && r.status !== 200) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
                 .then(function(data) {
                     if (data.success) {
                         document.getElementById('printFrame').src = '/Sales/PrintInvoice/' + data.invoiceId + '?modal=1';
                         var modal = new bootstrap.Modal(document.getElementById('printModal'));
                         modal.show();
                         resetForm();
+                    } else {
+                        alert('خطأ: ' + (data.message || 'حدث خطأ أثناء الحفظ'));
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> حفظ فاتورة الحلاقة';
                     }
                 })
-                .catch(function() {
-                    alert('حدث خطأ أثناء الحفظ، يرجى المحاولة مرة أخرى');
+                .catch(function(err) {
+                    alert('حدث خطأ أثناء الحفظ: ' + (err.message || 'يرجى المحاولة مرة أخرى'));
                     saveBtn.disabled = false;
                     saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> حفظ فاتورة الحلاقة';
                 });
