@@ -144,7 +144,7 @@ namespace Salon.Controllers
                 ExpiryDate = DateTime.Today.AddDays(pkg.ValidityDays),
                 TotalSessions = pkg.SessionCount,
                 RemainingSessions = pkg.SessionCount,
-                PricePaid = pricePaid > 0 ? pricePaid : pkg.Price,
+                PricePaid = pricePaid,
                 Notes = notes,
                 IsActive = true
             };

@@ -861,7 +861,7 @@
 
 <!-- ══ Modal: تعيين باقة للعميل ══ -->
 <div class="modal fade" id="assignPackageModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow">
             <div class="modal-header" style="background:#1a6fc4;color:#fff;">
                 <h6 class="modal-title fw-bold mb-0">
@@ -877,28 +877,41 @@
                     <input type="hidden" id="assignCustomerId" />
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">الباقة <span class="text-danger">*</span></label>
-                    <select id="assignPackageSelect" class="form-select" onchange="onAssignPackageChange(this.value)">
-                        <option value="">-- اختر الباقة --</option>
-                        @foreach (var p in ViewBag.AvailablePackages as IEnumerable<Salon.Models.ServicePackage> ?? Enumerable.Empty<Salon.Models.ServicePackage>())
-                        {
-                            <option value="@p.Id" data-price="@p.Price" data-sessions="@p.SessionCount" data-days="@p.ValidityDays">
-                                @p.NameAr (@p.SessionCount جلسة — @p.Price.ToString("N3") د.ك)
-                            </option>
+                    <label class="form-label fw-semibold mb-2">اختر الباقة <span class="text-danger">*</span></label>
+                    <div id="assignPackageCards" style="display:flex;flex-wrap:wrap;gap:10px;max-height:320px;overflow-y:auto;padding:4px 2px;">
+                        @{
+                            var barberPkgs = ViewBag.AvailablePackages as IEnumerable<Salon.Models.ServicePackage> ?? Enumerable.Empty<Salon.Models.ServicePackage>();
                         }
-                    </select>
-                </div>
-                <div id="assignPackageInfo" class="alert alert-info py-2 px-3 d-none small">
-                    <i class="fas fa-info-circle me-1"></i>
-                    <span id="assignPackageInfoText"></span>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">السعر المدفوع</label>
-                    <div class="input-group">
-                        <input type="number" id="assignPricePaid" class="form-control"
-                               step="0.001" min="0" placeholder="0.000" />
-                        <span class="input-group-text">د.ك</span>
+                        @foreach (var p in barberPkgs)
+                        {
+                            <div class="assign-pkg-card" id="apc-@p.Id"
+                                 onclick="selectAssignCard(@p.Id, '@Html.Raw(p.NameAr.Replace("'","\\\'"))', @p.Price.ToString(System.Globalization.CultureInfo.InvariantCulture), @p.SessionCount, @p.ValidityDays)"
+                                 style="border:2px solid #dee2e6;border-radius:12px;background:#fff;padding:12px 16px;
+                                        cursor:pointer;min-width:170px;flex:1;max-width:230px;transition:all .2s;text-align:right;
+                                        box-shadow:0 1px 4px rgba(0,0,0,.06);">
+                                <div style="font-weight:700;font-size:13px;color:#1a6fc4;margin-bottom:6px;">
+                                    <i class="fas fa-box-open me-1"></i>@p.NameAr
+                                </div>
+                                <div style="font-size:11px;color:#666;margin-bottom:6px;display:flex;gap:8px;flex-wrap:wrap;">
+                                    <span><i class="fas fa-list-ol me-1 text-primary"></i>@p.SessionCount جلسة</span>
+                                    <span><i class="fas fa-clock me-1 text-warning"></i>@p.ValidityDays يوم</span>
+                                </div>
+                                <div style="font-size:18px;font-weight:800;color:#198754;">
+                                    @p.Price.ToString("N3") <small style="font-size:11px;font-weight:600;">د.ك</small>
+                                </div>
+                            </div>
+                        }
+                        @if (!barberPkgs.Any())
+                        {
+                            <div style="text-align:center;padding:30px;color:#aaa;width:100%;">
+                                <i class="fas fa-box-open fa-2x mb-2 d-block"></i>لا توجد باقات متاحة
+                            </div>
+                        }
                     </div>
+                </div>
+                <div id="assignSelectedInfo" class="alert alert-success py-2 px-3 d-none small">
+                    <i class="fas fa-check-circle me-1"></i>
+                    تم اختيار: <strong id="assignSelectedInfoText"></strong>
                 </div>
                 <div class="mb-1">
                     <label class="form-label fw-semibold">ملاحظات</label>
@@ -1114,6 +1127,7 @@
 
             /* ══ باقات العميل ══ */
             var selectedPackageId = null;
+            var pendingAutoSelectData = null; // للاختيار التلقائي بعد تعيين باقة جديدة
 
             function onCustomerChange(customerId) {
                 clearPackageSelection();
@@ -1142,6 +1156,7 @@
                         var pkgs = Array.isArray(data) ? data : [];
                         if (pkgs.length === 0) {
                             area.innerHTML = '<small class="text-muted"><i class="fas fa-box-open me-1"></i>لا توجد باقات نشطة لهذا العميل</small>';
+                            pendingAutoSelectData = null;
                             return;
                         }
                         var html = '<div style="font-size:11px;font-weight:700;color:#1a6fc4;margin-bottom:5px;">' +
@@ -1163,9 +1178,23 @@
                         });
                         html += '</div>';
                         area.innerHTML = html;
+
+                        // اختيار تلقائي بعد تعيين باقة جديدة من الـ Modal
+                        if (pendingAutoSelectData) {
+                            var asd = pendingAutoSelectData;
+                            pendingAutoSelectData = null;
+                            // ابحث عن الباقة المعينة في القائمة المحدّثة
+                            var match = pkgs.find(function(p) { return p.id === asd.id; });
+                            if (match) {
+                                selectPackage(match.id, match.name, match.remaining, match.total, match.pricePaid, match.packagePrice);
+                            } else {
+                                selectPackage(asd.id, asd.name, asd.remaining, asd.total, asd.pricePaid, asd.packagePrice);
+                            }
+                        }
                     })
                     .catch(function(err) {
                         area.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>خطأ في تحميل الباقات: ' + err.message + '</small>';
+                        pendingAutoSelectData = null;
                     });
             }
 
@@ -1224,6 +1253,37 @@
             }
 
             /* ══ Modal تعيين باقة ══ */
+            var assignSelectedPkgId   = null;
+            var assignSelectedPkgName = '';
+            var assignSelectedPkgPrice    = 0;
+            var assignSelectedPkgSessions = 0;
+            var assignSelectedPkgDays     = 0;
+
+            function selectAssignCard(pkgId, pkgName, price, sessions, days) {
+                assignSelectedPkgId       = pkgId;
+                assignSelectedPkgName     = pkgName;
+                assignSelectedPkgPrice    = parseFloat(price) || 0;
+                assignSelectedPkgSessions = parseInt(sessions) || 0;
+                assignSelectedPkgDays     = parseInt(days) || 0;
+                // تمييز الكارت المختار
+                document.querySelectorAll('.assign-pkg-card').forEach(function(c) {
+                    c.style.border    = '2px solid #dee2e6';
+                    c.style.background = '#fff';
+                    c.style.boxShadow = '0 1px 4px rgba(0,0,0,.06)';
+                });
+                var card = document.getElementById('apc-' + pkgId);
+                if (card) {
+                    card.style.border    = '2px solid #1a6fc4';
+                    card.style.background = '#e8f4fd';
+                    card.style.boxShadow = '0 0 0 3px rgba(26,111,196,.15)';
+                }
+                // عرض معلومات الباقة المختارة
+                document.getElementById('assignSelectedInfoText').textContent =
+                    pkgName + ' — ' + sessions + ' جلسة | صلاحية ' + days + ' يوم | ' + parseFloat(price).toFixed(3) + ' د.ك';
+                document.getElementById('assignSelectedInfo').classList.remove('d-none');
+                document.getElementById('assignError').classList.add('d-none');
+            }
+
             function openAssignPackageModal() {
                 var sel = document.getElementById('customerSelect');
                 var customerId = sel.value;
@@ -1231,37 +1291,25 @@
                 if (!customerId) { alert('اختر عميلاً أولاً'); return; }
                 document.getElementById('assignCustomerId').value = customerId;
                 document.getElementById('assignCustomerName').value = customerName;
-                document.getElementById('assignPackageSelect').value = '';
-                document.getElementById('assignPricePaid').value = '';
+                // إعادة تعيين اختيار الكارت
+                assignSelectedPkgId = null;
+                document.querySelectorAll('.assign-pkg-card').forEach(function(c) {
+                    c.style.border    = '2px solid #dee2e6';
+                    c.style.background = '#fff';
+                    c.style.boxShadow = '0 1px 4px rgba(0,0,0,.06)';
+                });
+                document.getElementById('assignSelectedInfo').classList.add('d-none');
                 document.getElementById('assignNotes').value = '';
-                document.getElementById('assignPackageInfo').classList.add('d-none');
                 document.getElementById('assignError').classList.add('d-none');
                 new bootstrap.Modal(document.getElementById('assignPackageModal')).show();
             }
 
-            function onAssignPackageChange(pkgId) {
-                var sel = document.getElementById('assignPackageSelect');
-                var opt = sel.options[sel.selectedIndex];
-                if (!pkgId || !opt) {
-                    document.getElementById('assignPackageInfo').classList.add('d-none');
-                    return;
-                }
-                var price = opt.dataset.price || '0';
-                var sessions = opt.dataset.sessions || '0';
-                var days = opt.dataset.days || '0';
-                document.getElementById('assignPricePaid').value = parseFloat(price).toFixed(3);
-                document.getElementById('assignPackageInfoText').textContent =
-                    sessions + ' جلسة | صلاحية ' + days + ' يوم | السعر الأصلي ' + parseFloat(price).toFixed(3) + ' د.ك';
-                document.getElementById('assignPackageInfo').classList.remove('d-none');
-            }
-
             function submitAssignPackage() {
-                var customerId  = document.getElementById('assignCustomerId').value;
-                var packageId   = document.getElementById('assignPackageSelect').value;
-                var pricePaid   = document.getElementById('assignPricePaid').value || '0';
-                var notes       = document.getElementById('assignNotes').value;
-                var errEl       = document.getElementById('assignError');
-                var submitBtn   = document.getElementById('assignPackageSubmit');
+                var customerId = document.getElementById('assignCustomerId').value;
+                var packageId  = assignSelectedPkgId;
+                var notes      = document.getElementById('assignNotes').value;
+                var errEl      = document.getElementById('assignError');
+                var submitBtn  = document.getElementById('assignPackageSubmit');
 
                 if (!packageId) { errEl.textContent = 'اختر الباقة أولاً'; errEl.classList.remove('d-none'); return; }
                 errEl.classList.add('d-none');
@@ -1272,20 +1320,32 @@
                 var body  = new URLSearchParams({
                     customerId: customerId,
                     servicePackageId: packageId,
-                    pricePaid: pricePaid,
+                    pricePaid: '0',   // الدفع يتم عبر الفاتورة
                     notes: notes,
                     __RequestVerificationToken: token
                 });
 
-                fetch('/Packages/AssignPackage', { method: 'POST', body: body,
+                fetch('/Packages/AssignPackage', {
+                    method: 'POST', body: body,
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded',
-                               'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) {
-                    if (r.ok || r.redirected) {
+                               'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data && data.success) {
                         bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide();
-                        onCustomerChange(customerId); // تحديث قائمة الباقات
+                        // تعيين بيانات الاختيار التلقائي
+                        pendingAutoSelectData = {
+                            id:          data.customerPackageId,
+                            name:        assignSelectedPkgName,
+                            remaining:   assignSelectedPkgSessions,
+                            total:       assignSelectedPkgSessions,
+                            pricePaid:   0,
+                            packagePrice: assignSelectedPkgPrice
+                        };
+                        onCustomerChange(customerId); // يُحدِّث القائمة ثم يختار الباقة تلقائياً
                     } else {
-                        errEl.textContent = 'حدث خطأ أثناء الحفظ (HTTP ' + r.status + ')';
+                        errEl.textContent = (data && data.message) || 'حدث خطأ أثناء الحفظ';
                         errEl.classList.remove('d-none');
                     }
                 })
