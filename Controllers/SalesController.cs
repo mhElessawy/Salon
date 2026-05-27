@@ -133,6 +133,7 @@ namespace Salon.Controllers
                 System.Globalization.CultureInfo.InvariantCulture,
                 out decimal packagePaymentAmount);
             model.SaleType = "حلاقة";
+            if (model.EmployeeId == 0) model.EmployeeId = null;  // avoid FK violation
             return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "حلاقة", customerPackageId, packagePaymentAmount);
         }
 
@@ -169,6 +170,7 @@ namespace Salon.Controllers
                 System.Globalization.CultureInfo.InvariantCulture,
                 out decimal packagePaymentAmount);
             model.SaleType = "مساج";
+            if (model.EmployeeId == 0) model.EmployeeId = null;  // avoid FK violation
             return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "مساج", customerPackageId, packagePaymentAmount);
         }
 
@@ -712,8 +714,11 @@ namespace Salon.Controllers
             }
             catch (Exception ex)
             {
+                var innerMsg = ex.InnerException?.InnerException?.Message
+                            ?? ex.InnerException?.Message
+                            ?? ex.Message;
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                    return Json(new { success = false, message = "خطأ في الحفظ: " + ex.Message });
+                    return Json(new { success = false, message = innerMsg });
                 throw;
             }
         }

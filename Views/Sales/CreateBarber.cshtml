@@ -554,7 +554,7 @@
     @Html.AntiForgeryToken()
     <input asp-for="InvoiceNumber" type="hidden" />
     <input asp-for="SaleType" type="hidden" value="حلاقة" />
-    <input type="hidden" id="selectedEmployeeId" name="EmployeeId" value="@autoSelectEmpId" />
+    <input type="hidden" id="selectedEmployeeId" name="EmployeeId" value="@(autoSelectEmpId > 0 ? autoSelectEmpId.ToString() : "")" />
     <input type="hidden" id="customerPackageId" name="customerPackageId" value="" />
     <input type="hidden" id="packagePaymentAmount" name="packagePaymentAmount" value="0" />
     <div id="hiddenItems"></div>
