@@ -431,13 +431,16 @@ namespace Salon.Controllers
             ViewBag.IsEmployee = isEmployee;
             ViewBag.LinkedEmployeeId = user?.LinkedEmployeeId;
 
-            // Today's date for attendance checks — must match DateTime.Today used in AttendanceController
+            // Today's date for attendance checks
             var today = DateTime.Today;
+            var yesterday = today.AddDays(-1);
 
-            // Only employees who are currently present (checked in, NOT checked out)
+            // Employees who are currently present = CheckIn recorded but NOT checked out yet
+            // Include yesterday's records (employees who stayed past midnight without checkout)
             var presentEmpIds = await _context.Attendances
-                .Where(a => a.AttendanceDate == today && a.CheckIn != null && a.CheckOut == null)
+                .Where(a => a.AttendanceDate >= yesterday && a.CheckIn != null && a.CheckOut == null)
                 .Select(a => a.EmployeeId)
+                .Distinct()
                 .ToListAsync();
 
             var empQuery = _context.Employees.Where(e => e.IsActive && e.DepartmentNav!.Name == dept
@@ -448,22 +451,22 @@ namespace Salon.Controllers
 
             var empList = await empQuery.ToListAsync();
 
-            // Today's queue positions — only for employees who haven't checked out
+            // Queue positions — employees who haven't checked out (today or yesterday)
             var todayQueue = await (
                 from a in _context.Attendances
                 join e in _context.Employees on a.EmployeeId equals e.Id
                 join d in _context.Departments on e.DepartmentId equals d.Id
-                where a.AttendanceDate == today && a.QueuePosition != null && d.Name == dept
+                where a.AttendanceDate >= yesterday && a.QueuePosition != null && d.Name == dept
                       && e.IsActive && a.CheckOut == null
                 select new { a.EmployeeId, QueuePos = (int)a.QueuePosition! }
             ).ToDictionaryAsync(x => x.EmployeeId, x => x.QueuePos);
 
-            // Today's check-in times — only for employees who haven't checked out
+            // Check-in times — employees who haven't checked out (today or yesterday)
             var checkInRows = await (
                 from a in _context.Attendances
                 join e in _context.Employees on a.EmployeeId equals e.Id
                 join d in _context.Departments on e.DepartmentId equals d.Id
-                where a.AttendanceDate == today && d.Name == dept && e.IsActive
+                where a.AttendanceDate >= yesterday && d.Name == dept && e.IsActive
                       && a.CheckIn != null && a.CheckOut == null
                 select new { a.EmployeeId, a.CheckIn }
             ).ToListAsync();
@@ -652,12 +655,14 @@ namespace Salon.Controllers
                 // Move the employee to the end of today's queue after serving a customer
                 if (model.EmployeeId.HasValue)
                 {
-                    var today2 = DateTime.Today;  // match AttendanceController
-                    // Only move the employee in queue if they haven't checked out yet
+                    var today2 = DateTime.Today;
+                    // Include yesterday's record (employee may not have checked out yet)
                     var todayAttendance = await _context.Attendances
-                        .FirstOrDefaultAsync(a => a.EmployeeId == model.EmployeeId.Value
-                                               && a.AttendanceDate == today2
-                                               && a.CheckOut == null);
+                        .Where(a => a.EmployeeId == model.EmployeeId.Value
+                                 && a.AttendanceDate >= today2.AddDays(-1)
+                                 && a.CheckOut == null)
+                        .OrderByDescending(a => a.AttendanceDate)
+                        .FirstOrDefaultAsync();
                     if (todayAttendance != null)
                     {
                         // Calculate max position only among employees still present (not checked out)
@@ -665,7 +670,7 @@ namespace Salon.Controllers
                             from a in _context.Attendances
                             join e in _context.Employees on a.EmployeeId equals e.Id
                             join d in _context.Departments on e.DepartmentId equals d.Id
-                            where a.AttendanceDate == today2 && a.QueuePosition != null  // today2 = DateTime.Today
+                            where a.AttendanceDate >= today2.AddDays(-1) && a.QueuePosition != null
                                   && d.Name == dept && a.CheckOut == null
                             select (int?)a.QueuePosition
                         ).MaxAsync() ?? 0;
