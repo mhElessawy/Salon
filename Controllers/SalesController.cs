@@ -431,8 +431,8 @@ namespace Salon.Controllers
             ViewBag.IsEmployee = isEmployee;
             ViewBag.LinkedEmployeeId = user?.LinkedEmployeeId;
 
-            // Today's date for attendance checks
-            var today = KuwaitToday;
+            // Today's date for attendance checks — must match DateTime.Today used in AttendanceController
+            var today = DateTime.Today;
 
             // Only employees who are currently present (checked in, NOT checked out)
             var presentEmpIds = await _context.Attendances
@@ -652,7 +652,7 @@ namespace Salon.Controllers
                 // Move the employee to the end of today's queue after serving a customer
                 if (model.EmployeeId.HasValue)
                 {
-                    var today2 = KuwaitToday;
+                    var today2 = DateTime.Today;  // match AttendanceController
                     // Only move the employee in queue if they haven't checked out yet
                     var todayAttendance = await _context.Attendances
                         .FirstOrDefaultAsync(a => a.EmployeeId == model.EmployeeId.Value
@@ -665,7 +665,7 @@ namespace Salon.Controllers
                             from a in _context.Attendances
                             join e in _context.Employees on a.EmployeeId equals e.Id
                             join d in _context.Departments on e.DepartmentId equals d.Id
-                            where a.AttendanceDate == today2 && a.QueuePosition != null
+                            where a.AttendanceDate == today2 && a.QueuePosition != null  // today2 = DateTime.Today
                                   && d.Name == dept && a.CheckOut == null
                             select (int?)a.QueuePosition
                         ).MaxAsync() ?? 0;
