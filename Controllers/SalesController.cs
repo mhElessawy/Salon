@@ -127,8 +127,14 @@ namespace Salon.Controllers
             Sale model, int[]? itemIds, string[]? itemNames,
             decimal[]? itemPrices, int[]? itemQtys, int? customerPackageId)
         {
+            decimal.TryParse(
+                Request.Form["packagePaymentAmount"].FirstOrDefault() ?? "0",
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out decimal packagePaymentAmount);
             model.SaleType = "حلاقة";
-            return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "حلاقة", customerPackageId);
+            if (model.EmployeeId == 0) model.EmployeeId = null;  // avoid FK violation
+            return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "حلاقة", customerPackageId, packagePaymentAmount);
         }
 
         // ===== فاتورة مساج (MAS-) =====
@@ -158,8 +164,14 @@ namespace Salon.Controllers
             Sale model, int[]? itemIds, string[]? itemNames,
             decimal[]? itemPrices, int[]? itemQtys, int? customerPackageId)
         {
+            decimal.TryParse(
+                Request.Form["packagePaymentAmount"].FirstOrDefault() ?? "0",
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out decimal packagePaymentAmount);
             model.SaleType = "مساج";
-            return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "مساج", customerPackageId);
+            if (model.EmployeeId == 0) model.EmployeeId = null;  // avoid FK violation
+            return await SaveServiceInvoice(model, itemIds, itemNames, itemPrices, itemQtys, "مساج", customerPackageId, packagePaymentAmount);
         }
 
         // ===== فاتورة مبيعات منتجات (PRD-) =====
@@ -279,6 +291,9 @@ namespace Salon.Controllers
                     }
                 }
 
+                // ── توليد رقم الفاتورة عند الحفظ الفعلي لتجنّب التكرار ──
+                model.InvoiceNumber = await GenerateInvoiceNumber("PRD");
+
                 model.TotalAmount = 0;
                 model.SaleDate = KuwaitNow;
                 _context.Sales.Add(model);
@@ -368,20 +383,20 @@ namespace Salon.Controllers
 
         private async Task<string> GenerateInvoiceNumber(string prefix)
         {
-            var last = await _context.Sales
+            // نجلب أكبر رقم تسلسلي محفوظ فعلاً في قاعدة البيانات
+            var allNumbers = await _context.Sales
                 .Where(s => s.InvoiceNumber.StartsWith(prefix + "-"))
-                .OrderByDescending(s => s.Id)
                 .Select(s => s.InvoiceNumber)
-                .FirstOrDefaultAsync();
+                .ToListAsync();
 
-            int seq = 1;
-            if (last != null)
+            int maxSeq = 0;
+            foreach (var inv in allNumbers)
             {
-                var parts = last.Split('-');
+                var parts = inv.Split('-');
                 if (parts.Length == 2 && int.TryParse(parts[1], out var n))
-                    seq = n + 1;
+                    if (n > maxSeq) maxSeq = n;
             }
-            return $"{prefix}-{seq:D4}";
+            return $"{prefix}-{(maxSeq + 1):D4}";
         }
 
         private async Task PopulateDeptDropdowns(string dept, ApplicationUser? user, string role)
@@ -529,7 +544,9 @@ namespace Salon.Controllers
                         total = cp.TotalSessions,
                         expiry = cp.ExpiryDate.HasValue
                                         ? cp.ExpiryDate.Value.ToString("yyyy/MM/dd")
-                                        : "—"
+                                        : "—",
+                        pricePaid = cp.PricePaid,
+                        packagePrice = cp.ServicePackage!.Price
                     })
                     .ToListAsync();
                 return Json(pkgs);
@@ -543,9 +560,26 @@ namespace Salon.Controllers
         private async Task<IActionResult> SaveServiceInvoice(
             Sale model, int[]? itemIds, string[]? itemNames,
             decimal[]? itemPrices, int[]? itemQtys, string dept,
-            int? customerPackageId = null)
+            int? customerPackageId,
+            decimal packagePaymentAmount)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
+            {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    return Json(new { success = false, message = string.Join("، ", errors) });
+                }
+                var user0 = await _userManager.GetUserAsync(User);
+                var roles0 = await _userManager.GetRolesAsync(user0!);
+                await PopulateDeptDropdowns(dept, user0, roles0.FirstOrDefault() ?? "");
+                return dept == "حلاقة" ? View("CreateBarber", model) : View("CreateMassage", model);
+            }
+
+            try
             {
                 // Server-side permission enforcement for Discount and CustomerDebt
                 var currentUser = await _userManager.GetUserAsync(User);
@@ -560,6 +594,10 @@ namespace Salon.Controllers
                     if (pd.TryGetValue("CustomerDebt", out var canDebt) && !canDebt && model.PaymentMethod == "دين على العميل")
                         model.PaymentMethod = "كاش";
                 }
+
+                // ── توليد رقم الفاتورة عند الحفظ الفعلي لتجنّب التكرار ──
+                var invoicePrefix = dept == "حلاقة" ? "PAR" : "MAS";
+                model.InvoiceNumber = await GenerateInvoiceNumber(invoicePrefix);
 
                 model.TotalAmount = 0;
                 model.SaleDate = KuwaitNow;
@@ -587,6 +625,27 @@ namespace Salon.Controllers
                         model.TotalAmount += item.Total;
                     }
                 }
+                // ── دفع ثمن الباقة (أول جلسة أو دفع جزئي) ──
+                if (customerPackageId.HasValue && packagePaymentAmount > 0)
+                {
+                    var cpForPay = await _context.CustomerPackages
+                        .Include(x => x.ServicePackage)
+                        .FirstOrDefaultAsync(x => x.Id == customerPackageId.Value);
+                    if (cpForPay != null)
+                    {
+                        cpForPay.PricePaid += packagePaymentAmount;
+                        _context.SaleItems.Add(new SaleItem
+                        {
+                            SaleId = model.Id,
+                            ItemName = $"دفع ثمن الباقة: {cpForPay.ServicePackage?.NameAr}",
+                            Quantity = 1,
+                            Price = packagePaymentAmount,
+                            Total = packagePaymentAmount
+                        });
+                        model.TotalAmount += packagePaymentAmount;
+                    }
+                }
+
                 model.NetAmount = model.TotalAmount - model.Discount;
                 await _context.SaveChangesAsync();
 
@@ -608,9 +667,9 @@ namespace Salon.Controllers
                             join d in _context.Departments on e.DepartmentId equals d.Id
                             where a.AttendanceDate == today2 && a.QueuePosition != null
                                   && d.Name == dept && a.CheckOut == null
-                            select a.QueuePosition
-                        ).MaxAsync();
-                        todayAttendance.QueuePosition = (maxPos ?? 0) + 1;
+                            select (int?)a.QueuePosition
+                        ).MaxAsync() ?? 0;
+                        todayAttendance.QueuePosition = maxPos + 1;
                         await _context.SaveChangesAsync();
                     }
                 }
@@ -653,12 +712,15 @@ namespace Salon.Controllers
 
                 return RedirectToAction(nameof(PrintInvoice), new { id = model.Id });
             }
-
-            var user = await _userManager.GetUserAsync(User);
-            var roles = await _userManager.GetRolesAsync(user!);
-            await PopulateDeptDropdowns(dept, user, roles.FirstOrDefault() ?? "");
-
-            return dept == "حلاقة" ? View("CreateBarber", model) : View("CreateMassage", model);
+            catch (Exception ex)
+            {
+                var innerMsg = ex.InnerException?.InnerException?.Message
+                            ?? ex.InnerException?.Message
+                            ?? ex.Message;
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = false, message = innerMsg });
+                throw;
+            }
         }
     }
 }
