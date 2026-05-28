@@ -381,6 +381,19 @@ namespace Salon.Controllers
 
         // ===== Helpers =====
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveNotes(int saleId, string? notes, string? returnDate)
+        {
+            var sale = await _context.Sales.FindAsync(saleId);
+            if (sale != null)
+            {
+                sale.Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(Index), new { date = returnDate });
+        }
+
         private async Task<string> GenerateInvoiceNumber(string prefix)
         {
             // نجلب أكبر رقم تسلسلي محفوظ فعلاً في قاعدة البيانات
