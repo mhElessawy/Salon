@@ -12,6 +12,7 @@
     var selectedDate = ViewBag.SelectedDate as string ?? DateTime.Today.ToString("yyyy-MM-dd");
     bool isToday = ViewBag.IsToday is bool b && b;
     var isFiltered = !string.IsNullOrEmpty(selectedSaleType) || !string.IsNullOrEmpty(selectedPayment) || selectedEmpId.HasValue;
+    var advancesList = ViewBag.AdvancesList as List<EmployeeAdvance> ?? new List<EmployeeAdvance>();
 }
 
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -317,7 +318,36 @@
                             <td class="text-muted small">@s.SaleDate.ToString("hh:mm tt")</td>
                         </tr>
                     }
-                    @if (!Model.Any())
+                    @foreach (var adv in advancesList)
+                    {
+                        var advTime = adv.AdvanceDate != default ? adv.AdvanceDate.ToString("hh:mm tt") : adv.CreatedAt.ToString("hh:mm tt");
+                        <tr style="background:#fff0f0;">
+                            <td><strong class="text-danger">سلفة #@adv.Id</strong></td>
+                            <td>@(adv.Employee?.FullName ?? "-")</td>
+                            <td class="text-muted">-</td>
+                            <td><span class="badge" style="background:#9f1239;"><i class="fas fa-hand-holding-usd me-1"></i>سلفة</span></td>
+                            <td class="small text-muted">@(string.IsNullOrEmpty(adv.Reason) ? "-" : adv.Reason)</td>
+                            <td class="text-danger fw-bold">@adv.Amount.ToString("N3") د.ك</td>
+                            <td class="text-muted">-</td>
+                            <td class="text-danger fw-bold">@adv.Amount.ToString("N3") د.ك</td>
+                            <td>
+                                @if (adv.PaymentMethod == "كاش" || adv.PaymentMethod == "نقدي")
+                                {
+                                    <span class="badge bg-success"><i class="fas fa-money-bill-wave me-1"></i>@adv.PaymentMethod</span>
+                                }
+                                else if (adv.PaymentMethod == "كي نت")
+                                {
+                                    <span class="badge bg-info text-dark"><i class="fas fa-credit-card me-1"></i>كي نت</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@adv.PaymentMethod</span>
+                                }
+                            </td>
+                            <td class="text-muted small">@advTime</td>
+                        </tr>
+                    }
+                    @if (!Model.Any() && !advancesList.Any())
                     {
                         <tr>
                             <td colspan="10" class="text-center text-muted py-5">
@@ -327,13 +357,17 @@
                         </tr>
                     }
                 </tbody>
-                @if (Model.Any())
+                @if (Model.Any() || advancesList.Any())
                 {
                     <tfoot class="table-dark fw-bold">
                         <tr>
                             <td colspan="5" class="text-end fs-6">
                                 <i class="fas fa-receipt me-1"></i>
-                                إجمالي الفواتير: <span class="badge bg-light text-dark fs-6 ms-1">@Model.Count()</span>
+                                فواتير: <span class="badge bg-light text-dark fs-6 ms-1">@Model.Count()</span>
+                                @if (advancesList.Any())
+                                {
+                                    <span class="ms-2">سلف: <span class="badge bg-danger fs-6">@advancesList.Count</span></span>
+                                }
                             </td>
                             <td class="fs-6">@Model.Sum(s => s.TotalAmount).ToString("N3") <small>د.ك</small></td>
                             <td class="text-warning fs-6">@Model.Sum(s => s.Discount).ToString("N3") <small>د.ك</small></td>

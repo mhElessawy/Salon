@@ -159,7 +159,8 @@ namespace Salon.Controllers
             if (userDept == "حلاقة" || userDept == "مساج")
                 advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
 
-            var advancesToday = await advancesQuery.SumAsync(a => (decimal?)a.Amount) ?? 0;
+            var advancesList = await advancesQuery.OrderBy(a => a.AdvanceDate).ToListAsync();
+            var advancesToday = advancesList.Sum(a => a.Amount);
 
             var salesToday = activeSalesReport.Sum(s => s.NetAmount);
 
@@ -171,6 +172,7 @@ namespace Salon.Controllers
             ViewBag.SalesToday = salesToday;
             ViewBag.ExpensesToday = expensesToday;
             ViewBag.AdvancesToday = advancesToday;
+            ViewBag.AdvancesList = advancesList;
             ViewBag.NetProfit = salesToday - expensesToday - advancesToday;
             ViewBag.BarberSales = activeSalesReport.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount);
             ViewBag.MassageSales = activeSalesReport.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount);
