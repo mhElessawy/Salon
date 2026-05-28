@@ -443,13 +443,14 @@ namespace Salon.Controllers
                 .Distinct()
                 .ToListAsync();
 
-            var empQuery = _context.Employees.Where(e => e.IsActive && e.DepartmentNav!.Name == dept
-                                                         && presentEmpIds.Contains(e.Id));
+            var empQuery = _context.Employees.Where(e => e.IsActive && e.DepartmentNav!.Name == dept);
 
             if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
                 empQuery = empQuery.Where(e => e.Id == user.LinkedEmployeeId!.Value);
 
             var empList = await empQuery.ToListAsync();
+
+            ViewBag.PresentEmpIds = presentEmpIds;
 
             // Queue positions — employees who haven't checked out (today or yesterday)
             var todayQueue = await (
@@ -474,9 +475,9 @@ namespace Salon.Controllers
                 .GroupBy(x => x.EmployeeId)
                 .ToDictionary(g => g.Key, g => g.First().CheckIn);
 
-            // Sort by queue position (present employees first), then unqueued alphabetically
+            // Sort: present employees first (by queue position), then absent employees alphabetically
             var sortedEmployees = empList
-                .OrderBy(e => todayQueue.ContainsKey(e.Id) ? 0 : 1)
+                .OrderBy(e => presentEmpIds.Contains(e.Id) ? 0 : 1)
                 .ThenBy(e => todayQueue.TryGetValue(e.Id, out var q) ? q : int.MaxValue)
                 .ThenBy(e => e.FullName)
                 .ToList();
