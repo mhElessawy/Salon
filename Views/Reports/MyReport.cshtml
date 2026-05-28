@@ -224,14 +224,22 @@
                         <th>الخصم</th>
                         <th>الصافي</th>
                         <th>طريقة الدفع</th>
+                        <th>ملاحظات</th>
                         <th>الوقت</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var s in Model)
                     {
-                        <tr>
-                            <td><strong>@s.InvoiceNumber</strong></td>
+                        var isCancelled = s.Status == "ملغي";
+                        <tr style="@(isCancelled ? "background:#fff5f5;opacity:.8;" : "")">
+                            <td>
+                                <strong style="@(isCancelled ? "text-decoration:line-through;color:#dc2626;" : "")">@s.InvoiceNumber</strong>
+                                @if (isCancelled)
+                                {
+                                    <br /><span class="badge bg-danger mt-1"><i class="fas fa-ban me-1"></i>ملغي</span>
+                                }
+                            </td>
                             <td>@(s.Employee?.FullName ?? "-")</td>
                             <td>@(s.Customer?.FullName ?? "زائر")</td>
                             <td>
@@ -274,7 +282,7 @@
                                     <span class="text-muted">-</span>
                                 }
                             </td>
-                            <td><strong class="text-success">@s.NetAmount.ToString("N3") د.ك</strong></td>
+                            <td><strong class="@(isCancelled ? "text-danger" : "text-success")">@s.NetAmount.ToString("N3") د.ك</strong></td>
                             <td>
                                 @if (s.PaymentMethod == "كاش")
                                 {
@@ -315,6 +323,7 @@
                                     <span class="badge bg-secondary">@s.PaymentMethod</span>
                                 }
                             </td>
+                            <td class="small text-muted" style="max-width:140px;white-space:pre-wrap;">@s.Notes</td>
                             <td class="text-muted small">@s.SaleDate.ToString("hh:mm tt")</td>
                         </tr>
                     }
@@ -344,13 +353,14 @@
                                     <span class="badge bg-secondary">@adv.PaymentMethod</span>
                                 }
                             </td>
+                            <td></td>
                             <td class="text-muted small">@advTime</td>
                         </tr>
                     }
                     @if (!Model.Any() && !advancesList.Any())
                     {
                         <tr>
-                            <td colspan="10" class="text-center text-muted py-5">
+                            <td colspan="11" class="text-center text-muted py-5">
                                 <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
                                 لا توجد فواتير اليوم
                             </td>
@@ -372,7 +382,7 @@
                             <td class="fs-6">@Model.Sum(s => s.TotalAmount).ToString("N3") <small>د.ك</small></td>
                             <td class="text-warning fs-6">@Model.Sum(s => s.Discount).ToString("N3") <small>د.ك</small></td>
                             <td class="text-success fs-6">@Model.Sum(s => s.NetAmount).ToString("N3") <small>د.ك</small></td>
-                            <td colspan="2"></td>
+                            <td colspan="3"></td>
                         </tr>
                     </tfoot>
                 }
