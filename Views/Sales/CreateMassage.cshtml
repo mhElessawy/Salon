@@ -9,6 +9,7 @@
     var checkInTimes = ViewBag.EmployeeCheckInTimes as Dictionary<int, TimeSpan?> ?? new();
     var canDiscount = (bool)(ViewBag.CanDiscount ?? true);
     var canCustomerDebt = (bool)(ViewBag.CanCustomerDebt ?? true);
+    var presentEmpIds = ViewBag.PresentEmpIds as List<int> ?? new();
 
     int onDutyEmpId = queuePositions.Any()
         ? queuePositions.OrderBy(x => x.Value).First().Key
@@ -191,6 +192,11 @@
 
         .emp-item.emp-selected .emp-check {
             opacity: 1;
+        }
+
+        .emp-item.emp-absent {
+            background: rgba(45, 91, 163, 0.45);
+            opacity: 0.72;
         }
 
         /* ── Col 2: Services ── */
@@ -619,7 +625,7 @@
         <!-- Col 1 (RIGHT): Employee Queue -->
         <div class="pos-employees-panel">
             <div class="emp-header">
-                <i class="fas fa-spa"></i> المعالجين الحاضرين
+                <i class="fas fa-spa"></i> المعالجين
             </div>
             <div class="emp-toggle-bar">
                 <span class="badge-locked">مقفل</span>
@@ -630,17 +636,21 @@
                 {
                     <div class="text-center py-3" style="color:rgba(255,255,255,.6);font-size:13px">
                         <i class="fas fa-user-slash mb-1 d-block"></i>
-                        لا يوجد معالجون حاضرون
+                        لا يوجد معالجون
                     </div>
                 }
                 @foreach (var emp in employees)
                 {
+                    var isPresent = presentEmpIds.Contains(emp.Id);
                     var qPos = queuePositions.TryGetValue(emp.Id, out var p) ? p.ToString() : "—";
                     var tSpan = checkInTimes.TryGetValue(emp.Id, out var t) && t.HasValue ? t.Value : (TimeSpan?)null;
                     var timeStr = tSpan.HasValue ? tSpan.Value.ToString(@"hh\:mm") : "—";
                     var isOnDuty = emp.Id == onDutyEmpId;
                     var isSelected = emp.Id == autoSelectEmpId;
-                    var rowClass = "emp-item" + (isOnDuty ? " on-duty" : "") + (isSelected ? " emp-selected" : "");
+                    var rowClass = "emp-item" +
+                        (isOnDuty ? " on-duty" : "") +
+                        (!isPresent ? " emp-absent" : "") +
+                        (isSelected ? " emp-selected" : "");
                     <div class="@rowClass" id="emp-@emp.Id" onclick="selectEmployee(@emp.Id, this)">
                         <div class="emp-info">
                             <div class="emp-name">@emp.FullName</div>
