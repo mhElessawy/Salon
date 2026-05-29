@@ -704,6 +704,9 @@ namespace Salon.Migrations
                 b.Property<decimal>("BasicSalary")
                     .HasColumnType("decimal(18,3)");
 
+                b.Property<decimal>("CommissionAmount")
+                    .HasColumnType("decimal(18,3)");
+
                 b.Property<DateTime>("CreatedAt")
                     .HasColumnType("datetime2");
 
@@ -712,6 +715,9 @@ namespace Salon.Migrations
 
                 b.Property<int>("EmployeeId")
                     .HasColumnType("int");
+
+                b.Property<decimal?>("GiftAmount")
+                    .HasColumnType("decimal(18,3)");
 
                 b.Property<int>("Month")
                     .HasColumnType("int");
