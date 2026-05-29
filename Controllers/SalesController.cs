@@ -569,18 +569,11 @@ namespace Salon.Controllers
         {
             if (!ModelState.IsValid)
             {
-                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                {
-                    var errors = ModelState.Values
-                        .SelectMany(v => v.Errors)
-                        .Select(e => e.ErrorMessage)
-                        .ToList();
-                    return Json(new { success = false, message = string.Join("، ", errors) });
-                }
-                var user0 = await _userManager.GetUserAsync(User);
-                var roles0 = await _userManager.GetRolesAsync(user0!);
-                await PopulateDeptDropdowns(dept, user0, roles0.FirstOrDefault() ?? "");
-                return dept == "حلاقة" ? View("CreateBarber", model) : View("CreateMassage", model);
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+                return Json(new { success = false, message = string.Join("، ", errors) });
             }
 
             try
@@ -713,19 +706,14 @@ namespace Salon.Controllers
                     .FirstAsync(s => s.Id == model.Id);
                 _ = Task.Run(() => _emailService.SendInvoiceNotificationAsync(saleWithItems, cashierName));
 
-                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                    return Json(new { success = true, invoiceId = model.Id });
-
-                return RedirectToAction(nameof(PrintInvoice), new { id = model.Id });
+                return Json(new { success = true, invoiceId = model.Id });
             }
             catch (Exception ex)
             {
                 var innerMsg = ex.InnerException?.InnerException?.Message
                             ?? ex.InnerException?.Message
                             ?? ex.Message;
-                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                    return Json(new { success = false, message = innerMsg });
-                throw;
+                return Json(new { success = false, message = innerMsg });
             }
         }
     }
