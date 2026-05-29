@@ -58,6 +58,13 @@ namespace Salon.Controllers
         {
             if (ModelState.IsValid)
             {
+                await CheckDuplicates(model, excludeId: null);
+                if (!ModelState.IsValid)
+                {
+                    await LoadDepartments(model.DepartmentId);
+                    return View(model);
+                }
+
                 model.CreatedAt = DateTime.Now;
                 _context.Employees.Add(model);
                 await _context.SaveChangesAsync();
@@ -82,6 +89,13 @@ namespace Salon.Controllers
             if (id != model.Id) return NotFound();
             if (ModelState.IsValid)
             {
+                await CheckDuplicates(model, excludeId: id);
+                if (!ModelState.IsValid)
+                {
+                    await LoadDepartments(model.DepartmentId);
+                    return View(model);
+                }
+
                 _context.Update(model);
                 await _context.SaveChangesAsync();
                 TempData["Success"] = "تم تعديل بيانات الموظف بنجاح";
@@ -120,6 +134,24 @@ namespace Salon.Controllers
                 TempData["Success"] = "تم حذف الموظف بنجاح";
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        private async Task CheckDuplicates(Employee model, int? excludeId)
+        {
+            var query = _context.Employees.Where(e => e.IsActive);
+            if (excludeId.HasValue)
+                query = query.Where(e => e.Id != excludeId.Value);
+
+            if (await query.AnyAsync(e => e.FullName == model.FullName))
+                ModelState.AddModelError(nameof(model.FullName), "يوجد موظف آخر بنفس الاسم");
+
+            if (!string.IsNullOrWhiteSpace(model.Phone) &&
+                await query.AnyAsync(e => e.Phone == model.Phone))
+                ModelState.AddModelError(nameof(model.Phone), "رقم الهاتف مستخدم لدى موظف آخر");
+
+            if (!string.IsNullOrWhiteSpace(model.IdNumber) &&
+                await query.AnyAsync(e => e.IdNumber == model.IdNumber))
+                ModelState.AddModelError(nameof(model.IdNumber), "رقم الإقامة / الهوية مستخدم لدى موظف آخر");
         }
 
         public async Task<IActionResult> Licenses()
