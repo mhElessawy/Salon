@@ -16,13 +16,14 @@ WIDTH, HEIGHT = 720, 1280
 # Scene timings: (scene_id, duration_seconds, settle_seconds)
 # settle = how long to wait before we start capturing (for entrance animations)
 SCENES = [
-    ("scene-intro",        4.5, 0.3),
-    ("scene-tagline",      5.0, 0.3),
-    ("scene-features",     7.0, 0.3),
-    ("scene-appointments", 5.0, 0.3),
-    ("scene-reports",      5.0, 0.3),
-    ("scene-employees",    5.0, 0.3),
-    ("scene-cta",          5.5, 0.3),
+    ("scene-1", 4.5, 0.4),   # Intro
+    ("scene-2", 5.0, 0.4),   # Dashboard
+    ("scene-3", 5.0, 0.4),   # Invoices
+    ("scene-4", 5.0, 0.4),   # Appointments & Packages
+    ("scene-5", 5.0, 0.4),   # Employees
+    ("scene-6", 5.0, 0.4),   # Reports
+    ("scene-7", 4.5, 0.4),   # Security & Roles
+    ("scene-8", 5.0, 0.4),   # CTA
 ]
 
 TOTAL_DURATION = sum(d for _, d, _ in SCENES)
