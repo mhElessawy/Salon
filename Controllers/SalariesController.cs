@@ -98,6 +98,23 @@ namespace Salon.Controllers
 
             var rangeStart = new DateTime(year, month, 1);
             var rangeEnd = rangeStart.AddMonths(1);
+
+            var sales = await _context.Sales
+                .Where(s => s.EmployeeId == employeeId
+                         && s.SaleDate >= rangeStart
+                         && s.SaleDate < rangeEnd)
+                .OrderBy(s => s.SaleDate)
+                .Select(s => new
+                {
+                    s.InvoiceNumber,
+                    saleDate = s.SaleDate.ToString("yyyy-MM-dd"),
+                    s.NetAmount
+                })
+                .ToListAsync();
+
+            var totalSalesAmount = sales.Sum(s => s.NetAmount);
+            var commissionAmount = Math.Round(totalSalesAmount * employee.Commission / 100, 3);
+
             var totalGifts = await _context.Sales
                 .Where(s => s.EmployeeId == employeeId
                          && s.SaleDate >= rangeStart
@@ -109,6 +126,10 @@ namespace Salon.Controllers
             return Json(new
             {
                 basicSalary = employee.BasicSalary,
+                commission = employee.Commission,
+                sales,
+                totalSalesAmount,
+                commissionAmount,
                 advanceDeducted = totalAdvances,
                 totalGifts,
                 alreadyPaid
@@ -134,7 +155,7 @@ namespace Salon.Controllers
                     return View(model);
                 }
 
-                model.NetSalary = model.BasicSalary + model.Allowances + (model.GiftAmount ?? 0) - model.Deductions - model.AdvanceDeducted;
+                model.NetSalary = model.BasicSalary + model.CommissionAmount + model.Allowances + (model.GiftAmount ?? 0) - model.Deductions - model.AdvanceDeducted;
                 model.CreatedAt = DateTime.Now;
                 _context.Salaries.Add(model);
                 await _context.SaveChangesAsync();

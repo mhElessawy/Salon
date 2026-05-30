@@ -43,9 +43,56 @@
                     <label class="form-label">السنة</label>
                     <input type="number" name="Year" id="yearInput" value="@DateTime.Today.Year" class="form-control" onchange="loadSalary()" />
                 </div>
+
+                <div class="col-12 d-none" id="salesCard">
+                    <div class="card border-info">
+                        <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-receipt me-2 text-info"></i><strong>فواتير الشهر</strong></span>
+                            <span class="badge bg-info" id="salesCountBadge">0 فاتورة</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>رقم الفاتورة</th>
+                                            <th>التاريخ</th>
+                                            <th class="text-end">صافي الفاتورة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="salesTableBody">
+                                        <tr><td colspan="3" class="text-center text-muted py-3">لا توجد فواتير لهذا الشهر</td></tr>
+                                    </tbody>
+                                    <tfoot class="table-light fw-bold">
+                                        <tr>
+                                            <td colspan="2">إجمالي الفواتير</td>
+                                            <td class="text-end" id="totalSalesDisplay">0.000</td>
+                                        </tr>
+                                        <tr class="table-success">
+                                            <td colspan="2">
+                                                حق الموظف
+                                                <span class="text-muted fw-normal">(<span id="commissionPctDisplay">0</span>%)</span>
+                                            </td>
+                                            <td class="text-end fw-bold" id="commissionAmountDisplay">0.000</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-md-3">
                     <label class="form-label">الراتب الأساسي</label>
                     <input type="number" name="BasicSalary" id="basicSalary" step="0.001" class="form-control" value="0" oninput="calcNet()" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">
+                        عمولة الفواتير
+                        <small class="text-muted fw-normal" id="commissionPctLabel"></small>
+                    </label>
+                    <input type="number" name="CommissionAmount" id="commissionAmount" step="0.001" class="form-control" value="0" oninput="calcNet()"
+                           style="background:#f0f8ff;" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">البدلات</label>
@@ -87,23 +134,25 @@
 @section Scripts {
     <script>
         function calcNet() {
-            const basic = parseFloat(document.getElementById('basicSalary').value) || 0;
-            const allow = parseFloat(document.getElementById('allowances').value) || 0;
-            const gift  = parseFloat(document.getElementById('giftAmount').value)  || 0;
-            const ded   = parseFloat(document.getElementById('deductions').value)  || 0;
-            const adv   = parseFloat(document.getElementById('advanceDeducted').value) || 0;
-            document.getElementById('netSalary').value = (basic + allow + gift - ded - adv).toFixed(3);
+            const basic  = parseFloat(document.getElementById('basicSalary').value)      || 0;
+            const comm   = parseFloat(document.getElementById('commissionAmount').value)  || 0;
+            const allow  = parseFloat(document.getElementById('allowances').value)        || 0;
+            const gift   = parseFloat(document.getElementById('giftAmount').value)        || 0;
+            const ded    = parseFloat(document.getElementById('deductions').value)        || 0;
+            const adv    = parseFloat(document.getElementById('advanceDeducted').value)   || 0;
+            document.getElementById('netSalary').value = (basic + comm + allow + gift - ded - adv).toFixed(3);
         }
 
         async function loadSalary() {
             const empId = document.getElementById('employeeSelect').value;
             const month = document.getElementById('monthSelect').value;
             const year  = document.getElementById('yearInput').value;
-            const alert = document.getElementById('alreadyPaidAlert');
+            const alertEl   = document.getElementById('alreadyPaidAlert');
             const submitBtn = document.querySelector('button[type="submit"]');
 
             if (!empId) {
-                alert.classList.add('d-none');
+                alertEl.classList.add('d-none');
+                document.getElementById('salesCard').classList.add('d-none');
                 return;
             }
 
@@ -112,17 +161,45 @@
                 if (!res.ok) return;
                 const data = await res.json();
 
-                document.getElementById('basicSalary').value     = data.basicSalary.toFixed(3);
-                document.getElementById('advanceDeducted').value = data.advanceDeducted.toFixed(3);
-                document.getElementById('giftAmount').value      = data.totalGifts.toFixed(3);
+                // حقول الراتب
+                document.getElementById('basicSalary').value      = data.basicSalary.toFixed(3);
+                document.getElementById('commissionAmount').value  = data.commissionAmount.toFixed(3);
+                document.getElementById('advanceDeducted').value  = data.advanceDeducted.toFixed(3);
+                document.getElementById('giftAmount').value       = data.totalGifts.toFixed(3);
+
+                // تحديث تسمية العمولة
+                const pct = data.commission || 0;
+                document.getElementById('commissionPctLabel').textContent = pct > 0 ? `(${pct}%)` : '';
+
+                // بطاقة الفواتير
+                const salesCard = document.getElementById('salesCard');
+                document.getElementById('commissionPctDisplay').textContent = pct;
+                document.getElementById('totalSalesDisplay').textContent    = data.totalSalesAmount.toFixed(3) + ' د.ك';
+                document.getElementById('commissionAmountDisplay').textContent = data.commissionAmount.toFixed(3) + ' د.ك';
+                document.getElementById('salesCountBadge').textContent = data.sales.length + ' فاتورة';
+
+                const tbody = document.getElementById('salesTableBody');
+                if (data.sales.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">لا توجد فواتير لهذا الشهر</td></tr>';
+                    salesCard.classList.add('d-none');
+                } else {
+                    tbody.innerHTML = data.sales.map(s =>
+                        `<tr>
+                            <td>${s.invoiceNumber}</td>
+                            <td>${s.saleDate}</td>
+                            <td class="text-end">${s.netAmount.toFixed(3)} د.ك</td>
+                        </tr>`
+                    ).join('');
+                    salesCard.classList.remove('d-none');
+                }
+
                 calcNet();
 
-                // إظهار تحذير إذا الشهر مدفوع مسبقاً
                 if (data.alreadyPaid) {
-                    alert.classList.remove('d-none');
+                    alertEl.classList.remove('d-none');
                     submitBtn.disabled = true;
                 } else {
-                    alert.classList.add('d-none');
+                    alertEl.classList.add('d-none');
                     submitBtn.disabled = false;
                 }
             } catch (e) {
