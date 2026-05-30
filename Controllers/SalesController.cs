@@ -179,7 +179,7 @@ namespace Salon.Controllers
         {
             var user = await _userManager.GetUserAsync(User);
             var roles = await _userManager.GetRolesAsync(user!);
-            if (roles.Contains("Employee") || !string.IsNullOrEmpty(user?.UserDepartment))
+            if (!roles.Contains("Admin") && (roles.Contains("Employee") || !string.IsNullOrEmpty(user?.UserDepartment)))
                 return Forbid();
 
             await PopulateProductDropdowns();
@@ -201,7 +201,7 @@ namespace Salon.Controllers
         {
             var user = await _userManager.GetUserAsync(User);
             var roles = await _userManager.GetRolesAsync(user!);
-            if (roles.Contains("Employee") || !string.IsNullOrEmpty(user?.UserDepartment))
+            if (!roles.Contains("Admin") && (roles.Contains("Employee") || !string.IsNullOrEmpty(user?.UserDepartment)))
                 return Forbid();
 
             model.SaleType = "منتجات";
