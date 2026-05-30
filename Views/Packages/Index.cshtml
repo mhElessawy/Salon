@@ -10,53 +10,127 @@
 
 @section Styles {
     <style>
-        /* ═══════ بطاقة الباقة ═══════ */
         .pkg-card {
+            border: 1px solid #e9ecef;
             border-radius: 14px;
-            overflow: hidden;
-            transition: transform .18s, box-shadow .18s;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
             .pkg-card:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 8px 24px rgba(0,0,0,.13) !important;
+                transform: translateY(-3px);
+                box-shadow: 0 8px 24px rgba(0,0,0,0.1);
             }
 
-        .pkg-card-banner {
-            padding: 18px 18px 14px;
+        .pkg-icon-box {
+            width: 46px;
+            height: 46px;
+            background: #F7941D;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: #fff;
-            background: linear-gradient(135deg, #1a6fc4, #0d47a1);
+            font-size: 20px;
         }
 
-        .pkg-sessions-badge {
-            display: inline-block;
-            background: rgba(255,255,255,.22);
-            backdrop-filter: blur(4px);
+        .pkg-action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .pkg-action-delete {
+            color: #dc3545;
+        }
+
+            .pkg-action-delete:hover {
+                background: #dc3545;
+                color: #fff;
+                border-color: #dc3545;
+            }
+
+        .pkg-action-edit {
+            color: #6c757d;
+        }
+
+            .pkg-action-edit:hover {
+                background: #6c757d;
+                color: #fff;
+                border-color: #6c757d;
+            }
+
+        .pkg-name {
+            font-weight: 700;
+            font-size: 15px;
+            color: #1a1a2e;
+            text-align: right;
+        }
+
+        .pkg-name-en {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .pkg-category-badge {
+            background: #e3f2fd;
+            color: #1565c0;
             border-radius: 20px;
             padding: 3px 12px;
-            font-size: .82rem;
+            font-size: 12px;
             font-weight: 600;
-            letter-spacing: .3px;
         }
 
-        .pkg-price {
-            font-size: 1.75rem;
-            font-weight: 800;
-            line-height: 1.1;
-            text-shadow: 0 1px 4px rgba(0,0,0,.15);
+        .pkg-details {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
-            .pkg-price small {
-                font-size: .85rem;
-                font-weight: 400;
-            }
+        .pkg-detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
 
-        .pkg-info-chip {
-            background: #f4f6f9;
+        .pkg-detail-label {
+            color: #6c757d;
+        }
+
+        .pkg-detail-value {
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+
+        .pkg-price-val {
+            color: #F7941D;
+        }
+
+        .pkg-status-badge {
+            display: inline-block;
             border-radius: 20px;
-            padding: 3px 10px;
-            font-size: .78rem;
-            color: #555;
+            padding: 3px 14px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .pkg-status-active {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .pkg-status-inactive {
+            background: #fce4ec;
+            color: #c62828;
         }
     </style>
 }
@@ -189,8 +263,8 @@
         @if (!packages.Any())
         {
             <div class="text-center py-5 text-muted">
-                <i class="fas fa-box-open fa-3x mb-3 opacity-50"></i>
-                <p class="fs-5">لا توجد باقات مسجلة حتى الآن</p>
+                <i class="fas fa-box-open fa-3x mb-3 d-block" style="color:#dee2e6"></i>
+                لا توجد باقات مسجلة حتى الآن
             </div>
         }
         else
@@ -198,68 +272,66 @@
             <div class="row g-3">
                 @foreach (var p in packages)
                 {
-                    <div class="col-sm-6 col-xl-4">
-                        <div class="card h-100 shadow-sm border-0 pkg-card @(!p.IsActive ? "opacity-75" : "")">
-                            <!-- شريط لوني علوي -->
-                            <div class="pkg-card-banner">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div>
-                                        <div class="pkg-sessions-badge">
-                                            <i class="fas fa-calendar-check me-1"></i>@p.SessionCount جلسة
-                                        </div>
+                    <div class="col-xl-3 col-lg-4 col-md-6">
+                        <div class="card pkg-card h-100 @(!p.IsActive ? "opacity-75" : "")">
+                            <div class="card-body p-3">
+                                <!-- Top row: actions + icon -->
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="pkg-action-btn pkg-action-delete"
+                                                onclick="confirmDeletePackage(@p.Id, '@Html.Raw(p.NameAr.Replace("'", "\\'"))')"
+                                                title="حذف">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                        <a href="@Url.Action("Edit", new { id = p.Id })" class="pkg-action-btn pkg-action-edit" title="تعديل">
+                                            <i class="fas fa-credit-card"></i>
+                                        </a>
                                     </div>
-                                    <div class="d-flex gap-1">
-                                        @if (!p.IsActive)
-                                        {
-                                            <span class="badge bg-dark bg-opacity-50">معطّل</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-white bg-opacity-25 text-white">مفعّل</span>
-                                        }
+                                    <div class="pkg-icon-box">
+                                        <i class="fas fa-box-open"></i>
                                     </div>
                                 </div>
-                                <div class="pkg-price mt-2">@p.Price.ToString("N3") <small>د.ك</small></div>
-                            </div>
 
-                            <div class="card-body d-flex flex-column gap-2 pt-3">
-                                <!-- الاسم -->
-                                <div>
-                                    <h6 class="fw-bold mb-0">@p.NameAr</h6>
-                                    @if (!string.IsNullOrEmpty(p.NameEn))
-                                    {
-                                        <small class="text-muted">@p.NameEn</small>
-                                    }
-                                </div>
-
-                                <!-- تفاصيل -->
-                                <div class="d-flex flex-wrap gap-2 mt-1">
-                                    <span class="pkg-info-chip">
-                                        <i class="fas fa-clock me-1 text-warning"></i>@p.ValidityDays يوم
-                                    </span>
-                                    @if (p.ServiceCategory != null)
-                                    {
-                                        <span class="pkg-info-chip">
-                                            <i class="@(p.ServiceCategory.Icon ?? "fas fa-tag") me-1" style="color:#1a6fc4"></i>@p.ServiceCategory.Name
-                                        </span>
-                                    }
-                                </div>
-
-                                @if (!string.IsNullOrEmpty(p.Description))
+                                <!-- Package name -->
+                                <div class="pkg-name mb-0">@p.NameAr</div>
+                                @if (!string.IsNullOrEmpty(p.NameEn))
                                 {
-                                    <p class="text-muted small mb-0">@p.Description</p>
+                                    <div class="pkg-name-en mb-2">@p.NameEn</div>
                                 }
 
-                                <!-- أزرار -->
-                                <div class="d-flex gap-2 mt-auto pt-2 border-top">
-                                    <a href="@Url.Action("Edit", new { id = p.Id })"
-                                       class="btn btn-sm btn-outline-warning flex-fill">
-                                        <i class="fas fa-edit me-1"></i> تعديل
-                                    </a>
-                                    <button type="button" class="btn btn-sm btn-outline-danger"
-                                            onclick="confirmDeletePackage(@p.Id, '@Html.Raw(p.NameAr.Replace("'", "\\'"))')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                <!-- Category badge -->
+                                @if (p.ServiceCategory != null)
+                                {
+                                    <div class="mb-3 mt-1">
+                                        <span class="pkg-category-badge">@p.ServiceCategory.Name</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="mb-3 mt-1"></div>
+                                }
+
+                                <!-- Details rows -->
+                                <div class="pkg-details">
+                                    <div class="pkg-detail-row">
+                                        <span class="pkg-detail-label">السعر</span>
+                                        <span class="pkg-detail-value pkg-price-val">د.ك @p.Price.ToString("N3")</span>
+                                    </div>
+                                    <div class="pkg-detail-row">
+                                        <span class="pkg-detail-label">الجلسات</span>
+                                        <span class="pkg-detail-value">@p.SessionCount جلسة</span>
+                                    </div>
+                                    <div class="pkg-detail-row">
+                                        <span class="pkg-detail-label">الصلاحية</span>
+                                        <span class="pkg-detail-value">@p.ValidityDays يوم</span>
+                                    </div>
+                                </div>
+
+                                <!-- Status badge -->
+                                <div class="mt-3">
+                                    <span class="pkg-status-badge @(p.IsActive ? "pkg-status-active" : "pkg-status-inactive")">
+                                        @(p.IsActive ? "نشط" : "معطّل")
+                                    </span>
                                 </div>
                             </div>
                         </div>
