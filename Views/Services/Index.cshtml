@@ -2,7 +2,7 @@
 @{
     ViewData["Title"] = "الخدمات";
     var currentFilter = ViewBag.Filter as string ?? "all";
-    var categories = (ViewBag.Categories as IEnumerable<Salon.Models.ServiceCategory>) ?? Enumerable.Empty<Salon.Models.ServiceCategory>();
+    var invoiceCounts = ViewBag.InvoiceCounts as Dictionary<int, int> ?? new Dictionary<int, int>();
 }
 
 <div class="page-header d-flex justify-content-between align-items-center mb-3">
@@ -81,8 +81,15 @@ else
                                     <i class="fas fa-credit-card"></i>
                                 </a>
                             </div>
-                            <div class="svc-icon-box">
-                                <i class="fas fa-cut"></i>
+                            <div class="position-relative">
+                                <div class="svc-icon-box">
+                                    <i class="fas fa-cut"></i>
+                                </div>
+                                @{var count = invoiceCounts.ContainsKey(s.Id) ? invoiceCounts[s.Id] : 0;}
+                                @if (count > 0)
+                                {
+                                    <span class="svc-count-badge">@count</span>
+                                }
                             </div>
                         </div>
 
@@ -106,6 +113,13 @@ else
                             <div class="svc-detail-row">
                                 <span class="svc-detail-label">المدة</span>
                                 <span class="svc-detail-value">@(s.DurationMinutes.HasValue ? $"{s.DurationMinutes} دقيقة" : "-")</span>
+                            </div>
+                            <div class="svc-detail-row">
+                                <span class="svc-detail-label">الفواتير</span>
+                                <span class="svc-detail-value svc-invoice-val">
+                                    @{ var cnt = invoiceCounts.ContainsKey(s.Id) ? invoiceCounts[s.Id] : 0; }
+                                    @cnt فاتورة
+                                </span>
                             </div>
                         </div>
 
@@ -266,6 +280,28 @@ else
     .svc-status-inactive {
         background: #fce4ec;
         color: #c62828;
+    }
+
+    .svc-count-badge {
+        position: absolute;
+        top: -6px;
+        left: -6px;
+        min-width: 20px;
+        height: 20px;
+        background: #28a745;
+        color: #fff;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 5px;
+        line-height: 1;
+    }
+
+    .svc-invoice-val {
+        color: #28a745;
     }
 </style>
 
