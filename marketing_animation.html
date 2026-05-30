@@ -2,2011 +2,1155 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>نظام معهد موس – تسويق</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
-/* ═══════════════════════════════════════════
-   BASE RESET & BODY
-═══════════════════════════════════════════ */
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+
+:root {
+  --orange:#F7941D;
+  --orange-dark:#e07e0a;
+  --orange-light:#fff3e0;
+  --bg:#f5f6fa;
+  --white:#fff;
+  --dark:#1a1a2e;
+  --muted:#6c757d;
+  --border:#e9ecef;
+  --shadow:0 2px 10px rgba(0,0,0,0.08);
+  --shadow-lg:0 8px 30px rgba(0,0,0,0.12);
+  --green:#28a745;
+  --blue:#007bff;
+  --red:#dc3545;
+  --teal:#17a2b8;
+}
 
 body {
-  width: 720px;
-  height: 1280px;
-  overflow: hidden;
-  background: #f5f5f5;
-  font-family: 'Cairo', Arial, sans-serif;
-  color: #1a1a2e;
-  direction: rtl;
+  width:720px; height:1280px;
+  overflow:hidden;
+  background:var(--bg);
+  font-family:'Cairo',Arial,sans-serif;
+  color:var(--dark);
+  direction:rtl;
 }
 
-/* ═══════════════════════════════════════════
-   SCENE SYSTEM
-═══════════════════════════════════════════ */
+/* ── SCENE SYSTEM ── */
 .scene {
-  position: absolute;
-  inset: 0;
-  width: 720px;
-  height: 1280px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.5s ease;
-  overflow: hidden;
+  position:absolute; inset:0;
+  width:720px; height:1280px;
+  opacity:0; pointer-events:none;
+  transition:opacity 0.4s ease;
 }
-.scene.active {
-  opacity: 1;
-  pointer-events: auto;
+.scene.active { opacity:1; pointer-events:auto; }
+
+/* ── SHARED: TOPBAR MOCKUP ── */
+.mock-topbar {
+  background:var(--white);
+  height:56px;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center;
+  justify-content:space-between;
+  padding:0 20px;
+  box-shadow:0 1px 4px rgba(0,0,0,0.06);
+  flex-shrink:0;
+}
+.mock-topbar-brand {
+  display:flex; align-items:center; gap:8px;
+  font-size:15px; font-weight:700; color:var(--dark);
+}
+.mock-topbar-brand .wifi { color:var(--orange); font-size:16px; }
+.mock-topbar-right {
+  display:flex; align-items:center; gap:10px;
+}
+.mock-topbar-right .badge-connected {
+  background:var(--green); color:#fff;
+  border-radius:8px; padding:4px 12px;
+  font-size:12px; font-weight:700;
+}
+.mock-topbar-right .user-chip {
+  background:#f8f9fa; border:1px solid var(--border);
+  border-radius:20px; padding:4px 12px 4px 8px;
+  display:flex; align-items:center; gap:6px;
+  font-size:12px; font-weight:600;
+}
+.mock-topbar-right .avatar {
+  width:28px; height:28px; border-radius:50%;
+  background:var(--orange); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700;
 }
 
-/* ═══════════════════════════════════════════
-   GLOBAL BACKGROUND
-═══════════════════════════════════════════ */
-.scene-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: linear-gradient(175deg, #ffffff 0%, #fdf6ee 55%, #fff8f2 100%);
+/* ── PAGE HEADER ── */
+.page-header {
+  padding:20px 24px 14px;
+  background:var(--white);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
 }
-.scene-bg-dark {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: linear-gradient(160deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+.page-header h1 {
+  font-size:26px; font-weight:900; color:var(--dark); margin-bottom:2px;
+}
+.page-header p { color:var(--muted); font-size:13px; }
+
+/* ── PAGE CONTENT ── */
+.page-body {
+  padding:20px 20px;
+  flex:1; overflow:hidden;
+  display:flex; flex-direction:column; gap:16px;
 }
 
-/* Top orange bar */
-.top-bar {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 8px;
-  background: linear-gradient(90deg, #F7941D, #f5a623, #F7941D);
-  z-index: 10;
-}
-
-/* ═══════════════════════════════════════════
-   SHARED COMPONENTS
-═══════════════════════════════════════════ */
-.scene-content {
-  position: relative;
-  z-index: 5;
-  width: 100%;
-  padding: 40px 36px 36px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0;
-}
-
-.section-label {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  color: #F7941D;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-  opacity: 0.9;
-}
-
-.scene-title {
-  font-size: 42px;
-  font-weight: 900;
-  color: #1a1a2e;
-  text-align: center;
-  line-height: 1.2;
-  margin-bottom: 10px;
-}
-.scene-title .highlight {
-  color: #F7941D;
-}
-.scene-title-white {
-  color: #ffffff;
-}
-.scene-subtitle {
-  font-size: 17px;
-  font-weight: 600;
-  color: #555;
-  text-align: center;
-  line-height: 1.5;
-  margin-bottom: 28px;
-}
-.scene-subtitle-white {
-  color: rgba(255,255,255,0.75);
-}
-
-.divider {
-  width: 60px;
-  height: 4px;
-  background: linear-gradient(90deg, #F7941D, #f5c27a);
-  border-radius: 2px;
-  margin: 10px auto 20px;
-}
-.divider-center { margin: 10px auto 20px; }
-
-/* ═══════════════════════════════════════════
-   CARDS
-═══════════════════════════════════════════ */
+/* ── CARDS ── */
 .card {
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(247,148,29,0.10), 0 1px 6px rgba(0,0,0,0.06);
-  padding: 20px 22px;
-  width: 100%;
+  background:var(--white);
+  border-radius:12px;
+  box-shadow:var(--shadow);
+  border:none;
 }
-.card-sm {
-  border-radius: 14px;
-  padding: 16px 18px;
+.card-header {
+  background:var(--white);
+  border-bottom:1px solid var(--border);
+  padding:14px 18px;
+  border-radius:12px 12px 0 0;
+  font-weight:700; font-size:14px;
+  display:flex; justify-content:space-between; align-items:center;
 }
-.card-border-orange {
-  border-right: 5px solid #F7941D;
-}
-.card-border-blue {
-  border-right: 5px solid #3b82f6;
-}
-.card-border-green {
-  border-right: 5px solid #22c55e;
-}
-.card-border-red {
-  border-right: 5px solid #ef4444;
+.card-body { padding:16px 18px; }
+
+/* ── SCENE WRAPPER ── */
+.scene-wrapper {
+  width:720px; height:1280px;
+  display:flex; flex-direction:column;
+  background:var(--bg);
 }
 
-/* ═══════════════════════════════════════════
-   SCENE 1 – INTRO
-═══════════════════════════════════════════ */
-#scene-1 .scene-bg {
-  background: linear-gradient(175deg, #ffffff 0%, #fff8f2 60%, #fdf1e3 100%);
+/* ═══════════════════════════════
+   SCENE 1 — INTRO / BRAND
+═══════════════════════════════ */
+#scene-1 {
+  background:linear-gradient(160deg,#fff 0%,#fff8f2 60%,#fdf1e3 100%);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
 }
+.intro-content {
+  display:flex; flex-direction:column; align-items:center;
+  padding:40px; text-align:center;
+}
+.intro-logo-ring {
+  width:200px; height:200px; border-radius:50%;
+  background:radial-gradient(circle,rgba(247,148,29,.15) 0%,rgba(247,148,29,.05) 60%,transparent 80%);
+  display:flex; align-items:center; justify-content:center;
+  position:relative; margin-bottom:36px;
+}
+.intro-logo-ring::before {
+  content:''; position:absolute; inset:14px; border-radius:50%;
+  border:2px solid rgba(247,148,29,.25);
+}
+.intro-logo-circle {
+  width:130px; height:130px; border-radius:50%;
+  background:linear-gradient(135deg,#F7941D,#f5a623);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 0 50px rgba(247,148,29,.45);
+  font-size:64px;
+}
+.intro-name {
+  font-size:52px; font-weight:900; color:var(--dark);
+  line-height:1.1; margin-bottom:6px;
+}
+.intro-name span { color:var(--orange); }
+.intro-sub {
+  font-size:18px; font-weight:600; color:#555;
+  line-height:1.5; max-width:500px; margin-bottom:36px;
+}
+.dept-pills { display:flex; gap:14px; margin-bottom:40px; }
+.dept-pill {
+  padding:10px 28px; border-radius:40px;
+  font-size:17px; font-weight:700;
+  display:flex; align-items:center; gap:7px;
+}
+.pill-filled { background:var(--orange); color:#fff; box-shadow:0 4px 16px rgba(247,148,29,.4); }
+.pill-outline { background:#fff; color:var(--orange); border:2.5px solid var(--orange); }
+.intro-stats-row {
+  display:flex; gap:0; border:1.5px solid var(--border);
+  border-radius:14px; overflow:hidden; background:#fff;
+}
+.intro-stat {
+  flex:1; text-align:center; padding:16px 10px;
+  border-left:1px solid var(--border);
+}
+.intro-stat:last-child { border-left:none; }
+.intro-stat-num { font-size:28px; font-weight:900; color:var(--orange); line-height:1; }
+.intro-stat-label { font-size:12px; color:var(--muted); margin-top:4px; font-weight:600; }
 
-.intro-wrap {
-  position: relative;
-  z-index: 5;
-  width: 100%;
-  height: 1280px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  padding: 60px 40px;
+/* ═══════════════════════════════
+   SCENE 2 — DASHBOARD
+═══════════════════════════════ */
+.stat-cards-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:14px;
 }
-
-/* Glow circle + scissors */
-.glow-ring-outer {
-  width: 240px;
-  height: 240px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(247,148,29,0.18) 0%, rgba(247,148,29,0.06) 55%, transparent 75%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 40px;
-  position: relative;
-}
-.glow-ring-outer::before {
-  content: '';
-  position: absolute;
-  inset: 12px;
-  border-radius: 50%;
-  border: 2.5px solid rgba(247,148,29,0.30);
-}
-.glow-ring-outer::after {
-  content: '';
-  position: absolute;
-  inset: 28px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(247,148,29,0.20);
-}
-.glow-ring-inner {
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #F7941D 0%, #f5a623 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 60px rgba(247,148,29,0.50), 0 0 120px rgba(247,148,29,0.25);
-}
-.glow-ring-inner .icon-main {
-  font-size: 72px;
-  line-height: 1;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-}
-
-.intro-system-name {
-  font-size: 58px;
-  font-weight: 900;
-  color: #1a1a2e;
-  text-align: center;
-  letter-spacing: -0.5px;
-  line-height: 1.1;
-  margin-bottom: 14px;
-}
-.intro-system-name span {
-  color: #F7941D;
-}
-
-.intro-tagline {
-  font-size: 20px;
-  font-weight: 700;
-  color: #444;
-  text-align: center;
-  line-height: 1.5;
-  max-width: 560px;
-  margin-bottom: 40px;
-}
-
-.intro-dept-row {
-  display: flex;
-  gap: 18px;
-  margin-bottom: 44px;
-}
-.intro-dept-pill {
-  padding: 12px 30px;
-  border-radius: 50px;
-  font-size: 18px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.pill-orange {
-  background: #F7941D;
-  color: #fff;
-  box-shadow: 0 4px 18px rgba(247,148,29,0.40);
-}
-.pill-outline {
-  background: #fff;
-  color: #F7941D;
-  border: 2.5px solid #F7941D;
-}
-
-.intro-version {
-  font-size: 14px;
-  font-weight: 600;
-  color: #aaa;
-  letter-spacing: 1px;
-}
-.intro-version span {
-  color: #F7941D;
-}
-
-/* Bottom wave */
-.wave-bottom {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 180px;
-  z-index: 2;
-  overflow: hidden;
-}
-.wave-bottom svg {
-  width: 100%;
-  height: 100%;
-}
-
-/* ═══════════════════════════════════════════
-   SCENE 2 – DASHBOARD
-═══════════════════════════════════════════ */
-#scene-2 .scene-bg {
-  background: linear-gradient(175deg, #fdf6ee 0%, #ffffff 60%, #f8f8ff 100%);
-}
-
-.dash-wrap {
-  position: relative;
-  z-index: 5;
-  width: 100%;
-  padding: 54px 30px 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.dash-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 6px;
-}
-.dash-header-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: #F7941D;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-}
-
-.dash-title {
-  font-size: 36px;
-  font-weight: 900;
-  color: #1a1a2e;
-}
-
-.dash-subtitle {
-  font-size: 15px;
-  color: #777;
-  font-weight: 600;
-  text-align: center;
-  margin-bottom: 24px;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  width: 100%;
-  margin-bottom: 20px;
-}
-
 .stat-card {
-  background: #fff;
-  border-radius: 18px;
-  padding: 20px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  box-shadow: 0 3px 16px rgba(0,0,0,0.07);
-  border-top: 4px solid transparent;
-  position: relative;
-  overflow: hidden;
+  background:#fff; border-radius:12px;
+  box-shadow:var(--shadow);
+  padding:16px; border-top:4px solid transparent;
 }
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 4px;
-}
-.stat-card.green::before { background: #22c55e; }
-.stat-card.blue::before { background: #3b82f6; }
-.stat-card.red::before { background: #ef4444; }
-.stat-card.orange::before { background: #F7941D; }
+.stat-card.green { border-top-color:var(--green); }
+.stat-card.blue  { border-top-color:var(--blue); }
+.stat-card.red   { border-top-color:var(--red); }
+.stat-card.orange{ border-top-color:var(--orange); }
+.stat-card-head  { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+.stat-label      { font-size:12px; color:var(--muted); font-weight:600; }
+.stat-icon       { width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:16px; }
+.stat-icon.green { background:#e8f5e9; color:var(--green); }
+.stat-icon.blue  { background:#e3f2fd; color:var(--blue); }
+.stat-icon.red   { background:#fce4ec; color:var(--red); }
+.stat-icon.orange{ background:var(--orange-light); color:var(--orange); }
+.stat-value      { font-size:22px; font-weight:900; color:var(--dark); }
+.stat-sub        { font-size:11px; color:var(--muted); margin-top:2px; }
 
-.stat-card-icon {
-  font-size: 26px;
-  line-height: 1;
-  margin-bottom: 2px;
+.birthday-card, .expiry-card {
+  background:#fff; border-radius:12px; box-shadow:var(--shadow);
 }
-.stat-card-value {
-  font-size: 26px;
-  font-weight: 900;
-  color: #1a1a2e;
-  line-height: 1.1;
+.info-card-header {
+  display:flex; align-items:center; gap:8px;
+  padding:12px 16px; border-bottom:1px solid var(--border);
+  font-weight:700; font-size:13px; color:var(--dark);
 }
-.stat-card-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #888;
+.info-card-header i { color:var(--orange); }
+.info-row {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:10px 16px; border-bottom:1px solid #f8f9fa;
+  font-size:12px;
 }
-.stat-card-unit {
-  font-size: 12px;
-  color: #aaa;
-  font-weight: 600;
+.info-row:last-child { border-bottom:none; }
+.info-row .name { font-weight:600; color:var(--dark); }
+.info-row .meta { color:var(--muted); }
+.badge-pill {
+  padding:2px 10px; border-radius:12px; font-size:11px; font-weight:700;
 }
+.badge-green { background:#e8f5e9; color:var(--green); }
+.badge-orange{ background:var(--orange-light); color:var(--orange); }
+.badge-red   { background:#fce4ec; color:var(--red); }
+.badge-blue  { background:#e3f2fd; color:var(--blue); }
+.badge-teal  { background:#e0f7fa; color:var(--teal); }
 
-.stat-card.green .stat-card-value { color: #16a34a; }
-.stat-card.blue .stat-card-value { color: #2563eb; }
-.stat-card.red .stat-card-value { color: #dc2626; }
-.stat-card.orange .stat-card-value { color: #F7941D; }
-
-.dash-date-bar {
-  width: 100%;
-  background: #fff;
-  border-radius: 14px;
-  padding: 14px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-  margin-top: 4px;
+/* ═══════════════════════════════
+   SCENE 3 — SERVICES
+═══════════════════════════════ */
+.filter-bar {
+  display:flex; gap:8px; align-items:center;
+  flex-wrap:wrap;
 }
-.dash-date-bar-label {
-  font-size: 14px;
-  color: #888;
-  font-weight: 600;
+.filter-btn {
+  padding:7px 18px; border-radius:8px;
+  font-size:13px; font-weight:600; border:none; cursor:pointer;
 }
-.dash-date-bar-value {
-  font-size: 14px;
-  font-weight: 700;
-  color: #1a1a2e;
-}
-.birthday-badge {
-  background: #fff7ed;
-  border: 1.5px solid #F7941D;
-  border-radius: 20px;
-  padding: 5px 14px;
-  font-size: 13px;
-  color: #F7941D;
-  font-weight: 700;
+.filter-btn.active { background:var(--orange); color:#fff; }
+.filter-btn.outline { background:#fff; color:var(--muted); border:1px solid var(--border); }
+.btn-add {
+  background:var(--orange); color:#fff;
+  padding:8px 16px; border-radius:8px;
+  font-size:13px; font-weight:700; border:none;
+  display:flex; align-items:center; gap:6px; margin-right:auto;
 }
 
-/* ═══════════════════════════════════════════
-   SCENE 3 – INVOICES
-═══════════════════════════════════════════ */
-#scene-3 .scene-bg {
-  background: linear-gradient(175deg, #ffffff 0%, #fdf6ee 50%, #fff 100%);
+.services-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:12px;
+}
+.service-card {
+  background:#fff; border-radius:12px;
+  box-shadow:var(--shadow); padding:14px;
+  position:relative;
+}
+.service-card-top {
+  display:flex; justify-content:space-between; align-items:flex-start;
+  margin-bottom:10px;
+}
+.svc-icon-btn {
+  width:34px; height:34px; border-radius:8px;
+  background:var(--orange); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; flex-shrink:0;
+}
+.svc-badge {
+  padding:2px 10px; border-radius:20px; font-size:11px; font-weight:700;
+  background:#e0f7fa; color:var(--teal);
+}
+.svc-badge.barber { background:var(--orange-light); color:var(--orange); }
+.svc-name { font-size:14px; font-weight:700; color:var(--dark); margin-bottom:8px; }
+.svc-details { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+.svc-row { font-size:11px; color:var(--muted); display:flex; justify-content:space-between; }
+.svc-row span:last-child { color:var(--orange); font-weight:700; }
+.svc-active {
+  margin-top:10px; display:inline-block;
+  background:#e8f5e9; color:var(--green);
+  border-radius:8px; padding:3px 12px; font-size:11px; font-weight:700;
 }
 
-.inv-wrap {
-  position: relative;
-  z-index: 5;
-  width: 100%;
-  padding: 54px 30px 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+/* ═══════════════════════════════
+   SCENE 4 — APPOINTMENTS
+═══════════════════════════════ */
+.appt-tabs {
+  display:flex; gap:0; border-bottom:2px solid var(--border);
+  margin-bottom:16px;
 }
+.appt-tab {
+  padding:10px 20px; font-size:13px; font-weight:700;
+  color:var(--muted); border-bottom:2px solid transparent; margin-bottom:-2px;
+}
+.appt-tab.active { color:var(--orange); border-bottom-color:var(--orange); }
 
-.inv-title {
-  font-size: 38px;
-  font-weight: 900;
-  color: #1a1a2e;
-  text-align: center;
-  margin-bottom: 6px;
-}
-.inv-subtitle {
-  font-size: 15px;
-  color: #777;
-  font-weight: 600;
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.inv-cards-col {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  width: 100%;
-}
-
-.inv-card {
-  background: #fff;
-  border-radius: 20px;
-  box-shadow: 0 4px 22px rgba(0,0,0,0.08);
-  padding: 22px 24px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  border-right: 6px solid #F7941D;
-  transition: transform 0.2s;
-}
-.inv-card.blue { border-right-color: #3b82f6; }
-.inv-card.purple { border-right-color: #8b5cf6; }
-
-.inv-card-icon-wrap {
-  width: 68px;
-  height: 68px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #F7941D, #f5a623);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 34px;
-  flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(247,148,29,0.35);
-}
-.inv-card.blue .inv-card-icon-wrap {
-  background: linear-gradient(135deg, #3b82f6, #60a5fa);
-  box-shadow: 0 4px 14px rgba(59,130,246,0.35);
-}
-.inv-card.purple .inv-card-icon-wrap {
-  background: linear-gradient(135deg, #8b5cf6, #a78bfa);
-  box-shadow: 0 4px 14px rgba(139,92,246,0.35);
-}
-
-.inv-card-body {
-  flex: 1;
-}
-.inv-card-name {
-  font-size: 22px;
-  font-weight: 800;
-  color: #1a1a2e;
-  margin-bottom: 4px;
-}
-.inv-card-desc {
-  font-size: 13px;
-  color: #888;
-  font-weight: 600;
-}
-
-.inv-card-arrow {
-  font-size: 20px;
-  color: #ccc;
-}
-
-.inv-bottom-note {
-  margin-top: 28px;
-  background: linear-gradient(135deg, #F7941D, #f5a623);
-  border-radius: 16px;
-  padding: 18px 24px;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  box-shadow: 0 6px 22px rgba(247,148,29,0.30);
-}
-.inv-bottom-note-icon {
-  font-size: 28px;
-}
-.inv-bottom-note-text {
-  font-size: 16px;
-  font-weight: 700;
-  color: #fff;
-  line-height: 1.4;
-}
-
-/* ═══════════════════════════════════════════
-   SCENE 4 – APPOINTMENTS & PACKAGES
-═══════════════════════════════════════════ */
-#scene-4 .scene-bg {
-  background: linear-gradient(175deg, #fdf6ee 0%, #ffffff 60%, #f0f4ff 100%);
-}
-
-.appt-wrap {
-  position: relative;
-  z-index: 5;
-  width: 100%;
-  padding: 54px 30px 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.appt-title {
-  font-size: 38px;
-  font-weight: 900;
-  color: #1a1a2e;
-  text-align: center;
-  margin-bottom: 6px;
-}
-.appt-subtitle {
-  font-size: 15px;
-  color: #777;
-  font-weight: 600;
-  text-align: center;
-  margin-bottom: 28px;
-}
-
-.appt-section-title {
-  font-size: 16px;
-  font-weight: 800;
-  color: #F7941D;
-  text-align: right;
-  width: 100%;
-  margin-bottom: 12px;
-  padding-right: 4px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.appt-section-title::before {
-  content: '';
-  display: inline-block;
-  width: 4px;
-  height: 18px;
-  background: #F7941D;
-  border-radius: 2px;
-}
-
-/* Appointment list */
-.appt-list {
-  width: 100%;
-  background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.08);
-  overflow: hidden;
-  margin-bottom: 28px;
-}
-.appt-list-header {
-  background: linear-gradient(90deg, #F7941D, #f5a623);
-  padding: 14px 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.appt-list-header-text {
-  font-size: 16px;
-  font-weight: 800;
-  color: #fff;
-}
-.appt-list-header-count {
-  background: rgba(255,255,255,0.25);
-  border-radius: 20px;
-  padding: 2px 12px;
-  font-size: 13px;
-  color: #fff;
-  font-weight: 700;
+.appt-card {
+  background:#fff; border-radius:12px; box-shadow:var(--shadow);
+  padding:0; overflow:hidden; margin-bottom:10px;
 }
 .appt-row {
-  display: flex;
-  align-items: center;
-  padding: 14px 20px;
-  border-bottom: 1px solid #f5f5f5;
-  gap: 14px;
+  display:flex; align-items:center; gap:12px;
+  padding:14px 16px; border-bottom:1px solid #f8f9fa;
 }
-.appt-row:last-child { border-bottom: none; }
-.appt-time-badge {
-  background: #fff7ed;
-  color: #F7941D;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 20px;
-  border: 1.5px solid rgba(247,148,29,0.3);
-  min-width: 72px;
-  text-align: center;
+.appt-row:last-child { border-bottom:none; }
+.appt-time {
+  background:var(--orange-light); color:var(--orange);
+  border-radius:8px; padding:6px 12px; text-align:center;
+  font-size:13px; font-weight:700; min-width:66px;
 }
-.appt-row-info {
-  flex: 1;
-}
-.appt-row-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: #1a1a2e;
-}
-.appt-row-service {
-  font-size: 12px;
-  color: #999;
-  font-weight: 600;
-}
-.appt-status {
-  font-size: 12px;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 20px;
-}
-.appt-status.confirmed {
-  background: #dcfce7;
-  color: #16a34a;
-}
-.appt-status.pending {
-  background: #fff7ed;
-  color: #F7941D;
-}
-.appt-status.done {
-  background: #eff6ff;
-  color: #2563eb;
-}
+.appt-info { flex:1; }
+.appt-name { font-size:14px; font-weight:700; color:var(--dark); }
+.appt-svc  { font-size:12px; color:var(--muted); }
+.appt-emp  { font-size:12px; color:var(--muted); }
 
-/* Package card */
 .pkg-card {
-  width: 100%;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  border-radius: 20px;
-  padding: 22px 24px;
-  box-shadow: 0 6px 24px rgba(26,26,46,0.20);
-  position: relative;
-  overflow: hidden;
+  background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);
+  border-radius:14px; padding:18px; color:#fff;
 }
-.pkg-card::before {
-  content: '';
-  position: absolute;
-  top: -30px; left: -30px;
-  width: 120px; height: 120px;
-  border-radius: 50%;
-  background: rgba(247,148,29,0.12);
+.pkg-card-title { font-size:14px; color:rgba(255,255,255,.6); font-weight:600; margin-bottom:4px; }
+.pkg-name { font-size:20px; font-weight:900; color:#fff; margin-bottom:12px; }
+.pkg-meta { display:flex; gap:14px; margin-bottom:14px; }
+.pkg-meta-item { text-align:center; }
+.pkg-meta-num { font-size:22px; font-weight:900; color:var(--orange); line-height:1; }
+.pkg-meta-label { font-size:11px; color:rgba(255,255,255,.5); margin-top:2px; }
+.progress-bar-bg {
+  background:rgba(255,255,255,.15); border-radius:6px; height:8px; overflow:hidden;
 }
-.pkg-card::after {
-  content: '';
-  position: absolute;
-  bottom: -20px; right: -20px;
-  width: 90px; height: 90px;
-  border-radius: 50%;
-  background: rgba(247,148,29,0.08);
-}
-.pkg-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: #F7941D;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 800;
-  padding: 4px 14px;
-  border-radius: 20px;
-  margin-bottom: 12px;
-}
-.pkg-name {
-  font-size: 24px;
-  font-weight: 900;
-  color: #fff;
-  margin-bottom: 16px;
-}
-.pkg-stats-row {
-  display: flex;
-  gap: 12px;
-}
-.pkg-stat {
-  flex: 1;
-  background: rgba(255,255,255,0.08);
-  border-radius: 12px;
-  padding: 10px 14px;
-  text-align: center;
-}
-.pkg-stat-value {
-  font-size: 22px;
-  font-weight: 900;
-  color: #F7941D;
-  line-height: 1;
-  margin-bottom: 4px;
-}
-.pkg-stat-label {
-  font-size: 11px;
-  color: rgba(255,255,255,0.6);
-  font-weight: 600;
-}
-.pkg-progress {
-  margin-top: 14px;
-  background: rgba(255,255,255,0.12);
-  border-radius: 6px;
-  height: 8px;
-  overflow: hidden;
-}
-.pkg-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #F7941D, #f5c27a);
-  border-radius: 6px;
-  width: 40%;
+.progress-bar-fill {
+  height:100%; border-radius:6px;
+  background:linear-gradient(90deg,var(--orange),#f5a623);
 }
 
-/* ═══════════════════════════════════════════
-   SCENE 5 – EMPLOYEES
-═══════════════════════════════════════════ */
-#scene-5 .scene-bg {
-  background: linear-gradient(175deg, #ffffff 0%, #fdf6ee 55%, #f8f8ff 100%);
+/* ═══════════════════════════════
+   SCENE 5 — EMPLOYEES / SALARIES
+═══════════════════════════════ */
+.emp-table { width:100%; border-collapse:separate; border-spacing:0; }
+.emp-table th {
+  background:#f8f9fa; color:var(--muted); font-size:12px; font-weight:700;
+  padding:10px 14px; border-bottom:2px solid var(--border); text-align:right;
 }
+.emp-table td {
+  padding:12px 14px; border-bottom:1px solid var(--border);
+  font-size:13px; vertical-align:middle;
+}
+.emp-table tr:last-child td { border-bottom:none; }
+.emp-name { font-weight:700; color:var(--dark); }
+.emp-dept { font-size:11px; }
+.emp-amount { font-weight:700; color:var(--orange); font-size:14px; }
+.emp-deduct { font-weight:700; color:var(--red); font-size:13px; }
+.emp-net    { font-weight:900; color:var(--green); font-size:14px; }
 
-.emp-wrap {
-  position: relative;
-  z-index: 5;
-  width: 100%;
-  padding: 54px 30px 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.attendance-widget {
+  background:#fff; border-radius:12px; box-shadow:var(--shadow); padding:16px;
 }
+.att-title { font-size:14px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+.att-title i { color:var(--orange); }
+.att-row {
+  display:flex; align-items:center; gap:10px;
+  padding:8px 0; border-bottom:1px solid #f8f9fa; font-size:12px;
+}
+.att-row:last-child { border-bottom:none; }
+.att-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.att-dot.in { background:var(--green); }
+.att-dot.out { background:var(--red); }
+.att-name { flex:1; font-weight:600; color:var(--dark); }
+.att-time { color:var(--muted); }
 
-.emp-title {
-  font-size: 38px;
-  font-weight: 900;
-  color: #1a1a2e;
-  text-align: center;
-  margin-bottom: 6px;
+/* ═══════════════════════════════
+   SCENE 6 — REPORTS
+═══════════════════════════════ */
+.report-tabs {
+  display:flex; gap:8px; flex-wrap:wrap;
 }
-.emp-subtitle {
-  font-size: 15px;
-  color: #777;
-  font-weight: 600;
-  text-align: center;
-  margin-bottom: 26px;
+.report-tab {
+  padding:8px 16px; border-radius:8px; font-size:12px; font-weight:700;
+  border:1px solid var(--border); background:#fff; color:var(--muted);
 }
+.report-tab.active { background:var(--orange); color:#fff; border-color:var(--orange); }
 
-.emp-pills-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
-  width: 100%;
-  margin-bottom: 28px;
+.chart-card {
+  background:#fff; border-radius:12px; box-shadow:var(--shadow); padding:16px;
 }
-.emp-pill {
-  background: #fff;
-  border: 2px solid #F7941D;
-  color: #F7941D;
-  font-size: 15px;
-  font-weight: 700;
-  padding: 10px 22px;
-  border-radius: 50px;
-  box-shadow: 0 2px 10px rgba(247,148,29,0.12);
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.chart-title { font-size:14px; font-weight:700; color:var(--dark); margin-bottom:16px; }
+.chart-bars {
+  display:flex; align-items:flex-end; gap:8px; height:140px; justify-content:space-around;
 }
-.emp-pill .pill-icon {
-  font-size: 16px;
+.chart-col { display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; }
+.chart-val { font-size:10px; color:var(--muted); font-weight:600; }
+.chart-bar {
+  width:100%; border-radius:6px 6px 0 0;
+  background:linear-gradient(180deg,rgba(247,148,29,.5),rgba(247,148,29,.2));
 }
+.chart-bar.highlight {
+  background:linear-gradient(180deg,var(--orange),#f5a623);
+  box-shadow:0 0 12px rgba(247,148,29,.4);
+}
+.chart-day { font-size:10px; color:var(--muted); font-weight:600; }
 
-/* Salary table */
-.salary-card {
-  width: 100%;
-  background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.08);
-  overflow: hidden;
-  margin-bottom: 20px;
+.summary-row { display:flex; gap:12px; }
+.summary-box {
+  flex:1; background:#fff; border-radius:12px;
+  box-shadow:var(--shadow); padding:14px; text-align:center;
 }
-.salary-card-header {
-  background: linear-gradient(90deg, #1a1a2e, #16213e);
-  padding: 14px 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.salary-header-icon {
-  font-size: 18px;
-}
-.salary-header-text {
-  font-size: 16px;
-  font-weight: 800;
-  color: #fff;
-}
-.salary-header-month {
-  margin-right: auto;
-  font-size: 13px;
-  color: rgba(255,255,255,0.6);
-  font-weight: 600;
-}
+.summary-num { font-size:24px; font-weight:900; color:var(--dark); }
+.summary-label { font-size:12px; color:var(--muted); font-weight:600; margin-top:2px; }
+.summary-change { font-size:12px; font-weight:700; margin-top:4px; }
+.up { color:var(--green); }
+.down { color:var(--red); }
 
-.salary-row {
-  display: flex;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #f5f5f5;
-  gap: 10px;
-}
-.salary-row:last-child { border-bottom: none; }
-.salary-emp-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #F7941D, #f5a623);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  flex-shrink: 0;
-}
-.salary-emp-info {
-  flex: 1;
-}
-.salary-emp-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: #1a1a2e;
-  margin-bottom: 2px;
-}
-.salary-emp-role {
-  font-size: 12px;
-  color: #999;
-  font-weight: 600;
-}
-.salary-amounts {
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-.salary-base {
-  font-size: 12px;
-  color: #888;
-  font-weight: 600;
-}
-.salary-deduct {
-  font-size: 12px;
-  color: #ef4444;
-  font-weight: 700;
-}
-.salary-net {
-  font-size: 18px;
-  font-weight: 900;
-  color: #16a34a;
-}
-.salary-net-label {
-  font-size: 10px;
-  color: #16a34a;
-  font-weight: 700;
-}
-
-/* Attendance mini widget */
-.attend-widget {
-  width: 100%;
-  background: linear-gradient(135deg, #F7941D, #f5a623);
-  border-radius: 16px;
-  padding: 18px 22px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  box-shadow: 0 6px 22px rgba(247,148,29,0.28);
-}
-.attend-widget-icon { font-size: 28px; }
-.attend-widget-text {
-  flex: 1;
-}
-.attend-widget-title {
-  font-size: 16px;
-  font-weight: 800;
-  color: #fff;
-  margin-bottom: 3px;
-}
-.attend-widget-sub {
-  font-size: 13px;
-  color: rgba(255,255,255,0.80);
-  font-weight: 600;
-}
-.attend-count {
-  text-align: center;
-}
-.attend-count-num {
-  font-size: 28px;
-  font-weight: 900;
-  color: #fff;
-  line-height: 1;
-}
-.attend-count-label {
-  font-size: 11px;
-  color: rgba(255,255,255,0.75);
-  font-weight: 600;
-}
-
-/* ═══════════════════════════════════════════
-   SCENE 6 – REPORTS
-═══════════════════════════════════════════ */
-#scene-6 .scene-bg {
-  background: linear-gradient(175deg, #fdf6ee 0%, #ffffff 60%, #f0f4ff 100%);
-}
-
-.rpt-wrap {
-  position: relative;
-  z-index: 5;
-  width: 100%;
-  padding: 54px 30px 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.rpt-title {
-  font-size: 38px;
-  font-weight: 900;
-  color: #1a1a2e;
-  text-align: center;
-  margin-bottom: 6px;
-}
-.rpt-subtitle {
-  font-size: 15px;
-  color: #777;
-  font-weight: 600;
-  text-align: center;
-  margin-bottom: 26px;
-}
-
-/* Bar chart */
-.bar-chart-card {
-  width: 100%;
-  background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.08);
-  padding: 20px 20px 16px;
-  margin-bottom: 20px;
-}
-.bar-chart-title {
-  font-size: 15px;
-  font-weight: 800;
-  color: #1a1a2e;
-  margin-bottom: 16px;
-}
-.bar-chart-area {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  height: 140px;
-  border-bottom: 2px solid #f0f0f0;
-  padding-bottom: 4px;
-  margin-bottom: 10px;
-}
-.bar-group {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  height: 100%;
-  justify-content: flex-end;
-}
-.bar-fill {
-  width: 100%;
-  border-radius: 6px 6px 0 0;
-  background: linear-gradient(180deg, #F7941D, #f5a623);
-  min-height: 20px;
-}
-.bar-fill.highlight {
-  background: linear-gradient(180deg, #1a1a2e, #16213e);
-}
-.bar-label {
-  font-size: 11px;
-  color: #999;
-  font-weight: 600;
-}
-.bar-value-text {
-  font-size: 10px;
-  color: #F7941D;
-  font-weight: 700;
-}
-
-/* Stat boxes row */
-.rpt-stats-row {
-  display: flex;
-  gap: 16px;
-  width: 100%;
-  margin-bottom: 20px;
-}
-.rpt-stat-box {
-  flex: 1;
-  background: #fff;
-  border-radius: 16px;
-  padding: 18px 16px;
-  box-shadow: 0 3px 14px rgba(0,0,0,0.07);
-  text-align: center;
-}
-.rpt-stat-box-icon {
-  font-size: 24px;
-  margin-bottom: 6px;
-}
-.rpt-stat-box-value {
-  font-size: 26px;
-  font-weight: 900;
-  color: #1a1a2e;
-  line-height: 1;
-  margin-bottom: 4px;
-}
-.rpt-stat-box-value .up {
-  color: #16a34a;
-  font-size: 20px;
-}
-.rpt-stat-box-label {
-  font-size: 13px;
-  color: #888;
-  font-weight: 600;
-}
-
-/* Report tags */
-.rpt-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  width: 100%;
-}
-.rpt-tag {
-  background: #fff7ed;
-  border: 1.5px solid rgba(247,148,29,0.3);
-  color: #c2610a;
-  font-size: 14px;
-  font-weight: 700;
-  padding: 8px 18px;
-  border-radius: 50px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* ═══════════════════════════════════════════
-   SCENE 7 – SECURITY & ACCESS
-═══════════════════════════════════════════ */
-#scene-7 {
-  background: transparent;
-}
-#scene-7 .scene-bg-dark {
-  background: linear-gradient(160deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
-}
-
-.sec-wrap {
-  position: relative;
-  z-index: 5;
-  width: 100%;
-  padding: 54px 30px 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.sec-title {
-  font-size: 38px;
-  font-weight: 900;
-  color: #fff;
-  text-align: center;
-  margin-bottom: 6px;
-}
-.sec-subtitle {
-  font-size: 15px;
-  color: rgba(255,255,255,0.65);
-  font-weight: 600;
-  text-align: center;
-  margin-bottom: 32px;
-}
-.sec-divider {
-  width: 60px;
-  height: 4px;
-  background: linear-gradient(90deg, #F7941D, #f5c27a);
-  border-radius: 2px;
-  margin: 0 auto 28px;
-}
-
+/* ═══════════════════════════════
+   SCENE 7 — USERS / ROLES
+═══════════════════════════════ */
 .roles-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  width: 100%;
-  margin-bottom: 28px;
+  display:grid; grid-template-columns:1fr 1fr; gap:12px;
 }
-
 .role-card {
-  background: rgba(255,255,255,0.06);
-  border: 1.5px solid rgba(255,255,255,0.10);
-  border-radius: 18px;
-  padding: 20px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  backdrop-filter: blur(6px);
-  position: relative;
-  overflow: hidden;
+  background:#fff; border-radius:12px; box-shadow:var(--shadow);
+  padding:16px; border-top:4px solid transparent;
 }
-.role-card::before {
-  content: '';
-  position: absolute;
-  top: 0; right: 0; left: 0;
-  height: 3px;
-  border-radius: 18px 18px 0 0;
-}
-.role-card.red-role::before { background: #ef4444; }
-.role-card.orange-role::before { background: #F7941D; }
-.role-card.yellow-role::before { background: #eab308; }
-.role-card.green-role::before { background: #22c55e; }
-
-.role-dot {
-  width: 12px; height: 12px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.role-dot.red { background: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.7); }
-.role-dot.orange { background: #F7941D; box-shadow: 0 0 8px rgba(247,148,29,0.7); }
-.role-dot.yellow { background: #eab308; box-shadow: 0 0 8px rgba(234,179,8,0.7); }
-.role-dot.green { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.7); }
-
-.role-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.role-icon { font-size: 22px; }
-.role-name {
-  font-size: 16px;
-  font-weight: 800;
-  color: #fff;
-}
-.role-perms {
-  font-size: 12px;
-  color: rgba(255,255,255,0.55);
-  font-weight: 600;
-  line-height: 1.4;
+.role-card.admin  { border-top-color:var(--red); }
+.role-card.manager{ border-top-color:var(--orange); }
+.role-card.cashier{ border-top-color:var(--blue); }
+.role-card.emp    { border-top-color:var(--green); }
+.role-name { font-size:15px; font-weight:900; color:var(--dark); margin-bottom:6px; }
+.role-desc { font-size:11px; color:var(--muted); margin-bottom:10px; line-height:1.5; }
+.role-perms { display:flex; flex-wrap:wrap; gap:4px; }
+.perm-badge {
+  padding:2px 8px; border-radius:6px;
+  font-size:10px; font-weight:700;
+  background:#f8f9fa; color:var(--muted);
 }
 
-/* Shield icon */
-.sec-shield {
-  width: 100%;
-  background: rgba(247,148,29,0.08);
-  border: 1.5px solid rgba(247,148,29,0.25);
-  border-radius: 16px;
-  padding: 16px 22px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
+.audit-card { background:#fff; border-radius:12px; box-shadow:var(--shadow); overflow:hidden; }
+.audit-row {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 16px; border-bottom:1px solid #f8f9fa; font-size:12px;
 }
-.sec-shield-icon { font-size: 30px; }
-.sec-shield-text {
-  font-size: 15px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.85);
-  line-height: 1.4;
+.audit-row:last-child { border-bottom:none; }
+.audit-icon {
+  width:28px; height:28px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0;
 }
-.sec-shield-text span {
-  color: #F7941D;
-}
+.audit-icon.add { background:#e8f5e9; color:var(--green); }
+.audit-icon.edit{ background:var(--orange-light); color:var(--orange); }
+.audit-icon.del { background:#fce4ec; color:var(--red); }
+.audit-text { flex:1; color:var(--dark); font-weight:600; }
+.audit-time { color:var(--muted); }
 
-/* ═══════════════════════════════════════════
-   SCENE 8 – CTA
-═══════════════════════════════════════════ */
+/* ═══════════════════════════════
+   SCENE 8 — CTA
+═══════════════════════════════ */
 #scene-8 {
-  background: transparent;
+  background:linear-gradient(155deg,#1a1a2e 0%,#16213e 55%,#0f3460 100%);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
 }
-#scene-8 .scene-bg-dark {
-  background: linear-gradient(160deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
-}
-
 .cta-wrap {
-  position: relative;
-  z-index: 5;
-  width: 100%;
-  height: 1280px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 40px;
-  gap: 0;
+  display:flex; flex-direction:column; align-items:center;
+  padding:50px 40px; text-align:center;
 }
-
-/* Decorative circles */
-.cta-circle-1 {
-  position: absolute;
-  width: 300px; height: 300px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(247,148,29,0.10) 0%, transparent 70%);
-  top: 120px; right: -80px;
-  z-index: 1;
-}
-.cta-circle-2 {
-  position: absolute;
-  width: 220px; height: 220px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(247,148,29,0.08) 0%, transparent 70%);
-  bottom: 160px; left: -60px;
-  z-index: 1;
-}
-
-.cta-trophy {
-  font-size: 88px;
-  line-height: 1;
-  margin-bottom: 28px;
-  filter: drop-shadow(0 0 30px rgba(247,148,29,0.60));
-  position: relative;
-  z-index: 5;
-}
-
-.cta-system-name {
-  font-size: 52px;
-  font-weight: 900;
-  color: #fff;
-  text-align: center;
-  line-height: 1.1;
-  margin-bottom: 10px;
-  position: relative;
-  z-index: 5;
-}
-.cta-system-name span { color: #F7941D; }
-
-.cta-tagline {
-  font-size: 18px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.70);
-  text-align: center;
-  margin-bottom: 40px;
-  position: relative;
-  z-index: 5;
-}
-
+.cta-trophy { font-size:90px; margin-bottom:24px; line-height:1; }
+.cta-title { font-size:46px; font-weight:900; color:#fff; line-height:1.2; margin-bottom:16px; }
+.cta-title span { color:var(--orange); }
+.cta-sub { font-size:17px; color:rgba(255,255,255,.65); font-weight:600; margin-bottom:36px; }
 .cta-btn {
-  background: linear-gradient(135deg, #F7941D, #f5a623);
-  color: #fff;
-  font-family: 'Cairo', Arial, sans-serif;
-  font-size: 22px;
-  font-weight: 900;
-  padding: 20px 54px;
-  border-radius: 60px;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 8px 32px rgba(247,148,29,0.45), 0 2px 8px rgba(0,0,0,0.2);
-  margin-bottom: 44px;
-  position: relative;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  letter-spacing: 0.5px;
+  background:var(--orange);
+  color:#fff; border:none; border-radius:50px;
+  padding:18px 56px; font-size:22px; font-weight:900;
+  display:flex; align-items:center; gap:10px;
+  box-shadow:0 8px 32px rgba(247,148,29,.5); margin-bottom:36px;
 }
-
-.cta-badges {
-  display: flex;
-  gap: 14px;
-  margin-bottom: 50px;
-  position: relative;
-  z-index: 5;
-  flex-wrap: wrap;
-  justify-content: center;
-}
+.cta-badges { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-bottom:44px; }
 .cta-badge {
-  background: rgba(255,255,255,0.08);
-  border: 1.5px solid rgba(255,255,255,0.15);
-  border-radius: 50px;
-  padding: 10px 20px;
-  font-size: 14px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.90);
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  backdrop-filter: blur(4px);
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15);
+  border-radius:10px; padding:10px 18px;
+  font-size:14px; font-weight:600; color:rgba(255,255,255,.85);
+  display:flex; align-items:center; gap:7px;
 }
+.cta-footer { font-size:15px; color:rgba(255,255,255,.35); font-weight:600; letter-spacing:1px; }
+.cta-footer span { color:var(--orange); }
 
-.cta-footer {
-  position: relative;
-  z-index: 5;
-  text-align: center;
+/* Nav dots */
+#scene-nav {
+  position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
+  display:flex; gap:6px; z-index:999;
 }
-.cta-footer-line {
-  width: 60px;
-  height: 2px;
-  background: rgba(247,148,29,0.4);
-  border-radius: 2px;
-  margin: 0 auto 14px;
+.nav-dot {
+  width:7px; height:7px; border-radius:50%;
+  background:rgba(255,255,255,.35); cursor:pointer; transition:all .2s;
 }
-.cta-footer-text {
-  font-size: 16px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.50);
-  letter-spacing: 0.5px;
-}
-.cta-footer-text span {
-  color: #F7941D;
-}
-
-/* ═══════════════════════════════════════════
-   SCENE NAV (dev only)
-═══════════════════════════════════════════ */
-.scene-nav {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 9999;
-  display: flex;
-  gap: 8px;
-}
-.scene-nav-btn {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  border: 2px solid #F7941D;
-  background: rgba(255,255,255,0.9);
-  color: #F7941D;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-.scene-nav-btn.active, .scene-nav-btn:hover {
-  background: #F7941D;
-  color: #fff;
-}
+.nav-dot.active { background:var(--orange); transform:scale(1.3); }
 </style>
 </head>
 <body>
 
-<!-- ═══════════════════════ SCENE 1 – INTRO ═══════════════════════ -->
+<!-- ═══════════════════════════════
+     SCENE 1 — INTRO
+═══════════════════════════════ -->
 <div class="scene active" id="scene-1">
-  <div class="scene-bg"></div>
-  <div class="top-bar"></div>
-
-  <div class="intro-wrap">
-    <!-- Glow circle with scissors -->
-    <div class="glow-ring-outer">
-      <div class="glow-ring-inner">
-        <span class="icon-main">✂️</span>
+  <div class="intro-content" style="width:100%;height:1280px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+    <div class="intro-logo-ring">
+      <div class="intro-logo-circle">✂️</div>
+    </div>
+    <div class="intro-name">نظام <span>معهد موس</span></div>
+    <div class="intro-sub">إدارة متكاملة لصالونات الحلاقة والمساج</div>
+    <div class="dept-pills">
+      <div class="dept-pill pill-filled">✂️ حلاقة</div>
+      <div class="dept-pill pill-outline">💆 مساج</div>
+    </div>
+    <div class="intro-stats-row" style="width:100%;max-width:580px;">
+      <div class="intro-stat">
+        <div class="intro-stat-num">23+</div>
+        <div class="intro-stat-label">وحدة وظيفية</div>
+      </div>
+      <div class="intro-stat">
+        <div class="intro-stat-num">4</div>
+        <div class="intro-stat-label">مستويات صلاحية</div>
+      </div>
+      <div class="intro-stat">
+        <div class="intro-stat-num">EN/AR</div>
+        <div class="intro-stat-label">ثنائي اللغة</div>
       </div>
     </div>
-
-    <!-- System name -->
-    <div class="intro-system-name">
-      نظام <span>معهد موس</span>
-    </div>
-
-    <!-- Tagline -->
-    <div class="intro-tagline">
-      إدارة متكاملة لصالونات الحلاقة والمساج
-    </div>
-
-    <!-- Department pills -->
-    <div class="intro-dept-row">
-      <div class="intro-dept-pill pill-orange">
-        <span>✂️</span> حلاقة
-      </div>
-      <div class="intro-dept-pill pill-outline">
-        <span>💆</span> مساج
-      </div>
-    </div>
-
-    <!-- Version / brand -->
-    <div class="intro-version">
-      مبني بـ <span>ASP.NET Core</span> · نظام متكامل
-    </div>
-  </div>
-
-  <!-- Bottom decorative wave -->
-  <div class="wave-bottom">
-    <svg viewBox="0 0 720 180" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,80 C120,160 240,20 360,100 C480,180 600,40 720,80 L720,180 L0,180 Z" fill="rgba(247,148,29,0.08)"/>
-      <path d="M0,110 C150,60 300,160 450,110 C550,80 640,130 720,100 L720,180 L0,180 Z" fill="rgba(247,148,29,0.05)"/>
-    </svg>
   </div>
 </div>
 
-<!-- ═══════════════════════ SCENE 2 – DASHBOARD ═══════════════════════ -->
+<!-- ═══════════════════════════════
+     SCENE 2 — DASHBOARD
+═══════════════════════════════ -->
 <div class="scene" id="scene-2">
-  <div class="scene-bg"></div>
-  <div class="top-bar"></div>
-
-  <div class="dash-wrap">
-    <!-- Header -->
-    <div class="dash-header">
-      <div class="dash-header-icon">📊</div>
-      <div class="dash-title">لوحة التحكم</div>
-    </div>
-    <div class="divider divider-center"></div>
-    <div class="dash-subtitle">لوحة تحكم شاملة · بيانات اليوم الحية</div>
-
-    <!-- Stats grid 2x3 -->
-    <div class="stats-grid">
-      <!-- مبيعات اليوم -->
-      <div class="stat-card green">
-        <div class="stat-card-icon">💰</div>
-        <div class="stat-card-value">3,450</div>
-        <div class="stat-card-unit">ريال سعودي</div>
-        <div class="stat-card-label">مبيعات اليوم</div>
+  <div class="scene-wrapper">
+    <div class="mock-topbar">
+      <div class="mock-topbar-brand">
+        <span class="wifi">📶</span> نظام معهد موس
       </div>
-      <!-- العملاء -->
-      <div class="stat-card blue">
-        <div class="stat-card-icon">👥</div>
-        <div class="stat-card-value">28</div>
-        <div class="stat-card-unit">عميل اليوم</div>
-        <div class="stat-card-label">إجمالي العملاء</div>
-      </div>
-      <!-- المصروفات -->
-      <div class="stat-card red">
-        <div class="stat-card-icon">📋</div>
-        <div class="stat-card-value">620</div>
-        <div class="stat-card-unit">ريال سعودي</div>
-        <div class="stat-card-label">المصروفات</div>
-      </div>
-      <!-- صافي الربح -->
-      <div class="stat-card orange">
-        <div class="stat-card-icon">💵</div>
-        <div class="stat-card-value">2,830</div>
-        <div class="stat-card-unit">ريال سعودي</div>
-        <div class="stat-card-label">صافي الربح</div>
-      </div>
-      <!-- عملاء جدد -->
-      <div class="stat-card orange">
-        <div class="stat-card-icon">🆕</div>
-        <div class="stat-card-value">5</div>
-        <div class="stat-card-unit">هذا اليوم</div>
-        <div class="stat-card-label">عملاء جدد</div>
-      </div>
-      <!-- منتجات تنتهي -->
-      <div class="stat-card red">
-        <div class="stat-card-icon">📦</div>
-        <div class="stat-card-value">3</div>
-        <div class="stat-card-unit">تنتهي قريباً</div>
-        <div class="stat-card-label">منتجات تنتهي</div>
+      <div class="mock-topbar-right">
+        <span class="badge-connected">● متصل</span>
+        <div class="user-chip">
+          <div class="avatar">م</div>
+          مدير النظام
+        </div>
       </div>
     </div>
+    <div class="page-header">
+      <h1>لوحة التحكم</h1>
+      <p>الأداء اليومي — الثلاثاء، مايو 2025</p>
+    </div>
+    <div class="page-body">
+      <div class="stat-cards-grid">
+        <div class="stat-card green">
+          <div class="stat-card-head">
+            <div class="stat-label">مبيعات اليوم</div>
+            <div class="stat-icon green">💰</div>
+          </div>
+          <div class="stat-value">د.ك 348.500</div>
+          <div class="stat-sub">28 فاتورة اليوم</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-card-head">
+            <div class="stat-label">العملاء</div>
+            <div class="stat-icon blue">👥</div>
+          </div>
+          <div class="stat-value">28</div>
+          <div class="stat-sub">5 عملاء جدد</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-card-head">
+            <div class="stat-label">المصروفات</div>
+            <div class="stat-icon red">🧾</div>
+          </div>
+          <div class="stat-value">د.ك 42.000</div>
+          <div class="stat-sub">مصاريف اليوم</div>
+        </div>
+        <div class="stat-card orange">
+          <div class="stat-card-head">
+            <div class="stat-label">صافي الربح</div>
+            <div class="stat-icon orange">📈</div>
+          </div>
+          <div class="stat-value">د.ك 306.500</div>
+          <div class="stat-sub">بعد خصم المصاريف</div>
+        </div>
+      </div>
 
-    <!-- Date bar -->
-    <div class="dash-date-bar">
-      <div class="dash-date-bar-label">📅 تاريخ اليوم</div>
-      <div class="dash-date-bar-value">الجمعة، 30 مايو 2025</div>
-      <div class="birthday-badge">🎂 عيد ميلاد: 2</div>
+      <div class="birthday-card card">
+        <div class="info-card-header">
+          🎂 أعياد ميلاد قادمة هذا الأسبوع
+        </div>
+        <div class="info-row">
+          <span class="name">أحمد محمد العنزي</span>
+          <span class="badge-pill badge-orange">غداً</span>
+        </div>
+        <div class="info-row">
+          <span class="name">سارة خالد الرشيد</span>
+          <span class="badge-pill badge-blue">بعد يومين</span>
+        </div>
+        <div class="info-row">
+          <span class="name">منى سعد الحربي</span>
+          <span class="badge-pill badge-blue">بعد 5 أيام</span>
+        </div>
+      </div>
+
+      <div class="expiry-card card">
+        <div class="info-card-header">
+          📦 منتجات تنتهي صلاحيتها قريباً
+        </div>
+        <div class="info-row">
+          <span class="name">Argan Oil 500ml</span>
+          <span class="badge-pill badge-red">3 أيام</span>
+        </div>
+        <div class="info-row">
+          <span class="name">Hair Mask Treatment</span>
+          <span class="badge-pill badge-orange">12 يوم</span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════ SCENE 3 – INVOICES ═══════════════════════ -->
+<!-- ═══════════════════════════════
+     SCENE 3 — SERVICES
+═══════════════════════════════ -->
 <div class="scene" id="scene-3">
-  <div class="scene-bg"></div>
-  <div class="top-bar"></div>
-
-  <div class="inv-wrap">
-    <div class="inv-title">نقطة بيع متكاملة</div>
-    <div class="divider divider-center"></div>
-    <div class="inv-subtitle">فواتير منفصلة لكل قسم مع تتبع دقيق للمبيعات</div>
-
-    <!-- Three invoice cards -->
-    <div class="inv-cards-col">
-      <!-- Barbershop invoice -->
-      <div class="inv-card">
-        <div class="inv-card-icon-wrap">✂️</div>
-        <div class="inv-card-body">
-          <div class="inv-card-name">فاتورة الحلاقة</div>
-          <div class="inv-card-desc">خدمات الحلاقة · تتبع الحلاق · تسجيل فوري</div>
-        </div>
-        <div class="inv-card-arrow">‹</div>
+  <div class="scene-wrapper">
+    <div class="mock-topbar">
+      <div class="mock-topbar-brand">
+        <span class="wifi">📶</span> نظام معهد موس
       </div>
-
-      <!-- Massage invoice -->
-      <div class="inv-card blue">
-        <div class="inv-card-icon-wrap">💆</div>
-        <div class="inv-card-body">
-          <div class="inv-card-name">فاتورة المساج</div>
-          <div class="inv-card-desc">جلسات المساج · المعالج · المدة والتكلفة</div>
-        </div>
-        <div class="inv-card-arrow">‹</div>
-      </div>
-
-      <!-- Products invoice -->
-      <div class="inv-card purple">
-        <div class="inv-card-icon-wrap">📦</div>
-        <div class="inv-card-body">
-          <div class="inv-card-name">فاتورة المنتجات</div>
-          <div class="inv-card-desc">منتجات المخزون · الكميات · تحديث تلقائي</div>
-        </div>
-        <div class="inv-card-arrow">‹</div>
+      <div class="mock-topbar-right">
+        <span class="badge-connected">● متصل</span>
+        <div class="user-chip"><div class="avatar">م</div> مدير</div>
       </div>
     </div>
-
-    <!-- Bottom note -->
-    <div class="inv-bottom-note">
-      <div class="inv-bottom-note-icon">⚡</div>
-      <div class="inv-bottom-note-text">
-        فواتير الحلاقة والمساج والمنتجات — كل قسم منفصل ومتكامل
+    <div class="page-header">
+      <h1>إدارة الخدمات</h1>
+      <p>إضافة وتعديل الخدمات المقدمة في الصالون</p>
+    </div>
+    <div class="page-body">
+      <div class="filter-bar">
+        <button class="filter-btn active">الكل</button>
+        <button class="filter-btn outline">مساج</button>
+        <button class="filter-btn outline">حلاقة</button>
+        <button class="btn-add">+ إضافة خدمة جديدة</button>
+      </div>
+      <div class="services-grid">
+        <div class="service-card">
+          <div class="service-card-top">
+            <div class="svc-badge">مساج</div>
+            <div class="svc-icon-btn">✂</div>
+          </div>
+          <div class="svc-name">mint massage 1.30</div>
+          <div class="svc-details">
+            <div class="svc-row"><span>السعر</span><span>د.ك 15.000</span></div>
+            <div class="svc-row"><span>المدة</span><span>90 دقيقة</span></div>
+            <div class="svc-row"><span>العمولة</span><span>10%</span></div>
+          </div>
+          <span class="svc-active">نشط</span>
+        </div>
+        <div class="service-card">
+          <div class="service-card-top">
+            <div class="svc-badge">مساج</div>
+            <div class="svc-icon-btn">✂</div>
+          </div>
+          <div class="svc-name">arotic massage</div>
+          <div class="svc-details">
+            <div class="svc-row"><span>السعر</span><span>د.ك 15.000</span></div>
+            <div class="svc-row"><span>المدة</span><span>40 دقيقة</span></div>
+            <div class="svc-row"><span>العمولة</span><span>1.5%</span></div>
+          </div>
+          <span class="svc-active">نشط</span>
+        </div>
+        <div class="service-card">
+          <div class="service-card-top">
+            <div class="svc-badge">مساج</div>
+            <div class="svc-icon-btn">✂</div>
+          </div>
+          <div class="svc-name">foot massage + pedicure</div>
+          <div class="svc-details">
+            <div class="svc-row"><span>السعر</span><span>د.ك 12.000</span></div>
+            <div class="svc-row"><span>المدة</span><span>60 دقيقة</span></div>
+            <div class="svc-row"><span>العمولة</span><span>10%</span></div>
+          </div>
+          <span class="svc-active">نشط</span>
+        </div>
+        <div class="service-card">
+          <div class="service-card-top">
+            <div class="svc-badge">مساج</div>
+            <div class="svc-icon-btn">✂</div>
+          </div>
+          <div class="svc-name">cupping treatment</div>
+          <div class="svc-details">
+            <div class="svc-row"><span>السعر</span><span>د.ك 6.000</span></div>
+            <div class="svc-row"><span>المدة</span><span>15 دقيقة</span></div>
+            <div class="svc-row"><span>العمولة</span><span>0.5%</span></div>
+          </div>
+          <span class="svc-active">نشط</span>
+        </div>
+        <div class="service-card">
+          <div class="service-card-top">
+            <div class="svc-badge barber">حلاقة</div>
+            <div class="svc-icon-btn">✂</div>
+          </div>
+          <div class="svc-name">hair cut + styling</div>
+          <div class="svc-details">
+            <div class="svc-row"><span>السعر</span><span>د.ك 8.000</span></div>
+            <div class="svc-row"><span>المدة</span><span>30 دقيقة</span></div>
+            <div class="svc-row"><span>العمولة</span><span>5%</span></div>
+          </div>
+          <span class="svc-active">نشط</span>
+        </div>
+        <div class="service-card">
+          <div class="service-card-top">
+            <div class="svc-badge barber">حلاقة</div>
+            <div class="svc-icon-btn">✂</div>
+          </div>
+          <div class="svc-name">beard trim + shave</div>
+          <div class="svc-details">
+            <div class="svc-row"><span>السعر</span><span>د.ك 5.000</span></div>
+            <div class="svc-row"><span>المدة</span><span>20 دقيقة</span></div>
+            <div class="svc-row"><span>العمولة</span><span>3%</span></div>
+          </div>
+          <span class="svc-active">نشط</span>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════ SCENE 4 – APPOINTMENTS & PACKAGES ═══════════════════════ -->
+<!-- ═══════════════════════════════
+     SCENE 4 — APPOINTMENTS & PACKAGES
+═══════════════════════════════ -->
 <div class="scene" id="scene-4">
-  <div class="scene-bg"></div>
-  <div class="top-bar"></div>
-
-  <div class="appt-wrap">
-    <div class="appt-title">المواعيد والباقات</div>
-    <div class="divider divider-center"></div>
-    <div class="appt-subtitle">احجز مسبقاً وتابع باقات العملاء بسهولة</div>
-
-    <!-- Appointments section -->
-    <div class="appt-section-title">المواعيد اليوم</div>
-
-    <div class="appt-list">
-      <div class="appt-list-header">
-        <span style="font-size:16px">📅</span>
-        <span class="appt-list-header-text">مواعيد اليوم</span>
-        <span class="appt-list-header-count">3 مواعيد</span>
-      </div>
-
-      <div class="appt-row">
-        <div class="appt-time-badge">10:00 ص</div>
-        <div class="appt-row-info">
-          <div class="appt-row-name">أحمد محمد</div>
-          <div class="appt-row-service">حلاقة شعر + لحية · حلاق: كريم</div>
-        </div>
-        <div class="appt-status confirmed">مؤكد</div>
-      </div>
-
-      <div class="appt-row">
-        <div class="appt-time-badge">11:30 ص</div>
-        <div class="appt-row-info">
-          <div class="appt-row-name">سالم العمري</div>
-          <div class="appt-row-service">مساج استرخاء 60 دقيقة · معالج: هاني</div>
-        </div>
-        <div class="appt-status pending">قيد الانتظار</div>
-      </div>
-
-      <div class="appt-row">
-        <div class="appt-time-badge">02:00 م</div>
-        <div class="appt-row-info">
-          <div class="appt-row-name">خالد السعيد</div>
-          <div class="appt-row-service">باقة VIP · جلسة #7</div>
-        </div>
-        <div class="appt-status done">مكتمل</div>
+  <div class="scene-wrapper">
+    <div class="mock-topbar">
+      <div class="mock-topbar-brand"><span class="wifi">📶</span> نظام معهد موس</div>
+      <div class="mock-topbar-right">
+        <span class="badge-connected">● متصل</span>
+        <div class="user-chip"><div class="avatar">ك</div> كاشير</div>
       </div>
     </div>
+    <div class="page-header">
+      <h1>المواعيد والباقات</h1>
+      <p>جدولة المواعيد ومتابعة باقات العملاء</p>
+    </div>
+    <div class="page-body">
+      <div class="appt-tabs">
+        <div class="appt-tab active">📅 مواعيد اليوم</div>
+        <div class="appt-tab">📦 الباقات</div>
+      </div>
 
-    <!-- Package card -->
-    <div class="appt-section-title">الباقات النشطة</div>
-
-    <div class="pkg-card">
-      <div class="pkg-badge">⭐ VIP</div>
-      <div class="pkg-name">باقة VIP — مساج متميز</div>
-      <div class="pkg-stats-row">
-        <div class="pkg-stat">
-          <div class="pkg-stat-value">10</div>
-          <div class="pkg-stat-label">إجمالي الجلسات</div>
+      <div class="appt-card">
+        <div class="appt-row">
+          <div class="appt-time">09:00</div>
+          <div class="appt-info">
+            <div class="appt-name">أحمد محمد</div>
+            <div class="appt-svc">arotic massage · 40 دقيقة</div>
+            <div class="appt-emp">👤 محمد الكبيسي</div>
+          </div>
+          <span class="badge-pill badge-green">مؤكد</span>
         </div>
-        <div class="pkg-stat">
-          <div class="pkg-stat-value" style="color:#22c55e">6</div>
-          <div class="pkg-stat-label">جلسات مستخدمة</div>
+        <div class="appt-row">
+          <div class="appt-time">10:30</div>
+          <div class="appt-info">
+            <div class="appt-name">خالد سعد</div>
+            <div class="appt-svc">mint massage 1.30 · 90 دقيقة</div>
+            <div class="appt-emp">👤 فارس العنزي</div>
+          </div>
+          <span class="badge-pill badge-orange">قيد التنفيذ</span>
         </div>
-        <div class="pkg-stat">
-          <div class="pkg-stat-value">4</div>
-          <div class="pkg-stat-label">جلسات متبقية</div>
+        <div class="appt-row">
+          <div class="appt-time">13:00</div>
+          <div class="appt-info">
+            <div class="appt-name">عبدالله فهد</div>
+            <div class="appt-svc">hair cut + styling · 30 دقيقة</div>
+            <div class="appt-emp">👤 سعد الرشيد</div>
+          </div>
+          <span class="badge-pill badge-blue">محجوز</span>
+        </div>
+        <div class="appt-row">
+          <div class="appt-time">15:00</div>
+          <div class="appt-info">
+            <div class="appt-name">ناصر جابر</div>
+            <div class="appt-svc">foot massage · 30 دقيقة</div>
+            <div class="appt-emp">👤 محمد الكبيسي</div>
+          </div>
+          <span class="badge-pill badge-blue">محجوز</span>
         </div>
       </div>
-      <div class="pkg-progress">
-        <div class="pkg-progress-fill" style="width:60%"></div>
+
+      <div class="pkg-card">
+        <div class="pkg-card-title">📦 باقة الجلسات</div>
+        <div class="pkg-name">VIP Massage Package</div>
+        <div class="pkg-meta">
+          <div class="pkg-meta-item">
+            <div class="pkg-meta-num">10</div>
+            <div class="pkg-meta-label">إجمالي الجلسات</div>
+          </div>
+          <div class="pkg-meta-item">
+            <div class="pkg-meta-num" style="color:#22c55e;">6</div>
+            <div class="pkg-meta-label">مستخدمة</div>
+          </div>
+          <div class="pkg-meta-item">
+            <div class="pkg-meta-num">4</div>
+            <div class="pkg-meta-label">متبقية</div>
+          </div>
+          <div class="pkg-meta-item">
+            <div class="pkg-meta-num" style="color:#ef4444;">د.ك 120</div>
+            <div class="pkg-meta-label">القيمة</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:6px;">نسبة الاستخدام</div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" style="width:60%;"></div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════ SCENE 5 – EMPLOYEES ═══════════════════════ -->
+<!-- ═══════════════════════════════
+     SCENE 5 — EMPLOYEES / SALARIES
+═══════════════════════════════ -->
 <div class="scene" id="scene-5">
-  <div class="scene-bg"></div>
-  <div class="top-bar"></div>
-
-  <div class="emp-wrap">
-    <div class="emp-title">إدارة الموظفين</div>
-    <div class="divider divider-center"></div>
-    <div class="emp-subtitle">رواتب محسوبة تلقائياً بعد خصم السلف والغيابات</div>
-
-    <!-- Feature pills -->
-    <div class="emp-pills-row">
-      <div class="emp-pill"><span class="pill-icon">💰</span> الرواتب</div>
-      <div class="emp-pill"><span class="pill-icon">💳</span> السلف</div>
-      <div class="emp-pill"><span class="pill-icon">🕐</span> الحضور والانصراف</div>
-      <div class="emp-pill"><span class="pill-icon">📈</span> تقرير الأداء اليومي</div>
-    </div>
-
-    <!-- Salary table -->
-    <div class="salary-card">
-      <div class="salary-card-header">
-        <span class="salary-header-icon">💵</span>
-        <span class="salary-header-text">كشف الرواتب</span>
-        <span class="salary-header-month">مايو 2025</span>
-      </div>
-
-      <!-- Employee row 1 -->
-      <div class="salary-row">
-        <div class="salary-emp-avatar">✂️</div>
-        <div class="salary-emp-info">
-          <div class="salary-emp-name">كريم محمود</div>
-          <div class="salary-emp-role">حلاق رئيسي · قسم الحلاقة</div>
-        </div>
-        <div class="salary-amounts">
-          <div class="salary-base">أساسي: 4,500</div>
-          <div class="salary-deduct">سلف: (300−)</div>
-          <div class="salary-net">4,200</div>
-          <div class="salary-net-label">صافي الراتب ر.س</div>
-        </div>
-      </div>
-
-      <!-- Employee row 2 -->
-      <div class="salary-row">
-        <div class="salary-emp-avatar">💆</div>
-        <div class="salary-emp-info">
-          <div class="salary-emp-name">هاني الحسن</div>
-          <div class="salary-emp-role">معالج مساج · قسم المساج</div>
-        </div>
-        <div class="salary-amounts">
-          <div class="salary-base">أساسي: 3,800</div>
-          <div class="salary-deduct">سلف: (500−)</div>
-          <div class="salary-net">3,300</div>
-          <div class="salary-net-label">صافي الراتب ر.س</div>
-        </div>
-      </div>
-
-      <!-- Employee row 3 -->
-      <div class="salary-row">
-        <div class="salary-emp-avatar">💼</div>
-        <div class="salary-emp-info">
-          <div class="salary-emp-name">سارة خالد</div>
-          <div class="salary-emp-role">كاشير · إدارة</div>
-        </div>
-        <div class="salary-amounts">
-          <div class="salary-base">أساسي: 3,200</div>
-          <div class="salary-deduct">سلف: (0−)</div>
-          <div class="salary-net">3,200</div>
-          <div class="salary-net-label">صافي الراتب ر.س</div>
-        </div>
+  <div class="scene-wrapper">
+    <div class="mock-topbar">
+      <div class="mock-topbar-brand"><span class="wifi">📶</span> نظام معهد موس</div>
+      <div class="mock-topbar-right">
+        <span class="badge-connected">● متصل</span>
+        <div class="user-chip"><div class="avatar">م</div> مدير</div>
       </div>
     </div>
-
-    <!-- Attendance mini widget -->
-    <div class="attend-widget">
-      <span class="attend-widget-icon">🕐</span>
-      <div class="attend-widget-text">
-        <div class="attend-widget-title">الحضور والانصراف</div>
-        <div class="attend-widget-sub">تسجيل يومي + إذن الغياب + التقارير</div>
+    <div class="page-header">
+      <h1>الرواتب والموظفين</h1>
+      <p>رواتب محسوبة تلقائياً بعد خصم السلف والغيابات</p>
+    </div>
+    <div class="page-body">
+      <div class="card">
+        <div class="card-header">
+          💼 كشف الرواتب — مايو 2025
+          <span class="badge-pill badge-orange">8 موظفين</span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <table class="emp-table">
+            <thead>
+              <tr>
+                <th>الموظف</th>
+                <th>الراتب</th>
+                <th>سلف</th>
+                <th>الصافي</th>
+                <th>الحالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="emp-name">محمد الكبيسي</div>
+                  <div class="emp-dept"><span class="badge-pill badge-teal">مساج</span></div>
+                </td>
+                <td class="emp-amount">د.ك 380</td>
+                <td class="emp-deduct">- 30</td>
+                <td class="emp-net">د.ك 350</td>
+                <td><span class="badge-pill badge-green">مدفوع</span></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="emp-name">فارس العنزي</div>
+                  <div class="emp-dept"><span class="badge-pill badge-teal">مساج</span></div>
+                </td>
+                <td class="emp-amount">د.ك 420</td>
+                <td class="emp-deduct">- 50</td>
+                <td class="emp-net">د.ك 370</td>
+                <td><span class="badge-pill badge-green">مدفوع</span></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="emp-name">سعد الرشيد</div>
+                  <div class="emp-dept"><span class="badge-pill badge-orange">حلاقة</span></div>
+                </td>
+                <td class="emp-amount">د.ك 350</td>
+                <td class="emp-deduct">- 0</td>
+                <td class="emp-net">د.ك 350</td>
+                <td><span class="badge-pill badge-orange">معلق</span></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="emp-name">علي الحربي</div>
+                  <div class="emp-dept"><span class="badge-pill badge-orange">حلاقة</span></div>
+                </td>
+                <td class="emp-amount">د.ك 310</td>
+                <td class="emp-deduct">- 20</td>
+                <td class="emp-net">د.ك 290</td>
+                <td><span class="badge-pill badge-green">مدفوع</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div class="attend-count">
-        <div class="attend-count-num">12</div>
-        <div class="attend-count-label">موظف حاضر</div>
+
+      <div class="attendance-widget">
+        <div class="att-title">📅 الحضور اليوم</div>
+        <div class="att-row">
+          <div class="att-dot in"></div>
+          <div class="att-name">محمد الكبيسي</div>
+          <div class="att-time">دخول 08:55</div>
+          <span class="badge-pill badge-green">حاضر</span>
+        </div>
+        <div class="att-row">
+          <div class="att-dot in"></div>
+          <div class="att-name">فارس العنزي</div>
+          <div class="att-time">دخول 09:10</div>
+          <span class="badge-pill badge-green">حاضر</span>
+        </div>
+        <div class="att-row">
+          <div class="att-dot out"></div>
+          <div class="att-name">سعد الرشيد</div>
+          <div class="att-time">إذن مسبق</div>
+          <span class="badge-pill badge-orange">إذن</span>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════ SCENE 6 – REPORTS ═══════════════════════ -->
+<!-- ═══════════════════════════════
+     SCENE 6 — REPORTS
+═══════════════════════════════ -->
 <div class="scene" id="scene-6">
-  <div class="scene-bg"></div>
-  <div class="top-bar"></div>
-
-  <div class="rpt-wrap">
-    <div class="rpt-title">تقارير وإحصائيات</div>
-    <div class="divider divider-center"></div>
-    <div class="rpt-subtitle">بيانات حقيقية · قرارات أفضل · نمو مستمر</div>
-
-    <!-- Bar chart -->
-    <div class="bar-chart-card">
-      <div class="bar-chart-title">📈 إيرادات آخر 7 أيام (ر.س)</div>
-      <div class="bar-chart-area">
-        <div class="bar-group">
-          <div class="bar-value-text">2,100</div>
-          <div class="bar-fill" style="height:52%"></div>
-          <div class="bar-label">الأحد</div>
-        </div>
-        <div class="bar-group">
-          <div class="bar-value-text">2,800</div>
-          <div class="bar-fill" style="height:69%"></div>
-          <div class="bar-label">الاثنين</div>
-        </div>
-        <div class="bar-group">
-          <div class="bar-value-text">2,450</div>
-          <div class="bar-fill" style="height:61%"></div>
-          <div class="bar-label">الثلاثاء</div>
-        </div>
-        <div class="bar-group">
-          <div class="bar-value-text">3,100</div>
-          <div class="bar-fill" style="height:77%"></div>
-          <div class="bar-label">الأربعاء</div>
-        </div>
-        <div class="bar-group">
-          <div class="bar-value-text">2,750</div>
-          <div class="bar-fill" style="height:68%"></div>
-          <div class="bar-label">الخميس</div>
-        </div>
-        <div class="bar-group">
-          <div class="bar-value-text">3,750</div>
-          <div class="bar-fill highlight" style="height:93%"></div>
-          <div class="bar-label">الجمعة</div>
-        </div>
-        <div class="bar-group">
-          <div class="bar-value-text">2,450</div>
-          <div class="bar-fill" style="height:61%"></div>
-          <div class="bar-label">السبت</div>
-        </div>
+  <div class="scene-wrapper">
+    <div class="mock-topbar">
+      <div class="mock-topbar-brand"><span class="wifi">📶</span> نظام معهد موس</div>
+      <div class="mock-topbar-right">
+        <span class="badge-connected">● متصل</span>
+        <div class="user-chip"><div class="avatar">م</div> مدير النظام</div>
       </div>
     </div>
-
-    <!-- Stat boxes -->
-    <div class="rpt-stats-row">
-      <div class="rpt-stat-box">
-        <div class="rpt-stat-box-icon">📅</div>
-        <div class="rpt-stat-box-value">
-          <span class="up">↑</span>18%
-        </div>
-        <div class="rpt-stat-box-label">نمو الشهر</div>
-      </div>
-      <div class="rpt-stat-box">
-        <div class="rpt-stat-box-icon">💰</div>
-        <div class="rpt-stat-box-value">19,400</div>
-        <div class="rpt-stat-box-label">إجمالي الأسبوع ر.س</div>
-      </div>
+    <div class="page-header">
+      <h1>التقارير والإحصائيات</h1>
+      <p>تقارير يومية وشهرية وسنوية للمبيعات والأداء</p>
     </div>
+    <div class="page-body">
+      <div class="report-tabs">
+        <div class="report-tab active">المبيعات</div>
+        <div class="report-tab">المصروفات</div>
+        <div class="report-tab">الموظفين</div>
+        <div class="report-tab">تقرير الأداء اليومي</div>
+      </div>
 
-    <!-- Report tags -->
-    <div class="rpt-tags">
-      <div class="rpt-tag"><span>✂️</span> تقرير أداء الحلاقين</div>
-      <div class="rpt-tag"><span>📦</span> تقرير المخزون</div>
-      <div class="rpt-tag"><span>💵</span> تقرير المصروفات</div>
-      <div class="rpt-tag"><span>👥</span> تقرير العملاء</div>
-      <div class="rpt-tag"><span>📋</span> سجل الأنشطة</div>
+      <div class="chart-card">
+        <div class="chart-title">إيرادات الأسبوع الحالي (د.ك)</div>
+        <div class="chart-bars">
+          <div class="chart-col">
+            <div class="chart-val">185</div>
+            <div class="chart-bar" style="height:50%;"></div>
+            <div class="chart-day">سبت</div>
+          </div>
+          <div class="chart-col">
+            <div class="chart-val">210</div>
+            <div class="chart-bar" style="height:58%;"></div>
+            <div class="chart-day">أحد</div>
+          </div>
+          <div class="chart-col">
+            <div class="chart-val">295</div>
+            <div class="chart-bar" style="height:80%;"></div>
+            <div class="chart-day">اثنين</div>
+          </div>
+          <div class="chart-col">
+            <div class="chart-val" style="color:var(--orange);font-weight:900;">348</div>
+            <div class="chart-bar highlight" style="height:100%;"></div>
+            <div class="chart-day" style="color:var(--orange);font-weight:700;">ثلاثاء</div>
+          </div>
+          <div class="chart-col">
+            <div class="chart-val">260</div>
+            <div class="chart-bar" style="height:72%;"></div>
+            <div class="chart-day">أربعاء</div>
+          </div>
+          <div class="chart-col">
+            <div class="chart-val">230</div>
+            <div class="chart-bar" style="height:64%;"></div>
+            <div class="chart-day">خميس</div>
+          </div>
+          <div class="chart-col">
+            <div class="chart-val">140</div>
+            <div class="chart-bar" style="height:38%;"></div>
+            <div class="chart-day">جمعة</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary-row">
+        <div class="summary-box">
+          <div class="summary-num">د.ك 1,668</div>
+          <div class="summary-label">إجمالي الأسبوع</div>
+          <div class="summary-change up">↑ 18% عن الأسبوع الماضي</div>
+        </div>
+        <div class="summary-box">
+          <div class="summary-num">د.ك 238</div>
+          <div class="summary-label">متوسط اليوم</div>
+          <div class="summary-change up">↑ 12% نمو</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">✂️ تقرير الأداء اليومي للحلاقين</div>
+        <div class="card-body">
+          <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--border);">
+            <span style="font-weight:700;">سعد الرشيد</span>
+            <span style="color:var(--muted);">8 خدمات</span>
+            <span style="color:var(--orange);font-weight:700;">د.ك 64.000</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;">
+            <span style="font-weight:700;">علي الحربي</span>
+            <span style="color:var(--muted);">6 خدمات</span>
+            <span style="color:var(--orange);font-weight:700;">د.ك 48.000</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════ SCENE 7 – SECURITY ═══════════════════════ -->
+<!-- ═══════════════════════════════
+     SCENE 7 — USERS / PERMISSIONS
+═══════════════════════════════ -->
 <div class="scene" id="scene-7">
-  <div class="scene-bg-dark"></div>
-  <div class="top-bar"></div>
-
-  <div class="sec-wrap">
-    <div class="sec-title">نظام صلاحيات متقدم</div>
-    <div class="sec-divider"></div>
-    <div class="sec-subtitle">كل موظف يرى فقط ما يخصه</div>
-
-    <!-- Roles grid 2x2 -->
-    <div class="roles-grid">
-      <!-- مدير النظام -->
-      <div class="role-card red-role">
-        <div class="role-header">
-          <div class="role-dot red"></div>
-          <span class="role-icon">🔐</span>
-          <span class="role-name">مدير النظام</span>
-        </div>
-        <div class="role-perms">كل الصلاحيات · إدارة المستخدمين · سجل الأنشطة · الإعدادات الكاملة</div>
-      </div>
-
-      <!-- مدير -->
-      <div class="role-card orange-role">
-        <div class="role-header">
-          <div class="role-dot orange"></div>
-          <span class="role-icon">👔</span>
-          <span class="role-name">مدير</span>
-        </div>
-        <div class="role-perms">إدارة الفروع · التقارير والإحصائيات · الموظفين والرواتب</div>
-      </div>
-
-      <!-- كاشير -->
-      <div class="role-card yellow-role">
-        <div class="role-header">
-          <div class="role-dot yellow"></div>
-          <span class="role-icon">💳</span>
-          <span class="role-name">كاشير</span>
-        </div>
-        <div class="role-perms">إصدار الفواتير · إدارة العملاء · المواعيد والباقات</div>
-      </div>
-
-      <!-- موظف -->
-      <div class="role-card green-role">
-        <div class="role-header">
-          <div class="role-dot green"></div>
-          <span class="role-icon">✂️</span>
-          <span class="role-name">موظف</span>
-        </div>
-        <div class="role-perms">إصدار الفاتورة · تسجيل الحضور والانصراف · الخدمات المحددة</div>
+  <div class="scene-wrapper">
+    <div class="mock-topbar">
+      <div class="mock-topbar-brand"><span class="wifi">📶</span> نظام معهد موس</div>
+      <div class="mock-topbar-right">
+        <span class="badge-connected">● متصل</span>
+        <div class="user-chip"><div class="avatar">م</div> مدير النظام</div>
       </div>
     </div>
-
-    <!-- Shield note -->
-    <div class="sec-shield">
-      <span class="sec-shield-icon">🛡️</span>
-      <div class="sec-shield-text">
-        <span>صلاحيات دقيقة لكل دور</span> — مع سجل كامل لكل الأنشطة وتدقيق شامل للعمليات
-      </div>
+    <div class="page-header">
+      <h1>المستخدمين والصلاحيات</h1>
+      <p>تحكم كامل في صلاحيات كل مستخدم</p>
     </div>
-
-    <!-- Audit log hint -->
-    <div style="margin-top:18px; width:100%; background:rgba(255,255,255,0.04); border:1.5px solid rgba(255,255,255,0.08); border-radius:14px; padding:16px 20px; display:flex; align-items:center; gap:12px;">
-      <span style="font-size:22px">📋</span>
-      <div>
-        <div style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.85); margin-bottom:3px;">سجل الأنشطة (Audit Log)</div>
-        <div style="font-size:12px; font-weight:600; color:rgba(255,255,255,0.45);">تسجيل كل العمليات: من أضاف · من عدّل · من حذف · التاريخ والوقت</div>
+    <div class="page-body">
+      <div class="roles-grid">
+        <div class="role-card admin">
+          <div class="role-name">🔴 مدير النظام</div>
+          <div class="role-desc">وصول كامل لجميع الوحدات والتقارير والإعدادات</div>
+          <div class="role-perms">
+            <span class="perm-badge">لوحة التحكم</span>
+            <span class="perm-badge">المبيعات</span>
+            <span class="perm-badge">التقارير</span>
+            <span class="perm-badge">الرواتب</span>
+            <span class="perm-badge">المستخدمين</span>
+          </div>
+        </div>
+        <div class="role-card manager">
+          <div class="role-name">🟠 مدير</div>
+          <div class="role-desc">إدارة العمليات اليومية والموظفين والتقارير</div>
+          <div class="role-perms">
+            <span class="perm-badge">المبيعات</span>
+            <span class="perm-badge">الموظفين</span>
+            <span class="perm-badge">التقارير</span>
+            <span class="perm-badge">المخزون</span>
+          </div>
+        </div>
+        <div class="role-card cashier">
+          <div class="role-name">🔵 كاشير</div>
+          <div class="role-desc">إصدار الفواتير وإدارة العملاء والمواعيد</div>
+          <div class="role-perms">
+            <span class="perm-badge">فواتير</span>
+            <span class="perm-badge">العملاء</span>
+            <span class="perm-badge">المواعيد</span>
+          </div>
+        </div>
+        <div class="role-card emp">
+          <div class="role-name">🟢 موظف</div>
+          <div class="role-desc">تسجيل الحضور وعرض المواعيد الخاصة به</div>
+          <div class="role-perms">
+            <span class="perm-badge">الحضور</span>
+            <span class="perm-badge">مواعيده</span>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <!-- Bilingual note -->
-    <div style="margin-top:14px; width:100%; background:rgba(247,148,29,0.08); border:1.5px solid rgba(247,148,29,0.20); border-radius:14px; padding:14px 20px; display:flex; align-items:center; gap:12px;">
-      <span style="font-size:22px">🌐</span>
-      <div>
-        <div style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.85);">دعم ثنائي اللغة · Arabic + English</div>
-        <div style="font-size:12px; font-weight:600; color:rgba(255,255,255,0.50);">الواجهة والتقارير متاحة بالعربية والإنجليزية</div>
+      <div class="audit-card">
+        <div class="info-card-header">🕐 سجل الأنشطة الأخيرة</div>
+        <div class="audit-row">
+          <div class="audit-icon add">✚</div>
+          <div class="audit-text">تمت إضافة فاتورة جديدة - د.ك 15.000</div>
+          <div class="audit-time">09:42</div>
+        </div>
+        <div class="audit-row">
+          <div class="audit-icon edit">✎</div>
+          <div class="audit-text">تعديل بيانات موظف — فارس العنزي</div>
+          <div class="audit-time">09:15</div>
+        </div>
+        <div class="audit-row">
+          <div class="audit-icon add">✚</div>
+          <div class="audit-text">حجز موعد جديد — أحمد محمد</div>
+          <div class="audit-time">08:58</div>
+        </div>
+        <div class="audit-row">
+          <div class="audit-icon del">✕</div>
+          <div class="audit-text">إلغاء موعد — خالد العجمي</div>
+          <div class="audit-time">08:30</div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════ SCENE 8 – CTA ═══════════════════════ -->
+<!-- ═══════════════════════════════
+     SCENE 8 — CTA
+═══════════════════════════════ -->
 <div class="scene" id="scene-8">
-  <div class="scene-bg-dark"></div>
-  <div class="top-bar"></div>
-
-  <!-- Decorative circles -->
-  <div class="cta-circle-1"></div>
-  <div class="cta-circle-2"></div>
-
-  <div class="cta-wrap">
-    <!-- Trophy -->
+  <div class="cta-wrap" style="width:100%;height:1280px;">
     <div class="cta-trophy">🏆</div>
-
-    <!-- System name -->
-    <div class="cta-system-name">
-      ابدأ الآن مع<br><span>معهد موس</span>
-    </div>
-
-    <!-- Tagline -->
-    <div class="cta-tagline">
-      إدارة متكاملة · بيانات دقيقة · نمو حقيقي
-    </div>
-
-    <!-- CTA Button -->
-    <button class="cta-btn">
-      <span>📞</span>
-      تواصل معنا الآن
-    </button>
-
-    <!-- Badges -->
+    <div class="cta-title">ابدأ الآن مع<br><span>معهد موس</span></div>
+    <div class="cta-sub">نظام إدارة متكامل للحلاقة والمساج<br>فواتير · رواتب · مواعيد · تقارير</div>
+    <div class="cta-btn">📞 تواصل معنا الآن</div>
     <div class="cta-badges">
-      <div class="cta-badge"><span>✅</span> تجربة مجانية</div>
-      <div class="cta-badge"><span>🛡️</span> دعم فني</div>
-      <div class="cta-badge"><span>⚡</span> تثبيت فوري</div>
+      <div class="cta-badge">✅ تجربة مجانية</div>
+      <div class="cta-badge">🛡️ دعم فني دائم</div>
+      <div class="cta-badge">⚡ تثبيت فوري</div>
     </div>
-
-    <!-- Footer -->
-    <div class="cta-footer">
-      <div class="cta-footer-line"></div>
-      <div class="cta-footer-text">
-        <span>نظام معهد موس</span> · حلاقة + مساج
-      </div>
-    </div>
+    <div class="cta-footer">نظام <span>معهد موس</span> · حلاقة + مساج</div>
   </div>
 </div>
 
-<!-- ═══════════════════════ SCENE NAVIGATION ═══════════════════════ -->
-<div class="scene-nav" id="scene-nav">
-  <button class="scene-nav-btn active" onclick="showScene('scene-1')">1</button>
-  <button class="scene-nav-btn" onclick="showScene('scene-2')">2</button>
-  <button class="scene-nav-btn" onclick="showScene('scene-3')">3</button>
-  <button class="scene-nav-btn" onclick="showScene('scene-4')">4</button>
-  <button class="scene-nav-btn" onclick="showScene('scene-5')">5</button>
-  <button class="scene-nav-btn" onclick="showScene('scene-6')">6</button>
-  <button class="scene-nav-btn" onclick="showScene('scene-7')">7</button>
-  <button class="scene-nav-btn" onclick="showScene('scene-8')">8</button>
+<!-- Nav dots -->
+<div id="scene-nav">
+  <div class="nav-dot active" onclick="showScene('scene-1')"></div>
+  <div class="nav-dot" onclick="showScene('scene-2')"></div>
+  <div class="nav-dot" onclick="showScene('scene-3')"></div>
+  <div class="nav-dot" onclick="showScene('scene-4')"></div>
+  <div class="nav-dot" onclick="showScene('scene-5')"></div>
+  <div class="nav-dot" onclick="showScene('scene-6')"></div>
+  <div class="nav-dot" onclick="showScene('scene-7')"></div>
+  <div class="nav-dot" onclick="showScene('scene-8')"></div>
 </div>
 
 <script>
-// ─── Scene registry ───
-window.SCENES = [
-  'scene-1',
-  'scene-2',
-  'scene-3',
-  'scene-4',
-  'scene-5',
-  'scene-6',
-  'scene-7',
-  'scene-8'
-];
+window.SCENES = ['scene-1','scene-2','scene-3','scene-4','scene-5','scene-6','scene-7','scene-8'];
 
-let _currentScene = 'scene-1';
-
-// ─── showScene function ───
 window.showScene = function(id) {
-  // Hide all scenes
-  document.querySelectorAll('.scene').forEach(function(s) {
-    s.classList.remove('active');
+  window.SCENES.forEach(function(s) {
+    document.getElementById(s).classList.remove('active');
   });
-
-  // Show requested scene
-  const target = document.getElementById(id);
-  if (target) {
-    target.classList.add('active');
-    _currentScene = id;
-  }
-
-  // Update nav buttons
-  document.querySelectorAll('.scene-nav-btn').forEach(function(btn, i) {
-    btn.classList.toggle('active', window.SCENES[i] === id);
+  document.getElementById(id).classList.add('active');
+  var idx = window.SCENES.indexOf(id);
+  document.querySelectorAll('.nav-dot').forEach(function(d,i) {
+    d.classList.toggle('active', i === idx);
   });
 };
 
-// ─── Keyboard navigation ───
-document.addEventListener('keydown', function(e) {
-  const idx = window.SCENES.indexOf(_currentScene);
-  if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
-    const prev = window.SCENES[idx - 1];
-    if (prev) window.showScene(prev);
-  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
-    const next = window.SCENES[idx + 1];
-    if (next) window.showScene(next);
-  } else if (e.key >= '1' && e.key <= '8') {
-    window.showScene('scene-' + e.key);
-  }
-});
-
-// ─── Auto-play mode ───
-// Call window.autoPlay(true) to auto-advance through scenes
-const SCENE_DURATIONS = {
-  'scene-1': 4000,
-  'scene-2': 5000,
-  'scene-3': 5000,
-  'scene-4': 5000,
-  'scene-5': 5000,
-  'scene-6': 5000,
-  'scene-7': 4000,
-  'scene-8': 5000
-};
-let _autoTimer = null;
-window.autoPlay = function(enabled) {
-  if (_autoTimer) { clearTimeout(_autoTimer); _autoTimer = null; }
-  if (!enabled) return;
-  function advance() {
-    const idx = window.SCENES.indexOf(_currentScene);
-    const next = window.SCENES[idx + 1];
-    if (next) {
-      window.showScene(next);
-      _autoTimer = setTimeout(advance, SCENE_DURATIONS[next]);
-    }
-  }
-  _autoTimer = setTimeout(advance, SCENE_DURATIONS[_currentScene]);
-};
-
-// ─── Init ───
 window.showScene('scene-1');
 </script>
 </body>
