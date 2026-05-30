@@ -22,9 +22,6 @@ namespace Salon.Models
         [Display(Name = "المدة (دقائق)")]
         public int? DurationMinutes { get; set; }
 
-        [Display(Name = "العمولة (%)")]
-        public decimal CommissionPercentage { get; set; } = 0;
-
         [Display(Name = "الفئة")]
         public int? ServiceCategoryId { get; set; }
 
