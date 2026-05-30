@@ -857,6 +857,9 @@ namespace Salon.Migrations
                 b.Property<int?>("DurationMinutes")
                     .HasColumnType("int");
 
+                b.Property<decimal>("CommissionPercentage")
+                    .HasColumnType("decimal(18,2)");
+
                 b.Property<bool>("IsActive")
                     .HasColumnType("bit");
 

@@ -20,7 +20,7 @@ namespace Salon.Controllers
             _userManager = userManager;
         }
 
-        public async Task<IActionResult> Index(string? search)
+        public async Task<IActionResult> Index(string? search, string? filter)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
@@ -33,8 +33,12 @@ namespace Salon.Controllers
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(s => s.Name.Contains(search));
 
+            if (!string.IsNullOrEmpty(filter) && filter != "all")
+                query = query.Where(s => s.ServiceCategory != null && s.ServiceCategory.Department == filter);
+
             var services = await query.OrderBy(s => s.ServiceCategoryId).ThenBy(s => s.Name).ToListAsync();
             ViewBag.Search = search;
+            ViewBag.Filter = filter ?? "all";
             return View(services);
         }
 

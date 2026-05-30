@@ -1,19 +1,21 @@
 @model IEnumerable<Salon.Models.Service>
 @{
     ViewData["Title"] = "الخدمات";
+    var currentFilter = ViewBag.Filter as string ?? "all";
+    var categories = (ViewBag.Categories as IEnumerable<Salon.Models.ServiceCategory>) ?? Enumerable.Empty<Salon.Models.ServiceCategory>();
 }
 
-<div class="page-header d-flex justify-content-between align-items-center">
+<div class="page-header d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h1><i class="fas fa-cut me-2"></i>الخدمات</h1>
-        <p>إدارة خدمات الصالون</p>
+        <h1 class="mb-1">إدارة الخدمات</h1>
+        <p class="mb-0">إضافة وتعديل الخدمات المقدمة في الصالون</p>
     </div>
-    <div class="d-flex gap-2">
-        <a href="@Url.Action("Index", "Packages")" class="btn btn-outline-warning">
-            <i class="fas fa-box-open me-1"></i> الباقات
+    <div class="d-flex gap-2 align-items-center">
+        <a href="@Url.Action("Index", "Packages")" class="btn btn-outline-secondary d-flex align-items-center gap-1">
+            <i class="fas fa-box-open"></i> باقات الجلسات
         </a>
-        <a href="@Url.Action("Create")" class="btn btn-primary">
-            <i class="fas fa-plus me-1"></i> إضافة خدمة
+        <a href="@Url.Action("Create")" class="btn btn-primary d-flex align-items-center gap-1">
+            <i class="fas fa-plus"></i> إضافة خدمة جديدة
         </a>
     </div>
 </div>
@@ -26,64 +28,103 @@
     </div>
 }
 
-<div class="card">
-    <div class="card-body">
-        <form method="get" class="search-bar mb-3">
-            <input type="text" name="search" value="@ViewBag.Search" class="form-control" placeholder="بحث باسم الخدمة..." />
-            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i></button>
-        </form>
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>اسم الخدمة</th>
-                        <th>الفئة</th>
-                        <th>السعر</th>
-                        <th>المدة (دقائق)</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (!Model.Any())
-                    {
-                        <tr><td colspan="6" class="text-center text-muted py-4">لا توجد خدمات مسجلة</td></tr>
-                    }
-                    @foreach (var s in Model)
-                    {
-                        <tr>
-                            <td>@s.Id</td>
-                            <td><strong>@s.Name</strong></td>
-                            <td>
-                                @if (s.ServiceCategory != null)
-                                {
-                                    <span class="badge rounded-pill" style="background-color:@(s.ServiceCategory.Color ?? "#F7941D")">
-                                        <i class="@(s.ServiceCategory.Icon ?? "fas fa-tag") me-1"></i>@s.ServiceCategory.Name
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">-</span>
-                                }
-                            </td>
-                            <td>@s.Price.ToString("N3") د.ك</td>
-                            <td>@(s.DurationMinutes?.ToString() ?? "-")</td>
-                            <td>
-                                <a href="@Url.Action("Edit", new { id = s.Id })" class="btn btn-sm btn-outline-warning me-1">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <button type="button" class="btn btn-sm btn-outline-danger" title="حذف"
-                                        onclick="confirmDelete(@s.Id, '@Html.Raw(s.Name.Replace("'", "\\'"))')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
+<!-- Filter tabs -->
+<div class="d-flex gap-2 mb-3 flex-wrap">
+    <a href="@Url.Action("Index", new { filter = "all", search = ViewBag.Search })"
+       class="btn btn-sm @(currentFilter == "all" ? "btn-dark" : "btn-outline-secondary")">الكل</a>
+    <a href="@Url.Action("Index", new { filter = "مساج", search = ViewBag.Search })"
+       class="btn btn-sm @(currentFilter == "مساج" ? "btn-dark" : "btn-outline-secondary")">مساج</a>
+    <a href="@Url.Action("Index", new { filter = "حلاقة", search = ViewBag.Search })"
+       class="btn btn-sm @(currentFilter == "حلاقة" ? "btn-dark" : "btn-outline-secondary")">حلاقة</a>
 </div>
+
+<!-- Search bar -->
+<div class="mb-4 position-relative">
+    <form method="get" id="searchForm">
+        <input type="hidden" name="filter" value="@currentFilter" />
+        <input type="text" name="search" value="@ViewBag.Search" id="searchInput"
+               class="form-control pe-5" placeholder="ابحث عن خدمة..." />
+        <button type="submit" class="btn btn-link position-absolute top-50 translate-middle-y"
+                style="left: 10px; right: auto; color: #adb5bd;">
+            <i class="fas fa-search"></i>
+        </button>
+    </form>
+</div>
+
+<!-- Cards grid -->
+@if (!Model.Any())
+{
+    <div class="text-center text-muted py-5">
+        <i class="fas fa-cut fa-3x mb-3 d-block" style="color:#dee2e6"></i>
+        لا توجد خدمات مسجلة
+    </div>
+}
+else
+{
+    <div class="row g-3" id="servicesGrid">
+        @foreach (var s in Model)
+        {
+            var categoryName = s.ServiceCategory?.Name ?? "";
+            var dept = s.ServiceCategory?.Department ?? "";
+            <div class="col-xl-3 col-lg-4 col-md-6 service-card-col" data-dept="@dept" data-name="@s.Name.ToLower()">
+                <div class="card service-card h-100">
+                    <div class="card-body p-3">
+                        <!-- Top row: actions + icon -->
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="d-flex gap-2">
+                                <button type="button" class="svc-action-btn svc-action-delete"
+                                        onclick="confirmDelete(@s.Id, '@Html.Raw(s.Name.Replace("'", "\\'"))')"
+                                        title="حذف">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                                <a href="@Url.Action("Edit", new { id = s.Id })" class="svc-action-btn svc-action-edit" title="تعديل">
+                                    <i class="fas fa-credit-card"></i>
+                                </a>
+                            </div>
+                            <div class="svc-icon-box">
+                                <i class="fas fa-cut"></i>
+                            </div>
+                        </div>
+
+                        <!-- Service name -->
+                        <div class="svc-name mb-1">@s.Name</div>
+
+                        <!-- Category badge -->
+                        @if (s.ServiceCategory != null)
+                        {
+                            <div class="mb-3">
+                                <span class="svc-category-badge">@s.ServiceCategory.Name</span>
+                            </div>
+                        }
+
+                        <!-- Details rows -->
+                        <div class="svc-details">
+                            <div class="svc-detail-row">
+                                <span class="svc-detail-label">السعر</span>
+                                <span class="svc-detail-value svc-price">د.ك @s.Price.ToString("N3")</span>
+                            </div>
+                            <div class="svc-detail-row">
+                                <span class="svc-detail-label">المدة</span>
+                                <span class="svc-detail-value">@(s.DurationMinutes.HasValue ? $"{s.DurationMinutes} دقيقة" : "-")</span>
+                            </div>
+                            <div class="svc-detail-row">
+                                <span class="svc-detail-label">العمولة</span>
+                                <span class="svc-detail-value">@s.CommissionPercentage.ToString("G29")%</span>
+                            </div>
+                        </div>
+
+                        <!-- Status badge -->
+                        <div class="mt-3">
+                            <span class="svc-status-badge @(s.IsActive ? "svc-status-active" : "svc-status-inactive")">
+                                @(s.IsActive ? "نشط" : "غير نشط")
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
 
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
@@ -111,6 +152,126 @@
         </div>
     </div>
 </div>
+
+<style>
+    .service-card {
+        border: 1px solid #e9ecef;
+        border-radius: 14px;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+        .service-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        }
+
+    .svc-icon-box {
+        width: 46px;
+        height: 46px;
+        background: #F7941D;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 20px;
+    }
+
+    .svc-action-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .svc-action-delete {
+        color: #dc3545;
+    }
+
+        .svc-action-delete:hover {
+            background: #dc3545;
+            color: #fff;
+            border-color: #dc3545;
+        }
+
+    .svc-action-edit {
+        color: #6c757d;
+    }
+
+        .svc-action-edit:hover {
+            background: #6c757d;
+            color: #fff;
+            border-color: #6c757d;
+        }
+
+    .svc-name {
+        font-weight: 700;
+        font-size: 15px;
+        color: #1a1a2e;
+        text-align: right;
+    }
+
+    .svc-category-badge {
+        background: #e3f2fd;
+        color: #1565c0;
+        border-radius: 20px;
+        padding: 3px 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .svc-details {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .svc-detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+    }
+
+    .svc-detail-label {
+        color: #6c757d;
+    }
+
+    .svc-detail-value {
+        font-weight: 600;
+        color: #1a1a2e;
+    }
+
+    .svc-price {
+        color: #F7941D;
+    }
+
+    .svc-status-badge {
+        display: inline-block;
+        border-radius: 20px;
+        padding: 3px 14px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .svc-status-active {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .svc-status-inactive {
+        background: #fce4ec;
+        color: #c62828;
+    }
+</style>
 
 @section Scripts {
     <script>
