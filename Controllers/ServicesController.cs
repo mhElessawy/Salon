@@ -20,12 +20,15 @@ namespace Salon.Controllers
             _userManager = userManager;
         }
 
-        public async Task<IActionResult> Index(string? search)
+        public async Task<IActionResult> Index(string? search, string? filter)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
 
-            var query = _context.Services.Include(s => s.ServiceCategory).Where(s => s.IsActive);
+            var query = _context.Services
+                .Include(s => s.ServiceCategory)
+                .Include(s => s.SaleItems)
+                .Where(s => s.IsActive);
 
             if (userDept == "حلاقة" || userDept == "مساج")
                 query = query.Where(s => s.ServiceCategory!.Department == userDept);
@@ -33,9 +36,25 @@ namespace Salon.Controllers
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(s => s.Name.Contains(search));
 
-            var services = await query.OrderBy(s => s.ServiceCategoryId).ThenBy(s => s.Name).ToListAsync();
+            if (!string.IsNullOrEmpty(filter) && filter != "all")
+                query = query.Where(s => s.ServiceCategory != null && s.ServiceCategory.Department == filter);
+
+            var services = await query.ToListAsync();
+
+            var invoiceCounts = services.ToDictionary(
+                s => s.Id,
+                s => s.SaleItems.Select(si => si.SaleId).Distinct().Count()
+            );
+
+            var sorted = services
+                .OrderByDescending(s => invoiceCounts[s.Id])
+                .ThenBy(s => s.Name)
+                .ToList();
+
             ViewBag.Search = search;
-            return View(services);
+            ViewBag.Filter = filter ?? "all";
+            ViewBag.InvoiceCounts = invoiceCounts;
+            return View(sorted);
         }
 
         public async Task<IActionResult> Create()
