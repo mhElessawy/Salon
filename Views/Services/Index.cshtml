@@ -102,8 +102,15 @@ else
                                 {
                                     <span class="svc-rank-badge @(svcRank == 1 ? "svc-rank-gold" : svcRank == 2 ? "svc-rank-silver" : svcRank == 3 ? "svc-rank-bronze" : "svc-rank-default")">#@svcRank</span>
                                 }
-                                <div class="svc-icon-box" style="@(s.ServiceCategory?.Color != null ? $"background:{s.ServiceCategory.Color}" : "background:#F7941D")">
-                                    <i class="@(string.IsNullOrEmpty(s.ServiceCategory?.Icon) ? (dept == "مساج" ? "fas fa-spa" : "fas fa-cut") : s.ServiceCategory!.Icon)"></i>
+                                @{
+                                    var catIcon = s.ServiceCategory?.Icon;
+                                    var resolvedIcon = (!string.IsNullOrEmpty(catIcon) && catIcon != "fas fa-cut")
+                                        ? catIcon
+                                        : (dept == "مساج" ? "fas fa-spa" : "fas fa-cut");
+                                    var catColor = s.ServiceCategory?.Color ?? "#F7941D";
+                                }
+                                <div class="svc-icon-box" style="background:@catColor">
+                                    <i class="@resolvedIcon"></i>
                                 </div>
                             </div>
                         </div>
