@@ -1,8 +1,14 @@
 @model IEnumerable<Salon.Models.Service>
 @{
     ViewData["Title"] = "الخدمات";
-    var currentFilter = ViewBag.Filter as string ?? "all";
-    var invoiceCounts = ViewBag.InvoiceCounts as Dictionary<int, int> ?? new Dictionary<int, int>();
+    var currentFilter  = ViewBag.Filter as string ?? "all";
+    var invoiceCounts  = ViewBag.InvoiceCounts  as Dictionary<int, int>     ?? new Dictionary<int, int>();
+    var totalSales     = ViewBag.TotalSales     as Dictionary<int, decimal>  ?? new Dictionary<int, decimal>();
+    var last30Invoices = ViewBag.Last30Invoices as Dictionary<int, int>     ?? new Dictionary<int, int>();
+    var last30Sales    = ViewBag.Last30Sales    as Dictionary<int, decimal>  ?? new Dictionary<int, decimal>();
+    var ranks          = ViewBag.Ranks          as Dictionary<int, int>     ?? new Dictionary<int, int>();
+    var statusText     = ViewBag.StatusText     as Dictionary<int, string>  ?? new Dictionary<int, string>();
+    var statusClass    = ViewBag.StatusClass    as Dictionary<int, string>  ?? new Dictionary<int, string>();
 }
 
 <div class="page-header d-flex justify-content-between align-items-center mb-3">
@@ -69,7 +75,17 @@ else
             <div class="col-xl-3 col-lg-4 col-md-6 service-card-col" data-dept="@dept" data-name="@s.Name.ToLower()">
                 <div class="card service-card h-100">
                     <div class="card-body p-3">
-                        <!-- Top row: actions + icon -->
+                        @{
+                            var svcRank    = ranks.ContainsKey(s.Id)         ? ranks[s.Id]          : 0;
+                            var svcCnt     = invoiceCounts.ContainsKey(s.Id) ? invoiceCounts[s.Id]  : 0;
+                            var svcTotal   = totalSales.ContainsKey(s.Id)    ? totalSales[s.Id]     : 0m;
+                            var svc30Inv   = last30Invoices.ContainsKey(s.Id)? last30Invoices[s.Id] : 0;
+                            var svc30Sale  = last30Sales.ContainsKey(s.Id)   ? last30Sales[s.Id]    : 0m;
+                            var svcStText  = statusText.ContainsKey(s.Id)    ? statusText[s.Id]     : "متوقفة";
+                            var svcStClass = statusClass.ContainsKey(s.Id)   ? statusClass[s.Id]    : "svc-status-stopped";
+                        }
+
+                        <!-- Top row: actions + icon + rank -->
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div class="d-flex gap-2">
                                 <button type="button" class="svc-action-btn svc-action-delete"
@@ -81,17 +97,14 @@ else
                                     <i class="fas fa-credit-card"></i>
                                 </a>
                             </div>
-                            <div class="position-relative">
+                            <div class="d-flex align-items-center gap-2">
+                                @if (svcRank > 0)
+                                {
+                                    <span class="svc-rank-badge @(svcRank == 1 ? "svc-rank-gold" : svcRank == 2 ? "svc-rank-silver" : svcRank == 3 ? "svc-rank-bronze" : "svc-rank-default")">#@svcRank</span>
+                                }
                                 <div class="svc-icon-box">
                                     <i class="fas fa-cut"></i>
                                 </div>
-                                @{
-                                    var count = invoiceCounts.ContainsKey(s.Id) ? invoiceCounts[s.Id] : 0;
-                                }
-                                @if (count > 0)
-                                {
-                                    <span class="svc-count-badge">@count</span>
-                                }
                             </div>
                         </div>
 
@@ -117,21 +130,27 @@ else
                                 <span class="svc-detail-value">@(s.DurationMinutes.HasValue ? $"{s.DurationMinutes} دقيقة" : "-")</span>
                             </div>
                             <div class="svc-detail-row">
-                                <span class="svc-detail-label">الفواتير</span>
-                                <span class="svc-detail-value svc-invoice-val">
-                                    @{
-                                        var cnt = invoiceCounts.ContainsKey(s.Id) ? invoiceCounts[s.Id] : 0;
-                                    }
-                                    @cnt فاتورة
-                                </span>
+                                <span class="svc-detail-label">عدد الفواتير</span>
+                                <span class="svc-detail-value svc-invoice-val">@svcCnt فاتورة</span>
+                            </div>
+                            <div class="svc-detail-row">
+                                <span class="svc-detail-label">إجمالي المبيعات</span>
+                                <span class="svc-detail-value svc-total-val">د.ك @svcTotal.ToString("N3")</span>
+                            </div>
+                            <div class="svc-detail-divider"></div>
+                            <div class="svc-detail-row">
+                                <span class="svc-detail-label">فواتير آخر 30 يوم</span>
+                                <span class="svc-detail-value svc-30-inv">@svc30Inv فاتورة</span>
+                            </div>
+                            <div class="svc-detail-row">
+                                <span class="svc-detail-label">مبيعات آخر 30 يوم</span>
+                                <span class="svc-detail-value svc-30-sale">د.ك @svc30Sale.ToString("N3")</span>
                             </div>
                         </div>
 
                         <!-- Status badge -->
                         <div class="mt-3">
-                            <span class="svc-status-badge @(s.IsActive ? "svc-status-active" : "svc-status-inactive")">
-                                @(s.IsActive ? "نشط" : "غير نشط")
-                            </span>
+                            <span class="svc-status-badge @svcStClass">@svcStText</span>
                         </div>
                     </div>
                 </div>
@@ -276,36 +295,53 @@ else
         font-weight: 600;
     }
 
-    .svc-status-active {
+    /* Status badges */
+    .svc-status-excellent {
         background: #e8f5e9;
         color: #2e7d32;
     }
 
-    .svc-status-inactive {
+    .svc-status-good {
+        background: #fff9c4;
+        color: #f57f17;
+    }
+
+    .svc-status-needs {
+        background: #fff3e0;
+        color: #e65100;
+    }
+
+    .svc-status-stopped {
         background: #fce4ec;
         color: #c62828;
     }
 
-    .svc-count-badge {
-        position: absolute;
-        top: -6px;
-        left: -6px;
-        min-width: 20px;
-        height: 20px;
-        background: #28a745;
-        color: #fff;
-        border-radius: 10px;
-        font-size: 11px;
-        font-weight: 700;
-        display: flex;
+    /* Rank badge */
+    .svc-rank-badge {
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 0 5px;
-        line-height: 1;
+        min-width: 32px;
+        height: 22px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 800;
+        padding: 0 6px;
     }
 
-    .svc-invoice-val {
-        color: #28a745;
+    .svc-rank-gold    { background: #fff8e1; color: #f9a825; border: 1px solid #f9a825; }
+    .svc-rank-silver  { background: #f5f5f5; color: #757575; border: 1px solid #bdbdbd; }
+    .svc-rank-bronze  { background: #fbe9e7; color: #bf360c; border: 1px solid #ff8a65; }
+    .svc-rank-default { background: #f3f4f6; color: #6c757d; border: 1px solid #dee2e6; }
+
+    .svc-invoice-val  { color: #28a745; }
+    .svc-total-val    { color: #1565c0; }
+    .svc-30-inv       { color: #6c3483; }
+    .svc-30-sale      { color: #0d6efd; font-weight: 700; }
+
+    .svc-detail-divider {
+        border-top: 1px dashed #e9ecef;
+        margin: 4px 0;
     }
 </style>
 
