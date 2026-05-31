@@ -102,8 +102,8 @@ else
                                 {
                                     <span class="svc-rank-badge @(svcRank == 1 ? "svc-rank-gold" : svcRank == 2 ? "svc-rank-silver" : svcRank == 3 ? "svc-rank-bronze" : "svc-rank-default")">#@svcRank</span>
                                 }
-                                <div class="svc-icon-box">
-                                    <i class="fas fa-cut"></i>
+                                <div class="svc-icon-box" style="@(s.ServiceCategory?.Color != null ? $"background:{s.ServiceCategory.Color}" : "background:#F7941D")">
+                                    <i class="@(string.IsNullOrEmpty(s.ServiceCategory?.Icon) ? (dept == "مساج" ? "fas fa-spa" : "fas fa-cut") : s.ServiceCategory!.Icon)"></i>
                                 </div>
                             </div>
                         </div>
@@ -201,7 +201,6 @@ else
     .svc-icon-box {
         width: 46px;
         height: 46px;
-        background: #F7941D;
         border-radius: 10px;
         display: flex;
         align-items: center;
