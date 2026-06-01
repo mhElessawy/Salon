@@ -88,11 +88,24 @@ namespace Salon.Controllers
             ViewBag.Total = total;
             ViewBag.TotalPages = (int)Math.Ceiling((double)total / pageSize);
 
-            ViewBag.Modules = await _context.AuditLogs
-                .Select(l => l.Module).Distinct().OrderBy(m => m).ToListAsync();
+            var knownModules = new List<string>
+            {
+                "الأقسام", "الباقات", "الحضور", "الخدمات", "الرواتب",
+                "السلف", "الشفتات", "العملاء", "الموردين", "الموظفين",
+                "المبيعات", "المخزون", "المستخدمين", "المصروفات", "المواعيد",
+                "النظام", "فئات الخدمات"
+            };
+            var dbModules = await _context.AuditLogs.Select(l => l.Module).Distinct().ToListAsync();
+            ViewBag.Modules = knownModules.Union(dbModules).OrderBy(m => m).ToList();
 
-            ViewBag.Actions = await _context.AuditLogs
-                .Select(l => l.Action).Distinct().OrderBy(a => a).ToListAsync();
+            var knownActions = new List<string>
+            {
+                "إضافة", "إغلاق", "إلغاء", "استخدام", "استهلاك", "استلام",
+                "انصراف", "إهلاك", "بيع", "تسجيل دخول", "تعديل", "تعيين",
+                "حذف", "حضور", "خصم", "صرف", "عودة", "فتح", "موافقة"
+            };
+            var dbActions = await _context.AuditLogs.Select(l => l.Action).Distinct().ToListAsync();
+            ViewBag.Actions = knownActions.Union(dbActions).OrderBy(a => a).ToList();
 
             return View(logs);
         }
