@@ -70,6 +70,11 @@
                         <i class="fas fa-bars"></i>
                     </button>
 
+                    <!-- Sidebar toggle button (desktop only) -->
+                    <button class="sidebar-toggle-btn d-none d-lg-flex" id="sidebarToggleBtn" onclick="toggleSidebarDesktop()" title="إخفاء القائمة">
+                        <i class="fas fa-chevron-right" id="sidebarToggleIcon"></i>
+                    </button>
+
                     <!-- Logout button -->
                     <a href="@Url.Action("Logout", "Account")" class="logout-btn" title="تسجيل الخروج">
                         <i class="fas fa-sign-out-alt"></i>
@@ -186,8 +191,9 @@
                     i.classList.replace('fa-chevron-left', 'fa-chevron-right');
                 });
                 if (mc) {
+                    var isCollapsed = document.body.classList.contains('sidebar-collapsed');
                     mc.style.marginRight = '0';
-                    mc.style.marginLeft = window.innerWidth >= 992 ? 'var(--sidebar-width)' : '0';
+                    mc.style.marginLeft = (!isCollapsed && window.innerWidth >= 992) ? 'var(--sidebar-width)' : '0';
                 }
             } else {
                 html.setAttribute('lang', 'ar');
@@ -222,7 +228,10 @@
         window.addEventListener('resize', function () {
             if (localStorage.getItem('lang') === 'en') {
                 var mc = document.querySelector('.main-content');
-                if (mc) mc.style.marginLeft = window.innerWidth >= 992 ? 'var(--sidebar-width)' : '0';
+                if (mc) {
+                    var isCollapsed = document.body.classList.contains('sidebar-collapsed');
+                    mc.style.marginLeft = (!isCollapsed && window.innerWidth >= 992) ? 'var(--sidebar-width)' : '0';
+                }
             }
         });
     </script>
@@ -260,6 +269,46 @@
                 if (window.innerWidth < 992) closeSidebar();
             });
         });
+
+        // Desktop sidebar collapse/expand
+        function updateToggleIcon(collapsed) {
+            var icon = document.getElementById('sidebarToggleIcon');
+            var btn = document.getElementById('sidebarToggleBtn');
+            if (!icon) return;
+            if (collapsed) {
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-left');
+                if (btn) btn.title = 'إظهار القائمة';
+            } else {
+                icon.classList.remove('fa-chevron-left');
+                icon.classList.add('fa-chevron-right');
+                if (btn) btn.title = 'إخفاء القائمة';
+            }
+        }
+
+        function toggleSidebarDesktop() {
+            var collapsed = document.body.classList.toggle('sidebar-collapsed');
+            var mc = document.querySelector('.main-content');
+            var lang = localStorage.getItem('lang') || 'ar';
+            if (lang === 'en' && mc) {
+                mc.style.marginLeft = collapsed ? '0' : (window.innerWidth >= 992 ? 'var(--sidebar-width)' : '0');
+            }
+            localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
+            updateToggleIcon(collapsed);
+        }
+
+        // Restore sidebar state on page load
+        (function () {
+            if (localStorage.getItem('sidebarCollapsed') === '1') {
+                document.body.classList.add('sidebar-collapsed');
+                updateToggleIcon(true);
+                var mc = document.querySelector('.main-content');
+                var lang = localStorage.getItem('lang') || 'ar';
+                if (lang === 'en' && mc) {
+                    mc.style.marginLeft = '0';
+                }
+            }
+        })();
 
         // Dropdown submenu
         function toggleMenu(el) {
