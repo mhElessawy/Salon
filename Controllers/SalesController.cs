@@ -426,6 +426,15 @@ namespace Salon.Controllers
                 .OrderBy(c => c.Name)
                 .ToListAsync();
 
+            // عدد مرات بيع كل خدمة لترتيبها (الأكثر مبيعاً أولاً)
+            ViewBag.ServiceSalesCount = await _context.SaleItems
+                .Where(si => si.ServiceId != null
+                          && si.Sale!.Status != "ملغي"
+                          && si.Sale.SaleType == dept)
+                .GroupBy(si => si.ServiceId!.Value)
+                .Select(g => new { ServiceId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.ServiceId, x => x.Count);
+
             // الموظفون حسب الدور
             bool isEmployee = role == "Employee";
             ViewBag.IsEmployee = isEmployee;
