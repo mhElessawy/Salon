@@ -1,5 +1,8 @@
+@inject Salon.Services.IPermissionService PermSvc
 @{
     ViewData["Title"] = "التقارير";
+    var accessibleModules = await PermSvc.GetAccessibleModulesAsync();
+    bool canSee(string m) => accessibleModules.Contains(m);
 }
 
 <div class="page-header">
@@ -74,6 +77,8 @@
             </div>
         </a>
     </div>
+    @if (canSee("BarberDaily"))
+    {
     <div class="col-md-4">
         <a href="@Url.Action("BarberDailyReport")" class="text-decoration-none">
             <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
@@ -85,6 +90,7 @@
             </div>
         </a>
     </div>
+    }
     <div class="col-md-4">
         <a href="@Url.Action("EmployeeEvaluation")" class="text-decoration-none">
             <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
