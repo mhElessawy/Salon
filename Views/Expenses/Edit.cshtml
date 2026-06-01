@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "تعديل المصروف";
     var userDept = ViewBag.UserDept as string;
+    var isAdmin = (bool)(ViewBag.IsAdmin ?? false);
 }
 
 <div class="page-header">
@@ -32,8 +33,8 @@
                     </select>
                 </div>
 
-                @* حقل القسم: يظهر للأدمن فقط بشكل قابل للتعديل *@
-                @if (string.IsNullOrEmpty(userDept))
+                @* حقل القسم: يظهر للأدمن بشكل قابل للتعديل، موظفو القسم يُعيَّن لهم تلقائياً *@
+                @if (isAdmin || string.IsNullOrEmpty(userDept))
                 {
                     <div class="col-md-6">
                         <label asp-for="Department" class="form-label"></label>

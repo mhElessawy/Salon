@@ -169,8 +169,15 @@ namespace Salon.Controllers
                 else if (isMassageOnly)
                     monthAllSales = monthAllSales.Where(s => s.SaleType == "مساج").ToList();
 
-                var monthExpenses = await _context.Expenses
-                    .Where(e => e.ExpenseDate >= monthStart && e.ExpenseDate < tomorrow)
+                var expQuery = _context.Expenses
+                    .Where(e => e.ExpenseDate >= monthStart && e.ExpenseDate < tomorrow);
+
+                if (isBarberOnly)
+                    expQuery = expQuery.Where(e => e.Department == "حلاقة" || e.Department == null || e.Department == "");
+                else if (isMassageOnly)
+                    expQuery = expQuery.Where(e => e.Department == "مساج" || e.Department == null || e.Department == "");
+
+                var monthExpenses = await expQuery
                     .OrderBy(e => e.ExpenseDate).ThenBy(e => e.Id)
                     .ToListAsync();
 

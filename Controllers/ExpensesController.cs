@@ -51,6 +51,7 @@ namespace Salon.Controllers
         {
             var currentUser = await _userManager.GetUserAsync(User);
             ViewBag.UserDept = currentUser?.UserDepartment;
+            ViewBag.IsAdmin = User.IsInRole("Admin");
             return View(new Expense { ExpenseDate = DateTime.Today });
         }
 
@@ -77,6 +78,7 @@ namespace Salon.Controllers
 
             var user = await _userManager.GetUserAsync(User);
             ViewBag.UserDept = user?.UserDepartment;
+            ViewBag.IsAdmin = User.IsInRole("Admin");
             return View(model);
         }
 
@@ -87,6 +89,7 @@ namespace Salon.Controllers
 
             var currentUser = await _userManager.GetUserAsync(User);
             ViewBag.UserDept = currentUser?.UserDepartment;
+            ViewBag.IsAdmin = User.IsInRole("Admin");
             return View(expense);
         }
 
@@ -104,6 +107,7 @@ namespace Salon.Controllers
 
             var user = await _userManager.GetUserAsync(User);
             ViewBag.UserDept = user?.UserDepartment;
+            ViewBag.IsAdmin = User.IsInRole("Admin");
             return View(model);
         }
 

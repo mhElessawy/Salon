@@ -1,4 +1,4 @@
-/* =============================================
+ï»¿/* =============================================
    Salon Management System - Custom CSS
    Arabic RTL - Orange Theme
    ============================================= */
@@ -332,7 +332,42 @@ a {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    transition: margin 0.3s ease;
 }
+
+/* =============================================
+   SIDEBAR COLLAPSED STATE
+   ============================================= */
+body.sidebar-collapsed .sidebar {
+    transform: translateX(100%);
+}
+
+body.sidebar-collapsed .main-content {
+    margin-right: 0;
+}
+
+/* Desktop sidebar toggle button */
+.sidebar-toggle-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    padding: 0;
+}
+
+    .sidebar-toggle-btn:hover {
+        background: var(--primary-light);
+        color: var(--primary);
+        border-color: var(--primary);
+    }
 
 /* =============================================
    TOP BAR
@@ -1242,9 +1277,9 @@ html[dir="ltr"] .password-toggle {
     }
 
 
-/* ===== ØÈÇÚÉ ÇáÊÞÑíÑ Çáíæãí ===== */
+/* ===== ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ===== */
 @media print {
-    /* ÅÎÝÇÁ ÚäÇÕÑ ÇáæÇÌåÉ */
+    /* ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
     .sidebar-overlay,
     .sidebar-close-btn,
     .sidebar,
@@ -1257,7 +1292,7 @@ html[dir="ltr"] .password-toggle {
         display: none !important;
     }
 
-    /* ÅÒÇáÉ ÇáãÓÇÝÇÊ ãä ÇáÜ layout */
+    /* ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ layout */
     body,
     .app-wrapper,
     .main-content {
@@ -1266,7 +1301,7 @@ html[dir="ltr"] .password-toggle {
         background: #fff !important;
     }
 
-    /* ÈØÇÞÉ ÇáÌÏæá ÊãáÃ ÇáÕÝÍÉ */
+    /* ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
     .print-area {
         width: 100% !important;
         margin: 0 !important;
@@ -1275,13 +1310,13 @@ html[dir="ltr"] .password-toggle {
         box-shadow: none !important;
     }
 
-        /* ÍÌã ÎØ ÇáÌÏæá */
+        /* ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
         .print-area .table {
             font-size: 11px;
             width: 100%;
         }
 
-        /* ÇáÔÇÑÇÊ Ýí ÇáØÈÇÚÉ */
+        /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
         .print-area .badge {
             border: 1px solid #999;
             color: #000 !important;
@@ -1289,7 +1324,7 @@ html[dir="ltr"] .password-toggle {
             -webkit-print-color-adjust: exact;
         }
 
-    /* ÃáæÇä ÇáÅÌãÇáí Ýí ÇáØÈÇÚÉ */
+    /* ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
     tfoot.table-dark {
         background: #333 !important;
         -webkit-print-color-adjust: exact;
