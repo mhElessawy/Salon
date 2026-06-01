@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "إضافة مصروف";
     var userDept = ViewBag.UserDept as string;
+    var isAdmin = (bool)(ViewBag.IsAdmin ?? false);
 }
 
 <div class="page-header">
@@ -31,8 +32,8 @@
                     </select>
                 </div>
 
-                @* حقل القسم: يظهر للأدمن فقط، أما موظفو القسم فيُعيَّن تلقائياً *@
-                @if (string.IsNullOrEmpty(userDept))
+                @* حقل القسم: يظهر للأدمن بشكل dropdown، موظفو القسم يُعيَّن لهم تلقائياً *@
+                @if (isAdmin || string.IsNullOrEmpty(userDept))
                 {
                     <div class="col-md-6">
                         <label asp-for="Department" class="form-label"></label>
