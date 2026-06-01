@@ -15,14 +15,17 @@ namespace Salon.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailService _emailService;
+        private readonly IAuditService _audit;
 
         public AttendanceController(ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
-            IEmailService emailService)
+            IEmailService emailService,
+            IAuditService audit)
         {
             _context = context;
             _userManager = userManager;
             _emailService = emailService;
+            _audit = audit;
         }
 
         private async Task<int?> GetLinkedEmployeeIdIfEmployee()
@@ -220,6 +223,7 @@ namespace Salon.Controllers
 
                 _context.Attendances.Add(model);
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("حضور", "الحضور", $"تسجيل حضور: {employee?.FullName} — الدور: {model.QueuePosition}", model.Id);
                 TempData["Success"] = $"تم تسجيل الحضور بنجاح — الدور: {model.QueuePosition}";
                 return RedirectToAction(nameof(Index));
             }
@@ -291,6 +295,7 @@ namespace Salon.Controllers
             };
             _context.Attendances.Add(attendance);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync("حضور", "الحضور", $"تسجيل حضور سريع: {employee?.FullName} — الدور: {queuePosition}", attendance.Id);
             TempData["Success"] = $"تم تسجيل حضور {employee?.FullName} — الدور: {queuePosition}";
 
             _ = Task.Run(() => _emailService.SendAttendanceNotificationAsync(
@@ -316,6 +321,8 @@ namespace Salon.Controllers
 
             record.CheckOut = time;
             await _context.SaveChangesAsync();
+            var empForAudit = await _context.Employees.FindAsync(record.EmployeeId);
+            await _audit.LogAsync("انصراف", "الحضور", $"تسجيل انصراف: {empForAudit?.FullName}", record.Id);
             TempData["Success"] = "تم تسجيل الانصراف بنجاح";
 
             var empForMail = await _context.Employees.Include(e => e.DepartmentNav)
@@ -359,6 +366,8 @@ namespace Salon.Controllers
             };
             _context.AttendancePermissions.Add(perm);
             await _context.SaveChangesAsync();
+            var empPermAudit = await _context.Employees.FindAsync(record.EmployeeId);
+            await _audit.LogAsync("استئذان", "الحضور", $"استئذان: {empPermAudit?.FullName}", id);
             TempData["Success"] = "تم تسجيل الاستئذان بنجاح";
 
             var empPerm = await _context.Employees.Include(e => e.DepartmentNav)
@@ -383,8 +392,10 @@ namespace Salon.Controllers
                 return Forbid();
 
             var date = perm.Attendance!.AttendanceDate.ToString("yyyy-MM-dd");
+            var empPermDel = await _context.Employees.FindAsync(perm.Attendance.EmployeeId);
             _context.AttendancePermissions.Remove(perm);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync("حذف", "الحضور", $"حذف استئذان: {empPermDel?.FullName}", id);
             TempData["Success"] = "تم حذف الاستئذان بنجاح";
             return RedirectToAction(nameof(Index), new { date });
         }
@@ -408,6 +419,8 @@ namespace Salon.Controllers
 
             perm.ReturnTime = DateTime.Now.TimeOfDay;
             await _context.SaveChangesAsync();
+            var empRetAudit = await _context.Employees.FindAsync(perm.Attendance!.EmployeeId);
+            await _audit.LogAsync("عودة", "الحضور", $"عودة من الاستئذان: {empRetAudit?.FullName}", id);
             TempData["Success"] = "تم تسجيل العودة من الاستئذان بنجاح";
 
             var empRet = await _context.Employees.Include(e => e.DepartmentNav)
@@ -429,8 +442,10 @@ namespace Salon.Controllers
                 if (linkedId.HasValue && record.EmployeeId != linkedId.Value)
                     return Forbid();
 
+                var empDelAudit = await _context.Employees.FindAsync(record.EmployeeId);
                 _context.Attendances.Remove(record);
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("حذف", "الحضور", $"حذف سجل حضور: {empDelAudit?.FullName} {record.AttendanceDate:yyyy/MM/dd}", id);
                 TempData["Success"] = "تم حذف سجل الحضور بنجاح";
             }
             return RedirectToAction(nameof(Index));

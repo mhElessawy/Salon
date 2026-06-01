@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -10,10 +11,12 @@ namespace Salon.Controllers
     public class DepartmentsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuditService _audit;
 
-        public DepartmentsController(ApplicationDbContext context)
+        public DepartmentsController(ApplicationDbContext context, IAuditService audit)
         {
             _context = context;
+            _audit = audit;
         }
 
         public async Task<IActionResult> Index()
@@ -29,13 +32,15 @@ namespace Salon.Controllers
         {
             if (!string.IsNullOrWhiteSpace(name))
             {
-                _context.Departments.Add(new Department
+                var newDept = new Department
                 {
                     Name = name.Trim(),
                     Description = description?.Trim(),
                     CreatedAt = DateTime.Now
-                });
+                };
+                _context.Departments.Add(newDept);
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("إضافة", "الأقسام", $"قسم جديد: {newDept.Name}", newDept.Id);
                 TempData["Success"] = "تم إضافة القسم بنجاح";
             }
             return RedirectToAction(nameof(Index));
@@ -50,6 +55,7 @@ namespace Salon.Controllers
                 dept.Name = name.Trim();
                 dept.Description = description?.Trim();
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("تعديل", "الأقسام", $"تعديل قسم: {dept.Name}", dept.Id);
                 TempData["Success"] = "تم تعديل القسم بنجاح";
             }
             return RedirectToAction(nameof(Index));
@@ -69,6 +75,7 @@ namespace Salon.Controllers
                 }
                 _context.Departments.Remove(dept);
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("حذف", "الأقسام", $"حذف قسم: {dept.Name}", id);
                 TempData["Success"] = "تم حذف القسم";
             }
             return RedirectToAction(nameof(Index));

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -14,14 +15,17 @@ namespace Salon.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ApplicationDbContext _context;
+        private readonly IAuditService _audit;
 
         public UsersController(UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IAuditService audit)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _context = context;
+            _audit = audit;
         }
 
         // ===== قائمة المستخدمين =====
@@ -73,6 +77,7 @@ namespace Salon.Controllers
             if (result.Succeeded)
             {
                 await _userManager.AddToRoleAsync(user, model.Role);
+                await _audit.LogAsync("إضافة", "المستخدمين", $"مستخدم جديد: {model.FullName} ({model.Role})");
                 TempData["Success"] = $"تم إنشاء المستخدم {model.FullName} بنجاح";
                 return RedirectToAction(nameof(Index));
             }
@@ -142,6 +147,7 @@ namespace Salon.Controllers
             await _userManager.RemoveFromRolesAsync(user, currentRoles);
             await _userManager.AddToRoleAsync(user, model.Role);
 
+            await _audit.LogAsync("تعديل", "المستخدمين", $"تعديل مستخدم: {model.FullName} ({model.Role})");
             TempData["Success"] = "تم تعديل بيانات المستخدم بنجاح";
             return RedirectToAction(nameof(Index));
         }
@@ -173,6 +179,7 @@ namespace Salon.Controllers
 
             if (result.Succeeded)
             {
+                await _audit.LogAsync("تعديل", "المستخدمين", $"تغيير كلمة مرور: {user.FullName}");
                 TempData["Success"] = $"تم تغيير كلمة مرور {user.FullName} بنجاح";
                 return RedirectToAction(nameof(Index));
             }
@@ -234,6 +241,7 @@ namespace Salon.Controllers
             }
 
             await _context.SaveChangesAsync();
+            await _audit.LogAsync("تعديل", "المستخدمين", $"تعديل صلاحيات: {user.FullName}");
             TempData["Success"] = $"تم حفظ صلاحيات {user.FullName} بنجاح";
             return RedirectToAction(nameof(Index));
         }
@@ -293,6 +301,7 @@ namespace Salon.Controllers
             {
                 user.IsActive = !user.IsActive;
                 await _userManager.UpdateAsync(user);
+                await _audit.LogAsync("تعديل", "المستخدمين", $"{(user.IsActive ? "تفعيل" : "تعطيل")} مستخدم: {user.FullName}");
                 TempData["Success"] = user.IsActive ? "تم تفعيل المستخدم" : "تم تعطيل المستخدم";
             }
             return RedirectToAction(nameof(Index));

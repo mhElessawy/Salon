@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -10,10 +11,12 @@ namespace Salon.Controllers
     public class SuppliersController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuditService _audit;
 
-        public SuppliersController(ApplicationDbContext context)
+        public SuppliersController(ApplicationDbContext context, IAuditService audit)
         {
             _context = context;
+            _audit = audit;
         }
 
         public async Task<IActionResult> Index(string? search)
@@ -37,6 +40,7 @@ namespace Salon.Controllers
                 model.CreatedAt = DateTime.Now;
                 _context.Suppliers.Add(model);
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("إضافة", "الموردين", $"مورد جديد: {model.Name}", model.Id);
                 TempData["Success"] = "تم إضافة المورد بنجاح";
                 return RedirectToAction(nameof(Index));
             }
@@ -58,6 +62,7 @@ namespace Salon.Controllers
             {
                 _context.Update(model);
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("تعديل", "الموردين", $"تعديل بيانات المورد: {model.Name}", model.Id);
                 TempData["Success"] = "تم تعديل بيانات المورد بنجاح";
                 return RedirectToAction(nameof(Index));
             }
@@ -72,6 +77,7 @@ namespace Salon.Controllers
             {
                 supplier.IsActive = false;
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("حذف", "الموردين", $"حذف المورد: {supplier.Name}", supplier.Id);
                 TempData["Success"] = "تم حذف المورد بنجاح";
             }
             return RedirectToAction(nameof(Index));

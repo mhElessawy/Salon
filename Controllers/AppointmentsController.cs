@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -13,11 +14,13 @@ namespace Salon.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IAuditService _audit;
 
-        public AppointmentsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public AppointmentsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IAuditService audit)
         {
             _context = context;
             _userManager = userManager;
+            _audit = audit;
         }
 
         public async Task<IActionResult> Index(string? date)
@@ -70,6 +73,7 @@ namespace Salon.Controllers
                     await _context.SaveChangesAsync();
                 }
 
+                await _audit.LogAsync("إضافة", "المواعيد", $"موعد جديد بتاريخ {model.AppointmentDate:yyyy/MM/dd HH:mm}", model.Id);
                 TempData["Success"] = "تم إضافة الموعد بنجاح";
                 return RedirectToAction(nameof(Index));
             }
@@ -110,6 +114,7 @@ namespace Salon.Controllers
 
                 _context.Update(model);
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("تعديل", "المواعيد", $"تعديل موعد رقم {model.Id}", model.Id);
                 TempData["Success"] = "تم تعديل الموعد بنجاح";
                 return RedirectToAction(nameof(Index));
             }
@@ -125,6 +130,7 @@ namespace Salon.Controllers
             {
                 _context.Appointments.Remove(apt);
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("حذف", "المواعيد", $"حذف موعد بتاريخ {apt.AppointmentDate:yyyy/MM/dd HH:mm}", id);
                 TempData["Success"] = "تم حذف الموعد بنجاح";
             }
             return RedirectToAction(nameof(Index));

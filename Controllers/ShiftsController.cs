@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -10,10 +11,12 @@ namespace Salon.Controllers
     public class ShiftsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuditService _audit;
 
-        public ShiftsController(ApplicationDbContext context)
+        public ShiftsController(ApplicationDbContext context, IAuditService audit)
         {
             _context = context;
+            _audit = audit;
         }
 
         public async Task<IActionResult> Index()
@@ -40,6 +43,7 @@ namespace Salon.Controllers
                 model.CreatedAt = DateTime.Now;
                 _context.Shifts.Add(model);
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("فتح", "الشفتات", $"فتح شفت: {model.ShiftDate:yyyy/MM/dd} {model.StartTime}", model.Id);
                 TempData["Success"] = "تم فتح الشفت بنجاح";
                 return RedirectToAction(nameof(Index));
             }
@@ -57,6 +61,7 @@ namespace Salon.Controllers
                 shift.Status = "مغلق";
                 shift.Notes = notes;
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("إغلاق", "الشفتات", $"إغلاق شفت: {shift.ShiftDate:yyyy/MM/dd} — الرصيد: {closingBalance:F3} د.ك", id);
                 TempData["Success"] = "تم إغلاق الشفت بنجاح";
             }
             return RedirectToAction(nameof(Index));
