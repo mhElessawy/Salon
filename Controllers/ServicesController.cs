@@ -27,7 +27,7 @@ namespace Salon.Controllers
 
             var query = _context.Services
                 .Include(s => s.ServiceCategory)
-                .Include(s => s.SaleItems)
+                .Include(s => s.SaleItems).ThenInclude(si => si.Sale)
                 .Where(s => s.IsActive);
 
             if (userDept == "حلاقة" || userDept == "مساج")
@@ -40,20 +40,53 @@ namespace Salon.Controllers
                 query = query.Where(s => s.ServiceCategory != null && s.ServiceCategory.Department == filter);
 
             var services = await query.ToListAsync();
+            var thirtyDaysAgo = DateTime.Now.AddDays(-30);
 
-            var invoiceCounts = services.ToDictionary(
-                s => s.Id,
-                s => s.SaleItems.Select(si => si.SaleId).Distinct().Count()
-            );
+            var invoiceCounts = new Dictionary<int, int>();
+            var totalSalesDict = new Dictionary<int, decimal>();
+            var last30Invoices = new Dictionary<int, int>();
+            var last30SalesDict = new Dictionary<int, decimal>();
+
+            foreach (var s in services)
+            {
+                var items = s.SaleItems.ToList();
+                var last30 = items.Where(si => si.Sale?.SaleDate >= thirtyDaysAgo).ToList();
+                invoiceCounts[s.Id] = items.Select(si => si.SaleId).Distinct().Count();
+                totalSalesDict[s.Id] = items.Sum(si => si.Total);
+                last30Invoices[s.Id] = last30.Select(si => si.SaleId).Distinct().Count();
+                last30SalesDict[s.Id] = last30.Sum(si => si.Total);
+            }
 
             var sorted = services
-                .OrderByDescending(s => invoiceCounts[s.Id])
+                .OrderByDescending(s => last30SalesDict[s.Id])
+                .ThenByDescending(s => totalSalesDict[s.Id])
                 .ThenBy(s => s.Name)
                 .ToList();
+
+            var rankDict = sorted.Select((s, i) => new { s.Id, Rank = i + 1 })
+                                 .ToDictionary(x => x.Id, x => x.Rank);
+
+            var maxLast30 = last30SalesDict.Values.DefaultIfEmpty(0).Max();
+            var statusTextDict = new Dictionary<int, string>();
+            var statusClassDict = new Dictionary<int, string>();
+            foreach (var s in services)
+            {
+                var v = last30SalesDict[s.Id];
+                if (v == 0) { statusTextDict[s.Id] = "متوقفة"; statusClassDict[s.Id] = "svc-status-stopped"; }
+                else if (maxLast30 > 0 && v >= maxLast30 * 0.7m) { statusTextDict[s.Id] = "ممتازة"; statusClassDict[s.Id] = "svc-status-excellent"; }
+                else if (maxLast30 > 0 && v >= maxLast30 * 0.3m) { statusTextDict[s.Id] = "جيدة"; statusClassDict[s.Id] = "svc-status-good"; }
+                else { statusTextDict[s.Id] = "تحتاج تنشيط"; statusClassDict[s.Id] = "svc-status-needs"; }
+            }
 
             ViewBag.Search = search;
             ViewBag.Filter = filter ?? "all";
             ViewBag.InvoiceCounts = invoiceCounts;
+            ViewBag.TotalSales = totalSalesDict;
+            ViewBag.Last30Invoices = last30Invoices;
+            ViewBag.Last30Sales = last30SalesDict;
+            ViewBag.Ranks = rankDict;
+            ViewBag.StatusText = statusTextDict;
+            ViewBag.StatusClass = statusClassDict;
             return View(sorted);
         }
 
