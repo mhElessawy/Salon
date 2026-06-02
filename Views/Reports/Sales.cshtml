@@ -18,7 +18,7 @@
     var salariesInRange = ViewBag.SalariesInRange as List<Salary> ?? new List<Salary>();
     decimal totalExpensesAmount = ViewBag.TotalExpensesAmount is decimal tea ? tea : 0m;
     decimal totalSalariesAmount = ViewBag.TotalSalariesAmount is decimal tsa ? tsa : 0m;
-    decimal totalCombinedExpenses = ViewBag.TotalCombinedExpenses is decimal tce ? tce : 0m;
+    decimal netProfit = ((decimal)(ViewBag.TotalSales ?? 0m)) - totalCombinedExpenses;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -121,7 +121,7 @@
     <div class="col-md-3">
         <div class="stat-card orange">
             <div class="stat-label">صافي الربح</div>
-            <div class="stat-value">@(((decimal)(ViewBag.TotalSales ?? 0m)) - totalCombinedExpenses).ToString("N3") د.ك</div>
+            <div class="stat-value">@netProfit.ToString("N3") د.ك</div>
         </div>
     </div>
     @if (!isMassage)
