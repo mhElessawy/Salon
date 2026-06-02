@@ -58,6 +58,9 @@ namespace Salon.Models
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
 
+        [Display(Name = "طريقة الدفع")]
+        public string PaymentMethod { get; set; } = "نقدي";
+
         public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 }

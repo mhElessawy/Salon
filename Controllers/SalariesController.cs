@@ -99,7 +99,7 @@ namespace Salon.Controllers
             var rangeStart = new DateTime(year, month, 1);
             var rangeEnd = rangeStart.AddMonths(1);
 
-            var sales = await _context.Sales
+            var allSalesRaw = await _context.Sales
                 .Where(s => s.EmployeeId == employeeId
                          && s.SaleDate >= rangeStart
                          && s.SaleDate < rangeEnd)
@@ -108,9 +108,13 @@ namespace Salon.Controllers
                 {
                     s.InvoiceNumber,
                     saleDate = s.SaleDate.ToString("yyyy-MM-dd"),
-                    s.NetAmount
+                    s.NetAmount,
+                    s.Status
                 })
                 .ToListAsync();
+
+            var sales          = allSalesRaw.Where(s => s.Status != "ملغي").ToList();
+            var cancelledSales = allSalesRaw.Where(s => s.Status == "ملغي").ToList();
 
             var totalSalesAmount = sales.Sum(s => s.NetAmount);
             var commissionAmount = Math.Round(totalSalesAmount * employee.Commission / 100, 3);
@@ -128,6 +132,7 @@ namespace Salon.Controllers
                 basicSalary = employee.BasicSalary,
                 commission = employee.Commission,
                 sales,
+                cancelledSales,
                 totalSalesAmount,
                 commissionAmount,
                 advanceDeducted = totalAdvances,

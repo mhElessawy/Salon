@@ -47,7 +47,7 @@
                 <div class="col-12 d-none" id="salesCard">
                     <div class="card border-info">
                         <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center">
-                            <span><i class="fas fa-receipt me-2 text-info"></i><strong>فواتير الشهر</strong></span>
+                            <span><i class="fas fa-receipt me-2 text-info"></i><strong>فواتير الشهر (المكتملة)</strong></span>
                             <span class="badge bg-info" id="salesCountBadge">0 فاتورة</span>
                         </div>
                         <div class="card-body p-0">
@@ -74,6 +74,35 @@
                                                 <span class="text-muted fw-normal">(<span id="commissionPctDisplay">0</span>%)</span>
                                             </td>
                                             <td class="text-end fw-bold" id="commissionAmountDisplay">0.000</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 d-none" id="cancelledCard">
+                    <div class="card border-danger border-opacity-50">
+                        <div class="card-header bg-danger bg-opacity-10 d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-ban me-2 text-danger"></i><strong>الفواتير الملغاة</strong> <small class="text-muted fw-normal">(لا تُحسب في المرتب ولا التارجت)</small></span>
+                            <span class="badge bg-danger" id="cancelledCountBadge">0 فاتورة</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>رقم الفاتورة</th>
+                                            <th>التاريخ</th>
+                                            <th class="text-end">المبلغ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cancelledTableBody"></tbody>
+                                    <tfoot class="table-light fw-bold">
+                                        <tr>
+                                            <td colspan="2" class="text-danger">إجمالي الملغاة</td>
+                                            <td class="text-end text-danger" id="totalCancelledDisplay">0.000</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -117,6 +146,14 @@
                 <div class="col-md-4">
                     <label class="form-label">الصافي</label>
                     <input type="number" name="NetSalary" id="netSalary" step="0.001" class="form-control" value="0" readonly style="background:#f0fff0; font-weight:bold;" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">طريقة الدفع</label>
+                    <select name="PaymentMethod" class="form-select">
+                        <option value="نقدي" selected>💵 نقدي / كاش</option>
+                        <option value="كي نت">💳 كي نت</option>
+                        <option value="تحويل بنكي">🏦 تحويل بنكي</option>
+                    </select>
                 </div>
                 <div class="col-12">
                     <label class="form-label">ملاحظات</label>
@@ -178,6 +215,7 @@
                 document.getElementById('commissionAmountDisplay').textContent = data.commissionAmount.toFixed(3) + ' د.ك';
                 document.getElementById('salesCountBadge').textContent = data.sales.length + ' فاتورة';
 
+                // فواتير مكتملة
                 const tbody = document.getElementById('salesTableBody');
                 if (data.sales.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">لا توجد فواتير لهذا الشهر</td></tr>';
@@ -191,6 +229,26 @@
                         </tr>`
                     ).join('');
                     salesCard.classList.remove('d-none');
+                }
+
+                // فواتير ملغاة
+                const cancelledCard  = document.getElementById('cancelledCard');
+                const cancelledTbody = document.getElementById('cancelledTableBody');
+                const cancelled = data.cancelledSales || [];
+                if (cancelled.length > 0) {
+                    cancelledTbody.innerHTML = cancelled.map(s =>
+                        `<tr style="background:#fff5f5;">
+                            <td><span class="text-decoration-line-through text-muted">${s.invoiceNumber}</span></td>
+                            <td>${s.saleDate}</td>
+                            <td class="text-end text-danger">${s.netAmount.toFixed(3)} د.ك</td>
+                        </tr>`
+                    ).join('');
+                    const totalCancelled = cancelled.reduce((sum, s) => sum + s.netAmount, 0);
+                    document.getElementById('totalCancelledDisplay').textContent = totalCancelled.toFixed(3) + ' د.ك';
+                    document.getElementById('cancelledCountBadge').textContent   = cancelled.length + ' فاتورة';
+                    cancelledCard.classList.remove('d-none');
+                } else {
+                    cancelledCard.classList.add('d-none');
                 }
 
                 calcNet();
