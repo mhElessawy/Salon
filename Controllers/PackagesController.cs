@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -13,11 +14,13 @@ namespace Salon.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IAuditService _audit;
 
-        public PackagesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public PackagesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IAuditService audit)
         {
             _context = context;
             _userManager = userManager;
+            _audit = audit;
         }
 
         // ─── الباقات - Tab 1 ─────────────────────────────────────────
@@ -80,6 +83,7 @@ namespace Salon.Controllers
             {
                 _context.ServicePackages.Add(model);
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("إضافة", "الباقات", $"باقة جديدة: {model.NameAr}", model.Id);
                 TempData["Success"] = "تم إضافة الباقة بنجاح";
                 return RedirectToAction(nameof(Index), new { tab = "packages" });
             }
@@ -104,6 +108,7 @@ namespace Salon.Controllers
             {
                 _context.Update(model);
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("تعديل", "الباقات", $"تعديل باقة: {model.NameAr}", model.Id);
                 TempData["Success"] = "تم تعديل الباقة بنجاح";
                 return RedirectToAction(nameof(Index), new { tab = "packages" });
             }
@@ -120,6 +125,7 @@ namespace Salon.Controllers
             {
                 pkg.IsActive = false;
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("حذف", "الباقات", $"حذف باقة: {pkg.NameAr}", pkg.Id);
                 TempData["Success"] = "تم حذف الباقة بنجاح";
             }
             return RedirectToAction(nameof(Index), new { tab = "packages" });
@@ -151,6 +157,7 @@ namespace Salon.Controllers
 
             _context.CustomerPackages.Add(customerPkg);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync("تعيين", "الباقات", $"تعيين باقة: {pkg.NameAr} للعميل رقم {customerId} — المبلغ: {pricePaid:F3} د.ك", customerPkg.Id);
             TempData["Success"] = "تم تعيين الباقة للعميل بنجاح";
 
             // إذا كان الطلب AJAX ارجع JSON
@@ -200,7 +207,7 @@ namespace Salon.Controllers
 
             _context.CustomerPackageTransactions.Add(transaction);
             await _context.SaveChangesAsync();
-
+            await _audit.LogAsync("استخدام", "الباقات", $"استخدام جلسة: {customerPkg.ServicePackage?.NameAr} — المتبقي: {customerPkg.RemainingSessions}", customerPackageId);
             TempData["Success"] = $"تم تسجيل الجلسة بنجاح. الجلسات المتبقية: {customerPkg.RemainingSessions}";
             return RedirectToAction(nameof(Index), new { tab = "balances" });
         }

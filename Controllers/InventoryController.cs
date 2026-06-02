@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -11,10 +12,12 @@ namespace Salon.Controllers
     public class InventoryController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuditService _audit;
 
-        public InventoryController(ApplicationDbContext context)
+        public InventoryController(ApplicationDbContext context, IAuditService audit)
         {
             _context = context;
+            _audit = audit;
         }
 
         // ===== قائمة المنتجات =====
@@ -67,6 +70,7 @@ namespace Salon.Controllers
                     await _context.SaveChangesAsync();
                 }
 
+                await _audit.LogAsync("إضافة", "المخزون", $"منتج جديد: {model.Name} — كمية: {model.OpeningQuantity}", model.Id);
                 TempData["Success"] = "تم إضافة المنتج بنجاح";
                 return RedirectToAction(nameof(Index));
             }
@@ -95,6 +99,7 @@ namespace Salon.Controllers
             {
                 _context.Update(model);
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("تعديل", "المخزون", $"تعديل منتج: {model.Name}", model.Id);
                 TempData["Success"] = "تم تعديل المنتج بنجاح";
                 return RedirectToAction(nameof(Index));
             }
@@ -136,6 +141,7 @@ namespace Salon.Controllers
                     model.CreatedAt = DateTime.Now;
                     _context.StockMovements.Add(model);
                     await _context.SaveChangesAsync();
+                    await _audit.LogAsync(model.MovementType, "المخزون", $"{model.MovementType}: {product.Name} — الكمية: {model.Quantity}", model.Id);
                     TempData["Success"] = model.MovementType == "استلام"
                         ? $"تم إضافة {model.Quantity} للمخزون"
                         : $"تم تسجيل إهلاك {model.Quantity}";
@@ -183,6 +189,7 @@ namespace Salon.Controllers
                     model.CreatedAt = DateTime.Now;
                     _context.StockMovements.Add(model);
                     await _context.SaveChangesAsync();
+                    await _audit.LogAsync("بيع", "المخزون", $"بيع: {product.Name} — الكمية: {model.Quantity} — الإجمالي: {(model.UnitPrice * model.Quantity):F3} د.ك", model.Id);
                     TempData["Success"] = $"تم بيع {model.Quantity} من {product.Name} — الإجمالي: {(model.UnitPrice * model.Quantity):N3} د.ك";
                     return RedirectToAction(nameof(Index));
                 }
@@ -229,6 +236,8 @@ namespace Salon.Controllers
                     model.CreatedAt = DateTime.Now;
                     _context.StockMovements.Add(model);
                     await _context.SaveChangesAsync();
+                    var consumeEmp = model.EmployeeId.HasValue ? await _context.Employees.FindAsync(model.EmployeeId.Value) : null;
+                    await _audit.LogAsync("استهلاك", "المخزون", $"استهلاك: {product.Name} — الكمية: {model.Quantity} — الموظف: {consumeEmp?.FullName ?? "-"}", model.Id);
                     TempData["Success"] = $"تم تسجيل استهلاك {model.Quantity} من {product.Name}";
                     return RedirectToAction(nameof(Index));
                 }
@@ -305,6 +314,7 @@ namespace Salon.Controllers
             {
                 product.IsActive = false;
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("حذف", "المخزون", $"حذف منتج: {product.Name}", product.Id);
                 TempData["Success"] = "تم حذف المنتج بنجاح";
             }
             return RedirectToAction(nameof(Index));

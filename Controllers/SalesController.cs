@@ -23,14 +23,17 @@ namespace Salon.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailService _emailService;
+        private readonly IAuditService _audit;
 
         public SalesController(ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
-            IEmailService emailService)
+            IEmailService emailService,
+            IAuditService audit)
         {
             _context = context;
             _userManager = userManager;
             _emailService = emailService;
+            _audit = audit;
         }
 
         // ===== قائمة الفواتير =====
@@ -264,6 +267,8 @@ namespace Salon.Controllers
                     }
                 }
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("استهلاك", "المبيعات",
+                    $"استهلاك موظف - {itemNames?.Length ?? 0} منتج");
                 TempData["Success"] = "تم تسجيل الاستهلاك بنجاح";
                 return RedirectToAction("Movements", "Inventory");
             }
@@ -328,6 +333,9 @@ namespace Salon.Controllers
                 }
                 model.NetAmount = model.TotalAmount - model.Discount;
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("إضافة", "المبيعات",
+                    $"فاتورة منتجات رقم {model.InvoiceNumber} - المبلغ: {model.NetAmount:F3} د.ك",
+                    model.Id);
                 TempData["Success"] = $"تم إنشاء فاتورة المنتجات {model.InvoiceNumber} بنجاح";
                 return RedirectToAction(nameof(PrintInvoice), new { id = model.Id });
             }
@@ -374,6 +382,9 @@ namespace Salon.Controllers
                 }
                 sale.Status = "ملغي";
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("إلغاء", "المبيعات",
+                    $"إلغاء الفاتورة رقم {sale.InvoiceNumber}",
+                    sale.Id);
                 TempData["Success"] = "تم إلغاء الفاتورة";
             }
             return RedirectToAction(nameof(Index));
@@ -705,6 +716,9 @@ namespace Salon.Controllers
                 }
 
                 TempData["Success"] = $"تم إنشاء الفاتورة {model.InvoiceNumber} بنجاح";
+                await _audit.LogAsync("إضافة", "المبيعات",
+                    $"فاتورة {dept} رقم {model.InvoiceNumber} - المبلغ: {model.NetAmount:F3} د.ك",
+                    model.Id);
 
                 // Send email notification (fire-and-forget, never blocks the response)
                 var currentUser1 = await _userManager.GetUserAsync(User);

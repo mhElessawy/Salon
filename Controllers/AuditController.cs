@@ -24,36 +24,44 @@ namespace Salon.Controllers
             string? userId,
             string? userName,
             string? module,
-            string? action,
+            string? actionFilter,
             DateTime? dateFrom,
             DateTime? dateTo,
             int page = 1)
         {
             int pageSize = 50;
 
+            var allUsers = await _userManager.Users.OrderBy(u => u.FullName).ToListAsync();
+            ViewBag.AllUsers = allUsers;
+
             var query = _context.AuditLogs.AsQueryable();
 
-            // When userId is given: match by UserId OR by UserName (covers logs saved before UserId was stored)
             if (!string.IsNullOrEmpty(userId))
             {
-                var allUsers = await _userManager.Users.OrderBy(u => u.FullName).ToListAsync();
+                // جمع كل الأسماء الممكنة للمستخدم (FullName + Email + UserName)
                 var targetUser = allUsers.FirstOrDefault(u => u.Id == userId);
-                var targetName = targetUser?.FullName ?? "";
-                query = query.Where(l => l.UserId == userId || l.UserName == targetName);
-                ViewBag.AllUsers = allUsers;
+                var nameVariants = new List<string>();
+                if (!string.IsNullOrEmpty(targetUser?.FullName)) nameVariants.Add(targetUser.FullName);
+                if (!string.IsNullOrEmpty(targetUser?.Email)) nameVariants.Add(targetUser.Email);
+                if (!string.IsNullOrEmpty(targetUser?.UserName)) nameVariants.Add(targetUser.UserName);
+
+                query = nameVariants.Any()
+                    ? query.Where(l => l.UserId == userId || nameVariants.Contains(l.UserName))
+                    : query.Where(l => l.UserId == userId);
+
+                ViewBag.SelectedUserName = targetUser?.FullName;
             }
-            else
+            else if (!string.IsNullOrEmpty(userName))
             {
-                ViewBag.AllUsers = await _userManager.Users.OrderBy(u => u.FullName).ToListAsync();
-                if (!string.IsNullOrEmpty(userName))
-                    query = query.Where(l => l.UserName.Contains(userName));
+                query = query.Where(l => l.UserName.Contains(userName));
+                ViewBag.SelectedUserName = userName;
             }
 
             if (!string.IsNullOrEmpty(module))
                 query = query.Where(l => l.Module == module);
 
-            if (!string.IsNullOrEmpty(action))
-                query = query.Where(l => l.Action == action);
+            if (!string.IsNullOrEmpty(actionFilter))
+                query = query.Where(l => l.Action == actionFilter);
 
             if (dateFrom.HasValue)
                 query = query.Where(l => l.CreatedAt >= dateFrom.Value);
@@ -69,21 +77,10 @@ namespace Salon.Controllers
                 .Take(pageSize)
                 .ToListAsync();
 
-            // Resolve display name for selected user
-            var allUsersForBag = ViewBag.AllUsers as List<ApplicationUser>
-                ?? await _userManager.Users.OrderBy(u => u.FullName).ToListAsync();
-
-            string? selectedUserName = userName;
-            if (!string.IsNullOrEmpty(userId))
-            {
-                var selectedUser = allUsersForBag.FirstOrDefault(u => u.Id == userId);
-                selectedUserName = selectedUser?.FullName;
-            }
-
             ViewBag.UserId = userId;
-            ViewBag.UserName = selectedUserName;
+            ViewBag.UserName = ViewBag.SelectedUserName ?? userName;
             ViewBag.Module = module;
-            ViewBag.Action = action;
+            ViewBag.Action = actionFilter;
             ViewBag.DateFrom = dateFrom?.ToString("yyyy-MM-dd");
             ViewBag.DateTo = dateTo?.ToString("yyyy-MM-dd");
             ViewBag.Page = page;
@@ -91,14 +88,24 @@ namespace Salon.Controllers
             ViewBag.Total = total;
             ViewBag.TotalPages = (int)Math.Ceiling((double)total / pageSize);
 
-            if (ViewBag.AllUsers == null)
-                ViewBag.AllUsers = allUsersForBag;
+            var knownModules = new List<string>
+            {
+                "الأقسام", "الباقات", "الحضور", "الخدمات", "الرواتب",
+                "السلف", "الشفتات", "العملاء", "الموردين", "الموظفين",
+                "المبيعات", "المخزون", "المستخدمين", "المصروفات", "المواعيد",
+                "النظام", "فئات الخدمات"
+            };
+            var dbModules = await _context.AuditLogs.Select(l => l.Module).Distinct().ToListAsync();
+            ViewBag.Modules = knownModules.Union(dbModules).OrderBy(m => m).ToList();
 
-            ViewBag.Modules = await _context.AuditLogs
-                .Select(l => l.Module).Distinct().OrderBy(m => m).ToListAsync();
-
-            ViewBag.Actions = await _context.AuditLogs
-                .Select(l => l.Action).Distinct().OrderBy(a => a).ToListAsync();
+            var knownActions = new List<string>
+            {
+                "إضافة", "إغلاق", "إلغاء", "استخدام", "استهلاك", "استلام",
+                "انصراف", "إهلاك", "بيع", "تسجيل دخول", "تعديل", "تعيين",
+                "حذف", "حضور", "خصم", "صرف", "عودة", "فتح", "موافقة"
+            };
+            var dbActions = await _context.AuditLogs.Select(l => l.Action).Distinct().ToListAsync();
+            ViewBag.Actions = knownActions.Union(dbActions).OrderBy(a => a).ToList();
 
             return View(logs);
         }

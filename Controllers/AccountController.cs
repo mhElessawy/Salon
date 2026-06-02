@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -9,12 +10,15 @@ namespace Salon.Controllers
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IAuditService _audit;
 
         public AccountController(SignInManager<ApplicationUser> signInManager,
-                                  UserManager<ApplicationUser> userManager)
+                                  UserManager<ApplicationUser> userManager,
+                                  IAuditService audit)
         {
             _signInManager = signInManager;
             _userManager = userManager;
+            _audit = audit;
         }
 
         [HttpGet]
@@ -45,6 +49,10 @@ namespace Salon.Controllers
                 // تغيير SecurityStamp يُبطل كل الجلسات الأخرى فوراً
                 await _userManager.UpdateSecurityStampAsync(user);
                 await _signInManager.SignInAsync(user, model.RememberMe);
+
+                // تسجيل حدث تسجيل الدخول مباشرةً بمعرف المستخدم المعروف
+                await _audit.LogAsync("تسجيل دخول", "النظام",
+                    $"تسجيل دخول بنجاح - {user.FullName ?? user.Email}");
 
                 if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                     return Redirect(returnUrl);

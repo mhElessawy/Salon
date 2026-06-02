@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -14,14 +15,17 @@ namespace Salon.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ApplicationDbContext _context;
+        private readonly IAuditService _audit;
 
         public UsersController(UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IAuditService audit)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _context = context;
+            _audit = audit;
         }
 
         // ===== قائمة المستخدمين =====
@@ -73,6 +77,7 @@ namespace Salon.Controllers
             if (result.Succeeded)
             {
                 await _userManager.AddToRoleAsync(user, model.Role);
+                await _audit.LogAsync("إضافة", "المستخدمين", $"مستخدم جديد: {model.FullName} ({model.Role})");
                 TempData["Success"] = $"تم إنشاء المستخدم {model.FullName} بنجاح";
                 return RedirectToAction(nameof(Index));
             }
@@ -142,6 +147,7 @@ namespace Salon.Controllers
             await _userManager.RemoveFromRolesAsync(user, currentRoles);
             await _userManager.AddToRoleAsync(user, model.Role);
 
+            await _audit.LogAsync("تعديل", "المستخدمين", $"تعديل مستخدم: {model.FullName} ({model.Role})");
             TempData["Success"] = "تم تعديل بيانات المستخدم بنجاح";
             return RedirectToAction(nameof(Index));
         }
@@ -173,6 +179,7 @@ namespace Salon.Controllers
 
             if (result.Succeeded)
             {
+                await _audit.LogAsync("تعديل", "المستخدمين", $"تغيير كلمة مرور: {user.FullName}");
                 TempData["Success"] = $"تم تغيير كلمة مرور {user.FullName} بنجاح";
                 return RedirectToAction(nameof(Index));
             }
@@ -234,6 +241,7 @@ namespace Salon.Controllers
             }
 
             await _context.SaveChangesAsync();
+            await _audit.LogAsync("تعديل", "المستخدمين", $"تعديل صلاحيات: {user.FullName}");
             TempData["Success"] = $"تم حفظ صلاحيات {user.FullName} بنجاح";
             return RedirectToAction(nameof(Index));
         }
@@ -243,39 +251,27 @@ namespace Salon.Controllers
         {
             var users = await _userManager.Users.OrderBy(u => u.FullName).ToListAsync();
 
-            // Group by UserId (for properly-logged entries)
-            var statsByUserId = await _context.AuditLogs
-                .Where(l => l.UserId != null && l.UserId != "")
-                .GroupBy(l => l.UserId)
-                .Select(g => new { Key = g.Key, Count = g.Count(), LastAt = g.Max(l => l.CreatedAt) })
-                .ToDictionaryAsync(x => x.Key, x => (x.Count, x.LastAt));
-
-            // Group by UserName for entries without UserId (older logs)
-            var statsByName = await _context.AuditLogs
-                .Where(l => l.UserId == null || l.UserId == "")
-                .GroupBy(l => l.UserName)
-                .Select(g => new { Key = g.Key, Count = g.Count(), LastAt = g.Max(l => l.CreatedAt) })
-                .ToDictionaryAsync(x => x.Key, x => (x.Count, x.LastAt));
+            // تحميل جميع السجلات مرة واحدة وتجميعها
+            var allLogStats = await _context.AuditLogs
+                .GroupBy(l => new { l.UserId, l.UserName })
+                .Select(g => new { g.Key.UserId, g.Key.UserName, Count = g.Count(), LastAt = g.Max(l => l.CreatedAt) })
+                .ToListAsync();
 
             var result = new List<UserActivityViewModel>();
             foreach (var user in users)
             {
                 var roles = await _userManager.GetRolesAsync(user);
 
-                int count = 0;
-                DateTime? lastAt = null;
+                // مطابقة بـ: UserId أو FullName أو Email أو UserName (login)
+                var userLogs = allLogStats.Where(l =>
+                    l.UserId == user.Id ||
+                    (!string.IsNullOrEmpty(l.UserName) && (
+                        l.UserName == user.FullName ||
+                        l.UserName == user.Email ||
+                        l.UserName == user.UserName)));
 
-                if (statsByUserId.TryGetValue(user.Id, out var byId))
-                {
-                    count += byId.Count;
-                    lastAt = byId.LastAt;
-                }
-                if (statsByName.TryGetValue(user.FullName, out var byName))
-                {
-                    count += byName.Count;
-                    if (!lastAt.HasValue || byName.LastAt > lastAt.Value)
-                        lastAt = byName.LastAt;
-                }
+                var count = userLogs.Sum(l => l.Count);
+                var lastAt = userLogs.Any() ? userLogs.Max(l => l.LastAt) : (DateTime?)null;
 
                 result.Add(new UserActivityViewModel
                 {
@@ -305,6 +301,7 @@ namespace Salon.Controllers
             {
                 user.IsActive = !user.IsActive;
                 await _userManager.UpdateAsync(user);
+                await _audit.LogAsync("تعديل", "المستخدمين", $"{(user.IsActive ? "تفعيل" : "تعطيل")} مستخدم: {user.FullName}");
                 TempData["Success"] = user.IsActive ? "تم تفعيل المستخدم" : "تم تعطيل المستخدم";
             }
             return RedirectToAction(nameof(Index));

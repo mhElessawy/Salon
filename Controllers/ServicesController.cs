@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -13,11 +14,13 @@ namespace Salon.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IAuditService _audit;
 
-        public ServicesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public ServicesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IAuditService audit)
         {
             _context = context;
             _userManager = userManager;
+            _audit = audit;
         }
 
         public async Task<IActionResult> Index(string? search, string? filter)
@@ -103,6 +106,7 @@ namespace Salon.Controllers
             {
                 _context.Services.Add(model);
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("إضافة", "الخدمات", $"خدمة جديدة: {model.Name}", model.Id);
                 TempData["Success"] = "تم إضافة الخدمة بنجاح";
                 return RedirectToAction(nameof(Index));
             }
@@ -126,6 +130,7 @@ namespace Salon.Controllers
             {
                 _context.Update(model);
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("تعديل", "الخدمات", $"تعديل خدمة: {model.Name}", model.Id);
                 TempData["Success"] = "تم تعديل الخدمة بنجاح";
                 return RedirectToAction(nameof(Index));
             }
@@ -141,6 +146,7 @@ namespace Salon.Controllers
             {
                 service.IsActive = false;
                 await _context.SaveChangesAsync();
+                await _audit.LogAsync("حذف", "الخدمات", $"حذف خدمة: {service.Name}", service.Id);
                 TempData["Success"] = "تم حذف الخدمة بنجاح";
             }
             return RedirectToAction(nameof(Index));
