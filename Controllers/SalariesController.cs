@@ -106,16 +106,16 @@ namespace Salon.Controllers
                 .OrderBy(s => s.SaleDate)
                 .Select(s => new
                 {
-                    s.InvoiceNumber,
-                    saleDate = s.SaleDate.ToString("yyyy-MM-dd"),
-                    s.NetAmount,
-                    s.Status,
-                    s.PaymentMethod
+                    invoiceNumber  = s.InvoiceNumber,
+                    saleDate       = s.SaleDate.ToString("yyyy-MM-dd"),
+                    netAmount      = s.NetAmount,
+                    status         = s.Status,
+                    paymentMethod  = s.PaymentMethod
                 })
                 .ToListAsync();
 
-            var sales          = allSalesRaw.Where(s => s.Status != "ملغي").ToList();
-            var cancelledSales = allSalesRaw.Where(s => s.Status == "ملغي").ToList();
+            var sales          = allSalesRaw.Where(s => s.status != "ملغي").ToList();
+            var cancelledSales = allSalesRaw.Where(s => s.status == "ملغي").ToList();
 
             var totalSalesAmount = sales.Sum(s => s.NetAmount);
             var commissionAmount = Math.Round(totalSalesAmount * employee.Commission / 100, 3);
