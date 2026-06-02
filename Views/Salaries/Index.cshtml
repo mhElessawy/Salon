@@ -85,6 +85,7 @@
                         <th>البدلات</th>
                         <th>الخصومات</th>
                         <th>السلف</th>
+                        <th>دين الموظف</th>
                         <th>الصافي</th>
                         <th>طريقة الدفع</th>
                         <th>الحالة</th>
@@ -94,7 +95,7 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="@(showMonthCol ? 10 : 9)" class="text-center text-muted py-4">لا توجد رواتب مسجلة</td></tr>
+                        <tr><td colspan="@(showMonthCol ? 11 : 10)" class="text-center text-muted py-4">لا توجد رواتب مسجلة</td></tr>
                     }
                     @foreach (var s in Model)
                     {
@@ -108,6 +109,7 @@
                             <td>@s.Allowances.ToString("N3") د.ك</td>
                             <td>@s.Deductions.ToString("N3") د.ك</td>
                             <td>@s.AdvanceDeducted.ToString("N3") د.ك</td>
+                            <td>@s.EmployeeDebtDeducted.ToString("N3") د.ك</td>
                             <td><strong>@s.NetSalary.ToString("N3") د.ك</strong></td>
                             <td>
                                 @if (s.PaymentMethod == "كي نت")
