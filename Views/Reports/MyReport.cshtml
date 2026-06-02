@@ -1,5 +1,6 @@
 @model IEnumerable<Salon.Models.Sale>
 @using Salon.Models
+@using System.Collections.Generic
 @{
     ViewData["Title"] = "تقريري اليومي";
     var userDept = ViewBag.UserDept as string;
@@ -13,6 +14,9 @@
     bool isToday = ViewBag.IsToday is bool b && b;
     var isFiltered = !string.IsNullOrEmpty(selectedSaleType) || !string.IsNullOrEmpty(selectedPayment) || selectedEmpId.HasValue;
     var advancesList = ViewBag.AdvancesList as List<EmployeeAdvance> ?? new List<EmployeeAdvance>();
+    var expensesTodayList = ViewBag.ExpensesTodayList as List<Expense> ?? new List<Expense>();
+    var salariesTodayList = ViewBag.SalariesTodayList as List<Salary> ?? new List<Salary>();
+    decimal totalExpensesWithSalaries = ViewBag.TotalExpensesWithSalaries is decimal tews ? tews : 0m;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -35,10 +39,16 @@
     </div>
     <div class="stat-card red">
         <div class="stat-card-header">
-            <span class="stat-label">مصروفات اليوم</span>
+            <span class="stat-label">مصاريف اليوم</span>
             <div class="stat-icon red"><i class="fas fa-shopping-bag"></i></div>
         </div>
-        <div class="stat-value">@ViewBag.ExpensesToday?.ToString("N3") د.ك</div>
+        <div class="stat-value">@totalExpensesWithSalaries.ToString("N3") د.ك</div>
+        @if ((decimal)(ViewBag.SalariesToday ?? 0m) > 0)
+        {
+            <div class="small text-muted mt-1">
+                مصروفات: @ViewBag.ExpensesToday?.ToString("N3") | مرتبات: @ViewBag.SalariesToday?.ToString("N3")
+            </div>
+        }
     </div>
     <div class="stat-card" style="border-right:4px solid #9f1239;">
         <div class="stat-card-header">
@@ -392,6 +402,60 @@
         </div>
     </div>
 </div>
+
+@if (expensesTodayList.Any() || salariesTodayList.Any())
+{
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="fas fa-file-invoice-dollar me-2 text-danger"></i>تفاصيل المصاريف اليوم</h6>
+            <span class="badge bg-danger">@totalExpensesWithSalaries.ToString("N3") د.ك</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>النوع</th>
+                            <th>البيان</th>
+                            <th>المبلغ</th>
+                            <th>طريقة الدفع</th>
+                            <th>ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var exp in expensesTodayList)
+                        {
+                            <tr>
+                                <td><span class="badge bg-warning text-dark"><i class="fas fa-receipt me-1"></i>مصروف</span></td>
+                                <td>@exp.Description @(!string.IsNullOrEmpty(exp.Category) ? $"({exp.Category})" : "")</td>
+                                <td><strong class="text-danger">@exp.Amount.ToString("N3") د.ك</strong></td>
+                                <td>@exp.PaymentMethod</td>
+                                <td class="text-muted small">@exp.Notes</td>
+                            </tr>
+                        }
+                        @foreach (var sal in salariesTodayList)
+                        {
+                            <tr style="background:#fff5f5;">
+                                <td><span class="badge bg-danger"><i class="fas fa-money-check-alt me-1"></i>مرتب</span></td>
+                                <td>@sal.Employee?.FullName — @sal.Month/@sal.Year</td>
+                                <td><strong class="text-danger">@sal.NetSalary.ToString("N3") د.ك</strong></td>
+                                <td>نقدي</td>
+                                <td class="text-muted small">@sal.Notes</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-dark fw-bold">
+                        <tr>
+                            <td colspan="2" class="text-end">الإجمالي</td>
+                            <td class="text-danger">@totalExpensesWithSalaries.ToString("N3") د.ك</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+}
 
 @section Scripts {
     <script>

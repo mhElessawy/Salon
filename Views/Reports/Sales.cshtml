@@ -1,4 +1,6 @@
 @model IEnumerable<Salon.Models.Sale>
+@using Salon.Models
+@using System.Collections.Generic
 @{
     ViewData["Title"] = "تقرير المبيعات";
     var employees = ViewBag.Employees as IEnumerable<Salon.Models.Employee> ?? Enumerable.Empty<Salon.Models.Employee>();
@@ -11,6 +13,12 @@
     bool isHaircut = userDept == "حلاقة";
     bool isMassage = userDept == "مساج";
     bool isDeptUser = isHaircut || isMassage;
+
+    var expensesInRange = ViewBag.ExpensesInRange as List<Expense> ?? new List<Expense>();
+    var salariesInRange = ViewBag.SalariesInRange as List<Salary> ?? new List<Salary>();
+    decimal totalExpensesAmount = ViewBag.TotalExpensesAmount is decimal tea ? tea : 0m;
+    decimal totalSalariesAmount = ViewBag.TotalSalariesAmount is decimal tsa ? tsa : 0m;
+    decimal totalCombinedExpenses = ViewBag.TotalCombinedExpenses is decimal tce ? tce : 0m;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -209,6 +217,84 @@
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+
+@* ─── قسم المصاريف ─── *@
+<div class="card mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-file-invoice-dollar me-2 text-danger"></i>تقرير المصاريف</h5>
+        <div class="d-flex gap-3 align-items-center">
+            @if (totalExpensesAmount > 0)
+            {
+                <span class="small text-muted">مصروفات: <strong>@totalExpensesAmount.ToString("N3") د.ك</strong></span>
+            }
+            @if (totalSalariesAmount > 0)
+            {
+                <span class="small text-muted">مرتبات: <strong>@totalSalariesAmount.ToString("N3") د.ك</strong></span>
+            }
+            <span class="badge bg-danger fs-6">الإجمالي: @totalCombinedExpenses.ToString("N3") د.ك</span>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        @if (!expensesInRange.Any() && !salariesInRange.Any())
+        {
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                لا توجد مصاريف في هذه الفترة
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>النوع</th>
+                            <th>البيان</th>
+                            <th>الفئة / الموظف</th>
+                            <th>المبلغ</th>
+                            <th>طريقة الدفع</th>
+                            <th>التاريخ</th>
+                            <th>ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var exp in expensesInRange)
+                        {
+                            <tr>
+                                <td><span class="badge bg-warning text-dark"><i class="fas fa-receipt me-1"></i>مصروف</span></td>
+                                <td>@exp.Description</td>
+                                <td class="text-muted">@(exp.Category ?? "-")</td>
+                                <td><strong class="text-danger">@exp.Amount.ToString("N3") د.ك</strong></td>
+                                <td>@exp.PaymentMethod</td>
+                                <td>@exp.ExpenseDate.ToString("yyyy/MM/dd")</td>
+                                <td class="text-muted small">@exp.Notes</td>
+                            </tr>
+                        }
+                        @foreach (var sal in salariesInRange)
+                        {
+                            <tr style="background:#fff5f5;">
+                                <td><span class="badge bg-danger"><i class="fas fa-money-check-alt me-1"></i>مرتب</span></td>
+                                <td>مرتب @sal.Month/@sal.Year</td>
+                                <td>@sal.Employee?.FullName</td>
+                                <td><strong class="text-danger">@sal.NetSalary.ToString("N3") د.ك</strong></td>
+                                <td>نقدي</td>
+                                <td>@sal.PaidDate?.ToString("yyyy/MM/dd")</td>
+                                <td class="text-muted small">@sal.Notes</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-dark fw-bold">
+                        <tr>
+                            <td colspan="3" class="text-end">الإجمالي</td>
+                            <td class="text-danger">@totalCombinedExpenses.ToString("N3") د.ك</td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
     </div>
 </div>
 
