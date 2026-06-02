@@ -14,10 +14,13 @@
     bool isMassage = userDept == "مساج";
     bool isDeptUser = isHaircut || isMassage;
 
+    string? selectedPaymentMethod = ViewBag.SelectedPaymentMethod as string;
+
     var expensesInRange = ViewBag.ExpensesInRange as List<Expense> ?? new List<Expense>();
     var salariesInRange = ViewBag.SalariesInRange as List<Salary> ?? new List<Salary>();
     decimal totalExpensesAmount = ViewBag.TotalExpensesAmount is decimal tea ? tea : 0m;
     decimal totalSalariesAmount = ViewBag.TotalSalariesAmount is decimal tsa ? tsa : 0m;
+    decimal totalCombinedExpenses = ViewBag.TotalCombinedExpenses is decimal tce ? tce : 0m;
     decimal netProfit = ((decimal)(ViewBag.TotalSales ?? 0m)) - totalCombinedExpenses;
 }
 
@@ -52,6 +55,18 @@
                         <option value="مساج" @@(selectedType= ="مساج" ? "selected" : "" )>مساج</option>
                     }
                     <option value="منتجات" @@(selectedType= ="منتجات" ? "selected" : "" )>منتجات</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1">طريقة الدفع:</label>
+                <select name="paymentMethod" class="form-select" style="max-width:200px;">
+                    <option value="" selected="@(string.IsNullOrEmpty(selectedPaymentMethod))">-- الكل --</option>
+                    <option value="كاش" selected="@(selectedPaymentMethod == "كاش")">💵 كاش</option>
+                    <option value="كي نت" selected="@(selectedPaymentMethod == "كي نت")">💳 كي نت</option>
+                    <option value="كي نت و كاش" selected="@(selectedPaymentMethod == "كي نت و كاش")">↔ كاش + كي نت</option>
+                    <option value="دين على العميل" selected="@(selectedPaymentMethod == "دين على العميل")">👤 دين على العميل</option>
+                    <option value="دين على الموظف" selected="@(selectedPaymentMethod == "دين على الموظف")">👷 دين على الموظف</option>
+                    <option value="دين على صاحب المكان" selected="@(selectedPaymentMethod == "دين على صاحب المكان")">🏠 دين على صاحب المكان</option>
                 </select>
             </div>
             <div class="col-auto">

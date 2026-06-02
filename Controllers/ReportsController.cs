@@ -24,7 +24,7 @@ namespace Salon.Controllers
             return View();
         }
 
-        public async Task<IActionResult> Sales(string? from, string? to, int? employeeId, int? customerId, string? saleType)
+        public async Task<IActionResult> Sales(string? from, string? to, int? employeeId, int? customerId, string? saleType, string? paymentMethod)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? DateTime.Today.AddDays(-30) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
@@ -51,6 +51,16 @@ namespace Salon.Controllers
 
             if (!string.IsNullOrEmpty(saleType))
                 query = query.Where(s => s.SaleType == saleType);
+
+            if (!string.IsNullOrEmpty(paymentMethod))
+            {
+                if (paymentMethod == "كاش")
+                    query = query.Where(s => s.PaymentMethod == "كاش" || s.PaymentMethod == "نقدي" || s.PaymentMethod == "Cash");
+                else if (paymentMethod == "كي نت")
+                    query = query.Where(s => s.PaymentMethod == "كي نت" || s.PaymentMethod == "بطاقة" || s.PaymentMethod == "تحويل بنكي" || s.PaymentMethod == "K-Net");
+                else
+                    query = query.Where(s => s.PaymentMethod == paymentMethod);
+            }
 
             var allSalesRaw = await query.OrderByDescending(s => s.SaleDate).ToListAsync();
             var sales = allSalesRaw; // kept for view model
@@ -94,6 +104,7 @@ namespace Salon.Controllers
             ViewBag.SelectedEmployeeId = employeeId;
             ViewBag.SelectedCustomerId = customerId;
             ViewBag.SelectedSaleType = saleType;
+            ViewBag.SelectedPaymentMethod = paymentMethod;
             ViewBag.UserDept = userDept;
 
             // مصاريف الفترة
