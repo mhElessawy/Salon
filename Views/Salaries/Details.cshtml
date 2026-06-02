@@ -208,23 +208,17 @@
                             <td class="text-end fw-bold">@Model.BasicSalary.ToString("N3") د.ك</td>
                         </tr>
                         <tr>
-                            <td>عمولة الفواتير (@Model.Employee?.Commission ?? 0)%</td>
+                            <td>عمولة الفواتير (@(Model.Employee?.Commission ?? 0))%</td>
                             <td class="text-end fw-bold">@Model.CommissionAmount.ToString("N3") د.ك</td>
                         </tr>
-                        @if (Model.Allowances > 0)
-                        {
-                            <tr>
-                                <td>البدلات</td>
-                                <td class="text-end fw-bold">@Model.Allowances.ToString("N3") د.ك</td>
-                            </tr>
-                        }
-                        @if ((Model.GiftAmount ?? 0) > 0)
-                        {
-                            <tr>
-                                <td>إجمالي الهدايا</td>
-                                <td class="text-end fw-bold">@((Model.GiftAmount ?? 0).ToString("N3")) د.ك</td>
-                            </tr>
-                        }
+                        <tr>
+                            <td>البدلات</td>
+                            <td class="text-end fw-bold">@Model.Allowances.ToString("N3") د.ك</td>
+                        </tr>
+                        <tr>
+                            <td>إجمالي الهدايا</td>
+                            <td class="text-end fw-bold">@((Model.GiftAmount ?? 0).ToString("N3")) د.ك</td>
+                        </tr>
                     </tbody>
                     <tfoot class="table-success fw-bold">
                         <tr>
@@ -240,27 +234,18 @@
                 <h6 class="text-danger mb-3"><i class="fas fa-minus-circle me-1"></i> الخصومات</h6>
                 <table class="table table-sm">
                     <tbody>
-                        @if (Model.Deductions > 0)
-                        {
-                            <tr>
-                                <td>الخصومات</td>
-                                <td class="text-end fw-bold text-danger">@Model.Deductions.ToString("N3") د.ك</td>
-                            </tr>
-                        }
-                        @if (Model.AdvanceDeducted > 0)
-                        {
-                            <tr>
-                                <td>السلف المخصومة</td>
-                                <td class="text-end fw-bold text-danger">@Model.AdvanceDeducted.ToString("N3") د.ك</td>
-                            </tr>
-                        }
-                        @if (Model.EmployeeDebtDeducted > 0)
-                        {
-                            <tr>
-                                <td>دين على الموظف (من الفواتير)</td>
-                                <td class="text-end fw-bold text-danger">@Model.EmployeeDebtDeducted.ToString("N3") د.ك</td>
-                            </tr>
-                        }
+                        <tr>
+                            <td>الخصومات</td>
+                            <td class="text-end fw-bold text-danger">@Model.Deductions.ToString("N3") د.ك</td>
+                        </tr>
+                        <tr>
+                            <td>السلف المخصومة</td>
+                            <td class="text-end fw-bold text-danger">@Model.AdvanceDeducted.ToString("N3") د.ك</td>
+                        </tr>
+                        <tr>
+                            <td>دين على الموظف (من الفواتير)</td>
+                            <td class="text-end fw-bold text-danger">@Model.EmployeeDebtDeducted.ToString("N3") د.ك</td>
+                        </tr>
                     </tbody>
                     <tfoot class="table-danger fw-bold">
                         <tr>
