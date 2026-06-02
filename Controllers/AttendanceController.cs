@@ -28,6 +28,14 @@ namespace Salon.Controllers
             _audit = audit;
         }
 
+        private static readonly TimeZoneInfo KuwaitTz =
+            TimeZoneInfo.FindSystemTimeZoneById("Asia/Kuwait");
+
+        private static DateTime KuwaitNow =>
+            TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, KuwaitTz);
+
+        private static DateTime KuwaitToday => KuwaitNow.Date;
+
         private async Task<int?> GetLinkedEmployeeIdIfEmployee()
         {
             if (!User.IsInRole("Employee")) return null;
@@ -46,7 +54,7 @@ namespace Salon.Controllers
         {
             if (string.IsNullOrEmpty(dept)) return 1;
 
-            var today = DateTime.Today;
+            var today = KuwaitToday;
             var max = await (
                 from a in _context.Attendances
                 join e in _context.Employees on a.EmployeeId equals e.Id
@@ -60,7 +68,7 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> Index(string? date)
         {
-            DateTime filterDate = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
+            DateTime filterDate = string.IsNullOrEmpty(date) ? KuwaitToday : DateTime.Parse(date);
 
             var linkedId = await GetLinkedEmployeeIdIfEmployee();
             var userDept = await GetUserDepartmentAsync();
@@ -153,7 +161,7 @@ namespace Salon.Controllers
 
             ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
             ViewBag.IsEmployee = linkedId.HasValue;
-            ViewBag.IsToday = filterDate.Date == DateTime.Today;
+            ViewBag.IsToday = filterDate.Date == KuwaitToday;
             return View(rows);
         }
 
@@ -169,7 +177,7 @@ namespace Salon.Controllers
                 if (employee == null) return Forbid();
 
                 bool alreadyExists = await _context.Attendances.AnyAsync(a =>
-                    a.EmployeeId == linkedId.Value && a.AttendanceDate == DateTime.Today);
+                    a.EmployeeId == linkedId.Value && a.AttendanceDate == KuwaitToday);
                 if (alreadyExists)
                 {
                     TempData["Error"] = "لقد سجلت حضورك اليوم مسبقاً";
@@ -178,7 +186,7 @@ namespace Salon.Controllers
 
                 ViewBag.IsEmployee = true;
                 ViewBag.EmployeeName = employee.FullName;
-                return View(new Attendance { AttendanceDate = DateTime.Today, EmployeeId = linkedId.Value });
+                return View(new Attendance { AttendanceDate = KuwaitToday, EmployeeId = linkedId.Value });
             }
 
             var userDeptForCreate = await GetUserDepartmentAsync();
@@ -189,7 +197,7 @@ namespace Salon.Controllers
             ViewBag.Employees = new SelectList(
                 await empQuery.OrderBy(e => e.FullName).ToListAsync(),
                 "Id", "FullName");
-            return View(new Attendance { AttendanceDate = DateTime.Today });
+            return View(new Attendance { AttendanceDate = KuwaitToday });
         }
 
         [HttpPost, ValidateAntiForgeryToken]
@@ -200,9 +208,9 @@ namespace Salon.Controllers
             if (linkedId.HasValue)
             {
                 model.EmployeeId = linkedId.Value;
-                model.CheckIn = DateTime.Now.TimeOfDay;
+                model.CheckIn = KuwaitNow.TimeOfDay;
                 model.CheckOut = null;
-                model.AttendanceDate = DateTime.Today;
+                model.AttendanceDate = KuwaitToday;
             }
 
             // Prevent duplicate for same employee+date
@@ -219,7 +227,7 @@ namespace Salon.Controllers
                     .FirstOrDefaultAsync(e => e.Id == model.EmployeeId);
                 var dept = employee?.DepartmentNav?.Name;
                 model.QueuePosition = await NextQueuePosition(dept);
-                model.CreatedAt = DateTime.Now;
+                model.CreatedAt = KuwaitNow;
 
                 _context.Attendances.Add(model);
                 await _context.SaveChangesAsync();
@@ -255,7 +263,7 @@ namespace Salon.Controllers
             if (linkedId.HasValue && linkedId.Value != employeeId)
                 return Forbid();
 
-            var attendanceDate = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
+            var attendanceDate = string.IsNullOrEmpty(date) ? KuwaitToday : DateTime.Parse(date);
 
             // منع التسجيل لو في سجل مفتوح امبارح (موظف ليلي لسه شغال)
             var prevDate = attendanceDate.AddDays(-1);
@@ -289,9 +297,9 @@ namespace Salon.Controllers
             {
                 EmployeeId = employeeId,
                 AttendanceDate = attendanceDate,
-                CheckIn = DateTime.Now.TimeOfDay,
+                CheckIn = KuwaitNow.TimeOfDay,
                 QueuePosition = queuePosition,
-                CreatedAt = DateTime.Now
+                CreatedAt = KuwaitNow
             };
             _context.Attendances.Add(attendance);
             await _context.SaveChangesAsync();
@@ -316,8 +324,8 @@ namespace Salon.Controllers
                 return Forbid();
 
             var time = linkedId.HasValue
-                ? DateTime.Now.TimeOfDay
-                : (TimeSpan.TryParse(checkOutTime, out var parsed) ? parsed : DateTime.Now.TimeOfDay);
+                ? KuwaitNow.TimeOfDay
+                : (TimeSpan.TryParse(checkOutTime, out var parsed) ? parsed : KuwaitNow.TimeOfDay);
 
             record.CheckOut = time;
             await _context.SaveChangesAsync();
@@ -332,8 +340,8 @@ namespace Salon.Controllers
                 "انصراف", time, record.AttendanceDate));
 
             // لو كان موظفاً ليلياً (تاريخ الحضور قبل النهارده) → ارجع لصفحة النهارده
-            var redirectDate = record.AttendanceDate.Date < DateTime.Today
-                ? DateTime.Today.ToString("yyyy-MM-dd")
+            var redirectDate = record.AttendanceDate.Date < KuwaitToday
+                ? KuwaitToday.ToString("yyyy-MM-dd")
                 : record.AttendanceDate.ToString("yyyy-MM-dd");
 
             return RedirectToAction(nameof(Index), new { date = redirectDate });
@@ -361,8 +369,8 @@ namespace Salon.Controllers
             var perm = new AttendancePermission
             {
                 AttendanceId = id,
-                LeaveTime = DateTime.Now.TimeOfDay,
-                CreatedAt = DateTime.Now
+                LeaveTime = KuwaitNow.TimeOfDay,
+                CreatedAt = KuwaitNow
             };
             _context.AttendancePermissions.Add(perm);
             await _context.SaveChangesAsync();
@@ -417,7 +425,7 @@ namespace Salon.Controllers
             if (linkedId.HasValue && perm.Attendance?.EmployeeId != linkedId.Value)
                 return Forbid();
 
-            perm.ReturnTime = DateTime.Now.TimeOfDay;
+            perm.ReturnTime = KuwaitNow.TimeOfDay;
             await _context.SaveChangesAsync();
             var empRetAudit = await _context.Employees.FindAsync(perm.Attendance!.EmployeeId);
             await _audit.LogAsync("عودة", "الحضور", $"عودة من الاستئذان: {empRetAudit?.FullName}", id);
@@ -453,7 +461,7 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> Reports(string? dateFrom, string? dateTo, int? employeeId)
         {
-            var today = DateTime.Today;
+            var today = KuwaitToday;
             var from = string.IsNullOrEmpty(dateFrom)
                 ? new DateTime(today.Year, today.Month, 1)
                 : DateTime.Parse(dateFrom);
