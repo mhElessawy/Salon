@@ -99,6 +99,31 @@
             <div class="stat-value">@ViewBag.TotalCount</div>
         </div>
     </div>
+    <div class="col-md-3">
+        <div class="stat-card red">
+            <div class="stat-label">إجمالي المصاريف</div>
+            <div class="stat-value">@totalCombinedExpenses.ToString("N3") د.ك</div>
+            @if (totalExpensesAmount > 0 || totalSalariesAmount > 0)
+            {
+                <div class="small mt-1" style="color:#fca5a5;">
+                    @if (totalExpensesAmount > 0)
+                    {
+                        <span>مصروفات: @totalExpensesAmount.ToString("N3")</span>
+                    }
+                    @if (totalSalariesAmount > 0)
+                    {
+                        <span class="ms-2">مرتبات: @totalSalariesAmount.ToString("N3")</span>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card orange">
+            <div class="stat-label">صافي الربح</div>
+            <div class="stat-value">@(((decimal)(ViewBag.TotalSales ?? 0m)) - totalCombinedExpenses).ToString("N3") د.ك</div>
+        </div>
+    </div>
     @if (!isMassage)
     {
         <div class="col-md-2">
