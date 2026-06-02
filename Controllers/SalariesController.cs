@@ -106,19 +106,34 @@ namespace Salon.Controllers
                 .OrderBy(s => s.SaleDate)
                 .Select(s => new
                 {
-                    invoiceNumber  = s.InvoiceNumber,
-                    saleDate       = s.SaleDate.ToString("yyyy-MM-dd"),
-                    netAmount      = s.NetAmount,
-                    status         = s.Status,
-                    paymentMethod  = s.PaymentMethod
+                    invoiceNumber = s.InvoiceNumber,
+                    saleDate      = s.SaleDate.ToString("yyyy-MM-dd"),
+                    netAmount     = s.NetAmount,
+                    status        = s.Status,
+                    paymentMethod = s.PaymentMethod,
+                    cashAmount    = s.CashAmount,
+                    linkAmount    = s.LinkAmount
                 })
                 .ToListAsync();
 
             var sales          = allSalesRaw.Where(s => s.status != "ملغي").ToList();
             var cancelledSales = allSalesRaw.Where(s => s.status == "ملغي").ToList();
 
-            var totalSalesAmount = sales.Sum(s => s.NetAmount);
-            var commissionAmount = Math.Round(totalSalesAmount * employee.Commission / 100, 3);
+            string[] cashMethods  = { "كاش", "نقدي", "Cash" };
+            string[] knetMethods  = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
+            var totalSalesAmount  = sales.Sum(s => s.netAmount);
+            var commissionAmount  = Math.Round(totalSalesAmount * employee.Commission / 100, 3);
+
+            var cashTotal          = Math.Round(sales.Sum(s =>
+                cashMethods.Contains(s.paymentMethod)  ? s.netAmount :
+                mixedMethods.Contains(s.paymentMethod) ? (s.cashAmount ?? 0) : 0), 3);
+            var knetTotal          = Math.Round(sales.Sum(s =>
+                knetMethods.Contains(s.paymentMethod)  ? s.netAmount :
+                mixedMethods.Contains(s.paymentMethod) ? (s.linkAmount ?? 0) : 0), 3);
+            var employeeDebtTotal  = Math.Round(sales.Where(s => s.paymentMethod == "دين على الموظف").Sum(s => s.netAmount), 3);
+            var customerDebtTotal  = Math.Round(sales.Where(s => s.paymentMethod == "دين على العميل").Sum(s => s.netAmount), 3);
 
             var totalGifts = await _context.Sales
                 .Where(s => s.EmployeeId == employeeId
@@ -130,13 +145,17 @@ namespace Salon.Controllers
 
             return Json(new
             {
-                basicSalary = employee.BasicSalary,
-                commission = employee.Commission,
+                basicSalary       = employee.BasicSalary,
+                commission        = employee.Commission,
                 sales,
                 cancelledSales,
                 totalSalesAmount,
                 commissionAmount,
-                advanceDeducted = totalAdvances,
+                cashTotal,
+                knetTotal,
+                employeeDebtTotal,
+                customerDebtTotal,
+                advanceDeducted   = totalAdvances,
                 totalGifts,
                 alreadyPaid
             });
@@ -161,7 +180,7 @@ namespace Salon.Controllers
                     return View(model);
                 }
 
-                model.NetSalary = model.BasicSalary + model.CommissionAmount + model.Allowances + (model.GiftAmount ?? 0) - model.Deductions - model.AdvanceDeducted;
+                model.NetSalary = model.BasicSalary + model.CommissionAmount + model.Allowances + (model.GiftAmount ?? 0) - model.Deductions - model.AdvanceDeducted - model.EmployeeDebtDeducted;
                 model.CreatedAt = DateTime.Now;
                 _context.Salaries.Add(model);
                 await _context.SaveChangesAsync();

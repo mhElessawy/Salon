@@ -76,6 +76,24 @@
                                             </td>
                                             <td class="text-end fw-bold" id="commissionAmountDisplay">0.000</td>
                                         </tr>
+                                        <tr class="border-top">
+                                            <td colspan="4" class="py-2">
+                                                <div class="d-flex flex-wrap gap-3">
+                                                    <span class="badge bg-success fs-6 px-3 py-2">
+                                                        💵 نقدي: <strong id="cashTotalDisplay">0.000</strong> د.ك
+                                                    </span>
+                                                    <span class="badge bg-info text-dark fs-6 px-3 py-2">
+                                                        💳 كي نت: <strong id="knetTotalDisplay">0.000</strong> د.ك
+                                                    </span>
+                                                    <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+                                                        👷 دين موظف: <strong id="employeeDebtDisplay">0.000</strong> د.ك
+                                                    </span>
+                                                    <span class="badge bg-secondary fs-6 px-3 py-2">
+                                                        👤 دين عميل: <strong id="customerDebtDisplay">0.000</strong> د.ك
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     </tfoot>
                                 </table>
                             </div>
@@ -145,6 +163,13 @@
                     <label class="form-label">السلف المخصومة</label>
                     <input type="number" name="AdvanceDeducted" id="advanceDeducted" step="0.001" class="form-control" value="0" oninput="calcNet()" />
                 </div>
+                <div class="col-md-3">
+                    <label class="form-label">
+                        دين على الموظف <small class="text-muted fw-normal">(من الفواتير)</small>
+                    </label>
+                    <input type="number" name="EmployeeDebtDeducted" id="employeeDebtDeducted" step="0.001" class="form-control" value="0" oninput="calcNet()"
+                           style="background:#fff3cd;" />
+                </div>
                 <div class="col-md-4">
                     <label class="form-label">الصافي</label>
                     <input type="number" name="NetSalary" id="netSalary" step="0.001" class="form-control" value="0" readonly style="background:#f0fff0; font-weight:bold;" />
@@ -166,13 +191,14 @@
 @section Scripts {
     <script>
         function calcNet() {
-            const basic  = parseFloat(document.getElementById('basicSalary').value)      || 0;
-            const comm   = parseFloat(document.getElementById('commissionAmount').value)  || 0;
-            const allow  = parseFloat(document.getElementById('allowances').value)        || 0;
-            const gift   = parseFloat(document.getElementById('giftAmount').value)        || 0;
-            const ded    = parseFloat(document.getElementById('deductions').value)        || 0;
-            const adv    = parseFloat(document.getElementById('advanceDeducted').value)   || 0;
-            document.getElementById('netSalary').value = (basic + comm + allow + gift - ded - adv).toFixed(3);
+            const basic  = parseFloat(document.getElementById('basicSalary').value)          || 0;
+            const comm   = parseFloat(document.getElementById('commissionAmount').value)      || 0;
+            const allow  = parseFloat(document.getElementById('allowances').value)            || 0;
+            const gift   = parseFloat(document.getElementById('giftAmount').value)            || 0;
+            const ded    = parseFloat(document.getElementById('deductions').value)            || 0;
+            const adv    = parseFloat(document.getElementById('advanceDeducted').value)       || 0;
+            const debt   = parseFloat(document.getElementById('employeeDebtDeducted').value)  || 0;
+            document.getElementById('netSalary').value = (basic + comm + allow + gift - ded - adv - debt).toFixed(3);
         }
 
         async function loadSalary() {
@@ -194,10 +220,17 @@
                 const data = await res.json();
 
                 // حقول الراتب
-                document.getElementById('basicSalary').value      = data.basicSalary.toFixed(3);
-                document.getElementById('commissionAmount').value  = data.commissionAmount.toFixed(3);
-                document.getElementById('advanceDeducted').value  = data.advanceDeducted.toFixed(3);
-                document.getElementById('giftAmount').value       = data.totalGifts.toFixed(3);
+                document.getElementById('basicSalary').value          = data.basicSalary.toFixed(3);
+                document.getElementById('commissionAmount').value      = data.commissionAmount.toFixed(3);
+                document.getElementById('advanceDeducted').value       = data.advanceDeducted.toFixed(3);
+                document.getElementById('giftAmount').value            = data.totalGifts.toFixed(3);
+                document.getElementById('employeeDebtDeducted').value  = (data.employeeDebtTotal || 0).toFixed(3);
+
+                // توتالات طرق الدفع
+                document.getElementById('cashTotalDisplay').textContent     = (data.cashTotal || 0).toFixed(3);
+                document.getElementById('knetTotalDisplay').textContent     = (data.knetTotal || 0).toFixed(3);
+                document.getElementById('employeeDebtDisplay').textContent  = (data.employeeDebtTotal || 0).toFixed(3);
+                document.getElementById('customerDebtDisplay').textContent  = (data.customerDebtTotal || 0).toFixed(3);
 
                 // تحديث تسمية العمولة
                 const pct = data.commission || 0;
