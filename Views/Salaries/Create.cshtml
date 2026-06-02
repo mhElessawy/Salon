@@ -57,19 +57,20 @@
                                         <tr>
                                             <th>رقم الفاتورة</th>
                                             <th>التاريخ</th>
+                                            <th>طريقة الدفع</th>
                                             <th class="text-end">صافي الفاتورة</th>
                                         </tr>
                                     </thead>
                                     <tbody id="salesTableBody">
-                                        <tr><td colspan="3" class="text-center text-muted py-3">لا توجد فواتير لهذا الشهر</td></tr>
+                                        <tr><td colspan="4" class="text-center text-muted py-3">لا توجد فواتير لهذا الشهر</td></tr>
                                     </tbody>
                                     <tfoot class="table-light fw-bold">
                                         <tr>
-                                            <td colspan="2">إجمالي الفواتير</td>
+                                            <td colspan="3">إجمالي الفواتير</td>
                                             <td class="text-end" id="totalSalesDisplay">0.000</td>
                                         </tr>
                                         <tr class="table-success">
-                                            <td colspan="2">
+                                            <td colspan="3">
                                                 حق الموظف
                                                 <span class="text-muted fw-normal">(<span id="commissionPctDisplay">0</span>%)</span>
                                             </td>
@@ -95,13 +96,14 @@
                                         <tr>
                                             <th>رقم الفاتورة</th>
                                             <th>التاريخ</th>
+                                            <th>طريقة الدفع</th>
                                             <th class="text-end">المبلغ</th>
                                         </tr>
                                     </thead>
                                     <tbody id="cancelledTableBody"></tbody>
                                     <tfoot class="table-light fw-bold">
                                         <tr>
-                                            <td colspan="2" class="text-danger">إجمالي الملغاة</td>
+                                            <td colspan="3" class="text-danger">إجمالي الملغاة</td>
                                             <td class="text-end text-danger" id="totalCancelledDisplay">0.000</td>
                                         </tr>
                                     </tfoot>
@@ -147,14 +149,7 @@
                     <label class="form-label">الصافي</label>
                     <input type="number" name="NetSalary" id="netSalary" step="0.001" class="form-control" value="0" readonly style="background:#f0fff0; font-weight:bold;" />
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">طريقة الدفع</label>
-                    <select name="PaymentMethod" class="form-select">
-                        <option value="نقدي" selected>💵 نقدي / كاش</option>
-                        <option value="كي نت">💳 كي نت</option>
-                        <option value="تحويل بنكي">🏦 تحويل بنكي</option>
-                    </select>
-                </div>
+                <input type="hidden" name="PaymentMethod" value="نقدي" />
                 <div class="col-12">
                     <label class="form-label">ملاحظات</label>
                     <textarea name="Notes" class="form-control" rows="2"></textarea>
@@ -217,14 +212,28 @@
 
                 // فواتير مكتملة
                 const tbody = document.getElementById('salesTableBody');
+                function paymentBadge(method) {
+                    if (!method) return '<span class="badge bg-success">نقدي</span>';
+                    if (method === 'كاش' || method === 'نقدي')
+                        return `<span class="badge bg-success"><i class="fas fa-money-bill-wave me-1"></i>${method}</span>`;
+                    if (method.includes('كي نت') && method.includes('كاش'))
+                        return `<span class="badge bg-warning text-dark"><i class="fas fa-exchange-alt me-1"></i>${method}</span>`;
+                    if (method.includes('كي نت') || method.includes('بطاقة'))
+                        return `<span class="badge bg-info text-dark"><i class="fas fa-credit-card me-1"></i>${method}</span>`;
+                    if (method.includes('دين'))
+                        return `<span class="badge bg-danger"><i class="fas fa-user-tag me-1"></i>${method}</span>`;
+                    return `<span class="badge bg-secondary">${method}</span>`;
+                }
+
                 if (data.sales.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">لا توجد فواتير لهذا الشهر</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">لا توجد فواتير لهذا الشهر</td></tr>';
                     salesCard.classList.add('d-none');
                 } else {
                     tbody.innerHTML = data.sales.map(s =>
                         `<tr>
                             <td>${s.invoiceNumber}</td>
                             <td>${s.saleDate}</td>
+                            <td>${paymentBadge(s.paymentMethod)}</td>
                             <td class="text-end">${s.netAmount.toFixed(3)} د.ك</td>
                         </tr>`
                     ).join('');
@@ -240,6 +249,7 @@
                         `<tr style="background:#fff5f5;">
                             <td><span class="text-decoration-line-through text-muted">${s.invoiceNumber}</span></td>
                             <td>${s.saleDate}</td>
+                            <td>${paymentBadge(s.paymentMethod)}</td>
                             <td class="text-end text-danger">${s.netAmount.toFixed(3)} د.ك</td>
                         </tr>`
                     ).join('');

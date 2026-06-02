@@ -109,7 +109,8 @@ namespace Salon.Controllers
                     s.InvoiceNumber,
                     saleDate = s.SaleDate.ToString("yyyy-MM-dd"),
                     s.NetAmount,
-                    s.Status
+                    s.Status,
+                    s.PaymentMethod
                 })
                 .ToListAsync();
 
