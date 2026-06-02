@@ -23,6 +23,46 @@ namespace Salon.Controllers
             _userManager = userManager;
         }
 
+        public async Task<IActionResult> Details(int id)
+        {
+            var salary = await _context.Salaries
+                .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (salary == null) return NotFound();
+
+            var rangeStart = new DateTime(salary.Year, salary.Month, 1);
+            var rangeEnd = rangeStart.AddMonths(1);
+
+            var allSales = await _context.Sales
+                .Where(s => s.EmployeeId == salary.EmployeeId
+                         && s.SaleDate >= rangeStart && s.SaleDate < rangeEnd)
+                .OrderBy(s => s.SaleDate)
+                .ToListAsync();
+
+            var activeSales = allSales.Where(s => s.Status != "ملغي").ToList();
+            var cancelledSales = allSales.Where(s => s.Status == "ملغي").ToList();
+
+            string[] cashMethods = { "كاش", "نقدي", "Cash" };
+            string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
+            ViewBag.ActiveSales = activeSales;
+            ViewBag.CancelledSales = cancelledSales;
+            ViewBag.TotalSales = activeSales.Sum(s => s.NetAmount);
+            ViewBag.CashTotal = activeSales.Sum(s =>
+                cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+            ViewBag.KnetTotal = activeSales.Sum(s =>
+                knetMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
+            ViewBag.EmployeeDebt = activeSales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
+            ViewBag.CustomerDebt = activeSales.Where(s => s.PaymentMethod == "دين على العميل").Sum(s => s.NetAmount);
+            ViewBag.OwnerDebt = activeSales.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount);
+
+            return View(salary);
+        }
+
         public async Task<IActionResult> Index(int? year, int? month, int? employeeId)
         {
             int y = year ?? DateTime.Today.Year;
@@ -99,21 +139,41 @@ namespace Salon.Controllers
             var rangeStart = new DateTime(year, month, 1);
             var rangeEnd = rangeStart.AddMonths(1);
 
-            var sales = await _context.Sales
+            var allSalesRaw = await _context.Sales
                 .Where(s => s.EmployeeId == employeeId
                          && s.SaleDate >= rangeStart
                          && s.SaleDate < rangeEnd)
                 .OrderBy(s => s.SaleDate)
                 .Select(s => new
                 {
-                    s.InvoiceNumber,
+                    invoiceNumber = s.InvoiceNumber,
                     saleDate = s.SaleDate.ToString("yyyy-MM-dd"),
-                    s.NetAmount
+                    netAmount = s.NetAmount,
+                    status = s.Status,
+                    paymentMethod = s.PaymentMethod,
+                    cashAmount = s.CashAmount,
+                    linkAmount = s.LinkAmount
                 })
                 .ToListAsync();
 
-            var totalSalesAmount = sales.Sum(s => s.NetAmount);
+            var sales = allSalesRaw.Where(s => s.status != "ملغي").ToList();
+            var cancelledSales = allSalesRaw.Where(s => s.status == "ملغي").ToList();
+
+            string[] cashMethods = { "كاش", "نقدي", "Cash" };
+            string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
+            var totalSalesAmount = sales.Sum(s => s.netAmount);
             var commissionAmount = Math.Round(totalSalesAmount * employee.Commission / 100, 3);
+
+            var cashTotal = Math.Round(sales.Sum(s =>
+                cashMethods.Contains(s.paymentMethod) ? s.netAmount :
+                mixedMethods.Contains(s.paymentMethod) ? (s.cashAmount ?? 0) : 0), 3);
+            var knetTotal = Math.Round(sales.Sum(s =>
+                knetMethods.Contains(s.paymentMethod) ? s.netAmount :
+                mixedMethods.Contains(s.paymentMethod) ? (s.linkAmount ?? 0) : 0), 3);
+            var employeeDebtTotal = Math.Round(sales.Where(s => s.paymentMethod == "دين على الموظف").Sum(s => s.netAmount), 3);
+            var customerDebtTotal = Math.Round(sales.Where(s => s.paymentMethod == "دين على العميل").Sum(s => s.netAmount), 3);
 
             var totalGifts = await _context.Sales
                 .Where(s => s.EmployeeId == employeeId
@@ -128,8 +188,13 @@ namespace Salon.Controllers
                 basicSalary = employee.BasicSalary,
                 commission = employee.Commission,
                 sales,
+                cancelledSales,
                 totalSalesAmount,
                 commissionAmount,
+                cashTotal,
+                knetTotal,
+                employeeDebtTotal,
+                customerDebtTotal,
                 advanceDeducted = totalAdvances,
                 totalGifts,
                 alreadyPaid
@@ -155,7 +220,7 @@ namespace Salon.Controllers
                     return View(model);
                 }
 
-                model.NetSalary = model.BasicSalary + model.CommissionAmount + model.Allowances + (model.GiftAmount ?? 0) - model.Deductions - model.AdvanceDeducted;
+                model.NetSalary = model.BasicSalary + model.CommissionAmount + model.Allowances + (model.GiftAmount ?? 0) - model.Deductions - model.AdvanceDeducted - model.EmployeeDebtDeducted;
                 model.CreatedAt = DateTime.Now;
                 _context.Salaries.Add(model);
                 await _context.SaveChangesAsync();

@@ -36,6 +36,10 @@ namespace Salon.Models
         [DataType(DataType.Currency)]
         public decimal AdvanceDeducted { get; set; }
 
+        [Display(Name = "دين على الموظف المخصوم")]
+        [DataType(DataType.Currency)]
+        public decimal EmployeeDebtDeducted { get; set; }
+
         [Display(Name = "الصافي")]
         [DataType(DataType.Currency)]
         public decimal NetSalary { get; set; }
@@ -57,6 +61,9 @@ namespace Salon.Models
 
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
+
+        [Display(Name = "طريقة الدفع")]
+        public string PaymentMethod { get; set; } = "نقدي";
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
     }

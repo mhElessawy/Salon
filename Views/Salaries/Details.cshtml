@@ -1,0 +1,281 @@
+﻿@model Salon.Models.Salary
+@using Salon.Models
+@{
+    ViewData["Title"] = "تفاصيل الراتب";
+    string[] arabicMonths = { "", "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+                               "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر" };
+
+    var activeSales = ViewBag.ActiveSales as List<Sale> ?? new List<Sale>();
+    var cancelledSales = ViewBag.CancelledSales as List<Sale> ?? new List<Sale>();
+    decimal totalSales = ViewBag.TotalSales is decimal ts ? ts : 0m;
+    decimal cashTotal = ViewBag.CashTotal is decimal ct ? ct : 0m;
+    decimal knetTotal = ViewBag.KnetTotal is decimal kn ? kn : 0m;
+    decimal empDebt = ViewBag.EmployeeDebt is decimal ed ? ed : 0m;
+    decimal custDebt = ViewBag.CustomerDebt is decimal cd ? cd : 0m;
+    decimal ownerDebt = ViewBag.OwnerDebt is decimal od ? od : 0m;
+
+    string monthName = arabicMonths[Model.Month];
+}
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1><i class="fas fa-file-invoice-dollar me-2"></i>تفاصيل الراتب</h1>
+        <p class="mb-0">
+            <strong>@Model.Employee?.FullName</strong> —
+            <span class="badge bg-primary fs-6">@monthName @Model.Year</span>
+            <span class="badge @(Model.Status == "مصروف" ? "bg-success" : "bg-warning text-dark") ms-1">@Model.Status</span>
+        </p>
+    </div>
+    <div class="d-flex gap-2 no-print">
+        <button onclick="window.print()" class="btn btn-dark btn-sm">
+            <i class="fas fa-print me-1"></i> طباعة
+        </button>
+        <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-right me-1"></i> رجوع
+        </a>
+    </div>
+</div>
+
+@* ─── ملخص طرق الدفع ─── *@
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-2">
+        <div class="stat-card green">
+            <div class="stat-label">مبيعات الشهر</div>
+            <div class="stat-value">@totalSales.ToString("N3")</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="stat-card" style="border-right:4px solid #0891b2;">
+            <div class="stat-label">💵 نقدي / كاش</div>
+            <div class="stat-value" style="color:#0891b2;">@cashTotal.ToString("N3")</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="stat-card" style="border-right:4px solid #059669;">
+            <div class="stat-label">💳 كي نت</div>
+            <div class="stat-value" style="color:#059669;">@knetTotal.ToString("N3")</div>
+        </div>
+    </div>
+    @if (empDebt > 0)
+    {
+        <div class="col-6 col-md-2">
+            <div class="stat-card" style="border-right:4px solid #fd7e14;">
+                <div class="stat-label">👷 دين على الموظف</div>
+                <div class="stat-value" style="color:#fd7e14;">@empDebt.ToString("N3")</div>
+            </div>
+        </div>
+    }
+    @if (custDebt > 0)
+    {
+        <div class="col-6 col-md-2">
+            <div class="stat-card" style="border-right:4px solid #7c3aed;">
+                <div class="stat-label">👤 دين على العميل</div>
+                <div class="stat-value" style="color:#7c3aed;">@custDebt.ToString("N3")</div>
+            </div>
+        </div>
+    }
+    @if (ownerDebt > 0)
+    {
+        <div class="col-6 col-md-2">
+            <div class="stat-card" style="border-right:4px solid #dc2626;">
+                <div class="stat-label">🏠 دين على صاحب المكان</div>
+                <div class="stat-value" style="color:#dc2626;">@ownerDebt.ToString("N3")</div>
+            </div>
+        </div>
+    }
+</div>
+
+@* ─── فواتير الشهر ─── *@
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-receipt me-2 text-info"></i><strong>فواتير الشهر المكتملة</strong></span>
+        <span class="badge bg-info">@activeSales.Count فاتورة</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>رقم الفاتورة</th>
+                        <th>التاريخ</th>
+                        <th>طريقة الدفع</th>
+                        <th class="text-end">الصافي</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!activeSales.Any())
+                    {
+                        <tr><td colspan="4" class="text-center text-muted py-3">لا توجد فواتير</td></tr>
+                    }
+                    @foreach (var s in activeSales)
+                    {
+                        <tr>
+                            <td>@s.InvoiceNumber</td>
+                            <td>@s.SaleDate.ToString("yyyy/MM/dd")</td>
+                            <td>
+                                @if (s.PaymentMethod is "كاش" or "نقدي")
+                                {
+                                    <span class="badge bg-success"><i class="fas fa-money-bill-wave me-1"></i>@s.PaymentMethod</span>
+                                }
+                                else if (s.PaymentMethod?.Contains("كي نت") == true && s.PaymentMethod?.Contains("كاش") == true)
+                                {
+                                    <span class="badge bg-warning text-dark"><i class="fas fa-exchange-alt me-1"></i>@s.PaymentMethod</span>
+                                }
+                                else if (s.PaymentMethod?.Contains("كي نت") == true || s.PaymentMethod?.Contains("بطاقة") == true)
+                                {
+                                    <span class="badge bg-info text-dark"><i class="fas fa-credit-card me-1"></i>@s.PaymentMethod</span>
+                                }
+                                else if (s.PaymentMethod?.Contains("دين") == true)
+                                {
+                                    <span class="badge bg-danger"><i class="fas fa-user-tag me-1"></i>@s.PaymentMethod</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@s.PaymentMethod</span>
+                                }
+                            </td>
+                            <td class="text-end"><strong>@s.NetAmount.ToString("N3") د.ك</strong></td>
+                        </tr>
+                    }
+                </tbody>
+                @if (activeSales.Any())
+                {
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td colspan="3">إجمالي الفواتير</td>
+                            <td class="text-end">@totalSales.ToString("N3") د.ك</td>
+                        </tr>
+                        <tr class="table-success">
+                            <td colspan="3">حق الموظف (@Model.Employee?.Commission ?? 0)%</td>
+                            <td class="text-end">@Model.CommissionAmount.ToString("N3") د.ك</td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (cancelledSales.Any())
+{
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-ban me-2 text-danger"></i><strong>الفواتير الملغاة</strong> <small class="text-muted">(لا تُحسب في المرتب)</small></span>
+            <span class="badge bg-danger">@cancelledSales.Count فاتورة</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>رقم الفاتورة</th>
+                            <th>التاريخ</th>
+                            <th>طريقة الدفع</th>
+                            <th class="text-end">المبلغ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in cancelledSales)
+                        {
+                            <tr style="background:#fff5f5;">
+                                <td><span class="text-decoration-line-through text-muted">@s.InvoiceNumber</span></td>
+                                <td>@s.SaleDate.ToString("yyyy/MM/dd")</td>
+                                <td><span class="badge bg-danger"><i class="fas fa-ban me-1"></i>@s.PaymentMethod</span></td>
+                                <td class="text-end text-danger">@s.NetAmount.ToString("N3") د.ك</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@* ─── حساب الراتب ─── *@
+<div class="card">
+    <div class="card-header">
+        <strong><i class="fas fa-calculator me-2 text-primary"></i>حساب الراتب</strong>
+    </div>
+    <div class="card-body">
+        <div class="row g-0">
+            @* إضافات *@
+            <div class="col-md-6 border-end pe-4">
+                <h6 class="text-success mb-3"><i class="fas fa-plus-circle me-1"></i> الإضافات</h6>
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <td>الراتب الأساسي</td>
+                            <td class="text-end fw-bold">@Model.BasicSalary.ToString("N3") د.ك</td>
+                        </tr>
+                        <tr>
+                            <td>عمولة الفواتير (@(Model.Employee?.Commission ?? 0))%</td>
+                            <td class="text-end fw-bold">@Model.CommissionAmount.ToString("N3") د.ك</td>
+                        </tr>
+                        <tr>
+                            <td>البدلات</td>
+                            <td class="text-end fw-bold">@Model.Allowances.ToString("N3") د.ك</td>
+                        </tr>
+                        <tr>
+                            <td>إجمالي الهدايا</td>
+                            <td class="text-end fw-bold">@((Model.GiftAmount ?? 0).ToString("N3")) د.ك</td>
+                        </tr>
+                    </tbody>
+                    <tfoot class="table-success fw-bold">
+                        <tr>
+                            <td>إجمالي الإضافات</td>
+                            <td class="text-end">@((Model.BasicSalary + Model.CommissionAmount + Model.Allowances + (Model.GiftAmount ?? 0)).ToString("N3")) د.ك</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            @* خصومات *@
+            <div class="col-md-6 ps-4">
+                <h6 class="text-danger mb-3"><i class="fas fa-minus-circle me-1"></i> الخصومات</h6>
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <td>الخصومات</td>
+                            <td class="text-end fw-bold text-danger">@Model.Deductions.ToString("N3") د.ك</td>
+                        </tr>
+                        <tr>
+                            <td>السلف المخصومة</td>
+                            <td class="text-end fw-bold text-danger">@Model.AdvanceDeducted.ToString("N3") د.ك</td>
+                        </tr>
+                        <tr>
+                            <td>دين على الموظف (من الفواتير)</td>
+                            <td class="text-end fw-bold text-danger">@Model.EmployeeDebtDeducted.ToString("N3") د.ك</td>
+                        </tr>
+                    </tbody>
+                    <tfoot class="table-danger fw-bold">
+                        <tr>
+                            <td>إجمالي الخصومات</td>
+                            <td class="text-end">@((Model.Deductions + Model.AdvanceDeducted + Model.EmployeeDebtDeducted).ToString("N3")) د.ك</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <hr />
+
+        <div class="d-flex justify-content-between align-items-center bg-light rounded p-3 mt-2">
+            <h5 class="mb-0 fw-bold">صافي الراتب</h5>
+            <h4 class="mb-0 fw-bold text-success">@Model.NetSalary.ToString("N3") د.ك</h4>
+        </div>
+
+        @if (Model.PaidDate.HasValue)
+        {
+            <div class="text-muted small mt-2 text-end">
+                <i class="fas fa-calendar-check me-1"></i>
+                تاريخ الصرف: @Model.PaidDate.Value.ToString("yyyy/MM/dd")
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.Notes))
+        {
+            <div class="alert alert-light mt-3 mb-0">
+                <i class="fas fa-sticky-note me-1"></i> @Model.Notes
+            </div>
+        }
+    </div>
+</div>

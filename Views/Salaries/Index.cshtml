@@ -85,7 +85,9 @@
                         <th>البدلات</th>
                         <th>الخصومات</th>
                         <th>السلف</th>
+                        <th>دين الموظف</th>
                         <th>الصافي</th>
+                        <th>طريقة الدفع</th>
                         <th>الحالة</th>
                         <th>الإجراءات</th>
                     </tr>
@@ -93,7 +95,7 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="@(showMonthCol ? 9 : 8)" class="text-center text-muted py-4">لا توجد رواتب مسجلة</td></tr>
+                        <tr><td colspan="@(showMonthCol ? 11 : 10)" class="text-center text-muted py-4">لا توجد رواتب مسجلة</td></tr>
                     }
                     @foreach (var s in Model)
                     {
@@ -107,13 +109,31 @@
                             <td>@s.Allowances.ToString("N3") د.ك</td>
                             <td>@s.Deductions.ToString("N3") د.ك</td>
                             <td>@s.AdvanceDeducted.ToString("N3") د.ك</td>
+                            <td>@s.EmployeeDebtDeducted.ToString("N3") د.ك</td>
                             <td><strong>@s.NetSalary.ToString("N3") د.ك</strong></td>
+                            <td>
+                                @if (s.PaymentMethod == "كي نت")
+                                {
+                                    <span class="badge bg-info text-dark"><i class="fas fa-credit-card me-1"></i>كي نت</span>
+                                }
+                                else if (s.PaymentMethod == "تحويل بنكي")
+                                {
+                                    <span class="badge bg-primary"><i class="fas fa-university me-1"></i>تحويل بنكي</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success"><i class="fas fa-money-bill-wave me-1"></i>@(string.IsNullOrEmpty(s.PaymentMethod) ? "نقدي" : s.PaymentMethod)</span>
+                                }
+                            </td>
                             <td>
                                 <span class="badge @(s.Status == "مصروف" ? "bg-success" : "bg-warning text-dark")">
                                     @s.Status
                                 </span>
                             </td>
                             <td>
+                                <a href="@Url.Action("Details", new { id = s.Id })" class="btn btn-sm btn-info text-white me-1" title="تفاصيل">
+                                    <i class="fas fa-eye me-1"></i> تفاصيل
+                                </a>
                                 @if (s.Status == "معلق")
                                 {
                                     <form asp-action="Pay" asp-route-id="@s.Id" method="post" style="display:inline"

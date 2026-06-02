@@ -24,7 +24,7 @@ namespace Salon.Controllers
             return View();
         }
 
-        public async Task<IActionResult> Sales(string? from, string? to, int? employeeId, int? customerId, string? saleType)
+        public async Task<IActionResult> Sales(string? from, string? to, int? employeeId, int? customerId, string? saleType, string? paymentMethod)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? DateTime.Today.AddDays(-30) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
@@ -51,6 +51,16 @@ namespace Salon.Controllers
 
             if (!string.IsNullOrEmpty(saleType))
                 query = query.Where(s => s.SaleType == saleType);
+
+            if (!string.IsNullOrEmpty(paymentMethod))
+            {
+                if (paymentMethod == "كاش")
+                    query = query.Where(s => s.PaymentMethod == "كاش" || s.PaymentMethod == "نقدي" || s.PaymentMethod == "Cash");
+                else if (paymentMethod == "كي نت")
+                    query = query.Where(s => s.PaymentMethod == "كي نت" || s.PaymentMethod == "بطاقة" || s.PaymentMethod == "تحويل بنكي" || s.PaymentMethod == "K-Net");
+                else
+                    query = query.Where(s => s.PaymentMethod == paymentMethod);
+            }
 
             var allSalesRaw = await query.OrderByDescending(s => s.SaleDate).ToListAsync();
             var sales = allSalesRaw; // kept for view model
@@ -94,7 +104,27 @@ namespace Salon.Controllers
             ViewBag.SelectedEmployeeId = employeeId;
             ViewBag.SelectedCustomerId = customerId;
             ViewBag.SelectedSaleType = saleType;
+            ViewBag.SelectedPaymentMethod = paymentMethod;
             ViewBag.UserDept = userDept;
+
+            // مصاريف الفترة
+            var salesExpenses = await _context.Expenses
+                .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo)
+                .OrderBy(e => e.ExpenseDate)
+                .ToListAsync();
+
+            var salesSalaries = await _context.Salaries
+                .Include(s => s.Employee)
+                .Where(s => s.PaidDate >= dateFrom && s.PaidDate < dateTo)
+                .OrderBy(s => s.PaidDate)
+                .ToListAsync();
+
+            ViewBag.ExpensesInRange = salesExpenses;
+            ViewBag.TotalExpensesAmount = salesExpenses.Sum(e => e.Amount);
+            ViewBag.SalariesInRange = salesSalaries;
+            ViewBag.TotalSalariesAmount = salesSalaries.Sum(s => s.NetSalary);
+            ViewBag.TotalCombinedExpenses = salesExpenses.Sum(e => e.Amount) + salesSalaries.Sum(s => s.NetSalary);
+
             return View(sales);
         }
 
@@ -108,9 +138,21 @@ namespace Salon.Controllers
                 .OrderByDescending(e => e.ExpenseDate)
                 .ToListAsync();
 
+            var salaries = await _context.Salaries
+                .Include(s => s.Employee)
+                .Where(s => s.PaidDate >= dateFrom && s.PaidDate < dateTo)
+                .OrderBy(s => s.PaidDate)
+                .ToListAsync();
+
+            var totalExpenses = expenses.Sum(e => e.Amount);
+            var totalSalaries = salaries.Sum(s => s.NetSalary);
+
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
-            ViewBag.TotalExpenses = expenses.Sum(e => e.Amount);
+            ViewBag.TotalExpenses = totalExpenses;
+            ViewBag.Salaries = salaries;
+            ViewBag.TotalSalaries = totalSalaries;
+            ViewBag.TotalCombined = totalExpenses + totalSalaries;
             return View(expenses);
         }
 
@@ -148,9 +190,18 @@ namespace Salon.Controllers
                 filtered = filtered.Where(s => s.EmployeeId == employeeId);
             var filteredList = filtered.ToList();
 
-            var expensesToday = await _context.Expenses
+            var expensesTodayList = await _context.Expenses
                 .Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow)
-                .SumAsync(e => (decimal?)e.Amount) ?? 0;
+                .OrderBy(e => e.ExpenseDate)
+                .ToListAsync();
+            var expensesToday = expensesTodayList.Sum(e => e.Amount);
+
+            var salariesTodayList = await _context.Salaries
+                .Include(s => s.Employee)
+                .Where(s => s.PaidDate >= today && s.PaidDate < tomorrow)
+                .OrderBy(s => s.Employee!.FullName)
+                .ToListAsync();
+            var salariesToday = salariesTodayList.Sum(s => s.NetSalary);
 
             var advancesQuery = _context.EmployeeAdvances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
@@ -171,9 +222,13 @@ namespace Salon.Controllers
 
             ViewBag.SalesToday = salesToday;
             ViewBag.ExpensesToday = expensesToday;
+            ViewBag.ExpensesTodayList = expensesTodayList;
+            ViewBag.SalariesToday = salariesToday;
+            ViewBag.SalariesTodayList = salariesTodayList;
+            ViewBag.TotalExpensesWithSalaries = expensesToday + salariesToday;
             ViewBag.AdvancesToday = advancesToday;
             ViewBag.AdvancesList = advancesList;
-            ViewBag.NetProfit = salesToday - expensesToday - advancesToday;
+            ViewBag.NetProfit = salesToday - expensesToday - salariesToday - advancesToday;
             ViewBag.BarberSales = activeSalesReport.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount);
             ViewBag.MassageSales = activeSalesReport.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount);
             ViewBag.CashTotal = activeSalesReport.Sum(s =>

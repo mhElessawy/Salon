@@ -47,7 +47,7 @@
                 <div class="col-12 d-none" id="salesCard">
                     <div class="card border-info">
                         <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center">
-                            <span><i class="fas fa-receipt me-2 text-info"></i><strong>فواتير الشهر</strong></span>
+                            <span><i class="fas fa-receipt me-2 text-info"></i><strong>فواتير الشهر (المكتملة)</strong></span>
                             <span class="badge bg-info" id="salesCountBadge">0 فاتورة</span>
                         </div>
                         <div class="card-body p-0">
@@ -57,23 +57,72 @@
                                         <tr>
                                             <th>رقم الفاتورة</th>
                                             <th>التاريخ</th>
+                                            <th>طريقة الدفع</th>
                                             <th class="text-end">صافي الفاتورة</th>
                                         </tr>
                                     </thead>
                                     <tbody id="salesTableBody">
-                                        <tr><td colspan="3" class="text-center text-muted py-3">لا توجد فواتير لهذا الشهر</td></tr>
+                                        <tr><td colspan="4" class="text-center text-muted py-3">لا توجد فواتير لهذا الشهر</td></tr>
                                     </tbody>
                                     <tfoot class="table-light fw-bold">
                                         <tr>
-                                            <td colspan="2">إجمالي الفواتير</td>
+                                            <td colspan="3">إجمالي الفواتير</td>
                                             <td class="text-end" id="totalSalesDisplay">0.000</td>
                                         </tr>
                                         <tr class="table-success">
-                                            <td colspan="2">
+                                            <td colspan="3">
                                                 حق الموظف
                                                 <span class="text-muted fw-normal">(<span id="commissionPctDisplay">0</span>%)</span>
                                             </td>
                                             <td class="text-end fw-bold" id="commissionAmountDisplay">0.000</td>
+                                        </tr>
+                                        <tr class="border-top">
+                                            <td colspan="4" class="py-2">
+                                                <div class="d-flex flex-wrap gap-3">
+                                                    <span class="badge bg-success fs-6 px-3 py-2">
+                                                        💵 نقدي: <strong id="cashTotalDisplay">0.000</strong> د.ك
+                                                    </span>
+                                                    <span class="badge bg-info text-dark fs-6 px-3 py-2">
+                                                        💳 كي نت: <strong id="knetTotalDisplay">0.000</strong> د.ك
+                                                    </span>
+                                                    <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+                                                        👷 دين موظف: <strong id="employeeDebtDisplay">0.000</strong> د.ك
+                                                    </span>
+                                                    <span class="badge bg-secondary fs-6 px-3 py-2">
+                                                        👤 دين عميل: <strong id="customerDebtDisplay">0.000</strong> د.ك
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 d-none" id="cancelledCard">
+                    <div class="card border-danger border-opacity-50">
+                        <div class="card-header bg-danger bg-opacity-10 d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-ban me-2 text-danger"></i><strong>الفواتير الملغاة</strong> <small class="text-muted fw-normal">(لا تُحسب في المرتب ولا التارجت)</small></span>
+                            <span class="badge bg-danger" id="cancelledCountBadge">0 فاتورة</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>رقم الفاتورة</th>
+                                            <th>التاريخ</th>
+                                            <th>طريقة الدفع</th>
+                                            <th class="text-end">المبلغ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cancelledTableBody"></tbody>
+                                    <tfoot class="table-light fw-bold">
+                                        <tr>
+                                            <td colspan="3" class="text-danger">إجمالي الملغاة</td>
+                                            <td class="text-end text-danger" id="totalCancelledDisplay">0.000</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -114,10 +163,18 @@
                     <label class="form-label">السلف المخصومة</label>
                     <input type="number" name="AdvanceDeducted" id="advanceDeducted" step="0.001" class="form-control" value="0" oninput="calcNet()" />
                 </div>
+                <div class="col-md-3">
+                    <label class="form-label">
+                        دين على الموظف <small class="text-muted fw-normal">(من الفواتير)</small>
+                    </label>
+                    <input type="number" name="EmployeeDebtDeducted" id="employeeDebtDeducted" step="0.001" class="form-control" value="0" oninput="calcNet()"
+                           style="background:#fff3cd;" />
+                </div>
                 <div class="col-md-4">
                     <label class="form-label">الصافي</label>
                     <input type="number" name="NetSalary" id="netSalary" step="0.001" class="form-control" value="0" readonly style="background:#f0fff0; font-weight:bold;" />
                 </div>
+                <input type="hidden" name="PaymentMethod" value="نقدي" />
                 <div class="col-12">
                     <label class="form-label">ملاحظات</label>
                     <textarea name="Notes" class="form-control" rows="2"></textarea>
@@ -134,13 +191,14 @@
 @section Scripts {
     <script>
         function calcNet() {
-            const basic  = parseFloat(document.getElementById('basicSalary').value)      || 0;
-            const comm   = parseFloat(document.getElementById('commissionAmount').value)  || 0;
-            const allow  = parseFloat(document.getElementById('allowances').value)        || 0;
-            const gift   = parseFloat(document.getElementById('giftAmount').value)        || 0;
-            const ded    = parseFloat(document.getElementById('deductions').value)        || 0;
-            const adv    = parseFloat(document.getElementById('advanceDeducted').value)   || 0;
-            document.getElementById('netSalary').value = (basic + comm + allow + gift - ded - adv).toFixed(3);
+            const basic  = parseFloat(document.getElementById('basicSalary').value)          || 0;
+            const comm   = parseFloat(document.getElementById('commissionAmount').value)      || 0;
+            const allow  = parseFloat(document.getElementById('allowances').value)            || 0;
+            const gift   = parseFloat(document.getElementById('giftAmount').value)            || 0;
+            const ded    = parseFloat(document.getElementById('deductions').value)            || 0;
+            const adv    = parseFloat(document.getElementById('advanceDeducted').value)       || 0;
+            const debt   = parseFloat(document.getElementById('employeeDebtDeducted').value)  || 0;
+            document.getElementById('netSalary').value = (basic + comm + allow + gift - ded - adv - debt).toFixed(3);
         }
 
         async function loadSalary() {
@@ -162,10 +220,17 @@
                 const data = await res.json();
 
                 // حقول الراتب
-                document.getElementById('basicSalary').value      = data.basicSalary.toFixed(3);
-                document.getElementById('commissionAmount').value  = data.commissionAmount.toFixed(3);
-                document.getElementById('advanceDeducted').value  = data.advanceDeducted.toFixed(3);
-                document.getElementById('giftAmount').value       = data.totalGifts.toFixed(3);
+                document.getElementById('basicSalary').value          = data.basicSalary.toFixed(3);
+                document.getElementById('commissionAmount').value      = data.commissionAmount.toFixed(3);
+                document.getElementById('advanceDeducted').value       = data.advanceDeducted.toFixed(3);
+                document.getElementById('giftAmount').value            = data.totalGifts.toFixed(3);
+                document.getElementById('employeeDebtDeducted').value  = (data.employeeDebtTotal || 0).toFixed(3);
+
+                // توتالات طرق الدفع
+                document.getElementById('cashTotalDisplay').textContent     = (data.cashTotal || 0).toFixed(3);
+                document.getElementById('knetTotalDisplay').textContent     = (data.knetTotal || 0).toFixed(3);
+                document.getElementById('employeeDebtDisplay').textContent  = (data.employeeDebtTotal || 0).toFixed(3);
+                document.getElementById('customerDebtDisplay').textContent  = (data.customerDebtTotal || 0).toFixed(3);
 
                 // تحديث تسمية العمولة
                 const pct = data.commission || 0;
@@ -178,19 +243,55 @@
                 document.getElementById('commissionAmountDisplay').textContent = data.commissionAmount.toFixed(3) + ' د.ك';
                 document.getElementById('salesCountBadge').textContent = data.sales.length + ' فاتورة';
 
+                // فواتير مكتملة
                 const tbody = document.getElementById('salesTableBody');
+                function paymentBadge(method) {
+                    if (!method) return '<span class="badge bg-success">نقدي</span>';
+                    if (method === 'كاش' || method === 'نقدي')
+                        return `<span class="badge bg-success"><i class="fas fa-money-bill-wave me-1"></i>${method}</span>`;
+                    if (method.includes('كي نت') && method.includes('كاش'))
+                        return `<span class="badge bg-warning text-dark"><i class="fas fa-exchange-alt me-1"></i>${method}</span>`;
+                    if (method.includes('كي نت') || method.includes('بطاقة'))
+                        return `<span class="badge bg-info text-dark"><i class="fas fa-credit-card me-1"></i>${method}</span>`;
+                    if (method.includes('دين'))
+                        return `<span class="badge bg-danger"><i class="fas fa-user-tag me-1"></i>${method}</span>`;
+                    return `<span class="badge bg-secondary">${method}</span>`;
+                }
+
                 if (data.sales.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">لا توجد فواتير لهذا الشهر</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">لا توجد فواتير لهذا الشهر</td></tr>';
                     salesCard.classList.add('d-none');
                 } else {
                     tbody.innerHTML = data.sales.map(s =>
                         `<tr>
                             <td>${s.invoiceNumber}</td>
                             <td>${s.saleDate}</td>
+                            <td>${paymentBadge(s.paymentMethod)}</td>
                             <td class="text-end">${s.netAmount.toFixed(3)} د.ك</td>
                         </tr>`
                     ).join('');
                     salesCard.classList.remove('d-none');
+                }
+
+                // فواتير ملغاة
+                const cancelledCard  = document.getElementById('cancelledCard');
+                const cancelledTbody = document.getElementById('cancelledTableBody');
+                const cancelled = data.cancelledSales || [];
+                if (cancelled.length > 0) {
+                    cancelledTbody.innerHTML = cancelled.map(s =>
+                        `<tr style="background:#fff5f5;">
+                            <td><span class="text-decoration-line-through text-muted">${s.invoiceNumber}</span></td>
+                            <td>${s.saleDate}</td>
+                            <td>${paymentBadge(s.paymentMethod)}</td>
+                            <td class="text-end text-danger">${s.netAmount.toFixed(3)} د.ك</td>
+                        </tr>`
+                    ).join('');
+                    const totalCancelled = cancelled.reduce((sum, s) => sum + s.netAmount, 0);
+                    document.getElementById('totalCancelledDisplay').textContent = totalCancelled.toFixed(3) + ' د.ك';
+                    document.getElementById('cancelledCountBadge').textContent   = cancelled.length + ' فاتورة';
+                    cancelledCard.classList.remove('d-none');
+                } else {
+                    cancelledCard.classList.add('d-none');
                 }
 
                 calcNet();
