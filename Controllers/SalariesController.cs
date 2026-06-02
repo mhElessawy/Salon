@@ -23,6 +23,46 @@ namespace Salon.Controllers
             _userManager = userManager;
         }
 
+        public async Task<IActionResult> Details(int id)
+        {
+            var salary = await _context.Salaries
+                .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (salary == null) return NotFound();
+
+            var rangeStart = new DateTime(salary.Year, salary.Month, 1);
+            var rangeEnd   = rangeStart.AddMonths(1);
+
+            var allSales = await _context.Sales
+                .Where(s => s.EmployeeId == salary.EmployeeId
+                         && s.SaleDate >= rangeStart && s.SaleDate < rangeEnd)
+                .OrderBy(s => s.SaleDate)
+                .ToListAsync();
+
+            var activeSales    = allSales.Where(s => s.Status != "ملغي").ToList();
+            var cancelledSales = allSales.Where(s => s.Status == "ملغي").ToList();
+
+            string[] cashMethods  = { "كاش", "نقدي", "Cash" };
+            string[] knetMethods  = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
+            ViewBag.ActiveSales    = activeSales;
+            ViewBag.CancelledSales = cancelledSales;
+            ViewBag.TotalSales     = activeSales.Sum(s => s.NetAmount);
+            ViewBag.CashTotal      = activeSales.Sum(s =>
+                cashMethods.Contains(s.PaymentMethod)  ? s.NetAmount :
+                mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+            ViewBag.KnetTotal      = activeSales.Sum(s =>
+                knetMethods.Contains(s.PaymentMethod)  ? s.NetAmount :
+                mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
+            ViewBag.EmployeeDebt   = activeSales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
+            ViewBag.CustomerDebt   = activeSales.Where(s => s.PaymentMethod == "دين على العميل").Sum(s => s.NetAmount);
+            ViewBag.OwnerDebt      = activeSales.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount);
+
+            return View(salary);
+        }
+
         public async Task<IActionResult> Index(int? year, int? month, int? employeeId)
         {
             int y = year ?? DateTime.Today.Year;
