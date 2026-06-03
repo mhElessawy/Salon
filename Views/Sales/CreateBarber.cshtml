@@ -590,24 +590,6 @@
         </div>
 
         <div id="extraPaymentBar" style="display:none" class="extra-payment-bar">
-            <div id="splitSection" style="display:none">
-                <p class="mb-2 fw-semibold" style="font-size:13px">
-                    <i class="fas fa-exchange-alt me-1 text-warning"></i>تفاصيل الدفع المختلط
-                </p>
-                <div class="d-flex gap-3 align-items-end flex-wrap">
-                    <div>
-                        <label class="form-label mb-1" style="font-size:12px">مبلغ الكاش</label>
-                        <input type="number" name="CashAmount" id="cashAmountInput" class="form-control form-control-sm"
-                               step="0.001" min="0" placeholder="0.000" oninput="validateSplit()" style="width:130px" />
-                    </div>
-                    <div>
-                        <label class="form-label mb-1" style="font-size:12px">مبلغ كي نت</label>
-                        <input type="number" name="LinkAmount" id="linkAmountInput" class="form-control form-control-sm"
-                               step="0.001" min="0" placeholder="0.000" oninput="validateSplit()" style="width:130px" />
-                    </div>
-                    <small id="splitStatus" class="text-muted align-self-end pb-1"></small>
-                </div>
-            </div>
             <div id="debtEmpSection" style="display:none">
                 <p class="mb-2 fw-semibold" style="font-size:13px">
                     <i class="fas fa-user-tag me-1 text-danger"></i>بيانات الدين
@@ -820,6 +802,26 @@
                     </button>
                 </div>
             </div>
+            <!-- تفاصيل الدفع المختلط -->
+            <div id="splitSection" style="display:none;padding:10px 14px;background:#fff8f0;border-top:2px solid #f0a500;">
+                <p class="mb-2 fw-semibold" style="font-size:13px">
+                    <i class="fas fa-exchange-alt me-1 text-warning"></i>تفاصيل الدفع المختلط
+                </p>
+                <div class="d-flex gap-3 align-items-end flex-wrap">
+                    <div>
+                        <label class="form-label mb-1" style="font-size:12px">مبلغ الكاش</label>
+                        <input type="number" name="CashAmount" id="cashAmountInput" class="form-control form-control-sm"
+                               step="0.001" min="0" placeholder="0.000" oninput="validateSplit()" style="width:130px" />
+                    </div>
+                    <div>
+                        <label class="form-label mb-1" style="font-size:12px">مبلغ كي نت</label>
+                        <input type="number" name="LinkAmount" id="linkAmountInput" class="form-control form-control-sm"
+                               step="0.001" min="0" placeholder="0.000" oninput="validateSplit()" style="width:130px" />
+                    </div>
+                    <small id="splitStatus" class="text-muted align-self-end pb-1"></small>
+                </div>
+            </div>
+
             <button type="submit" class="btn-save-invoice" id="saveBtn" disabled>
                 <i class="fas fa-print me-2"></i> إتمام العملية
             </button>
@@ -1029,10 +1031,11 @@
                 var debtEmpSection = document.getElementById('debtEmpSection');
                 var customerWarning = document.getElementById('customerDebtWarning');
                 var customerSelect  = document.getElementById('customerSelect');
-                splitSection.style.display = debtEmpSection.style.display = extraBar.style.display = 'none';
+                splitSection.style.display = 'none';
+                debtEmpSection.style.display = extraBar.style.display = 'none';
                 customerWarning.style.display = 'none';
                 customerSelect.required = false;
-                if (pm === 'كي نت و كاش')      { extraBar.style.display = ''; splitSection.style.display = ''; }
+                if (pm === 'كي نت و كاش')        { splitSection.style.display = ''; }
                 else if (pm === 'دين على العميل') { customerWarning.style.display = ''; customerSelect.required = true; }
                 else if (pm === 'دين على الموظف') { extraBar.style.display = ''; debtEmpSection.style.display = ''; }
             }
