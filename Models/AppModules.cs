@@ -43,7 +43,8 @@ namespace Salon.Models
         public static readonly HashSet<string> HasDelete = new()
         {
             "Customers", "Suppliers", "Services", "ServiceCategories", "Packages", "Inventory",
-            "Appointments", "Shifts", "Employees", "Advances", "Expenses", "Users"
+            "Appointments", "Shifts", "Employees", "Advances", "Expenses", "Users",
+            "BarberInvoice", "MassageInvoice", "ProductInvoice"
         };
 
         // جميع مفاتيح الصلاحيات (مشاهدة + إضافة + حذف)
