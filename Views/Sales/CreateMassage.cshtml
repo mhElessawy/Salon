@@ -4,6 +4,7 @@
     var categories = ViewBag.ServiceCategories as List<Salon.Models.ServiceCategory> ?? new();
     var employees = ViewBag.Employees as List<Salon.Models.Employee> ?? new();
     var isEmployee = (bool)(ViewBag.IsEmployee ?? false);
+    var salesCount = ViewBag.ServiceSalesCount as Dictionary<int, int> ?? new();
     var linkedEmpId = ViewBag.LinkedEmployeeId as int?;
     var queuePositions = ViewBag.EmployeeQueuePositions as Dictionary<int, int> ?? new();
     var checkInTimes = ViewBag.EmployeeCheckInTimes as Dictionary<int, TimeSpan?> ?? new();
@@ -451,32 +452,12 @@
                 cursor: not-allowed;
             }
 
-        .qty-control {
-            display: flex;
-            align-items: center;
-            gap: 3px;
-        }
 
-        .qty-btn {
-            width: 20px;
-            height: 20px;
-            border: 1px solid #dee2e6;
-            border-radius: 3px;
-            background: #f8f9fa;
-            font-size: 13px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            line-height: 1;
+        .qty-btn:hover {
+            background: var(--dept-color);
+            color: #fff;
+            border-color: var(--dept-color);
         }
-
-            .qty-btn:hover {
-                background: var(--dept-color);
-                color: #fff;
-                border-color: var(--dept-color);
-            }
 
         .qty-input {
             width: 28px;
@@ -541,6 +522,18 @@
 <div class="pos-page-header">
     <h1>نقطة البيع (الكاشير)</h1>
     <p>إدارة المبيعات والفواتير — مساج</p>
+</div>
+
+<!-- مودال تنبيه الخدمة المكررة -->
+<div id="dupModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:360px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.2);">
+        <div style="font-size:40px;margin-bottom:10px;">⚠️</div>
+        <p id="dupModalMsg" style="font-size:15px;font-weight:600;margin-bottom:20px;color:#333;"></p>
+        <button type="button" onclick="closeDupModal()"
+                style="background:var(--dept-color);color:#fff;border:none;border-radius:8px;padding:9px 36px;font-size:15px;font-weight:700;cursor:pointer;">
+            موافق
+        </button>
+    </div>
 </div>
 
 <form asp-action="CreateMassage" method="post" id="posForm">
@@ -686,7 +679,7 @@
                         <i class="@(cat.Icon ?? "fas fa-spa") me-1"></i>@cat.Name
                     </div>
                     <div class="services-grid">
-                        @foreach (var svc in cat.Services.OrderBy(s => s.Name))
+                        @foreach (var svc in cat.Services.OrderByDescending(s => salesCount.TryGetValue(s.Id, out var c) ? c : 0).ThenBy(s => s.Name))
                         {
                             <div class="svc-card svc-item" data-name="@svc.Name.ToLower()"
                                  onclick="addItem(@svc.Id,'@Html.Raw(svc.Name.Replace("'", "\\\'"))',@svc.Price.ToString("F3"))">
@@ -711,7 +704,6 @@
                     <thead>
                         <tr>
                             <th>الخدمة</th>
-                            <th>الكمية</th>
                             <th>السعر</th>
                             <th>الإجمالي</th>
                             <th></th>
@@ -719,7 +711,7 @@
                     </thead>
                     <tbody id="invoiceBody">
                         <tr id="emptyRow">
-                            <td colspan="5" class="invoice-empty">
+                            <td colspan="4" class="invoice-empty">
                                 <i class="fas fa-hand-point-right mb-1 d-block"></i>اختر خدمة
                             </td>
                         </tr>
@@ -746,7 +738,7 @@
                 }
                 <div class="total-row net"><span>الصافي:</span><span id="netDisplay">0.000 د.ك</span></div>
                 <div class="total-row" style="border-top:1px dashed #a8e6ef;padding-top:8px;margin-top:4px;">
-                    <span style="color:#17a2b8;font-size:12px;"><i class="fas fa-gift me-1"></i>هدية الموظف:</span>
+                    <span style="color:#17a2b8;font-size:12px;"><i class="fas fa-hand-holding-usd me-1"></i>عمولة خدمة للموظف:</span>
                     <input type="number" name="EmployeeGift" id="giftInput" class="discount-input"
                            value="" step="0.001" min="0" placeholder="0.000"
                            style="border-color:#a8e6ef;width:90px;" />
@@ -871,8 +863,8 @@
                             <div class="assign-pkg-card" id="apc-@p.Id"
                                  onclick="selectAssignCard(@p.Id, '@Html.Raw(p.NameAr.Replace("'", "\\\'"))', @p.Price.ToString(System.Globalization.CultureInfo.InvariantCulture), @p.SessionCount, @p.ValidityDays)"
                                  style="border:2px solid #dee2e6;border-radius:12px;background:#fff;padding:12px 16px;
-                                                cursor:pointer;min-width:170px;flex:1;max-width:230px;transition:all .2s;text-align:right;
-                                                box-shadow:0 1px 4px rgba(0,0,0,.06);">
+                                                    cursor:pointer;min-width:170px;flex:1;max-width:230px;transition:all .2s;text-align:right;
+                                                    box-shadow:0 1px 4px rgba(0,0,0,.06);">
                                 <div style="font-weight:700;font-size:13px;color:#1a6fc4;margin-bottom:6px;">
                                     <i class="fas fa-box-open me-1"></i>@p.NameAr
                                 </div>
@@ -920,17 +912,17 @@
 
         @if (isEmployee && linkedEmpId.HasValue)
         {
-                                    <text>
-                                    document.querySelectorAll('.emp-item').forEach(function(el) {
-                                        el.style.cursor = 'default'; el.onclick = null;
-                                    });
-                                    </text>
+                                        <text>
+                                        document.querySelectorAll('.emp-item').forEach(function(el) {
+                                            el.style.cursor = 'default'; el.onclick = null;
+                                        });
+                                        </text>
         }
 
         function selectEmployee(id, el) {
             @if (isEmployee)
             {
-                                    <text>return;</text>
+                                        <text>return;</text>
             }
             document.querySelectorAll('.emp-item').forEach(function(e) { e.classList.remove('emp-selected'); });
             el.classList.add('emp-selected');
@@ -938,11 +930,24 @@
         }
 
 
+        function showDupModal(name) {
+            document.getElementById('dupModalMsg').textContent = 'تنبيه: "' + name + '" مضافة أكثر من مرة';
+            document.getElementById('dupModal').style.display = 'flex';
+        }
+        function closeDupModal() {
+            document.getElementById('dupModal').style.display = 'none';
+        }
+
         function addItem(id, name, price) {
             price = parseFloat(price) || 0;
-            var ex = items.find(function(i) { return i.id === id; });
-            if (ex) { ex.qty++; ex.total = ex.qty * ex.price; updateRow(ex); }
-            else { var it = { rowId:++rowId, id:id, name:name, price:price, qty:1, total:price }; items.push(it); renderRow(it); }
+            // تنبيه إذا الخدمة موجودة مسبقاً
+            if (items.some(function(i) { return i.id === id; })) {
+                showDupModal(name);
+            }
+            // دائماً أضف سطراً جديداً مستقلاً
+            var it = { rowId:++rowId, id:id, name:name, price:price, qty:1, total:price };
+            items.push(it);
+            renderRow(it);
             document.getElementById('emptyRow').style.display = 'none';
             document.getElementById('saveBtn').disabled = false;
             recalc();
@@ -951,26 +956,11 @@
             var tr = document.createElement('tr'); tr.id = 'row-' + it.rowId;
             tr.innerHTML = buildHtml(it); document.getElementById('invoiceBody').appendChild(tr);
         }
-        function updateRow(it) { var tr = document.getElementById('row-' + it.rowId); if (tr) tr.innerHTML = buildHtml(it); }
         function buildHtml(it) {
             return '<td>' + it.name + '</td>' +
-                '<td><div class="qty-control">' +
-                '<button type="button" class="qty-btn" onclick="chQty(' + it.rowId + ',-1)">−</button>' +
-                '<input type="number" class="qty-input" value="' + it.qty + '" min="1" onchange="setQty(' + it.rowId + ',this.value)"/>' +
-                '<button type="button" class="qty-btn" onclick="chQty(' + it.rowId + ',1)">+</button>' +
-                '</div></td>' +
                 '<td>' + it.price.toFixed(3) + '</td>' +
                 '<td><strong>' + it.total.toFixed(3) + '</strong></td>' +
                 '<td><button type="button" class="btn-remove-item" onclick="removeItem(' + it.rowId + ')"><i class="fas fa-times"></i></button></td>';
-        }
-        function chQty(rid, d) {
-            var it = items.find(function(i) { return i.rowId === rid; }); if (!it) return;
-            var n = it.qty + d; if (n < 1) { removeItem(rid); return; }
-            it.qty = n; it.total = it.qty * it.price; updateRow(it); recalc();
-        }
-        function setQty(rid, v) {
-            var it = items.find(function(i) { return i.rowId === rid; }); if (!it) return;
-            it.qty = Math.max(1, parseInt(v) || 1); it.total = it.qty * it.price; updateRow(it); recalc();
         }
         function removeItem(rid) {
             items = items.filter(function(i) { return i.rowId !== rid; });
@@ -1349,7 +1339,7 @@
         function resetForm() {
             items = []; rowId = 0;
             document.getElementById('invoiceBody').innerHTML =
-                '<tr id="emptyRow"><td colspan="5" class="invoice-empty">' +
+                '<tr id="emptyRow"><td colspan="4" class="invoice-empty">' +
                 '<i class="fas fa-hand-point-right mb-1 d-block"></i>اختر خدمة</td></tr>';
             document.getElementById('hiddenItems').innerHTML = '';
             document.getElementById('subtotalDisplay').textContent = '0.000 د.ك';

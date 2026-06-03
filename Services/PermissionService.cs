@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+ï»¿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
@@ -43,10 +43,10 @@ namespace Salon.Services
                 return new HashSet<string>();
             }
 
-            // Admins always have full access
-            if (user.IsInRole("Admin"))
+            // Admins and Managers always have full access
+            if (user.IsInRole("Admin") || user.IsInRole("Manager"))
             {
-                var all = AppModules.All.Select(m => m.Key).ToHashSet();
+                var all = AppModules.AllKeys().ToHashSet();
                 ctx.Items[cacheKey] = all;
                 return all;
             }
@@ -60,13 +60,13 @@ namespace Salon.Services
             // No permissions defined = full access (default for existing users)
             HashSet<string> result = perms.Any()
                 ? perms.ToHashSet()
-                : AppModules.All.Select(m => m.Key).ToHashSet();
+                : AppModules.AllKeys().ToHashSet();
 
             // Apply department-based filtering: each department sees only its own invoice type
             var appUser = await _userManager.FindByIdAsync(userId!);
-            if (appUser?.UserDepartment == "ãÓÇÌ")
+            if (appUser?.UserDepartment == "ï¿½ï¿½ï¿½ï¿½")
                 result.Remove("BarberInvoice");
-            else if (appUser?.UserDepartment == "ÍáÇÞÉ")
+            else if (appUser?.UserDepartment == "ï¿½ï¿½ï¿½ï¿½ï¿½")
                 result.Remove("MassageInvoice");
 
             // Employees cannot create product invoices

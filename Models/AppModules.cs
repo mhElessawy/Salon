@@ -1,6 +1,5 @@
 namespace Salon.Models
 {
-    /// <summary>قائمة الشاشات/الوحدات في النظام لاستخدامها في إدارة الصلاحيات</summary>
     public static class AppModules
     {
         public static readonly List<(string Key, string NameAr, string Icon, string Group)> All = new()
@@ -31,5 +30,32 @@ namespace Salon.Models
             ("Discount",          "تطبيق الخصم",        "fas fa-percent",          "المبيعات"),
             ("CustomerDebt",      "دين على العميل",     "fas fa-user-minus",       "المبيعات"),
         };
+
+        // الشاشات التي تدعم صلاحية الإضافة
+        public static readonly HashSet<string> HasAdd = new()
+        {
+            "Customers", "Suppliers", "Services", "ServiceCategories", "Packages", "Inventory",
+            "Appointments", "Shifts", "Employees", "Salaries", "Advances", "Attendance",
+            "Expenses", "Users", "BarberInvoice", "MassageInvoice", "ProductInvoice"
+        };
+
+        // الشاشات التي تدعم صلاحية الحذف
+        public static readonly HashSet<string> HasDelete = new()
+        {
+            "Customers", "Suppliers", "Services", "ServiceCategories", "Packages", "Inventory",
+            "Appointments", "Shifts", "Employees", "Advances", "Expenses", "Users",
+            "BarberInvoice", "MassageInvoice", "ProductInvoice"
+        };
+
+        // جميع مفاتيح الصلاحيات (مشاهدة + إضافة + حذف)
+        public static IEnumerable<string> AllKeys()
+        {
+            foreach (var (Key, _, _, _) in All)
+            {
+                yield return Key;
+                if (HasAdd.Contains(Key)) yield return Key + "Add";
+                if (HasDelete.Contains(Key)) yield return Key + "Delete";
+            }
+        }
     }
 }

@@ -24,16 +24,19 @@ namespace Salon.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailService _emailService;
         private readonly IAuditService _audit;
+        private readonly IPermissionService _perms;
 
         public SalesController(ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
             IEmailService emailService,
-            IAuditService audit)
+            IAuditService audit,
+            IPermissionService perms)
         {
             _context = context;
             _userManager = userManager;
             _emailService = emailService;
             _audit = audit;
+            _perms = perms;
         }
 
         // ===== قائمة الفواتير =====
@@ -100,6 +103,9 @@ namespace Salon.Controllers
 
             ViewBag.UserDepartment = userDept;
             ViewBag.IsEmployee = isEmployee;
+            ViewBag.CanDeleteBarber = await _perms.HasAccessAsync("BarberInvoiceDelete");
+            ViewBag.CanDeleteMassage = await _perms.HasAccessAsync("MassageInvoiceDelete");
+            ViewBag.CanDeleteProduct = await _perms.HasAccessAsync("ProductInvoiceDelete");
             return View(sales);
         }
 
@@ -374,6 +380,16 @@ namespace Salon.Controllers
             var sale = await _context.Sales.Include(s => s.SaleItems).FirstOrDefaultAsync(s => s.Id == id);
             if (sale != null)
             {
+                // فحص صلاحية الحذف حسب نوع الفاتورة
+                var permKey = sale.SaleType switch
+                {
+                    "حلاقة" => "BarberInvoiceDelete",
+                    "مساج" => "MassageInvoiceDelete",
+                    "منتجات" => "ProductInvoiceDelete",
+                    _ => "BarberInvoiceDelete"
+                };
+                if (!await _perms.HasAccessAsync(permKey))
+                    return Forbid();
                 foreach (var item in sale.SaleItems.Where(i => i.ProductId != null))
                 {
                     var product = await _context.Products.FindAsync(item.ProductId);
@@ -505,10 +521,14 @@ namespace Salon.Controllers
             ViewBag.Employees = sortedEmployees;
             ViewBag.EmployeeQueuePositions = todayQueue;
 
-            ViewBag.AllEmployees = await _context.Employees
-                .Where(e => e.IsActive)
-                .OrderBy(e => e.FullName)
-                .ToListAsync();
+            // دين على الموظف: فلترة حسب الدور والقسم
+            IQueryable<Employee> allEmpQuery = _context.Employees.Where(e => e.IsActive);
+            if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
+                allEmpQuery = allEmpQuery.Where(e => e.Id == user.LinkedEmployeeId!.Value);
+            else
+                allEmpQuery = allEmpQuery.Where(e => e.DepartmentNav!.Name == dept);
+
+            ViewBag.AllEmployees = await allEmpQuery.OrderBy(e => e.FullName).ToListAsync();
 
             // Feature permissions: Discount & CustomerDebt
             var userId = user?.Id ?? "";
