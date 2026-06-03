@@ -63,11 +63,11 @@
     </a>
 </div>
 
-@if (isAdmin)
+@if (isAdmin || userRole == "Manager")
 {
     <div class="alert alert-info">
         <i class="fas fa-info-circle me-2"></i>
-        مدير النظام لديه صلاحيات كاملة لا يمكن تقييدها.
+        @(isAdmin ? "مدير النظام" : "المدير") لديه صلاحيات كاملة لا يمكن تقييدها.
     </div>
 }
 else
