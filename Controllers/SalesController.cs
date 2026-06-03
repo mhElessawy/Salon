@@ -505,10 +505,14 @@ namespace Salon.Controllers
             ViewBag.Employees = sortedEmployees;
             ViewBag.EmployeeQueuePositions = todayQueue;
 
-            ViewBag.AllEmployees = await _context.Employees
-                .Where(e => e.IsActive)
-                .OrderBy(e => e.FullName)
-                .ToListAsync();
+            // دين على الموظف: فلترة حسب الدور والقسم
+            IQueryable<Employee> allEmpQuery = _context.Employees.Where(e => e.IsActive);
+            if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
+                allEmpQuery = allEmpQuery.Where(e => e.Id == user.LinkedEmployeeId!.Value);
+            else
+                allEmpQuery = allEmpQuery.Where(e => e.DepartmentNav!.Name == dept);
+
+            ViewBag.AllEmployees = await allEmpQuery.OrderBy(e => e.FullName).ToListAsync();
 
             // Feature permissions: Discount & CustomerDebt
             var userId = user?.Id ?? "";
