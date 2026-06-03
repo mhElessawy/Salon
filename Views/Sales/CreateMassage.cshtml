@@ -451,25 +451,24 @@
                 cursor: not-allowed;
             }
 
-        .qty-control {
-            display: flex;
+        /* duplicate service toast */
+        .dup-toast {
+            position: fixed;
+            top: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            padding: 10px 22px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 9999;
+            box-shadow: 0 4px 14px rgba(0,0,0,.15);
+            display: none;
             align-items: center;
-            gap: 3px;
-        }
-
-        .qty-btn {
-            width: 20px;
-            height: 20px;
-            border: 1px solid #dee2e6;
-            border-radius: 3px;
-            background: #f8f9fa;
-            font-size: 13px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            line-height: 1;
+            gap: 8px;
         }
 
             .qty-btn:hover {
@@ -541,6 +540,12 @@
 <div class="pos-page-header">
     <h1>نقطة البيع (الكاشير)</h1>
     <p>إدارة المبيعات والفواتير — مساج</p>
+</div>
+
+<!-- تنبيه الخدمة المكررة -->
+<div id="dupToast" class="dup-toast">
+    <i class="fas fa-exclamation-triangle"></i>
+    <span></span>
 </div>
 
 <form asp-action="CreateMassage" method="post" id="posForm">
@@ -711,7 +716,6 @@
                     <thead>
                         <tr>
                             <th>الخدمة</th>
-                            <th>الكمية</th>
                             <th>السعر</th>
                             <th>الإجمالي</th>
                             <th></th>
@@ -719,7 +723,7 @@
                     </thead>
                     <tbody id="invoiceBody">
                         <tr id="emptyRow">
-                            <td colspan="5" class="invoice-empty">
+                            <td colspan="4" class="invoice-empty">
                                 <i class="fas fa-hand-point-right mb-1 d-block"></i>اختر خدمة
                             </td>
                         </tr>
@@ -938,11 +942,25 @@
         }
 
 
+        var dupToastTimer = null;
+        function showDupToast(name) {
+            var t = document.getElementById('dupToast');
+            t.querySelector('span').textContent = 'تنبيه: "' + name + '" مضافة أكثر من مرة';
+            t.style.display = 'flex';
+            clearTimeout(dupToastTimer);
+            dupToastTimer = setTimeout(function(){ t.style.display = 'none'; }, 3000);
+        }
+
         function addItem(id, name, price) {
             price = parseFloat(price) || 0;
-            var ex = items.find(function(i) { return i.id === id; });
-            if (ex) { ex.qty++; ex.total = ex.qty * ex.price; updateRow(ex); }
-            else { var it = { rowId:++rowId, id:id, name:name, price:price, qty:1, total:price }; items.push(it); renderRow(it); }
+            // تنبيه إذا الخدمة موجودة مسبقاً
+            if (items.some(function(i) { return i.id === id; })) {
+                showDupToast(name);
+            }
+            // دائماً أضف سطراً جديداً مستقلاً
+            var it = { rowId:++rowId, id:id, name:name, price:price, qty:1, total:price };
+            items.push(it);
+            renderRow(it);
             document.getElementById('emptyRow').style.display = 'none';
             document.getElementById('saveBtn').disabled = false;
             recalc();
@@ -951,26 +969,11 @@
             var tr = document.createElement('tr'); tr.id = 'row-' + it.rowId;
             tr.innerHTML = buildHtml(it); document.getElementById('invoiceBody').appendChild(tr);
         }
-        function updateRow(it) { var tr = document.getElementById('row-' + it.rowId); if (tr) tr.innerHTML = buildHtml(it); }
         function buildHtml(it) {
             return '<td>' + it.name + '</td>' +
-                '<td><div class="qty-control">' +
-                '<button type="button" class="qty-btn" onclick="chQty(' + it.rowId + ',-1)">−</button>' +
-                '<input type="number" class="qty-input" value="' + it.qty + '" min="1" onchange="setQty(' + it.rowId + ',this.value)"/>' +
-                '<button type="button" class="qty-btn" onclick="chQty(' + it.rowId + ',1)">+</button>' +
-                '</div></td>' +
                 '<td>' + it.price.toFixed(3) + '</td>' +
                 '<td><strong>' + it.total.toFixed(3) + '</strong></td>' +
                 '<td><button type="button" class="btn-remove-item" onclick="removeItem(' + it.rowId + ')"><i class="fas fa-times"></i></button></td>';
-        }
-        function chQty(rid, d) {
-            var it = items.find(function(i) { return i.rowId === rid; }); if (!it) return;
-            var n = it.qty + d; if (n < 1) { removeItem(rid); return; }
-            it.qty = n; it.total = it.qty * it.price; updateRow(it); recalc();
-        }
-        function setQty(rid, v) {
-            var it = items.find(function(i) { return i.rowId === rid; }); if (!it) return;
-            it.qty = Math.max(1, parseInt(v) || 1); it.total = it.qty * it.price; updateRow(it); recalc();
         }
         function removeItem(rid) {
             items = items.filter(function(i) { return i.rowId !== rid; });
@@ -1349,7 +1352,7 @@
         function resetForm() {
             items = []; rowId = 0;
             document.getElementById('invoiceBody').innerHTML =
-                '<tr id="emptyRow"><td colspan="5" class="invoice-empty">' +
+                '<tr id="emptyRow"><td colspan="4" class="invoice-empty">' +
                 '<i class="fas fa-hand-point-right mb-1 d-block"></i>اختر خدمة</td></tr>';
             document.getElementById('hiddenItems').innerHTML = '';
             document.getElementById('subtotalDisplay').textContent = '0.000 د.ك';
