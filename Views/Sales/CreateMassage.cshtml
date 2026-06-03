@@ -451,25 +451,6 @@
                 cursor: not-allowed;
             }
 
-        /* duplicate service toast */
-        .dup-toast {
-            position: fixed;
-            top: 18px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffc107;
-            border-radius: 10px;
-            padding: 10px 22px;
-            font-size: 14px;
-            font-weight: 600;
-            z-index: 9999;
-            box-shadow: 0 4px 14px rgba(0,0,0,.15);
-            display: none;
-            align-items: center;
-            gap: 8px;
-        }
 
             .qty-btn:hover {
                 background: var(--dept-color);
@@ -542,10 +523,16 @@
     <p>إدارة المبيعات والفواتير — مساج</p>
 </div>
 
-<!-- تنبيه الخدمة المكررة -->
-<div id="dupToast" class="dup-toast">
-    <i class="fas fa-exclamation-triangle"></i>
-    <span></span>
+<!-- مودال تنبيه الخدمة المكررة -->
+<div id="dupModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:360px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.2);">
+        <div style="font-size:40px;margin-bottom:10px;">⚠️</div>
+        <p id="dupModalMsg" style="font-size:15px;font-weight:600;margin-bottom:20px;color:#333;"></p>
+        <button type="button" onclick="closeDupModal()"
+                style="background:var(--dept-color);color:#fff;border:none;border-radius:8px;padding:9px 36px;font-size:15px;font-weight:700;cursor:pointer;">
+            موافق
+        </button>
+    </div>
 </div>
 
 <form asp-action="CreateMassage" method="post" id="posForm">
@@ -942,20 +929,19 @@
         }
 
 
-        var dupToastTimer = null;
-        function showDupToast(name) {
-            var t = document.getElementById('dupToast');
-            t.querySelector('span').textContent = 'تنبيه: "' + name + '" مضافة أكثر من مرة';
-            t.style.display = 'flex';
-            clearTimeout(dupToastTimer);
-            dupToastTimer = setTimeout(function(){ t.style.display = 'none'; }, 3000);
+        function showDupModal(name) {
+            document.getElementById('dupModalMsg').textContent = 'تنبيه: "' + name + '" مضافة أكثر من مرة';
+            document.getElementById('dupModal').style.display = 'flex';
+        }
+        function closeDupModal() {
+            document.getElementById('dupModal').style.display = 'none';
         }
 
         function addItem(id, name, price) {
             price = parseFloat(price) || 0;
             // تنبيه إذا الخدمة موجودة مسبقاً
             if (items.some(function(i) { return i.id === id; })) {
-                showDupToast(name);
+                showDupModal(name);
             }
             // دائماً أضف سطراً جديداً مستقلاً
             var it = { rowId:++rowId, id:id, name:name, price:price, qty:1, total:price };
