@@ -6,6 +6,9 @@
     bool showBarber = userDept != "مساج";
     bool showMassage = userDept != "حلاقة";
     bool isEmployee = ViewBag.IsEmployee == true;
+    bool canDelBarber  = ViewBag.CanDeleteBarber  != false;
+    bool canDelMassage = ViewBag.CanDeleteMassage != false;
+    bool canDelProduct = ViewBag.CanDeleteProduct != false;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -175,7 +178,12 @@
                                 <a href="@Url.Action("PrintInvoice", new { id = s.Id })" class="btn btn-sm btn-outline-dark me-1" title="طباعة الفاتورة" target="_blank">
                                     <i class="fas fa-print"></i>
                                 </a>
-                                @if (s.Status != "ملغي")
+                                @{
+                                    bool canDelThis = s.SaleType == "مساج" ? canDelMassage
+                                                    : s.SaleType == "منتجات" ? canDelProduct
+                                                    : canDelBarber;
+                                }
+                                @if (s.Status != "ملغي" && canDelThis)
                                 {
                                     <button type="button" class="btn btn-sm btn-outline-danger" title="إلغاء الفاتورة"
                                             onclick="confirmDelete(@s.Id, '@Html.Raw(s.InvoiceNumber.Replace("'", "\\'"))')">
