@@ -1,3 +1,4 @@
+@using Salon.Models
 @{
     ViewData["Title"] = "صلاحيات المستخدم";
     var userId     = ViewBag.UserId as string ?? "";
@@ -17,6 +18,8 @@
         "Employee" => "موظف",
         _          => userRole
     };
+
+    bool HasPerm(string key) => permSet.TryGetValue(key, out var v) && v;
 }
 
 @section Styles {
@@ -25,11 +28,28 @@
 .perm-group-header { background: #f8f9fa; padding: 12px 18px; font-weight: 700; font-size: 14px; border-bottom: 2px solid var(--border-color); display: flex; align-items: center; gap: 8px; }
 .perm-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid #f0f0f0; }
 .perm-row:last-child { border-bottom: none; }
-.perm-label { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.perm-label { display: flex; align-items: center; gap: 10px; font-size: 14px; min-width: 160px; }
 .perm-label i { width: 20px; text-align: center; color: var(--primary); }
 .form-switch .form-check-input { width: 3em; height: 1.5em; cursor: pointer; }
 .form-switch .form-check-input:checked { background-color: var(--primary); border-color: var(--primary); }
 .select-all-bar { background: var(--primary); color: #fff; padding: 10px 18px; border-radius: 10px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+
+/* صلاحيات الإجراءات (مشاهدة / إضافة / حذف) */
+.perm-actions { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+.perm-action-item { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 60px; }
+.perm-action-label {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+.action-view  { background: #e8f4fd; color: #1a73e8; }
+.action-add   { background: #e6f4ea; color: #1e7e34; }
+.action-delete{ background: #fdecea; color: #c0392b; }
+.perm-action-item .form-check-input:checked.add-toggle   { background-color: #1e7e34; border-color: #1e7e34; }
+.perm-action-item .form-check-input:checked.delete-toggle{ background-color: #c0392b; border-color: #c0392b; }
+.perm-action-status { font-size: 11px; }
 </style>
 }
 
@@ -80,21 +100,86 @@ else
                 </div>
                 @foreach (var mod in group)
                 {
-                    var hasAccess = permSet.TryGetValue(mod.Key, out var val) && val;
+                    var hasAdd    = AppModules.HasAdd.Contains(mod.Key);
+                    var hasDelete = AppModules.HasDelete.Contains(mod.Key);
+                    var hasActions = hasAdd || hasDelete;
+
+                    var viewOn   = HasPerm(mod.Key);
+                    var addOn    = HasPerm(mod.Key + "Add");
+                    var deleteOn = HasPerm(mod.Key + "Delete");
+
                     <div class="perm-row" data-group="@group.Key">
                         <div class="perm-label">
                             <i class="@mod.Icon"></i>
                             <span>@mod.NameAr</span>
                         </div>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input perm-toggle" type="checkbox"
-                                   name="allowedModules" value="@mod.Key"
-                                   id="perm_@mod.Key" @(hasAccess ? "checked" : "") />
-                            <label class="form-check-label" for="perm_@mod.Key" id="label_@mod.Key"
-                                   style="font-size:13px;color:@(hasAccess ? "var(--primary)" : "#adb5bd")">
-                                @(hasAccess ? "مسموح" : "محظور")
-                            </label>
-                        </div>
+
+                        @if (!hasActions)
+                        {
+                            <!-- شاشة عرض فقط: زر واحد -->
+                            <div class="form-check form-switch">
+                                <input class="form-check-input perm-toggle" type="checkbox"
+                                       name="allowedModules" value="@mod.Key"
+                                       id="perm_@mod.Key" @(viewOn ? "checked" : "") />
+                                <label class="form-check-label" for="perm_@mod.Key" id="label_@mod.Key"
+                                       style="font-size:13px;color:@(viewOn ? "var(--primary)" : "#adb5bd")">
+                                    @(viewOn ? "مسموح" : "محظور")
+                                </label>
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- شاشة فيها إجراءات: مشاهدة / إضافة / حذف -->
+                            <div class="perm-actions">
+                                <!-- مشاهدة -->
+                                <div class="perm-action-item">
+                                    <span class="perm-action-label action-view"><i class="fas fa-eye me-1"></i>مشاهدة</span>
+                                    <div class="form-check form-switch mb-0">
+                                        <input class="form-check-input perm-toggle view-toggle" type="checkbox"
+                                               name="allowedModules" value="@mod.Key"
+                                               id="perm_@mod.Key" @(viewOn ? "checked" : "") />
+                                    </div>
+                                    <span class="perm-action-status" id="label_@mod.Key"
+                                          style="color:@(viewOn ? "var(--primary)" : "#adb5bd")">
+                                        @(viewOn ? "مسموح" : "محظور")
+                                    </span>
+                                </div>
+
+                                @if (hasAdd)
+                                {
+                                    <!-- إضافة -->
+                                    <div class="perm-action-item">
+                                        <span class="perm-action-label action-add"><i class="fas fa-plus me-1"></i>إضافة</span>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input perm-toggle add-toggle" type="checkbox"
+                                                   name="allowedModules" value="@(mod.Key)Add"
+                                                   id="perm_@(mod.Key)Add" @(addOn ? "checked" : "") />
+                                        </div>
+                                        <span class="perm-action-status" id="label_@(mod.Key)Add"
+                                              style="color:@(addOn ? "#1e7e34" : "#adb5bd")">
+                                            @(addOn ? "مسموح" : "محظور")
+                                        </span>
+                                    </div>
+                                }
+
+                                @if (hasDelete)
+                                {
+                                    <!-- حذف -->
+                                    <div class="perm-action-item">
+                                        <span class="perm-action-label action-delete"><i class="fas fa-trash me-1"></i>حذف</span>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input perm-toggle delete-toggle" type="checkbox"
+                                                   name="allowedModules" value="@(mod.Key)Delete"
+                                                   id="perm_@(mod.Key)Delete" @(deleteOn ? "checked" : "") />
+                                        </div>
+                                        <span class="perm-action-status" id="label_@(mod.Key)Delete"
+                                              style="color:@(deleteOn ? "#c0392b" : "#adb5bd")">
+                                            @(deleteOn ? "مسموح" : "محظور")
+                                        </span>
+                                    </div>
+                                }
+                            </div>
+                        }
                     </div>
                 }
             </div>
@@ -112,35 +197,38 @@ else
 @section Scripts {
 <script>
     document.querySelectorAll('.perm-toggle').forEach(cb => {
-        cb.addEventListener('change', function() {
+        cb.addEventListener('change', function () {
             const label = document.getElementById('label_' + this.value);
-            if (label) {
-                label.textContent = this.checked ? 'مسموح' : 'محظور';
-                label.style.color  = this.checked ? 'var(--primary)' : '#adb5bd';
+            if (!label) return;
+            const isAdd    = this.classList.contains('add-toggle');
+            const isDelete = this.classList.contains('delete-toggle');
+            label.textContent = this.checked ? 'مسموح' : 'محظور';
+            if (this.checked) {
+                label.style.color = isDelete ? '#c0392b' : isAdd ? '#1e7e34' : 'var(--primary)';
+            } else {
+                label.style.color = '#adb5bd';
             }
         });
     });
 
     function setAll(val) {
-        document.querySelectorAll('.perm-toggle').forEach(cb => {
-            cb.checked = val;
-            const label = document.getElementById('label_' + cb.value);
-            if (label) {
-                label.textContent = val ? 'مسموح' : 'محظور';
-                label.style.color  = val ? 'var(--primary)' : '#adb5bd';
-            }
-        });
+        document.querySelectorAll('.perm-toggle').forEach(cb => updateToggle(cb, val));
     }
 
     function setGroup(groupName, val) {
-        document.querySelectorAll(`[data-group="${groupName}"] .perm-toggle`).forEach(cb => {
-            cb.checked = val;
-            const label = document.getElementById('label_' + cb.value);
-            if (label) {
-                label.textContent = val ? 'مسموح' : 'محظور';
-                label.style.color  = val ? 'var(--primary)' : '#adb5bd';
-            }
-        });
+        document.querySelectorAll(`[data-group="${groupName}"] .perm-toggle`).forEach(cb => updateToggle(cb, val));
+    }
+
+    function updateToggle(cb, val) {
+        cb.checked = val;
+        const label = document.getElementById('label_' + cb.value);
+        if (!label) return;
+        const isAdd    = cb.classList.contains('add-toggle');
+        const isDelete = cb.classList.contains('delete-toggle');
+        label.textContent = val ? 'مسموح' : 'محظور';
+        label.style.color = val
+            ? (isDelete ? '#c0392b' : isAdd ? '#1e7e34' : 'var(--primary)')
+            : '#adb5bd';
     }
 </script>
 }

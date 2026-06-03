@@ -206,7 +206,7 @@ namespace Salon.Controllers
             // إذا لم تكن هناك صلاحيات محددة → الافتراضي: وصول كامل
             var permSet = userPerms.Any()
                 ? userPerms.ToDictionary(p => p.Module, p => p.CanAccess)
-                : AppModules.All.ToDictionary(m => m.Key, _ => true);
+                : AppModules.AllKeys().ToDictionary(k => k, _ => true);
 
             ViewBag.UserId = id;
             ViewBag.UserFullName = user.FullName;
@@ -228,15 +228,15 @@ namespace Salon.Controllers
             var old = _context.UserPermissions.Where(p => p.UserId == userId);
             _context.UserPermissions.RemoveRange(old);
 
-            // إضافة الصلاحيات الجديدة
+            // إضافة الصلاحيات الجديدة (مشاهدة + إضافة + حذف)
             var allowed = allowedModules?.ToHashSet() ?? new HashSet<string>();
-            foreach (var module in AppModules.All)
+            foreach (var key in AppModules.AllKeys())
             {
                 _context.UserPermissions.Add(new UserPermission
                 {
                     UserId = userId,
-                    Module = module.Key,
-                    CanAccess = allowed.Contains(module.Key)
+                    Module = key,
+                    CanAccess = allowed.Contains(key)
                 });
             }
 
