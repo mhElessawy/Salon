@@ -4,6 +4,7 @@
     var categories = ViewBag.ServiceCategories as List<Salon.Models.ServiceCategory> ?? new();
     var employees = ViewBag.Employees as List<Salon.Models.Employee> ?? new();
     var isEmployee = (bool)(ViewBag.IsEmployee ?? false);
+    var salesCount = ViewBag.ServiceSalesCount as Dictionary<int,int> ?? new();
     var linkedEmpId = ViewBag.LinkedEmployeeId as int?;
     var queuePositions = ViewBag.EmployeeQueuePositions as Dictionary<int, int> ?? new();
     var checkInTimes = ViewBag.EmployeeCheckInTimes as Dictionary<int, TimeSpan?> ?? new();
@@ -697,7 +698,7 @@
                         <i class="@(cat.Icon ?? "fas fa-cut") me-1"></i>@cat.Name
                     </div>
                     <div class="services-grid">
-                        @foreach (var svc in cat.Services.OrderBy(s => s.Name))
+                        @foreach (var svc in cat.Services.OrderByDescending(s => salesCount.TryGetValue(s.Id, out var c) ? c : 0).ThenBy(s => s.Name))
                         {
                             <div class="svc-card svc-item" data-name="@svc.Name.ToLower()"
                                  onclick="addItem(@svc.Id,'@Html.Raw(svc.Name.Replace("'", "\\\'"))',@svc.Price.ToString("F3"))">
