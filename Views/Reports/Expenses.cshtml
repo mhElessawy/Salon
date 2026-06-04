@@ -3,10 +3,23 @@
 @using System.Collections.Generic
 @{
     ViewData["Title"] = "تقرير المصاريف";
+
     var salaries = ViewBag.Salaries as List<Salary> ?? new List<Salary>();
-    decimal totalExpenses = ViewBag.TotalExpenses is decimal te ? te : 0m;
-    decimal totalSalaries = ViewBag.TotalSalaries is decimal ts ? ts : 0m;
-    decimal totalCombined = ViewBag.TotalCombined is decimal tc ? tc : 0m;
+    decimal totalExp = ViewBag.TotalExpenses is decimal te ? te : 0m;
+    decimal totalSal = ViewBag.TotalSalaries is decimal ts ? ts : 0m;
+    decimal totalComb = ViewBag.TotalCombined is decimal tc ? tc : 0m;
+
+    var barberExpenses = ViewBag.BarberExpenses as List<Expense> ?? new List<Expense>();
+    var barberSalaries = ViewBag.BarberSalaries as List<Salary> ?? new List<Salary>();
+    decimal barberExp = ViewBag.TotalBarberExpenses is decimal be ? be : 0m;
+    decimal barberSal = ViewBag.TotalBarberSalaries is decimal bs ? bs : 0m;
+    decimal barberComb = ViewBag.TotalBarberCombined is decimal bc ? bc : 0m;
+
+    var massageExpenses = ViewBag.MassageExpenses as List<Expense> ?? new List<Expense>();
+    var massageSalaries = ViewBag.MassageSalaries as List<Salary> ?? new List<Salary>();
+    decimal massageExp = ViewBag.TotalMassageExpenses is decimal me2 ? me2 : 0m;
+    decimal massageSal = ViewBag.TotalMassageSalaries is decimal ms ? ms : 0m;
+    decimal massageComb = ViewBag.TotalMassageCombined is decimal mcc ? mcc : 0m;
 }
 
 <div class="page-header">
@@ -25,83 +38,117 @@
     </div>
 </div>
 
-<div class="row g-3 mb-3">
-    <div class="col-md-4">
-        <div class="stat-card red">
-            <div class="stat-label">إجمالي المصاريف (مصروفات + مرتبات)</div>
-            <div class="stat-value">@totalCombined.ToString("N3") د.ك</div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="stat-card" style="border-right:4px solid #fd7e14;">
-            <div class="stat-label">المصروفات فقط</div>
-            <div class="stat-value" style="color:#fd7e14;">@totalExpenses.ToString("N3") د.ك</div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="stat-card" style="border-right:4px solid #7c3aed;">
-            <div class="stat-label">المرتبات المصروفة</div>
-            <div class="stat-value" style="color:#7c3aed;">@totalSalaries.ToString("N3") د.ك</div>
-        </div>
-    </div>
-</div>
+<ul class="nav nav-tabs mb-3" id="expensesTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-pane" type="button" role="tab">
+            <i class="fas fa-layer-group me-1"></i>الكل
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="barber-tab" data-bs-toggle="tab" data-bs-target="#barber-pane" type="button" role="tab">
+            <i class="fas fa-cut me-1"></i>حلاقة
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="massage-tab" data-bs-toggle="tab" data-bs-target="#massage-pane" type="button" role="tab">
+            <i class="fas fa-spa me-1"></i>مساج
+        </button>
+    </li>
+</ul>
 
-<div class="card">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>النوع</th>
-                        <th>البيان</th>
-                        <th>الفئة / الموظف</th>
-                        <th>المبلغ</th>
-                        <th>طريقة الدفع</th>
-                        <th>التاريخ</th>
-                        <th>ملاحظات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var e in Model)
-                    {
-                        <tr>
-                            <td><span class="badge bg-warning text-dark"><i class="fas fa-receipt me-1"></i>مصروف</span></td>
-                            <td>@e.Description</td>
-                            <td class="text-muted">@(e.Category ?? "-")</td>
-                            <td><strong class="text-danger">@e.Amount.ToString("N3") د.ك</strong></td>
-                            <td>@e.PaymentMethod</td>
-                            <td>@e.ExpenseDate.ToString("yyyy/MM/dd")</td>
-                            <td class="text-muted small">@e.Notes</td>
-                        </tr>
-                    }
-                    @foreach (var sal in salaries)
-                    {
-                        <tr style="background:#fff5f5;">
-                            <td><span class="badge bg-danger"><i class="fas fa-money-check-alt me-1"></i>مرتب</span></td>
-                            <td>مرتب @sal.Month/@sal.Year</td>
-                            <td>@sal.Employee?.FullName</td>
-                            <td><strong class="text-danger">@sal.NetSalary.ToString("N3") د.ك</strong></td>
-                            <td>نقدي</td>
-                            <td>@sal.PaidDate?.ToString("yyyy/MM/dd")</td>
-                            <td class="text-muted small">@sal.Notes</td>
-                        </tr>
-                    }
-                    @if (!Model.Any() && !salaries.Any())
-                    {
-                        <tr><td colspan="7" class="text-center text-muted py-4">لا توجد مصاريف في هذه الفترة</td></tr>
-                    }
-                </tbody>
-                @if (Model.Any() || salaries.Any())
-                {
-                    <tfoot class="table-dark fw-bold">
-                        <tr>
-                            <td colspan="3" class="text-end">الإجمالي</td>
-                            <td class="text-danger">@totalCombined.ToString("N3") د.ك</td>
-                            <td colspan="3"></td>
-                        </tr>
-                    </tfoot>
-                }
-            </table>
+<div class="tab-content" id="expensesTabContent">
+
+    @* ======== تبويب الكل ======== *@
+    <div class="tab-pane fade show active" id="all-pane" role="tabpanel">
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="stat-card red">
+                    <div class="stat-label">إجمالي المصاريف (مصروفات + مرتبات)</div>
+                    <div class="stat-value">@totalComb.ToString("N3") د.ك</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card" style="border-right:4px solid #fd7e14;">
+                    <div class="stat-label">المصروفات فقط</div>
+                    <div class="stat-value" style="color:#fd7e14;">@totalExp.ToString("N3") د.ك</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card" style="border-right:4px solid #7c3aed;">
+                    <div class="stat-label">المرتبات المصروفة</div>
+                    <div class="stat-value" style="color:#7c3aed;">@totalSal.ToString("N3") د.ك</div>
+                </div>
+            </div>
         </div>
+        @await Html.PartialAsync("_ExpensesTable", new Salon.ViewModels.ExpensesTableViewModel
+        {
+            Expenses = Model.ToList(),
+                Salaries = salaries,
+                Total = totalComb,
+                ShowDept = true
+                })
     </div>
+
+    @* ======== تبويب حلاقة ======== *@
+    <div class="tab-pane fade" id="barber-pane" role="tabpanel">
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="stat-card red">
+                    <div class="stat-label">إجمالي مصاريف الحلاقة (مصروفات + مرتبات)</div>
+                    <div class="stat-value">@barberComb.ToString("N3") د.ك</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card" style="border-right:4px solid #fd7e14;">
+                    <div class="stat-label">مصروفات الحلاقة فقط</div>
+                    <div class="stat-value" style="color:#fd7e14;">@barberExp.ToString("N3") د.ك</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card" style="border-right:4px solid #7c3aed;">
+                    <div class="stat-label">مرتبات موظفي الحلاقة</div>
+                    <div class="stat-value" style="color:#7c3aed;">@barberSal.ToString("N3") د.ك</div>
+                </div>
+            </div>
+        </div>
+        @await Html.PartialAsync("_ExpensesTable", new Salon.ViewModels.ExpensesTableViewModel
+                {
+            Expenses = barberExpenses,
+                Salaries = barberSalaries,
+                Total = barberComb,
+                ShowDept = false
+                })
+    </div>
+
+    @* ======== تبويب مساج ======== *@
+    <div class="tab-pane fade" id="massage-pane" role="tabpanel">
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="stat-card red">
+                    <div class="stat-label">إجمالي مصاريف المساج (مصروفات + مرتبات)</div>
+                    <div class="stat-value">@massageComb.ToString("N3") د.ك</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card" style="border-right:4px solid #fd7e14;">
+                    <div class="stat-label">مصروفات المساج فقط</div>
+                    <div class="stat-value" style="color:#fd7e14;">@massageExp.ToString("N3") د.ك</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card" style="border-right:4px solid #7c3aed;">
+                    <div class="stat-label">مرتبات موظفي المساج</div>
+                    <div class="stat-value" style="color:#7c3aed;">@massageSal.ToString("N3") د.ك</div>
+                </div>
+            </div>
+        </div>
+        @await Html.PartialAsync("_ExpensesTable", new Salon.ViewModels.ExpensesTableViewModel
+                {
+            Expenses = massageExpenses,
+                Salaries = massageSalaries,
+                Total = massageComb,
+                ShowDept = false
+                })
+    </div>
+
 </div>

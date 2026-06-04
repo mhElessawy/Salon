@@ -1,0 +1,108 @@
+﻿@model Salon.ViewModels.ExpensesTableViewModel
+@{
+    var expenses = Model.Expenses;
+    var salaries = Model.Salaries;
+    decimal total = Model.Total;
+    bool showDept = Model.ShowDept;
+}
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>النوع</th>
+                        <th>البيان</th>
+                        <th>الفئة / الموظف</th>
+                        @if (showDept)
+                        {
+                            <th>القسم</th>
+                        }
+                        <th>المبلغ</th>
+                        <th>طريقة الدفع</th>
+                        <th>التاريخ</th>
+                        <th>ملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var e in expenses)
+                    {
+                        <tr>
+                            <td><span class="badge bg-warning text-dark"><i class="fas fa-receipt me-1"></i>مصروف</span></td>
+                            <td>@e.Description</td>
+                            <td class="text-muted">@(e.Category ?? "-")</td>
+                            @if (showDept)
+                            {
+                                <td>
+                                    @if (e.Department == "حلاقة")
+                                    {
+                                        <span class="badge bg-primary">حلاقة</span>
+                                    }
+                                    else if (e.Department == "مساج")
+                                    {
+                                        <span class="badge bg-purple" style="background:#7c3aed;">مساج</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">مشترك</span>
+                                    }
+                                </td>
+                            }
+                            <td><strong class="text-danger">@e.Amount.ToString("N3") د.ك</strong></td>
+                            <td>@e.PaymentMethod</td>
+                            <td>@e.ExpenseDate.ToString("yyyy/MM/dd")</td>
+                            <td class="text-muted small">@e.Notes</td>
+                        </tr>
+                    }
+                    @foreach (var sal in salaries)
+                    {
+                        <tr style="background:#fff5f5;">
+                            <td><span class="badge bg-danger"><i class="fas fa-money-check-alt me-1"></i>مرتب</span></td>
+                            <td>مرتب @sal.Month/@sal.Year</td>
+                            <td>@sal.Employee?.FullName</td>
+                            @if (showDept)
+                            {
+                                <td>
+                                    @{
+                                        var dept = sal.Employee?.Department;
+                                    }
+                                    @if (dept == "حلاقة")
+                                    {
+                                        <span class="badge bg-primary">حلاقة</span>
+                                    }
+                                    else if (dept == "مساج")
+                                    {
+                                        <span class="badge bg-purple" style="background:#7c3aed;">مساج</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@(dept ?? "-")</span>
+                                    }
+                                </td>
+                            }
+                            <td><strong class="text-danger">@sal.NetSalary.ToString("N3") د.ك</strong></td>
+                            <td>@sal.PaymentMethod</td>
+                            <td>@sal.PaidDate?.ToString("yyyy/MM/dd")</td>
+                            <td class="text-muted small">@sal.Notes</td>
+                        </tr>
+                    }
+                    @if (!expenses.Any() && !salaries.Any())
+                    {
+                        <tr><td colspan="@(showDept ? 8 : 7)" class="text-center text-muted py-4">لا توجد مصاريف في هذه الفترة</td></tr>
+                    }
+                </tbody>
+                @if (expenses.Any() || salaries.Any())
+                {
+                    <tfoot class="table-dark fw-bold">
+                        <tr>
+                            <td colspan="@(showDept ? 4 : 3)" class="text-end">الإجمالي</td>
+                            <td class="text-danger">@total.ToString("N3") د.ك</td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+    </div>
+</div>
