@@ -107,17 +107,27 @@ namespace Salon.Controllers
             ViewBag.SelectedPaymentMethod = paymentMethod;
             ViewBag.UserDept = userDept;
 
-            // مصاريف الفترة
-            var salesExpenses = await _context.Expenses
-                .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo)
-                .OrderBy(e => e.ExpenseDate)
-                .ToListAsync();
+            // مصاريف الفترة — مفلترة حسب القسم إذا كان الفلتر محدداً
+            var expensesQuery = _context.Expenses
+                .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo);
 
-            var salesSalaries = await _context.Salaries
-                .Include(s => s.Employee)
-                .Where(s => s.PaidDate >= dateFrom && s.PaidDate < dateTo)
-                .OrderBy(s => s.PaidDate)
-                .ToListAsync();
+            if (saleType == "مساج")
+                expensesQuery = expensesQuery.Where(e => e.Department == "مساج");
+            else if (saleType == "حلاقة")
+                expensesQuery = expensesQuery.Where(e => e.Department == "حلاقة");
+
+            var salesExpenses = await expensesQuery.OrderBy(e => e.ExpenseDate).ToListAsync();
+
+            var salariesQuery = _context.Salaries
+                .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Where(s => s.PaidDate >= dateFrom && s.PaidDate < dateTo);
+
+            if (saleType == "مساج")
+                salariesQuery = salariesQuery.Where(s => s.Employee!.DepartmentNav!.Name == "مساج");
+            else if (saleType == "حلاقة")
+                salariesQuery = salariesQuery.Where(s => s.Employee!.DepartmentNav!.Name == "حلاقة");
+
+            var salesSalaries = await salariesQuery.OrderBy(s => s.PaidDate).ToListAsync();
 
             ViewBag.ExpensesInRange = salesExpenses;
             ViewBag.TotalExpensesAmount = salesExpenses.Sum(e => e.Amount);
