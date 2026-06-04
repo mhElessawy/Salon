@@ -22,7 +22,7 @@
     bool defsOpen = IsGroupOpen("services", "servicecategories", "departments", "packages");
     bool inventoryOpen = IsGroupOpen("inventory", "suppliers");
     bool hrOpen = IsGroupOpen("employees", "salaries", "advances", "attendance");
-    bool financeOpen = IsGroupOpen("expenses", "reports");
+    bool financeOpen = IsGroupOpen("expenses", "deposits", "reports");
     bool settingsOpen = IsGroupOpen("settings", "users");
     bool barberDailyOpen = IsGroupOpen("barberdaily");
 }
@@ -338,7 +338,7 @@
 
         @* المالية *@
         @{
-            bool hasFinanceGroup = canSee("Expenses") || canSee("Reports");
+            bool hasFinanceGroup = canSee("Expenses") || canSee("Deposits") || canSee("Reports");
         }
         @if (hasFinanceGroup)
         {
@@ -356,6 +356,15 @@
                             <a href="@Url.Action("Index", "Expenses")" class="@IsActive("Expenses")">
                                 <i class="fas fa-receipt"></i>
                                 <span data-i18n-en="Expenses">المصروفات</span>
+                            </a>
+                        </li>
+                    }
+                    @if (canSee("Deposits"))
+                    {
+                        <li>
+                            <a href="@Url.Action("Index", "Deposits")" class="@IsActive("Deposits")">
+                                <i class="fas fa-money-bill-wave" style="color:#16a34a;"></i>
+                                <span data-i18n-en="Deposits">الإيداعات</span>
                             </a>
                         </li>
                     }

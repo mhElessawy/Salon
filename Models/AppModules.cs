@@ -21,6 +21,7 @@ namespace Salon.Models
             ("Advances",          "السلف",              "fas fa-hand-holding-usd", "الموظفون"),
             ("Attendance",        "الحضور والانصراف",   "fas fa-calendar-alt",     "الموظفون"),
             ("Expenses",          "المصروفات",          "fas fa-receipt",          "المالية"),
+            ("Deposits",          "الإيداعات",          "fas fa-money-bill-wave",  "المالية"),
             ("Reports",           "التقارير",           "fas fa-chart-bar",        "المالية"),
             ("BarberDaily",       "تقرير الأداء اليومي", "fas fa-cut",              "المالية"),
             ("Messages",          "الرسائل",            "fas fa-envelope",         "عام"),
@@ -36,14 +37,14 @@ namespace Salon.Models
         {
             "Customers", "Suppliers", "Services", "ServiceCategories", "Packages", "Inventory",
             "Appointments", "Shifts", "Employees", "Salaries", "Advances", "Attendance",
-            "Expenses", "Users", "BarberInvoice", "MassageInvoice", "ProductInvoice"
+            "Expenses", "Deposits", "Users", "BarberInvoice", "MassageInvoice", "ProductInvoice"
         };
 
         // الشاشات التي تدعم صلاحية الحذف
         public static readonly HashSet<string> HasDelete = new()
         {
             "Customers", "Suppliers", "Services", "ServiceCategories", "Packages", "Inventory",
-            "Appointments", "Shifts", "Employees", "Advances", "Expenses", "Users",
+            "Appointments", "Shifts", "Employees", "Advances", "Expenses", "Deposits", "Users",
             "BarberInvoice", "MassageInvoice", "ProductInvoice"
         };
 
