@@ -139,20 +139,43 @@ namespace Salon.Controllers
                 .ToListAsync();
 
             var salaries = await _context.Salaries
-                .Include(s => s.Employee)
+                .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Where(s => s.PaidDate >= dateFrom && s.PaidDate < dateTo)
                 .OrderBy(s => s.PaidDate)
                 .ToListAsync();
 
-            var totalExpenses = expenses.Sum(e => e.Amount);
-            var totalSalaries = salaries.Sum(s => s.NetSalary);
+            // الكل
+            decimal totalExp = expenses.Sum(e => e.Amount);
+            decimal totalSal = salaries.Sum(s => s.NetSalary);
+            ViewBag.TotalExpenses = totalExp;
+            ViewBag.TotalSalaries = totalSal;
+            ViewBag.TotalCombined = totalExp + totalSal;
+            ViewBag.Salaries = salaries;
+
+            // حلاقة
+            var barberExpenses = expenses.Where(e => e.Department == "حلاقة").ToList();
+            var barberSalaries = salaries.Where(s => s.Employee?.Department == "حلاقة").ToList();
+            decimal barberExp = barberExpenses.Sum(e => e.Amount);
+            decimal barberSal = barberSalaries.Sum(s => s.NetSalary);
+            ViewBag.BarberExpenses = barberExpenses;
+            ViewBag.BarberSalaries = barberSalaries;
+            ViewBag.TotalBarberExpenses = barberExp;
+            ViewBag.TotalBarberSalaries = barberSal;
+            ViewBag.TotalBarberCombined = barberExp + barberSal;
+
+            // مساج
+            var massageExpenses = expenses.Where(e => e.Department == "مساج").ToList();
+            var massageSalaries = salaries.Where(s => s.Employee?.Department == "مساج").ToList();
+            decimal massageExp = massageExpenses.Sum(e => e.Amount);
+            decimal massageSal = massageSalaries.Sum(s => s.NetSalary);
+            ViewBag.MassageExpenses = massageExpenses;
+            ViewBag.MassageSalaries = massageSalaries;
+            ViewBag.TotalMassageExpenses = massageExp;
+            ViewBag.TotalMassageSalaries = massageSal;
+            ViewBag.TotalMassageCombined = massageExp + massageSal;
 
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
-            ViewBag.TotalExpenses = totalExpenses;
-            ViewBag.Salaries = salaries;
-            ViewBag.TotalSalaries = totalSalaries;
-            ViewBag.TotalCombined = totalExpenses + totalSalaries;
             return View(expenses);
         }
 
