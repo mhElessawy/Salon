@@ -129,11 +129,18 @@ namespace Salon.Controllers
 
             var salesSalaries = await salariesQuery.OrderBy(s => s.PaidDate).ToListAsync();
 
+            var salesDeposits = await _context.Deposits
+                .Where(d => d.DepositDate >= dateFrom && d.DepositDate < dateTo)
+                .OrderBy(d => d.DepositDate)
+                .ToListAsync();
+
             ViewBag.ExpensesInRange = salesExpenses;
             ViewBag.TotalExpensesAmount = salesExpenses.Sum(e => e.Amount);
             ViewBag.SalariesInRange = salesSalaries;
             ViewBag.TotalSalariesAmount = salesSalaries.Sum(s => s.NetSalary);
             ViewBag.TotalCombinedExpenses = salesExpenses.Sum(e => e.Amount) + salesSalaries.Sum(s => s.NetSalary);
+            ViewBag.DepositsInRange = salesDeposits;
+            ViewBag.TotalDepositsAmount = salesDeposits.Sum(d => d.Amount);
 
             return View(sales);
         }
@@ -246,6 +253,12 @@ namespace Salon.Controllers
             var advancesList = await advancesQuery.OrderBy(a => a.AdvanceDate).ToListAsync();
             var advancesToday = advancesList.Sum(a => a.Amount);
 
+            var depositsTodayList = await _context.Deposits
+                .Where(d => d.DepositDate >= today && d.DepositDate < tomorrow)
+                .OrderBy(d => d.DepositDate)
+                .ToListAsync();
+            var depositsToday = depositsTodayList.Sum(d => d.Amount);
+
             var salesToday = activeSalesReport.Sum(s => s.NetAmount);
 
             string[] cashMethods = { "كاش", "نقدي", "Cash" };
@@ -261,7 +274,9 @@ namespace Salon.Controllers
             ViewBag.TotalExpensesWithSalaries = expensesToday + salariesToday;
             ViewBag.AdvancesToday = advancesToday;
             ViewBag.AdvancesList = advancesList;
-            ViewBag.NetProfit = salesToday - expensesToday - salariesToday - advancesToday;
+            ViewBag.DepositsToday = depositsToday;
+            ViewBag.DepositsTodayList = depositsTodayList;
+            ViewBag.NetProfit = salesToday + depositsToday - expensesToday - salariesToday - advancesToday;
             ViewBag.BarberSales = activeSalesReport.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount);
             ViewBag.MassageSales = activeSalesReport.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount);
             ViewBag.CashTotal = activeSalesReport.Sum(s =>
