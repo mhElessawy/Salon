@@ -22,6 +22,7 @@
     bool defsOpen = IsGroupOpen("services", "servicecategories", "departments", "packages");
     bool inventoryOpen = IsGroupOpen("inventory", "suppliers");
     bool hrOpen = IsGroupOpen("employees", "salaries", "advances", "attendance");
+    bool cashOpen = IsGroupOpen("expenses", "deposits");
     bool financeOpen = IsGroupOpen("expenses", "deposits", "reports");
     bool settingsOpen = IsGroupOpen("settings", "users");
     bool barberDailyOpen = IsGroupOpen("barberdaily");
@@ -329,6 +330,42 @@
                             <a href="@Url.Action("Reports", "Attendance")" class="@IsActive("Attendance", "Reports")">
                                 <i class="fas fa-file-alt"></i>
                                 <span data-i18n-en="Attendance Reports">تقارير الحضور</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </li>
+        }
+
+        @* حركة الصندوق *@
+        @{
+            bool hasCashGroup = canSee("Expenses") || canSee("Deposits");
+        }
+        @if (hasCashGroup)
+        {
+            <li class="has-submenu @(cashOpen ? "open" : "")">
+                <a href="#" class="submenu-toggle @(cashOpen ? "active-parent" : "")"
+                   onclick="toggleMenu(this); return false;">
+                    <i class="fas fa-cash-register"></i>
+                    <span data-i18n-en="Cash Movement">حركة الصندوق</span>
+                    <i class="fas fa-chevron-left arrow-icon"></i>
+                </a>
+                <ul class="submenu @(cashOpen ? "show" : "")">
+                    @if (canSee("Expenses"))
+                    {
+                        <li>
+                            <a href="@Url.Action("Index", "Expenses")" class="@IsActive("Expenses")">
+                                <i class="fas fa-receipt"></i>
+                                <span data-i18n-en="Expenses">المصروفات</span>
+                            </a>
+                        </li>
+                    }
+                    @if (canSee("Deposits"))
+                    {
+                        <li>
+                            <a href="@Url.Action("Index", "Deposits")" class="@IsActive("Deposits")">
+                                <i class="fas fa-money-bill-wave" style="color:#16a34a;"></i>
+                                <span data-i18n-en="Deposits">الإيداعات</span>
                             </a>
                         </li>
                     }
