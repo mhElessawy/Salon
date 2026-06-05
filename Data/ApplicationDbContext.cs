@@ -20,6 +20,7 @@ namespace Salon.Data
         public DbSet<Sale> Sales { get; set; }
         public DbSet<SaleItem> SaleItems { get; set; }
         public DbSet<Expense> Expenses { get; set; }
+        public DbSet<Deposit> Deposits { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<Shift> Shifts { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
@@ -78,6 +79,10 @@ namespace Salon.Data
 
             builder.Entity<Expense>()
                 .Property(e => e.Amount)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<Deposit>()
+                .Property(d => d.Amount)
                 .HasColumnType("decimal(18,3)");
 
             builder.Entity<Employee>()

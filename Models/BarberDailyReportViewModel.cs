@@ -21,6 +21,8 @@
         public DateTime Date { get; set; }
         public decimal OpeningBalance { get; set; }
         public decimal CashRevenue { get; set; }
+        public decimal Deposit { get; set; }
+        public string DepositType { get; set; } = string.Empty;
         public decimal Withdrawal { get; set; }
         public string WithdrawalType { get; set; } = string.Empty;
         public string WithdrawnBy { get; set; } = string.Empty;

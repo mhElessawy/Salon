@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+ï»¿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
@@ -113,7 +113,7 @@ using (var scope = app.Services.CreateScope())
             TryExec("ALTER TABLE Sales ADD COLUMN EmployeeGift REAL NULL");
             TryExec("ALTER TABLE Salaries ADD COLUMN GiftAmount REAL NOT NULL DEFAULT 0");
             TryExec("ALTER TABLE Salaries ADD COLUMN CommissionAmount REAL NOT NULL DEFAULT 0");
-            TryExec("ALTER TABLE Salaries ADD COLUMN PaymentMethod TEXT NOT NULL DEFAULT 'äÞÏí'");
+            TryExec("ALTER TABLE Salaries ADD COLUMN PaymentMethod TEXT NOT NULL DEFAULT 'ï¿½ï¿½ï¿½ï¿½'");
             TryExec("ALTER TABLE Salaries ADD COLUMN EmployeeDebtDeducted REAL NOT NULL DEFAULT 0");
             TryExec(@"CREATE TABLE IF NOT EXISTS Suppliers (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -178,6 +178,14 @@ using (var scope = app.Services.CreateScope())
                 CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
                 FOREIGN KEY (CustomerPackageId) REFERENCES CustomerPackages(Id) ON DELETE CASCADE,
                 FOREIGN KEY (EmployeeId) REFERENCES Employees(Id) ON DELETE SET NULL)");
+            TryExec(@"CREATE TABLE IF NOT EXISTS Deposits (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Amount REAL NOT NULL DEFAULT 0,
+                Description TEXT NOT NULL,
+                Source TEXT,
+                DepositDate TEXT NOT NULL DEFAULT (date('now')),
+                Notes TEXT,
+                CreatedAt TEXT NOT NULL DEFAULT (datetime('now')))");
         }
         else
         {
@@ -188,7 +196,7 @@ using (var scope = app.Services.CreateScope())
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Sales' AND COLUMN_NAME='EmployeeGift') ALTER TABLE Sales ADD EmployeeGift DECIMAL(18,3) NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='GiftAmount') ALTER TABLE Salaries ADD GiftAmount DECIMAL(18,3) NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='CommissionAmount') ALTER TABLE Salaries ADD CommissionAmount DECIMAL(18,3) NOT NULL DEFAULT 0");
-            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='PaymentMethod') ALTER TABLE Salaries ADD PaymentMethod NVARCHAR(50) NOT NULL DEFAULT N'äÞÏí'");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='PaymentMethod') ALTER TABLE Salaries ADD PaymentMethod NVARCHAR(50) NOT NULL DEFAULT N'ï¿½ï¿½ï¿½ï¿½'");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='EmployeeDebtDeducted') ALTER TABLE Salaries ADD EmployeeDebtDeducted DECIMAL(18,3) NOT NULL DEFAULT 0");
             TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='Suppliers')
                 CREATE TABLE Suppliers (Id INT IDENTITY PRIMARY KEY, Name NVARCHAR(200) NOT NULL,
@@ -225,6 +233,14 @@ using (var scope = app.Services.CreateScope())
                     REFERENCES Customers(Id),
                 CONSTRAINT FK_CustomerPackages_ServicePackages FOREIGN KEY (ServicePackageId)
                     REFERENCES ServicePackages(Id))");
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='Deposits')
+                CREATE TABLE Deposits (Id INT IDENTITY PRIMARY KEY,
+                Amount DECIMAL(18,3) NOT NULL DEFAULT 0,
+                Description NVARCHAR(MAX) NOT NULL,
+                Source NVARCHAR(MAX) NULL,
+                DepositDate DATE NOT NULL DEFAULT GETDATE(),
+                Notes NVARCHAR(MAX) NULL,
+                CreatedAt DATETIME NOT NULL DEFAULT GETDATE())");
             TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='CustomerPackageTransactions')
                 CREATE TABLE CustomerPackageTransactions (Id INT IDENTITY PRIMARY KEY,
                 CustomerPackageId INT NOT NULL, UsedDate DATETIME NOT NULL DEFAULT GETDATE(),

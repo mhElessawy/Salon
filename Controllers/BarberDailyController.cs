@@ -195,17 +195,27 @@ namespace Salon.Controllers
 
                 decimal runningBalance = firstDayShift?.OpeningBalance ?? 0;
 
-                var withdrawalEvents = new List<(DateTime Date, decimal Amount, string Type, string Notes)>();
-                foreach (var exp in monthExpenses)
-                    withdrawalEvents.Add((exp.ExpenseDate.Date, exp.Amount,
-                        !string.IsNullOrEmpty(exp.Category) ? $"سحب لـ{exp.Category}" : "سحب لمصروفات",
-                        exp.Description));
-                foreach (var adv in monthAdvances)
-                    withdrawalEvents.Add((adv.AdvanceDate.Date, adv.Amount,
-                        "سحب لدفع سلف موظفين",
-                        $"سلفة {adv.Employee?.FullName ?? ""}".Trim()));
+                var monthDeposits = await _context.Deposits
+                    .Where(d => d.DepositDate >= monthStart && d.DepositDate < tomorrow)
+                    .OrderBy(d => d.DepositDate).ThenBy(d => d.Id)
+                    .ToListAsync();
 
-                withdrawalEvents = withdrawalEvents.OrderBy(x => x.Date).ThenBy(x => x.Type).ToList();
+                // events: Delta>0 إيداع، Delta<0 سحب
+                var allEvents = new List<(DateTime Date, decimal Withdrawal, decimal Deposit, string Type, string Notes, string By)>();
+                foreach (var exp in monthExpenses)
+                    allEvents.Add((exp.ExpenseDate.Date, exp.Amount, 0,
+                        !string.IsNullOrEmpty(exp.Category) ? $"سحب لـ{exp.Category}" : "سحب لمصروفات",
+                        exp.Description, "المدير"));
+                foreach (var adv in monthAdvances)
+                    allEvents.Add((adv.AdvanceDate.Date, adv.Amount, 0,
+                        "سحب لدفع سلف موظفين",
+                        $"سلفة {adv.Employee?.FullName ?? ""}".Trim(), "المدير"));
+                foreach (var dep in monthDeposits)
+                    allEvents.Add((dep.DepositDate.Date, 0, dep.Amount,
+                        "إيداع في الصندوق",
+                        dep.Description, dep.Source ?? ""));
+
+                allEvents = allEvents.OrderBy(x => x.Date).ThenBy(x => x.Deposit > 0 ? 0 : 1).ToList();
 
                 for (var d = monthStart; d <= today; d = d.AddDays(1))
                 {
@@ -215,9 +225,9 @@ namespace Salon.Controllers
                             cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
                             mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
 
-                    var dayWithdrawals = withdrawalEvents.Where(e => e.Date == d).ToList();
+                    var dayEvents = allEvents.Where(e => e.Date == d).ToList();
 
-                    if (!dayWithdrawals.Any())
+                    if (!dayEvents.Any())
                     {
                         var closing = runningBalance + dailyCashRev;
                         cashMovement.Add(new CashMovementRow
@@ -225,6 +235,8 @@ namespace Salon.Controllers
                             Date = d,
                             OpeningBalance = runningBalance,
                             CashRevenue = dailyCashRev,
+                            Deposit = 0,
+                            DepositType = "-",
                             Withdrawal = 0,
                             WithdrawalType = "-",
                             WithdrawnBy = "-",
@@ -236,18 +248,20 @@ namespace Salon.Controllers
                     else
                     {
                         bool first = true;
-                        foreach (var (_, amount, type, notes) in dayWithdrawals)
+                        foreach (var (_, withdrawal, deposit, type, notes, by) in dayEvents)
                         {
                             var rev = first ? dailyCashRev : 0;
-                            var closing = runningBalance + rev - amount;
+                            var closing = runningBalance + rev + deposit - withdrawal;
                             cashMovement.Add(new CashMovementRow
                             {
                                 Date = d,
                                 OpeningBalance = runningBalance,
                                 CashRevenue = rev,
-                                Withdrawal = amount,
-                                WithdrawalType = type,
-                                WithdrawnBy = "المدير",
+                                Deposit = deposit,
+                                DepositType = deposit > 0 ? type : "-",
+                                Withdrawal = withdrawal,
+                                WithdrawalType = withdrawal > 0 ? type : "-",
+                                WithdrawnBy = withdrawal > 0 ? by : "-",
                                 ClosingBalance = closing,
                                 Notes = notes
                             });

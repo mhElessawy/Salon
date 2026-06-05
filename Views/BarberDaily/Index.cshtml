@@ -1,4 +1,4 @@
-﻿@model Salon.Models.BarberDailyReportViewModel
+﻿@model  Salon.Models.BarberDailyReportViewModel
 @{
     ViewData["Title"] = Model.ReportTitle;
     var selectedDate = Model.ReportDate.ToString("yyyy-MM-dd");
@@ -788,6 +788,7 @@
                         <th>التاريخ</th>
                         <th>رصيد بداية اليوم<br /><small>د.ك</small></th>
                         <th>إيرادات كاش<br /><small>د.ك</small></th>
+                        <th>إيداع في الصندوق<br /><small>د.ك</small></th>
                         <th>سحب من الصندوق<br /><small>د.ك</small></th>
                         <th>نوع السحب</th>
                         <th>سحب من قبل</th>
@@ -809,6 +810,16 @@
                                 else
                                 {
                                     <span>@cm.CashRevenue.ToString("N3")</span>
+                                }
+                            </td>
+                            <td>
+                                @if (cm.Deposit > 0)
+                                {
+                                    <span style="color:#16a34a;font-weight:700;">@cm.Deposit.ToString("N3")</span>
+                                }
+                                else
+                                {
+                                    <span>-</span>
                                 }
                             </td>
                             <td>

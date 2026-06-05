@@ -553,6 +553,38 @@ namespace Salon.Migrations
                 b.ToTable("EmployeeAdvances", (string)null);
             });
 
+            modelBuilder.Entity("Salon.Models.Deposit", b =>
+            {
+                b.Property<int>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("int");
+
+                SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                b.Property<decimal>("Amount")
+                    .HasColumnType("decimal(18,3)");
+
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("datetime2");
+
+                b.Property<DateTime>("DepositDate")
+                    .HasColumnType("datetime2");
+
+                b.Property<string>("Description")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("Notes")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("Source")
+                    .HasColumnType("nvarchar(max)");
+
+                b.HasKey("Id");
+
+                b.ToTable("Deposits", (string)null);
+            });
+
             modelBuilder.Entity("Salon.Models.Expense", b =>
             {
                 b.Property<int>("Id")

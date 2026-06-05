@@ -16,7 +16,9 @@
     var advancesList = ViewBag.AdvancesList as List<EmployeeAdvance> ?? new List<EmployeeAdvance>();
     var expensesTodayList = ViewBag.ExpensesTodayList as List<Expense> ?? new List<Expense>();
     var salariesTodayList = ViewBag.SalariesTodayList as List<Salary> ?? new List<Salary>();
+    var depositsTodayList = ViewBag.DepositsTodayList as List<Deposit> ?? new List<Deposit>();
     decimal totalExpensesWithSalaries = ViewBag.TotalExpensesWithSalaries is decimal tews ? tews : 0m;
+    decimal depositsToday = ViewBag.DepositsToday is decimal dt ? dt : 0m;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -56,6 +58,13 @@
             <div class="stat-icon" style="background:#9f1239;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-hand-holding-usd"></i></div>
         </div>
         <div class="stat-value" style="color:#9f1239;">@ViewBag.AdvancesToday?.ToString("N3") د.ك</div>
+    </div>
+    <div class="stat-card" style="border-right:4px solid #16a34a;">
+        <div class="stat-card-header">
+            <span class="stat-label">إيداعات اليوم</span>
+            <div class="stat-icon" style="background:#16a34a;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-money-bill-wave"></i></div>
+        </div>
+        <div class="stat-value" style="color:#16a34a;">@depositsToday.ToString("N3") د.ك</div>
     </div>
     <div class="stat-card orange">
         <div class="stat-card-header">
@@ -403,11 +412,11 @@
     </div>
 </div>
 
-@if (expensesTodayList.Any() || salariesTodayList.Any())
+@if (expensesTodayList.Any() || salariesTodayList.Any() || depositsTodayList.Any())
 {
     <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h6 class="mb-0"><i class="fas fa-file-invoice-dollar me-2 text-danger"></i>تفاصيل المصاريف اليوم</h6>
+            <h6 class="mb-0"><i class="fas fa-file-invoice-dollar me-2 text-danger"></i>تفاصيل المصاريف والإيداعات اليوم</h6>
             <span class="badge bg-danger">@totalExpensesWithSalaries.ToString("N3") د.ك</span>
         </div>
         <div class="card-body p-0">
@@ -443,13 +452,31 @@
                                 <td class="text-muted small">@sal.Notes</td>
                             </tr>
                         }
+                        @foreach (var dep in depositsTodayList)
+                        {
+                            <tr style="background:#f0fdf4;">
+                                <td><span class="badge" style="background:#16a34a;"><i class="fas fa-money-bill-wave me-1"></i>إيداع</span></td>
+                                <td>@dep.Description @(!string.IsNullOrEmpty(dep.Source) ? $"({dep.Source})" : "")</td>
+                                <td><strong class="text-success">@dep.Amount.ToString("N3") د.ك</strong></td>
+                                <td>-</td>
+                                <td class="text-muted small">@dep.Notes</td>
+                            </tr>
+                        }
                     </tbody>
                     <tfoot class="table-dark fw-bold">
                         <tr>
-                            <td colspan="2" class="text-end">الإجمالي</td>
+                            <td colspan="2" class="text-end">الإجمالي المصاريف</td>
                             <td class="text-danger">@totalExpensesWithSalaries.ToString("N3") د.ك</td>
                             <td colspan="2"></td>
                         </tr>
+                        @if (depositsToday > 0)
+                        {
+                            <tr style="background:#166534;color:#fff;">
+                                <td colspan="2" class="text-end">إجمالي الإيداعات</td>
+                                <td>@depositsToday.ToString("N3") د.ك</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        }
                     </tfoot>
                 </table>
             </div>

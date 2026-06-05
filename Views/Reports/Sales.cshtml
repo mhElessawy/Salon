@@ -18,10 +18,12 @@
 
     var expensesInRange = ViewBag.ExpensesInRange as List<Expense> ?? new List<Expense>();
     var salariesInRange = ViewBag.SalariesInRange as List<Salary> ?? new List<Salary>();
+    var depositsInRange = ViewBag.DepositsInRange as List<Deposit> ?? new List<Deposit>();
     decimal totalExpensesAmount = ViewBag.TotalExpensesAmount is decimal tea ? tea : 0m;
     decimal totalSalariesAmount = ViewBag.TotalSalariesAmount is decimal tsa ? tsa : 0m;
     decimal totalCombinedExpenses = ViewBag.TotalCombinedExpenses is decimal tce ? tce : 0m;
-    decimal netProfit = ((decimal)(ViewBag.TotalSales ?? 0m)) - totalCombinedExpenses;
+    decimal totalDepositsAmount = ViewBag.TotalDepositsAmount is decimal tda ? tda : 0m;
+    decimal netProfit = ((decimal)(ViewBag.TotalSales ?? 0m)) + totalDepositsAmount - totalCombinedExpenses;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -133,6 +135,15 @@
             }
         </div>
     </div>
+    @if (totalDepositsAmount > 0)
+    {
+        <div class="col-md-3">
+            <div class="stat-card" style="border-right:4px solid #16a34a;">
+                <div class="stat-label">الإيداعات</div>
+                <div class="stat-value" style="color:#16a34a;">@totalDepositsAmount.ToString("N3") د.ك</div>
+            </div>
+        </div>
+    }
     <div class="col-md-3">
         <div class="stat-card orange">
             <div class="stat-label">صافي الربح</div>
@@ -277,11 +288,11 @@
         </div>
     </div>
     <div class="card-body p-0">
-        @if (!expensesInRange.Any() && !salariesInRange.Any())
+        @if (!expensesInRange.Any() && !salariesInRange.Any() && !depositsInRange.Any())
         {
             <div class="text-center text-muted py-4">
                 <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
-                لا توجد مصاريف في هذه الفترة
+                لا توجد مصاريف أو إيداعات في هذه الفترة
             </div>
         }
         else
@@ -324,13 +335,33 @@
                                 <td class="text-muted small">@sal.Notes</td>
                             </tr>
                         }
+                        @foreach (var dep in depositsInRange)
+                        {
+                            <tr style="background:#f0fdf4;">
+                                <td><span class="badge" style="background:#16a34a;"><i class="fas fa-money-bill-wave me-1"></i>إيداع</span></td>
+                                <td>@dep.Description</td>
+                                <td class="text-muted">@(dep.Source ?? "-")</td>
+                                <td><strong class="text-success">@dep.Amount.ToString("N3") د.ك</strong></td>
+                                <td>-</td>
+                                <td>@dep.DepositDate.ToString("yyyy/MM/dd")</td>
+                                <td class="text-muted small">@dep.Notes</td>
+                            </tr>
+                        }
                     </tbody>
                     <tfoot class="table-dark fw-bold">
                         <tr>
-                            <td colspan="3" class="text-end">الإجمالي</td>
+                            <td colspan="3" class="text-end">إجمالي المصاريف</td>
                             <td class="text-danger">@totalCombinedExpenses.ToString("N3") د.ك</td>
                             <td colspan="3"></td>
                         </tr>
+                        @if (totalDepositsAmount > 0)
+                        {
+                            <tr style="background:#166534;color:#fff;">
+                                <td colspan="3" class="text-end">إجمالي الإيداعات</td>
+                                <td>@totalDepositsAmount.ToString("N3") د.ك</td>
+                                <td colspan="3"></td>
+                            </tr>
+                        }
                     </tfoot>
                 </table>
             </div>
