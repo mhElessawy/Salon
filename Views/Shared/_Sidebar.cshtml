@@ -22,7 +22,8 @@
     bool defsOpen = IsGroupOpen("services", "servicecategories", "departments", "packages");
     bool inventoryOpen = IsGroupOpen("inventory", "suppliers");
     bool hrOpen = IsGroupOpen("employees", "salaries", "advances", "attendance");
-    bool cashOpen = IsGroupOpen("expenses", "deposits");
+    bool cashOpen = IsGroupOpen("expenses", "deposits") ||
+                    (ctrl == "reports" && act == "cashmovement");
     bool financeOpen = IsGroupOpen("reports");
     bool settingsOpen = IsGroupOpen("settings", "users");
     bool barberDailyOpen = IsGroupOpen("barberdaily");
@@ -366,6 +367,15 @@
                             <a href="@Url.Action("Index", "Deposits")" class="@IsActive("Deposits")">
                                 <i class="fas fa-money-bill-wave" style="color:#16a34a;"></i>
                                 <span data-i18n-en="Deposits">الإيداعات</span>
+                            </a>
+                        </li>
+                    }
+                    @if (canSee("Expenses") || canSee("Deposits"))
+                    {
+                        <li>
+                            <a href="@Url.Action("CashMovement", "Reports")" class="@IsActive("Reports", "CashMovement")">
+                                <i class="fas fa-chart-bar" style="color:#6f42c1;"></i>
+                                <span data-i18n-en="Cash Movement Report">تقرير حركة الصندوق</span>
                             </a>
                         </li>
                     }

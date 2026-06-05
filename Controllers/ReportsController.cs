@@ -639,6 +639,65 @@ namespace Salon.Controllers
             return View(vm);
         }
 
+        public async Task<IActionResult> CashMovement(string? from, string? to, string? type)
+        {
+            DateTime dateFrom = string.IsNullOrEmpty(from) ? DateTime.Today.AddDays(-30) : DateTime.Parse(from);
+            DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
+
+            var items = new List<CashMovementReportItem>();
+
+            bool showExpenses = string.IsNullOrEmpty(type) || type == "مصروف";
+            bool showDeposits = string.IsNullOrEmpty(type) || type == "إيداع";
+
+            if (showExpenses)
+            {
+                var expenses = await _context.Expenses
+                    .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo)
+                    .OrderByDescending(e => e.ExpenseDate)
+                    .ToListAsync();
+
+                items.AddRange(expenses.Select(e => new CashMovementReportItem
+                {
+                    Date = e.ExpenseDate,
+                    Type = "مصروف",
+                    Description = e.Description,
+                    Amount = e.Amount,
+                    Category = e.Category,
+                    Notes = e.Notes
+                }));
+            }
+
+            if (showDeposits)
+            {
+                var deposits = await _context.Deposits
+                    .Where(d => d.DepositDate >= dateFrom && d.DepositDate < dateTo)
+                    .OrderByDescending(d => d.DepositDate)
+                    .ToListAsync();
+
+                items.AddRange(deposits.Select(d => new CashMovementReportItem
+                {
+                    Date = d.DepositDate,
+                    Type = "إيداع",
+                    Description = d.Description,
+                    Amount = d.Amount,
+                    Category = d.Source,
+                    Notes = d.Notes
+                }));
+            }
+
+            items = items.OrderByDescending(i => i.Date).ThenBy(i => i.Type).ToList();
+
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
+            ViewBag.SelectedType = type;
+            ViewBag.TotalExpenses = items.Where(i => i.Type == "مصروف").Sum(i => i.Amount);
+            ViewBag.TotalDeposits = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount);
+            ViewBag.NetBalance = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount)
+                               - items.Where(i => i.Type == "مصروف").Sum(i => i.Amount);
+
+            return View(items);
+        }
+
         public async Task<IActionResult> EmployeeEvaluation(int? employeeId, string? from, string? to)
         {
             var currentUser = await _userManager.GetUserAsync(User);
