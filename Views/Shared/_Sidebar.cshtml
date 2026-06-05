@@ -22,7 +22,9 @@
     bool defsOpen = IsGroupOpen("services", "servicecategories", "departments", "packages");
     bool inventoryOpen = IsGroupOpen("inventory", "suppliers");
     bool hrOpen = IsGroupOpen("employees", "salaries", "advances", "attendance");
-    bool financeOpen = IsGroupOpen("expenses", "deposits", "reports");
+    bool cashOpen = IsGroupOpen("expenses", "deposits") ||
+                    (ctrl == "reports" && act == "cashmovement");
+    bool financeOpen = IsGroupOpen("reports");
     bool settingsOpen = IsGroupOpen("settings", "users");
     bool barberDailyOpen = IsGroupOpen("barberdaily");
 }
@@ -336,20 +338,20 @@
             </li>
         }
 
-        @* المالية *@
+        @* حركة الصندوق *@
         @{
-            bool hasFinanceGroup = canSee("Expenses") || canSee("Deposits") || canSee("Reports");
+            bool hasCashGroup = canSee("Expenses") || canSee("Deposits");
         }
-        @if (hasFinanceGroup)
+        @if (hasCashGroup)
         {
-            <li class="has-submenu @(financeOpen ? "open" : "")">
-                <a href="#" class="submenu-toggle @(financeOpen ? "active-parent" : "")"
+            <li class="has-submenu @(cashOpen ? "open" : "")">
+                <a href="#" class="submenu-toggle @(cashOpen ? "active-parent" : "")"
                    onclick="toggleMenu(this); return false;">
-                    <i class="fas fa-chart-line"></i>
-                    <span data-i18n-en="Finance &amp; Reports">المالية والتقارير</span>
+                    <i class="fas fa-cash-register"></i>
+                    <span data-i18n-en="Cash Movement">حركة الصندوق</span>
                     <i class="fas fa-chevron-left arrow-icon"></i>
                 </a>
-                <ul class="submenu @(financeOpen ? "show" : "")">
+                <ul class="submenu @(cashOpen ? "show" : "")">
                     @if (canSee("Expenses"))
                     {
                         <li>
@@ -368,6 +370,33 @@
                             </a>
                         </li>
                     }
+                    @if (canSee("Expenses") || canSee("Deposits"))
+                    {
+                        <li>
+                            <a href="@Url.Action("CashMovement", "Reports")" class="@IsActive("Reports", "CashMovement")">
+                                <i class="fas fa-chart-bar" style="color:#6f42c1;"></i>
+                                <span data-i18n-en="Cash Movement Report">تقرير حركة الصندوق</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </li>
+        }
+
+        @* المالية *@
+        @{
+            bool hasFinanceGroup = canSee("Reports");
+        }
+        @if (hasFinanceGroup)
+        {
+            <li class="has-submenu @(financeOpen ? "open" : "")">
+                <a href="#" class="submenu-toggle @(financeOpen ? "active-parent" : "")"
+                   onclick="toggleMenu(this); return false;">
+                    <i class="fas fa-chart-line"></i>
+                    <span data-i18n-en="Finance &amp; Reports">المالية والتقارير</span>
+                    <i class="fas fa-chevron-left arrow-icon"></i>
+                </a>
+                <ul class="submenu @(financeOpen ? "show" : "")">
                     @if (canSee("Reports"))
                     {
                         <li>

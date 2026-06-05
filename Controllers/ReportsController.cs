@@ -639,6 +639,100 @@ namespace Salon.Controllers
             return View(vm);
         }
 
+        public async Task<IActionResult> CashMovement(string? from, string? to, string? type)
+        {
+            DateTime dateFrom = string.IsNullOrEmpty(from) ? DateTime.Today.AddDays(-30) : DateTime.Parse(from);
+            DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
+
+            var items = new List<CashMovementReportItem>();
+
+            bool showExpenses = string.IsNullOrEmpty(type) || type == "مصروف";
+            bool showDeposits = string.IsNullOrEmpty(type) || type == "إيداع";
+
+            if (showExpenses)
+            {
+                var expenses = await _context.Expenses
+                    .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo)
+                    .OrderByDescending(e => e.ExpenseDate)
+                    .ToListAsync();
+
+                items.AddRange(expenses.Select(e => new CashMovementReportItem
+                {
+                    Date = e.ExpenseDate,
+                    Type = "مصروف",
+                    Description = e.Description,
+                    Amount = e.Amount,
+                    Category = e.Category,
+                    Notes = e.Notes
+                }));
+
+                var advances = await _context.EmployeeAdvances
+                    .Include(a => a.Employee)
+                    .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo)
+                    .OrderByDescending(a => a.AdvanceDate)
+                    .ToListAsync();
+
+                items.AddRange(advances.Select(a => new CashMovementReportItem
+                {
+                    Date = a.AdvanceDate,
+                    Type = "سلفة",
+                    Description = $"سلفة - {a.Employee?.FullName ?? ""}".Trim(' ', '-'),
+                    Amount = a.Amount,
+                    Category = "سلف الموظفين",
+                    Notes = a.Reason
+                }));
+
+                var salaries = await _context.Salaries
+                    .Include(s => s.Employee)
+                    .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= dateFrom && s.PaidDate.Value < dateTo)
+                    .OrderByDescending(s => s.PaidDate)
+                    .ToListAsync();
+
+                items.AddRange(salaries.Select(s => new CashMovementReportItem
+                {
+                    Date = s.PaidDate!.Value,
+                    Type = "راتب",
+                    Description = $"راتب - {s.Employee?.FullName ?? ""}".Trim(' ', '-'),
+                    Amount = s.NetSalary,
+                    Category = "رواتب الموظفين",
+                    Notes = s.Notes
+                }));
+            }
+
+            if (showDeposits)
+            {
+                var deposits = await _context.Deposits
+                    .Where(d => d.DepositDate >= dateFrom && d.DepositDate < dateTo)
+                    .OrderByDescending(d => d.DepositDate)
+                    .ToListAsync();
+
+                items.AddRange(deposits.Select(d => new CashMovementReportItem
+                {
+                    Date = d.DepositDate,
+                    Type = "إيداع",
+                    Description = d.Description,
+                    Amount = d.Amount,
+                    Category = d.Source,
+                    Notes = d.Notes
+                }));
+            }
+
+            items = items.OrderByDescending(i => i.Date).ThenBy(i => i.Type).ToList();
+
+            string[] expenseTypes = { "مصروف", "سلفة", "راتب" };
+            decimal totalExp = items.Where(i => expenseTypes.Contains(i.Type)).Sum(i => i.Amount);
+            decimal totalDep = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount);
+
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
+            ViewBag.SelectedType = type;
+            ViewBag.TotalExpenses = totalExp;
+            ViewBag.TotalDeposits = totalDep;
+            ViewBag.NetBalance = totalDep - totalExp;
+
+            return View(items);
+        }
+
         public async Task<IActionResult> EmployeeEvaluation(int? employeeId, string? from, string? to)
         {
             var currentUser = await _userManager.GetUserAsync(User);
