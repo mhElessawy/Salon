@@ -452,6 +452,10 @@ window.PAGE_TRANSLATIONS = {
     'ملاحظات (اختياري)': 'Notes (Optional)',
     'إلغاء الاشتراك': 'Cancel Subscription',
     'منتهي الصلاحية': 'Expired',
+    // ── Employee form ─────────────────────────────────────────
+    'الاسم الكامل': 'Full Name',
+    'العمولة (%)': 'Commission (%)',
+    'رقم الإقامة / الهوية': 'Residency / ID Number',
     // ── Customer form ─────────────────────────────────────────
     'الاسم الكامل عربي': 'Full Name (Arabic)',
     'الجنس': 'Gender',
