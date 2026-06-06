@@ -423,6 +423,14 @@ window.PAGE_TRANSLATIONS = {
     'إجمالي السلف': 'Total Advances',
 
     // ── Additional missing translations ──────────────────
+    'الاسم الكامل عربي': 'Full Name (Arabic)',
+    'الجنس': 'Gender',
+    'ذكر': 'Male',
+    'أنثى': 'Female',
+    '-- اختر --': '-- Choose --',
+    '-- اختر القسم --': '-- Select Department --',
+    '✂ حلاقة': '✂ Barber',
+    '💆 مساج': '💆 Massage',
     '(اختياري)': '(Optional)',
     '(الباقة لم تُدفع بعد)': '(Package Not Paid Yet)',
     '(تلقائي)': '(Automatic)',
