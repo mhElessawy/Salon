@@ -583,10 +583,11 @@
                 slotEmployee.style.display = '';
                 discountRow.style.display  = 'none';
                 document.getElementById('extraPaymentBar').style.display = 'none';
-                invoiceTitle.innerHTML = '<i class="fas fa-user-tag me-2"></i>استهلاك موظف';
+                var isEn = localStorage.getItem('lang') === 'en';
+                invoiceTitle.innerHTML = '<i class="fas fa-user-tag me-2"></i>' + (isEn ? 'Employee Consumption' : 'استهلاك موظف');
                 if (invoiceItems.length > 0) {
                     saveBtn.disabled = false;
-                    saveBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> تسجيل الاستهلاك';
+                    saveBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> ' + (isEn ? 'Save Consumption' : 'تسجيل الاستهلاك');
                 }
             } else {
                 form.classList.remove('mode-consume');
@@ -597,10 +598,11 @@
                 slotEmployee.style.display = 'none';
                 discountRow.style.display  = '';
                 onPaymentChange();
-                invoiceTitle.innerHTML = '<i class="fas fa-file-invoice me-2"></i>فاتورة منتجات';
+                var isEn = localStorage.getItem('lang') === 'en';
+                invoiceTitle.innerHTML = '<i class="fas fa-file-invoice me-2"></i>' + (isEn ? 'Products Invoice' : 'فاتورة منتجات');
                 if (invoiceItems.length > 0) {
                     saveBtn.disabled = false;
-                    saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> حفظ الفاتورة';
+                    saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> ' + (isEn ? 'Save Invoice' : 'حفظ الفاتورة');
                 }
             }
 
@@ -620,7 +622,7 @@
 
             const existing = invoiceItems.find(i => i.id === id);
             if (existing) {
-                if (existing.qty >= maxStock) { alert('لا يوجد مخزون كافٍ! المتاح: ' + maxStock); return; }
+                if (existing.qty >= maxStock) { alert(localStorage.getItem('lang') === 'en' ? 'Insufficient stock! Available: ' + maxStock : 'لا يوجد مخزون كافٍ! المتاح: ' + maxStock); return; }
                 existing.qty++;
                 existing.total = existing.qty * existing.price;
                 updateRow(existing);
@@ -633,9 +635,10 @@
             recalc();
             const saveBtn = document.getElementById('saveBtn');
             saveBtn.disabled = false;
+            var isEn2 = localStorage.getItem('lang') === 'en';
             saveBtn.innerHTML = currentMode === 'استهلاك'
-                ? '<i class="fas fa-check-circle me-2"></i> تسجيل الاستهلاك'
-                : '<i class="fas fa-print me-2"></i> حفظ الفاتورة';
+                ? '<i class="fas fa-check-circle me-2"></i> ' + (isEn2 ? 'Save Consumption' : 'تسجيل الاستهلاك')
+                : '<i class="fas fa-print me-2"></i> ' + (isEn2 ? 'Save Invoice' : 'حفظ الفاتورة');
         }
 
         function renderRow(item) {
@@ -651,8 +654,9 @@
         }
 
         function buildHtml(item) {
+            var isEnB = localStorage.getItem('lang') === 'en';
             const isFree    = currentMode === 'استهلاك';
-            const priceCell = isFree ? '<span class="badge bg-success">مجاني</span>' : item.price.toFixed(3);
+            const priceCell = isFree ? '<span class="badge bg-success">' + (isEnB ? 'Free' : 'مجاني') + '</span>' : item.price.toFixed(3);
             const totalCell = isFree ? '-' : `<strong>${item.total.toFixed(3)}</strong>`;
             return `
                 <td>${item.name}</td>
@@ -663,7 +667,7 @@
                                onchange="setQty(${item.rowId}, this.value)" />
                         <button type="button" class="qty-btn" onclick="changeQty(${item.rowId}, 1)">+</button>
                     </div>
-                    <small style="color:#6c757d;font-size:10px">متاح: ${item.maxStock}</small>
+                    <small style="color:#6c757d;font-size:10px">${isEnB ? 'Available' : 'متاح'}: ${item.maxStock}</small>
                 </td>
                 <td>${priceCell}</td>
                 <td>${totalCell}</td>
@@ -676,7 +680,7 @@
             if (!item) return;
             const n = item.qty + delta;
             if (n < 1) { removeItem(rowId); return; }
-            if (n > item.maxStock) { alert('لا يوجد مخزون كافٍ! المتاح: ' + item.maxStock); return; }
+            if (n > item.maxStock) { alert(localStorage.getItem('lang') === 'en' ? 'Insufficient stock! Available: ' + item.maxStock : 'لا يوجد مخزون كافٍ! المتاح: ' + item.maxStock); return; }
             item.qty = n;
             item.total = item.qty * item.price;
             updateRow(item);
@@ -706,16 +710,17 @@
         }
 
         function recalc() {
+            var isEn = localStorage.getItem('lang') === 'en';
             if (currentMode === 'استهلاك') {
                 const count = invoiceItems.reduce((s, i) => s + i.qty, 0);
-                document.getElementById('subtotalDisplay').textContent = count + ' قطعة';
-                document.getElementById('netDisplay').textContent      = 'مجاني';
+                document.getElementById('subtotalDisplay').textContent = count + ' ' + (isEn ? 'pcs' : 'قطعة');
+                document.getElementById('netDisplay').textContent      = isEn ? 'Free' : 'مجاني';
             } else {
                 const subtotal = invoiceItems.reduce((s, i) => s + i.total, 0);
                 const discount = parseFloat(document.getElementById('discountInput').value) || 0;
                 const net = Math.max(0, subtotal - discount);
-                document.getElementById('subtotalDisplay').textContent = subtotal.toFixed(3) + ' د.ك';
-                document.getElementById('netDisplay').textContent      = net.toFixed(3)      + ' د.ك';
+                document.getElementById('subtotalDisplay').textContent = subtotal.toFixed(3) + ' ' + (isEn ? 'K.D.' : 'د.ك');
+                document.getElementById('netDisplay').textContent      = net.toFixed(3)      + ' ' + (isEn ? 'K.D.' : 'د.ك');
             }
         }
 
@@ -747,7 +752,8 @@
         function validateSplit() {
             const cash = parseFloat(document.getElementById('cashAmountInput').value) || 0;
             const link = parseFloat(document.getElementById('linkAmountInput').value) || 0;
-            document.getElementById('splitStatus').textContent = 'المجموع: ' + (cash + link).toFixed(3) + ' د.ك';
+            var isEn = localStorage.getItem('lang') === 'en';
+            document.getElementById('splitStatus').textContent = (isEn ? 'Total: ' : 'المجموع: ') + (cash + link).toFixed(3) + ' ' + (isEn ? 'K.D.' : 'د.ك');
         }
 
         document.getElementById('posForm').addEventListener('submit', function(e) {
@@ -757,18 +763,18 @@
                 const empId = document.getElementById('employeeRecipientSelect').value;
                 if (!empId) {
                     e.preventDefault();
-                    alert('يرجى اختيار الموظف أولاً');
+                    alert(localStorage.getItem('lang') === 'en' ? 'Please select an employee first' : 'يرجى اختيار الموظف أولاً');
                     return;
                 }
             } else {
                 const pm = document.getElementById('paymentMethodSelect').value;
                 if (pm === 'دين على العميل') {
                     const custId = document.getElementById('customerSelect').value;
-                    if (!custId) { e.preventDefault(); alert('طريقة الدفع "دين على العميل" تتطلب اختيار عميل مسجل وليس زائر'); return; }
+                    if (!custId) { e.preventDefault(); alert(localStorage.getItem('lang') === 'en' ? 'Payment method "Customer Debt" requires selecting a registered customer, not a visitor' : 'طريقة الدفع "دين على العميل" تتطلب اختيار عميل مسجل وليس زائر'); return; }
                 }
                 if (pm === 'دين على الموظف') {
                     const empId = document.getElementById('debtEmployeeSelect')?.value;
-                    if (!empId) { e.preventDefault(); alert('يرجى اختيار الموظف المدين'); return; }
+                    if (!empId) { e.preventDefault(); alert(localStorage.getItem('lang') === 'en' ? 'Please select the indebted employee' : 'يرجى اختيار الموظف المدين'); return; }
                 }
             }
 
