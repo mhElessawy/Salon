@@ -106,8 +106,8 @@ namespace Salon.Controllers
             {
                 _context.Services.Add(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("إضافة", "الخدمات", $"خدمة جديدة: {model.Name}", model.Id);
-                TempData["Success"] = "تم إضافة الخدمة بنجاح";
+                await _audit.LogAsync("Add", "Services", $"New service: {model.Name}", model.Id);
+                TempData["Success"] = "Service added created successfully";
                 return RedirectToAction(nameof(Index));
             }
             await PopulateCategories(model.ServiceCategoryId);
@@ -130,8 +130,8 @@ namespace Salon.Controllers
             {
                 _context.Update(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("تعديل", "الخدمات", $"تعديل خدمة: {model.Name}", model.Id);
-                TempData["Success"] = "تم تعديل الخدمة بنجاح";
+                await _audit.LogAsync("Edit", "Services", $"Edit service: {model.Name}", model.Id);
+                TempData["Success"] = "Service updated created successfully";
                 return RedirectToAction(nameof(Index));
             }
             await PopulateCategories(model.ServiceCategoryId);
@@ -146,8 +146,8 @@ namespace Salon.Controllers
             {
                 service.IsActive = false;
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("حذف", "الخدمات", $"حذف خدمة: {service.Name}", service.Id);
-                TempData["Success"] = "تم حذف الخدمة بنجاح";
+                await _audit.LogAsync("Delete", "Services", $"Delete service: {service.Name}", service.Id);
+                TempData["Success"] = "Service deleted created successfully";
             }
             return RedirectToAction(nameof(Index));
         }

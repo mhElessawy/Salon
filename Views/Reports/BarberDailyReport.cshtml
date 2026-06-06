@@ -1,7 +1,10 @@
-﻿@model Salon.Models.BarberDailyReportViewModel
+﻿@model  Salon.Models.BarberDailyReportViewModel
 @{
     ViewData["Title"] = Model.ReportTitle;
     var selectedDate = Model.ReportDate.ToString("yyyy-MM-dd");
+    var dayNameEn = Model.ReportDate.ToString("ddd", new System.Globalization.CultureInfo("en-US"));
+    var noteTextEn = $"Note: {Model.CommissionNoteLabel} commission rate {Model.OverallCommissionPercent.ToString("N0")}% from total work";
+    var balanceTitleEn = $"Current Cash in Safe (as of {Model.ReportDate.ToString("yyyy/MM/dd")}) =";
 }
 
 <style>
@@ -229,7 +232,7 @@
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 no-print">
     <div>
         <h1><i class="fas fa-file-alt me-2"></i>@Model.ReportTitle</h1>
-        <p class="mb-0">@Model.ReportDate.ToString("yyyy/MM/dd") — @Model.DayName</p>
+        <p class="mb-0">@Model.ReportDate.ToString("yyyy/MM/dd") — <span data-i18n-en="@dayNameEn">@Model.DayName</span></p>
     </div>
     <button onclick="window.print()" class="btn btn-dark btn-sm">
         <i class="fas fa-print me-1"></i>طباعة
@@ -275,7 +278,7 @@
                 <div class="bdr-meta-cell">
                     <span class="meta-icon"><i class="fas fa-calendar-day"></i></span>
                     <span class="meta-label">اليوم</span>
-                    <span class="meta-val">@Model.DayName</span>
+                    <span class="meta-val" data-i18n-en="@dayNameEn">@Model.DayName</span>
                 </div>
                 <div class="bdr-meta-cell">
                     <span class="meta-icon"><i class="fas fa-user-tie"></i></span>
@@ -345,7 +348,7 @@
                 <div class="bdr-emp-cell">
                     <div class="emp-icon"><i class="fas fa-users"></i></div>
                     <div class="emp-num">@Model.RegisteredBarbers</div>
-                    <div class="emp-label">عدد @Model.RegisteredLabel</div>
+                    <div class="emp-label" data-i18n-en="Count @Model.RegisteredLabel">عدد @Model.RegisteredLabel</div>
                 </div>
                 <div class="bdr-emp-cell">
                     <div class="emp-icon" style="color:#16a34a;"><i class="fas fa-user-check"></i></div>
@@ -477,7 +480,7 @@
             </div>
             <div class="bdr-sum-cell">
                 <div class="sum-icon"><i class="fas fa-users"></i></div>
-                <div class="sum-label">نسبة @Model.CommissionNoteLabel الإجمالية</div>
+                <div class="sum-label" data-i18n-en="Overall @Model.CommissionNoteLabel Rate">نسبة @Model.CommissionNoteLabel الإجمالية</div>
                 <div class="sum-val">@Model.OverallCommissionPercent.ToString("N0")%</div>
             </div>
             <div class="bdr-sum-cell">
@@ -494,18 +497,18 @@
             </div>
             <div class="bdr-sum-cell">
                 <div class="sum-icon"><i class="fas fa-wallet"></i></div>
-                <div class="sum-label">إجمالي صافي ما سيستلم لـ@Model.CommissionNoteLabel بعد الخصم</div>
+                <div class="sum-label" data-i18n-en="Total Net for @Model.CommissionNoteLabel After Deduction">إجمالي صافي ما سيستلم لـ@Model.CommissionNoteLabel بعد الخصم</div>
                 <div class="sum-val green">@Model.TotalNetAfterDeduction.ToString("N3")</div>
                 <div class="sum-cur">د.ك</div>
             </div>
             <div class="bdr-sum-cell">
                 <div class="sum-icon"><i class="fas fa-store"></i></div>
-                <div class="sum-label">صافي المحل من @Model.CommissionNoteLabel</div>
+                <div class="sum-label" data-i18n-en="Shop Net from @Model.CommissionNoteLabel">صافي المحل من @Model.CommissionNoteLabel</div>
                 <div class="sum-val blue">@Model.TotalShopNet.ToString("N3")</div>
                 <div class="sum-cur">د.ك</div>
             </div>
         </div>
-        <div class="bdr-note-bar">
+        <div class="bdr-note-bar" data-i18n-en="@noteTextEn">
             ملاحظة: تم اعتماد نسبة @Model.CommissionNoteLabel @Model.OverallCommissionPercent.ToString("N0")% من إجمالي الشغل
         </div>
     }
@@ -514,7 +517,7 @@
     @if (Model.CashMovement.Any())
     {
         <div class="bdr-table-wrap">
-            <div class="bdr-section-title">
+            <div class="bdr-section-title" data-i18n-en="Cash Movement in Safe (From 1st to @Model.ReportDate.Day)">
                 حركة الكاش في الصندوق (من تاريخ 1 إلى @Model.ReportDate.Day)
             </div>
             <table class="cash-table">
@@ -567,7 +570,7 @@
         </div>
 
         <div class="bdr-balance-box">
-            الكاش الحالي في الصندوق (كما في @Model.ReportDate.ToString("yyyy/MM/dd")) =
+            <span data-i18n-en="@balanceTitleEn">الكاش الحالي في الصندوق (كما في @Model.ReportDate.ToString("yyyy/MM/dd")) =</span>
             <span>@Model.CurrentCashBalance.ToString("N3") د.ك</span>
         </div>
     }

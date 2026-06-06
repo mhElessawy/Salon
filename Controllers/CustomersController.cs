@@ -69,7 +69,7 @@ namespace Salon.Controllers
             {
                 var phoneExists = await _context.Customers.AnyAsync(c => c.Phone == model.Phone);
                 if (phoneExists)
-                    ModelState.AddModelError("Phone", "رقم الهاتف مستخدم بالفعل لعميل آخر");
+                    ModelState.AddModelError("Phone", "Phone number already used by another customer");
             }
 
             if (ModelState.IsValid)
@@ -77,8 +77,8 @@ namespace Salon.Controllers
                 model.CreatedAt = DateTime.Now;
                 _context.Customers.Add(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("إضافة", "العملاء", $"عميل جديد: {model.FullName}", model.Id);
-                TempData["Success"] = "تم إضافة العميل بنجاح";
+                await _audit.LogAsync("Add", "Customers", $"New customer: {model.FullName}", model.Id);
+                TempData["Success"] = "Customer added created successfully";
                 return RedirectToAction(nameof(Index));
             }
             return View(model);
@@ -100,15 +100,15 @@ namespace Salon.Controllers
             {
                 var phoneExists = await _context.Customers.AnyAsync(c => c.Phone == model.Phone && c.Id != id);
                 if (phoneExists)
-                    ModelState.AddModelError("Phone", "رقم الهاتف مستخدم بالفعل لعميل آخر");
+                    ModelState.AddModelError("Phone", "Phone number already used by another customer");
             }
 
             if (ModelState.IsValid)
             {
                 _context.Update(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("تعديل", "العملاء", $"تعديل بيانات العميل: {model.FullName}", model.Id);
-                TempData["Success"] = "تم تعديل بيانات العميل بنجاح";
+                await _audit.LogAsync("Edit", "Customers", $"Edit customer: {model.FullName}", model.Id);
+                TempData["Success"] = "Customer data updated created successfully";
                 return RedirectToAction(nameof(Index));
             }
             return View(model);
@@ -132,8 +132,8 @@ namespace Salon.Controllers
             {
                 customer.IsActive = false;
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("حذف", "العملاء", $"حذف العميل: {customer.FullName}", customer.Id);
-                TempData["Success"] = "تم حذف العميل بنجاح";
+                await _audit.LogAsync("Delete", "Customers", $"Delete customer: {customer.FullName}", customer.Id);
+                TempData["Success"] = "Customer deleted created successfully";
             }
             return RedirectToAction(nameof(Index));
         }

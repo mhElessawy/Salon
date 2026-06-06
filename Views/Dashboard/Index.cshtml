@@ -5,9 +5,20 @@
 
 <div class="page-header">
     <h1>
-        لوحة التحكم -
-        @(Model.UserDepartment == "حلاقة" ? "الحلاقة" :
-                Model.UserDepartment == "مساج" ? "المساج" : "الكل")
+        <span data-i18n-en="Dashboard">لوحة التحكم</span>
+        -
+        @if (Model.UserDepartment == "حلاقة")
+        {
+            <span data-i18n-en="Barber">الحلاقة</span>
+        }
+        else if (Model.UserDepartment == "مساج")
+        {
+            <span data-i18n-en="Massage">المساج</span>
+        }
+        else
+        {
+            <span data-i18n-en="All">الكل</span>
+        }
     </h1>
     <p>نظرة عامة على أداء القسم اليوم</p>
 </div>

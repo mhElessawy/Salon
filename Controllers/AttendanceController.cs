@@ -180,7 +180,7 @@ namespace Salon.Controllers
                     a.EmployeeId == linkedId.Value && a.AttendanceDate == KuwaitToday);
                 if (alreadyExists)
                 {
-                    TempData["Error"] = "لقد سجلت حضورك اليوم مسبقاً";
+                    TempData["Error"] = "Attendance already recorded today";
                     return RedirectToAction(nameof(Index));
                 }
 
@@ -217,7 +217,7 @@ namespace Salon.Controllers
             bool duplicate = await _context.Attendances.AnyAsync(a =>
                 a.EmployeeId == model.EmployeeId && a.AttendanceDate == model.AttendanceDate);
             if (duplicate)
-                ModelState.AddModelError(string.Empty, "يوجد سجل حضور لهذا الموظف في هذا اليوم مسبقاً");
+                ModelState.AddModelError(string.Empty, "Attendance record already exists for this employee today");
 
             if (ModelState.IsValid)
             {
@@ -231,8 +231,8 @@ namespace Salon.Controllers
 
                 _context.Attendances.Add(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("حضور", "الحضور", $"تسجيل حضور: {employee?.FullName} — الدور: {model.QueuePosition}", model.Id);
-                TempData["Success"] = $"تم تسجيل الحضور بنجاح — الدور: {model.QueuePosition}";
+                await _audit.LogAsync("Check-In", "Attendance", $"Check-in: {employee?.FullName} — Position: {model.QueuePosition}", model.Id);
+                TempData["Success"] = $"Attendance recorded created successfully — Position: {model.QueuePosition}";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -272,7 +272,7 @@ namespace Salon.Controllers
                 && a.CheckIn.HasValue && !a.CheckOut.HasValue);
             if (hasOpenOvernight)
             {
-                TempData["Error"] = "يوجد سجل حضور مفتوح من البارحة — سجّل الانصراف أولاً";
+                TempData["Error"] = "There is an open attendance record from yesterday — record check-out first";
                 return RedirectToAction(nameof(Index), new { date });
             }
 
@@ -283,7 +283,7 @@ namespace Salon.Controllers
 
             if (hasOpenToday)
             {
-                TempData["Error"] = "يوجد سجل حضور مفتوح لهذا الموظف — سجّل الانصراف أولاً";
+                TempData["Error"] = "There is an open attendance record for this employee — record check-out first";
                 return RedirectToAction(nameof(Index), new { date });
             }
 
@@ -303,11 +303,11 @@ namespace Salon.Controllers
             };
             _context.Attendances.Add(attendance);
             await _context.SaveChangesAsync();
-            await _audit.LogAsync("حضور", "الحضور", $"تسجيل حضور سريع: {employee?.FullName} — الدور: {queuePosition}", attendance.Id);
-            TempData["Success"] = $"تم تسجيل حضور {employee?.FullName} — الدور: {queuePosition}";
+            await _audit.LogAsync("Check-In", "Attendance", $"Quick check-in: {employee?.FullName} — Position: {queuePosition}", attendance.Id);
+            TempData["Success"] = $"Check-in recorded for {employee?.FullName} — Position: {queuePosition}";
 
             _ = Task.Run(() => _emailService.SendAttendanceNotificationAsync(
-                employee?.FullName ?? "-", dept ?? "-", "حضور",
+                employee?.FullName ?? "-", dept ?? "-", "Check-In",
                 attendance.CheckIn!.Value, attendanceDate, $"الدور: {queuePosition}"));
 
             return RedirectToAction(nameof(Index), new { date });
@@ -330,14 +330,14 @@ namespace Salon.Controllers
             record.CheckOut = time;
             await _context.SaveChangesAsync();
             var empForAudit = await _context.Employees.FindAsync(record.EmployeeId);
-            await _audit.LogAsync("انصراف", "الحضور", $"تسجيل انصراف: {empForAudit?.FullName}", record.Id);
-            TempData["Success"] = "تم تسجيل الانصراف بنجاح";
+            await _audit.LogAsync("Check-Out", "Attendance", $"Check-out: {empForAudit?.FullName}", record.Id);
+            TempData["Success"] = "Check-out recorded created successfully";
 
             var empForMail = await _context.Employees.Include(e => e.DepartmentNav)
                 .FirstOrDefaultAsync(e => e.Id == record.EmployeeId);
             _ = Task.Run(() => _emailService.SendAttendanceNotificationAsync(
                 empForMail?.FullName ?? "-", empForMail?.DepartmentNav?.Name ?? "-",
-                "انصراف", time, record.AttendanceDate));
+                "Check-Out", time, record.AttendanceDate));
 
             // لو كان موظفاً ليلياً (تاريخ الحضور قبل النهارده) → ارجع لصفحة النهارده
             var redirectDate = record.AttendanceDate.Date < KuwaitToday
@@ -362,7 +362,7 @@ namespace Salon.Controllers
                 .AnyAsync(p => p.AttendanceId == id && p.ReturnTime == null);
             if (hasOpen)
             {
-                TempData["Error"] = "يوجد استئذان مفتوح بالفعل، يرجى تسجيل العودة أولاً";
+                TempData["Error"] = "There is already an open permission leave — record return first";
                 return RedirectToAction(nameof(Index), new { date = record.AttendanceDate.ToString("yyyy-MM-dd") });
             }
 
@@ -375,14 +375,14 @@ namespace Salon.Controllers
             _context.AttendancePermissions.Add(perm);
             await _context.SaveChangesAsync();
             var empPermAudit = await _context.Employees.FindAsync(record.EmployeeId);
-            await _audit.LogAsync("استئذان", "الحضور", $"استئذان: {empPermAudit?.FullName}", id);
-            TempData["Success"] = "تم تسجيل الاستئذان بنجاح";
+            await _audit.LogAsync("Permission", "Attendance", $"Permission leave: {empPermAudit?.FullName}", id);
+            TempData["Success"] = "Permission leave recorded created successfully";
 
             var empPerm = await _context.Employees.Include(e => e.DepartmentNav)
                 .FirstOrDefaultAsync(e => e.Id == record.EmployeeId);
             _ = Task.Run(() => _emailService.SendAttendanceNotificationAsync(
                 empPerm?.FullName ?? "-", empPerm?.DepartmentNav?.Name ?? "-",
-                "استئذان", perm.LeaveTime, record.AttendanceDate));
+                "Permission", perm.LeaveTime, record.AttendanceDate));
 
             return RedirectToAction(nameof(Index), new { date = record.AttendanceDate.ToString("yyyy-MM-dd") });
         }
@@ -403,8 +403,8 @@ namespace Salon.Controllers
             var empPermDel = await _context.Employees.FindAsync(perm.Attendance.EmployeeId);
             _context.AttendancePermissions.Remove(perm);
             await _context.SaveChangesAsync();
-            await _audit.LogAsync("حذف", "الحضور", $"حذف استئذان: {empPermDel?.FullName}", id);
-            TempData["Success"] = "تم حذف الاستئذان بنجاح";
+            await _audit.LogAsync("Delete", "Attendance", $"Delete permission leave: {empPermDel?.FullName}", id);
+            TempData["Success"] = "Permission leave deleted created successfully";
             return RedirectToAction(nameof(Index), new { date });
         }
 
@@ -417,7 +417,7 @@ namespace Salon.Controllers
 
             if (perm == null)
             {
-                TempData["Error"] = "لا يوجد استئذان مفتوح لهذا الموظف";
+                TempData["Error"] = "No open permission leave for this employee";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -428,14 +428,14 @@ namespace Salon.Controllers
             perm.ReturnTime = KuwaitNow.TimeOfDay;
             await _context.SaveChangesAsync();
             var empRetAudit = await _context.Employees.FindAsync(perm.Attendance!.EmployeeId);
-            await _audit.LogAsync("عودة", "الحضور", $"عودة من الاستئذان: {empRetAudit?.FullName}", id);
-            TempData["Success"] = "تم تسجيل العودة من الاستئذان بنجاح";
+            await _audit.LogAsync("Return", "Attendance", $"Return from leave: {empRetAudit?.FullName}", id);
+            TempData["Success"] = "Return from leave recorded created successfully";
 
             var empRet = await _context.Employees.Include(e => e.DepartmentNav)
                 .FirstOrDefaultAsync(e => e.Id == perm.Attendance!.EmployeeId);
             _ = Task.Run(() => _emailService.SendAttendanceNotificationAsync(
                 empRet?.FullName ?? "-", empRet?.DepartmentNav?.Name ?? "-",
-                "عودة", perm.ReturnTime!.Value, perm.Attendance!.AttendanceDate));
+                "Return", perm.ReturnTime!.Value, perm.Attendance!.AttendanceDate));
 
             return RedirectToAction(nameof(Index), new { date = perm.Attendance!.AttendanceDate.ToString("yyyy-MM-dd") });
         }
@@ -453,8 +453,8 @@ namespace Salon.Controllers
                 var empDelAudit = await _context.Employees.FindAsync(record.EmployeeId);
                 _context.Attendances.Remove(record);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("حذف", "الحضور", $"حذف سجل حضور: {empDelAudit?.FullName} {record.AttendanceDate:yyyy/MM/dd}", id);
-                TempData["Success"] = "تم حذف سجل الحضور بنجاح";
+                await _audit.LogAsync("Delete", "Attendance", $"Delete attendance record: {empDelAudit?.FullName} {record.AttendanceDate:yyyy/MM/dd}", id);
+                TempData["Success"] = "Attendance record deleted created successfully";
             }
             return RedirectToAction(nameof(Index));
         }

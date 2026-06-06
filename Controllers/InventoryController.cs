@@ -59,19 +59,19 @@ namespace Salon.Controllers
                     _context.StockMovements.Add(new StockMovement
                     {
                         ProductId = model.Id,
-                        MovementType = "استلام",
+                        MovementType = "Received",
                         Quantity = model.OpeningQuantity,
                         UnitPrice = model.PurchasePrice,
                         SupplierId = model.SupplierId,
-                        Notes = "كمية افتتاحية",
+                        Notes = "Opening quantity",
                         MovementDate = DateTime.Today,
                         CreatedAt = DateTime.Now
                     });
                     await _context.SaveChangesAsync();
                 }
 
-                await _audit.LogAsync("إضافة", "المخزون", $"منتج جديد: {model.Name} — كمية: {model.OpeningQuantity}", model.Id);
-                TempData["Success"] = "تم إضافة المنتج بنجاح";
+                await _audit.LogAsync("Add", "Inventory", $"New product: {model.Name} — Quantity: {model.OpeningQuantity}", model.Id);
+                TempData["Success"] = "Product added created successfully";
                 return RedirectToAction(nameof(Index));
             }
             ViewBag.Suppliers = new SelectList(
@@ -99,8 +99,8 @@ namespace Salon.Controllers
             {
                 _context.Update(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("تعديل", "المخزون", $"تعديل منتج: {model.Name}", model.Id);
-                TempData["Success"] = "تم تعديل المنتج بنجاح";
+                await _audit.LogAsync("Edit", "Inventory", $"Edit product: {model.Name}", model.Id);
+                TempData["Success"] = "Product updated created successfully";
                 return RedirectToAction(nameof(Index));
             }
             ViewBag.Suppliers = new SelectList(
@@ -125,26 +125,26 @@ namespace Salon.Controllers
         public async Task<IActionResult> StockAdjust(StockMovement model)
         {
             if (model.ProductId == 0)
-                ModelState.AddModelError("ProductId", "اختر المنتج");
+                ModelState.AddModelError("ProductId", "Select a product");
 
             var product = model.ProductId > 0 ? await _context.Products.FindAsync(model.ProductId) : null;
 
             if (ModelState.IsValid && product != null)
             {
-                if (model.MovementType == "إهلاك" && model.Quantity > product.StockQuantity)
+                if (model.MovementType == "Depreciation" && model.Quantity > product.StockQuantity)
                 {
-                    ModelState.AddModelError("Quantity", $"الكمية المتاحة فقط: {product.StockQuantity}");
+                    ModelState.AddModelError("Quantity", $"Available quantity only: {product.StockQuantity}");
                 }
                 else
                 {
-                    product.StockQuantity += model.MovementType == "استلام" ? model.Quantity : -model.Quantity;
+                    product.StockQuantity += model.MovementType == "Received" ? model.Quantity : -model.Quantity;
                     model.CreatedAt = DateTime.Now;
                     _context.StockMovements.Add(model);
                     await _context.SaveChangesAsync();
-                    await _audit.LogAsync(model.MovementType, "المخزون", $"{model.MovementType}: {product.Name} — الكمية: {model.Quantity}", model.Id);
-                    TempData["Success"] = model.MovementType == "استلام"
-                        ? $"تم إضافة {model.Quantity} للمخزون"
-                        : $"تم تسجيل إهلاك {model.Quantity}";
+                    await _audit.LogAsync(model.MovementType, "Inventory", $"{model.MovementType}: {product.Name} — Quantity: {model.Quantity}", model.Id);
+                    TempData["Success"] = model.MovementType == "Received"
+                        ? $"Added {model.Quantity} to inventory"
+                        : $"Depreciation recorded: {model.Quantity}";
                     return RedirectToAction(nameof(Index));
                 }
             }
@@ -164,23 +164,23 @@ namespace Salon.Controllers
             ViewBag.Products = new SelectList(
                 await _context.Products.Where(p => p.IsActive && p.StockQuantity > 0).OrderBy(p => p.Name).ToListAsync(),
                 "Id", "Name");
-            return View(new StockMovement { MovementType = "بيع", MovementDate = DateTime.Today });
+            return View(new StockMovement { MovementType = "Sale", MovementDate = DateTime.Today });
         }
 
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> SellProduct(StockMovement model)
         {
-            model.MovementType = "بيع";
+            model.MovementType = "Sale";
             var product = model.ProductId > 0 ? await _context.Products.FindAsync(model.ProductId) : null;
 
             if (model.ProductId == 0)
-                ModelState.AddModelError("ProductId", "اختر المنتج");
+                ModelState.AddModelError("ProductId", "Select a product");
 
             if (ModelState.IsValid && product != null)
             {
                 if (model.Quantity > product.StockQuantity)
                 {
-                    ModelState.AddModelError("Quantity", $"الكمية المتاحة فقط: {product.StockQuantity}");
+                    ModelState.AddModelError("Quantity", $"Available quantity only: {product.StockQuantity}");
                 }
                 else
                 {
@@ -189,8 +189,8 @@ namespace Salon.Controllers
                     model.CreatedAt = DateTime.Now;
                     _context.StockMovements.Add(model);
                     await _context.SaveChangesAsync();
-                    await _audit.LogAsync("بيع", "المخزون", $"بيع: {product.Name} — الكمية: {model.Quantity} — الإجمالي: {(model.UnitPrice * model.Quantity):F3} د.ك", model.Id);
-                    TempData["Success"] = $"تم بيع {model.Quantity} من {product.Name} — الإجمالي: {(model.UnitPrice * model.Quantity):N3} د.ك";
+                    await _audit.LogAsync("Sale", "Inventory", $"Sale: {product.Name} — Quantity: {model.Quantity} — Total: {(model.UnitPrice * model.Quantity):F3} KD", model.Id);
+                    TempData["Success"] = $"Sold {model.Quantity} of {product.Name} — Total: {(model.UnitPrice * model.Quantity):N3} KD";
                     return RedirectToAction(nameof(Index));
                 }
             }
@@ -210,25 +210,25 @@ namespace Salon.Controllers
             ViewBag.Employees = new SelectList(
                 await _context.Employees.Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync(),
                 "Id", "FullName");
-            return View(new StockMovement { MovementType = "استهلاك", MovementDate = DateTime.Today });
+            return View(new StockMovement { MovementType = "Consumption", MovementDate = DateTime.Today });
         }
 
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Consume(StockMovement model)
         {
-            model.MovementType = "استهلاك";
+            model.MovementType = "Consumption";
             var product = model.ProductId > 0 ? await _context.Products.FindAsync(model.ProductId) : null;
 
             if (model.ProductId == 0)
-                ModelState.AddModelError("ProductId", "اختر المنتج");
+                ModelState.AddModelError("ProductId", "Select a product");
             if (!model.EmployeeId.HasValue)
-                ModelState.AddModelError("EmployeeId", "اختر الموظف");
+                ModelState.AddModelError("EmployeeId", "Select an employee");
 
             if (ModelState.IsValid && product != null)
             {
                 if (model.Quantity > product.StockQuantity)
                 {
-                    ModelState.AddModelError("Quantity", $"الكمية المتاحة فقط: {product.StockQuantity}");
+                    ModelState.AddModelError("Quantity", $"Available quantity only: {product.StockQuantity}");
                 }
                 else
                 {
@@ -237,8 +237,8 @@ namespace Salon.Controllers
                     _context.StockMovements.Add(model);
                     await _context.SaveChangesAsync();
                     var consumeEmp = model.EmployeeId.HasValue ? await _context.Employees.FindAsync(model.EmployeeId.Value) : null;
-                    await _audit.LogAsync("استهلاك", "المخزون", $"استهلاك: {product.Name} — الكمية: {model.Quantity} — الموظف: {consumeEmp?.FullName ?? "-"}", model.Id);
-                    TempData["Success"] = $"تم تسجيل استهلاك {model.Quantity} من {product.Name}";
+                    await _audit.LogAsync("Consumption", "Inventory", $"Consumption: {product.Name} — Quantity: {model.Quantity} — Employee: {consumeEmp?.FullName ?? "-"}", model.Id);
+                    TempData["Success"] = $"Consumption recorded: {model.Quantity} of {product.Name}";
                     return RedirectToAction(nameof(Index));
                 }
             }
@@ -259,7 +259,7 @@ namespace Salon.Controllers
             var query = _context.StockMovements
                 .Include(m => m.Product)
                 .Include(m => m.Employee)
-                .Where(m => m.MovementType == "استهلاك")
+                .Where(m => m.MovementType == "Consumption")
                 .AsQueryable();
 
             if (employeeId.HasValue) query = query.Where(m => m.EmployeeId == employeeId.Value);
@@ -314,8 +314,8 @@ namespace Salon.Controllers
             {
                 product.IsActive = false;
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("حذف", "المخزون", $"حذف منتج: {product.Name}", product.Id);
-                TempData["Success"] = "تم حذف المنتج بنجاح";
+                await _audit.LogAsync("Delete", "Inventory", $"Delete product: {product.Name}", product.Id);
+                TempData["Success"] = "Product deleted created successfully";
             }
             return RedirectToAction(nameof(Index));
         }

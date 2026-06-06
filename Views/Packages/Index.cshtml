@@ -1,4 +1,4 @@
-﻿@model  Salon.Models.ServicePackage
+﻿@model   Salon.Models.ServicePackage
 @using Salon.Models
 @{
     ViewData["Title"] = "الباقات";
@@ -319,11 +319,11 @@
                                     </div>
                                     <div class="pkg-detail-row">
                                         <span class="pkg-detail-label">الجلسات</span>
-                                        <span class="pkg-detail-value">@p.SessionCount جلسة</span>
+                                        <span class="pkg-detail-value">@p.SessionCount <span data-i18n-en="Session">جلسة</span></span>
                                     </div>
                                     <div class="pkg-detail-row">
                                         <span class="pkg-detail-label">الصلاحية</span>
-                                        <span class="pkg-detail-value">@p.ValidityDays يوم</span>
+                                        <span class="pkg-detail-value">@p.ValidityDays <span data-i18n-en="Day">يوم</span></span>
                                     </div>
                                 </div>
 
@@ -669,8 +669,10 @@
                 .then(r => r.json())
                 .then(data => {
                     document.getElementById('pricePaidInput').value = data.price.toFixed(3);
-                    document.getElementById('packageInfoText').textContent =
-                        `${data.sessionCount} جلسة | صلاحية ${data.validityDays} يوم | السعر ${data.price.toFixed(3)} د.ك`;
+                    var isEn = localStorage.getItem('lang') === 'en';
+                    document.getElementById('packageInfoText').textContent = isEn
+                        ? `${data.sessionCount} Session | Validity ${data.validityDays} Day | Price ${data.price.toFixed(3)} K.D.`
+                        : `${data.sessionCount} جلسة | صلاحية ${data.validityDays} يوم | السعر ${data.price.toFixed(3)} د.ك`;
                     document.getElementById('packageInfo').classList.remove('d-none');
                 });
         }

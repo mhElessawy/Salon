@@ -73,8 +73,8 @@ namespace Salon.Controllers
                     await _context.SaveChangesAsync();
                 }
 
-                await _audit.LogAsync("إضافة", "المواعيد", $"موعد جديد بتاريخ {model.AppointmentDate:yyyy/MM/dd HH:mm}", model.Id);
-                TempData["Success"] = "تم إضافة الموعد بنجاح";
+                await _audit.LogAsync("Add", "Appointments", $"New appointment on {model.AppointmentDate:yyyy/MM/dd HH:mm}", model.Id);
+                TempData["Success"] = "Appointment added created successfully";
                 return RedirectToAction(nameof(Index));
             }
             await PopulateDropdowns();
@@ -114,8 +114,8 @@ namespace Salon.Controllers
 
                 _context.Update(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("تعديل", "المواعيد", $"تعديل موعد رقم {model.Id}", model.Id);
-                TempData["Success"] = "تم تعديل الموعد بنجاح";
+                await _audit.LogAsync("Edit", "Appointments", $"Edit appointment ID {model.Id}", model.Id);
+                TempData["Success"] = "Appointment updated created successfully";
                 return RedirectToAction(nameof(Index));
             }
             await PopulateDropdowns();
@@ -130,8 +130,8 @@ namespace Salon.Controllers
             {
                 _context.Appointments.Remove(apt);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("حذف", "المواعيد", $"حذف موعد بتاريخ {apt.AppointmentDate:yyyy/MM/dd HH:mm}", id);
-                TempData["Success"] = "تم حذف الموعد بنجاح";
+                await _audit.LogAsync("Delete", "Appointments", $"Delete appointment on {apt.AppointmentDate:yyyy/MM/dd HH:mm}", id);
+                TempData["Success"] = "Appointment deleted created successfully";
             }
             return RedirectToAction(nameof(Index));
         }

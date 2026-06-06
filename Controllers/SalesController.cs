@@ -216,22 +216,22 @@ namespace Salon.Controllers
             model.SaleType = "منتجات";
 
             // ===== استهلاك موظف =====
-            if (transactionType == "استهلاك")
+            if (transactionType == "Consumption")
             {
                 if (!employeeRecipientId.HasValue)
                 {
-                    TempData["Error"] = "يرجى اختيار الموظف";
+                    TempData["Error"] = "Please select an employee";
                     await PopulateProductDropdowns();
                     return View(model);
                 }
                 if (itemNames == null || itemNames.Length == 0)
                 {
-                    TempData["Error"] = "يرجى اختيار منتج واحد على الأقل";
+                    TempData["Error"] = "Please select at least one product";
                     await PopulateProductDropdowns();
                     return View(model);
                 }
 
-                // التحقق من الكميات أولاً قبل الخصم
+                // التحقق of الكميات أولاً قبل الخصم
                 for (int i = 0; i < itemNames.Length; i++)
                 {
                     if (string.IsNullOrEmpty(itemNames[i])) continue;
@@ -242,7 +242,7 @@ namespace Salon.Controllers
                     if (product == null || product.StockQuantity < qty)
                     {
                         var available = product?.StockQuantity ?? 0;
-                        TempData["Error"] = $"لا يوجد مخزون كافٍ للمنتج «{itemNames[i]}». المتاح: {available}، المطلوب: {qty}";
+                        TempData["Error"] = $"Insufficient stock for product \"{itemNames[i]}\". Available: {available}, Required: {qty}";
                         await PopulateProductDropdowns();
                         return View(model);
                     }
@@ -263,7 +263,7 @@ namespace Salon.Controllers
                         _context.StockMovements.Add(new StockMovement
                         {
                             ProductId = id,
-                            MovementType = "استهلاك",
+                            MovementType = "Consumption",
                             Quantity = qty,
                             UnitPrice = price,
                             EmployeeId = employeeRecipientId,
@@ -273,16 +273,16 @@ namespace Salon.Controllers
                     }
                 }
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("استهلاك", "المبيعات",
+                await _audit.LogAsync("Consumption", "المبيعات",
                     $"استهلاك موظف - {itemNames?.Length ?? 0} منتج");
-                TempData["Success"] = "تم تسجيل الاستهلاك بنجاح";
+                TempData["Success"] = "Consumption recorded created successfully";
                 return RedirectToAction("Movements", "Inventory");
             }
 
             // ===== بيع لعميل =====
             if (ModelState.IsValid)
             {
-                // التحقق من الكميات أولاً قبل إنشاء الفاتورة
+                // التحقق of الكميات أولاً قبل إنشاء الفاتورة
                 if (itemNames != null)
                 {
                     for (int i = 0; i < itemNames.Length; i++)
@@ -295,7 +295,7 @@ namespace Salon.Controllers
                         if (product == null || product.StockQuantity < qty)
                         {
                             var available = product?.StockQuantity ?? 0;
-                            TempData["Error"] = $"لا يوجد مخزون كافٍ للمنتج «{itemNames[i]}». المتاح: {available}، المطلوب: {qty}";
+                            TempData["Error"] = $"Insufficient stock for product \"{itemNames[i]}\". Available: {available}, Required: {qty}";
                             await PopulateProductDropdowns();
                             return View(model);
                         }
@@ -339,10 +339,10 @@ namespace Salon.Controllers
                 }
                 model.NetAmount = model.TotalAmount - model.Discount;
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("إضافة", "المبيعات",
-                    $"فاتورة منتجات رقم {model.InvoiceNumber} - المبلغ: {model.NetAmount:F3} د.ك",
+                await _audit.LogAsync("Add", "المبيعات",
+                    $"فاتورة منتجات رقم {model.InvoiceNumber} - Amount: {model.NetAmount:F3} KD",
                     model.Id);
-                TempData["Success"] = $"تم إنشاء فاتورة المنتجات {model.InvoiceNumber} بنجاح";
+                TempData["Success"] = $"Products invoice {model.InvoiceNumber} created successfully";
                 return RedirectToAction(nameof(PrintInvoice), new { id = model.Id });
             }
             await PopulateProductDropdowns();
@@ -398,10 +398,10 @@ namespace Salon.Controllers
                 }
                 sale.Status = "ملغي";
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("إلغاء", "المبيعات",
+                await _audit.LogAsync("Cancel", "المبيعات",
                     $"إلغاء الفاتورة رقم {sale.InvoiceNumber}",
                     sale.Id);
-                TempData["Success"] = "تم إلغاء الفاتورة";
+                TempData["Success"] = "Invoice cancelled";
             }
             return RedirectToAction(nameof(Index));
         }
@@ -521,7 +521,7 @@ namespace Salon.Controllers
             ViewBag.Employees = sortedEmployees;
             ViewBag.EmployeeQueuePositions = todayQueue;
 
-            // دين على الموظف: فلترة حسب الدور والقسم
+            // دين على Employee: فلترة حسب الدور والقسم
             IQueryable<Employee> allEmpQuery = _context.Employees.Where(e => e.IsActive);
             if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
                 allEmpQuery = allEmpQuery.Where(e => e.Id == user.LinkedEmployeeId!.Value);
@@ -713,7 +713,7 @@ namespace Salon.Controllers
                     }
                 }
 
-                // ── خصم جلسة من باقة العميل ──
+                // ── خصم جلسة of باقة العميل ──
                 if (customerPackageId.HasValue && customerPackageId.Value > 0)
                 {
                     var cp = await _context.CustomerPackages
@@ -735,9 +735,9 @@ namespace Salon.Controllers
                     }
                 }
 
-                TempData["Success"] = $"تم إنشاء الفاتورة {model.InvoiceNumber} بنجاح";
-                await _audit.LogAsync("إضافة", "المبيعات",
-                    $"فاتورة {dept} رقم {model.InvoiceNumber} - المبلغ: {model.NetAmount:F3} د.ك",
+                TempData["Success"] = $"Invoice {model.InvoiceNumber} created successfully";
+                await _audit.LogAsync("Add", "المبيعات",
+                    $"فاتورة {dept} رقم {model.InvoiceNumber} - Amount: {model.NetAmount:F3} KD",
                     model.Id);
 
                 // Send email notification (fire-and-forget, never blocks the response)

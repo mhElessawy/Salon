@@ -211,7 +211,7 @@ namespace Salon.Controllers
 
                 if (alreadyExists)
                 {
-                    ModelState.AddModelError("", "تم تسجيل راتب هذا الموظف لهذا الشهر مسبقًا");
+                    ModelState.AddModelError("", "Salary already recorded for this employee this month");
                     var cu2 = await _userManager.GetUserAsync(User);
                     var ud2 = cu2?.UserDepartment;
                     var eq2 = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
@@ -226,11 +226,11 @@ namespace Salon.Controllers
                 await _context.SaveChangesAsync();
 
                 var emp = await _context.Employees.FindAsync(model.EmployeeId);
-                await _audit.LogAsync("إضافة", "الرواتب",
-                    $"إضافة راتب شهر {model.Month}/{model.Year} للموظف: {emp?.FullName ?? model.EmployeeId.ToString()} صافي: {model.NetSalary:N3} د.ك",
+                await _audit.LogAsync("Add", "Salaries",
+                    $"إضافة راتب شهر {model.Month}/{model.Year} للموظف: {emp?.FullName ?? model.EmployeeId.ToString()} صافي: {model.NetSalary:N3} KD",
                     model.Id);
 
-                TempData["Success"] = "تم إضافة راتب الموظف بنجاح";
+                TempData["Success"] = "Employee salary added created successfully";
                 return RedirectToAction(nameof(Index));
             }
             var cu3 = await _userManager.GetUserAsync(User);
@@ -280,11 +280,11 @@ namespace Salon.Controllers
 
                 await _context.SaveChangesAsync();
 
-                await _audit.LogAsync("صرف", "الرواتب",
-                    $"صرف راتب شهر {salary.Month}/{salary.Year} للموظف: {salary.Employee?.FullName ?? salary.EmployeeId.ToString()} بمبلغ {salary.NetSalary:N3} د.ك",
+                await _audit.LogAsync("Pay", "Salaries",
+                    $"صرف راتب شهر {salary.Month}/{salary.Year} للموظف: {salary.Employee?.FullName ?? salary.EmployeeId.ToString()} بمبلغ {salary.NetSalary:N3} KD",
                     salary.Id);
 
-                TempData["Success"] = "تم صرف الراتب بنجاح";
+                TempData["Success"] = "Salary paid created successfully";
             }
             return RedirectToAction(nameof(Index));
         }
@@ -302,11 +302,11 @@ namespace Salon.Controllers
                 _context.Salaries.Remove(salary);
                 await _context.SaveChangesAsync();
 
-                await _audit.LogAsync("حذف", "الرواتب",
+                await _audit.LogAsync("Delete", "Salaries",
                     $"حذف راتب شهر {month}/{year} للموظف: {empName}",
                     id);
 
-                TempData["Success"] = "تم حذف سجل الراتب بنجاح";
+                TempData["Success"] = "Salary record deleted created successfully";
             }
             return RedirectToAction(nameof(Index));
         }

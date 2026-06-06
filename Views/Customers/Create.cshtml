@@ -27,7 +27,10 @@
                     @if (!string.IsNullOrEmpty(userDept))
                     {
                         <input type="hidden" asp-for="Department" />
-                        <input type="text" class="form-control" value="@userDept" disabled />
+                        <div class="form-control bg-light" style="cursor:default;"
+                             data-i18n-en="@(userDept == "حلاقة" ? "Barber" : userDept == "مساج" ? "Massage" : "All")">
+                            @userDept
+                        </div>
                     }
                     else
                     {

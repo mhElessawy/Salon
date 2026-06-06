@@ -42,7 +42,7 @@ namespace Salon.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            // التحقق من المستخدم وكلمة المرور يدوياً
+            // التحقق of المستخدم وكلمة المرور يدوياً
             var user = await _userManager.FindByEmailAsync(model.Email);
             if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
             {
@@ -51,15 +51,15 @@ namespace Salon.Controllers
                 await _signInManager.SignInAsync(user, model.RememberMe);
 
                 // تسجيل حدث تسجيل الدخول مباشرةً بمعرف المستخدم المعروف
-                await _audit.LogAsync("تسجيل دخول", "النظام",
-                    $"تسجيل دخول بنجاح - {user.FullName ?? user.Email}");
+                await _audit.LogAsync("Login", "System",
+                    $"تسجيل دخول created successfully - {user.FullName ?? user.Email}");
 
                 if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                     return Redirect(returnUrl);
                 return RedirectToAction("Index", "Dashboard");
             }
 
-            ModelState.AddModelError(string.Empty, "البريد الإلكتروني أو كلمة المرور غير صحيحة");
+            ModelState.AddModelError(string.Empty, "Invalid email or password");
             return View(model);
         }
 
@@ -89,7 +89,7 @@ namespace Salon.Controllers
             if (result.Succeeded)
             {
                 await _signInManager.RefreshSignInAsync(user);
-                TempData["Success"] = "تم تغيير كلمة المرور بنجاح";
+                TempData["Success"] = "Password changed created successfully";
                 return RedirectToAction("Index", "Dashboard");
             }
 

@@ -90,19 +90,19 @@ namespace Salon.Controllers
 
             var knownModules = new List<string>
             {
-                "الأقسام", "الباقات", "الحضور", "الخدمات", "الرواتب",
-                "السلف", "الشفتات", "العملاء", "الموردين", "الموظفين",
-                "المبيعات", "المخزون", "المستخدمين", "المصروفات", "المواعيد",
-                "النظام", "فئات الخدمات"
+                "Departments", "Packages", "Attendance", "Services", "Salaries",
+                "Advances", "Shifts", "Customers", "Suppliers", "Employees",
+                "المبيعات", "Inventory", "Users", "Expenses", "Appointments",
+                "System", "Service Categories"
             };
             var dbModules = await _context.AuditLogs.Select(l => l.Module).Distinct().ToListAsync();
             ViewBag.Modules = knownModules.Union(dbModules).OrderBy(m => m).ToList();
 
             var knownActions = new List<string>
             {
-                "إضافة", "إغلاق", "إلغاء", "استخدام", "استهلاك", "استلام",
-                "انصراف", "إهلاك", "بيع", "تسجيل دخول", "تعديل", "تعيين",
-                "حذف", "حضور", "خصم", "صرف", "عودة", "فتح", "موافقة"
+                "Add", "Close", "Cancel", "Use", "Consumption", "Receiving",
+                "Check-Out", "Depreciation", "Sale", "Login", "Edit", "Assign",
+                "Delete", "Check-In", "خصم", "Pay", "Return", "Open", "Approve"
             };
             var dbActions = await _context.AuditLogs.Select(l => l.Action).Distinct().ToListAsync();
             ViewBag.Actions = knownActions.Union(dbActions).OrderBy(a => a).ToList();

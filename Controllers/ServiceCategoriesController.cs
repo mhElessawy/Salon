@@ -48,8 +48,8 @@ namespace Salon.Controllers
                 model.CreatedAt = DateTime.Now;
                 _context.ServiceCategories.Add(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("إضافة", "فئات الخدمات", $"فئة جديدة: {model.Name}", model.Id);
-                TempData["Success"] = "تم إضافة الفئة بنجاح";
+                await _audit.LogAsync("Add", "Service Categories", $"New category: {model.Name}", model.Id);
+                TempData["Success"] = "Category added created successfully";
                 return RedirectToAction(nameof(Index));
             }
             return View(model);
@@ -70,8 +70,8 @@ namespace Salon.Controllers
             {
                 _context.Update(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("تعديل", "فئات الخدمات", $"تعديل فئة: {model.Name}", model.Id);
-                TempData["Success"] = "تم تعديل الفئة بنجاح";
+                await _audit.LogAsync("Edit", "Service Categories", $"Edit category: {model.Name}", model.Id);
+                TempData["Success"] = "Category updated created successfully";
                 return RedirectToAction(nameof(Index));
             }
             return View(model);
@@ -85,8 +85,8 @@ namespace Salon.Controllers
             {
                 cat.IsActive = false;
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("حذف", "فئات الخدمات", $"حذف فئة: {cat.Name}", cat.Id);
-                TempData["Success"] = "تم حذف الفئة بنجاح";
+                await _audit.LogAsync("Delete", "Service Categories", $"Delete category: {cat.Name}", cat.Id);
+                TempData["Success"] = "Category deleted created successfully";
             }
             return RedirectToAction(nameof(Index));
         }
