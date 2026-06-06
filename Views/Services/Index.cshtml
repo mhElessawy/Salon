@@ -134,11 +134,11 @@ else
                             </div>
                             <div class="svc-detail-row">
                                 <span class="svc-detail-label">المدة</span>
-                                <span class="svc-detail-value">@(s.DurationMinutes.HasValue ? $"{s.DurationMinutes} دقيقة" : "-")</span>
+                                <span class="svc-detail-value">@(s.DurationMinutes.HasValue ? s.DurationMinutes.ToString() : "-") @if (s.DurationMinutes.HasValue) { <span data-i18n-en="min">دقيقة</span> }</span>
                             </div>
                             <div class="svc-detail-row">
                                 <span class="svc-detail-label">عدد الفواتير</span>
-                                <span class="svc-detail-value svc-invoice-val">@svcCnt فاتورة</span>
+                                <span class="svc-detail-value svc-invoice-val">@svcCnt <span data-i18n-en="Invoice">فاتورة</span></span>
                             </div>
                             <div class="svc-detail-row">
                                 <span class="svc-detail-label">إجمالي المبيعات</span>
@@ -147,7 +147,7 @@ else
                             <div class="svc-detail-divider"></div>
                             <div class="svc-detail-row">
                                 <span class="svc-detail-label">فواتير آخر 30 يوم</span>
-                                <span class="svc-detail-value svc-30-inv">@svc30Inv فاتورة</span>
+                                <span class="svc-detail-value svc-30-inv">@svc30Inv <span data-i18n-en="Invoice">فاتورة</span></span>
                             </div>
                             <div class="svc-detail-row">
                                 <span class="svc-detail-label">مبيعات آخر 30 يوم</span>
