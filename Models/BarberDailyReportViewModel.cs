@@ -39,9 +39,9 @@
         public string ClosingTime { get; set; } = string.Empty;
         public string? UserDepartment { get; set; }
 
-        // Department display helpers
-        public bool IsBarberOnly => UserDepartment == "Barber";
-        public bool IsMassageOnly => UserDepartment == "Massage";
+        // Department display helpers — compare against Arabic DB values
+        public bool IsBarberOnly => UserDepartment == "حلاقة";
+        public bool IsMassageOnly => UserDepartment == "مساج";
         public bool ShowBoth => !IsBarberOnly && !IsMassageOnly;
 
         public string ReportTitle => ShowBoth
