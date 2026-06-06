@@ -456,6 +456,7 @@ window.PAGE_TRANSLATIONS = {
     'الاسم الكامل': 'Full Name',
     'العمولة (%)': 'Commission (%)',
     'رقم الإقامة / الهوية': 'Residency / ID Number',
+    'تاريخ المصروف': 'Expense Date',
     // ── Customer form ─────────────────────────────────────────
     'الاسم الكامل عربي': 'Full Name (Arabic)',
     'الجنس': 'Gender',
