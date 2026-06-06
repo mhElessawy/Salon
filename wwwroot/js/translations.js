@@ -325,6 +325,18 @@ window.PAGE_TRANSLATIONS = {
     'لا توجد مواعيد في هذا اليوم': 'No Appointments Today',
 
     // ── Reports ──────────────────────────────────────────
+    // BarberDailyReport model-computed titles (Arabic DB values)
+    'تقرير يومي للإيرادات (الحلاقة والمساج)': 'Daily Revenue Report (Barber & Massage)',
+    'تقرير يومي للإيرادات والحلاقين': 'Daily Revenue Report (Barbers)',
+    'تقرير يومي للإيرادات والمساجين': 'Daily Revenue Report (Massage)',
+    'إيرادات الموظفين': 'Employee Revenue',
+    'إيرادات الحلاقين': 'Barber Revenue',
+    'إيرادات المعالجين': 'Therapist Revenue',
+    'الموظفين المسجلين': 'Registered Employees',
+    'الحلاقين المسجلين': 'Registered Barbers',
+    'المعالجين المسجلين': 'Registered Therapists',
+    'الحلاق': 'Barber',
+    'الحلاقين': 'Barbers',
     'التقارير': 'Reports',
     'الوصول إلى جميع تقارير النظام': 'Access All System Reports',
     'تقرير المبيعات': 'Sales Report',
@@ -377,6 +389,12 @@ window.PAGE_TRANSLATIONS = {
     'نظام الباقات': 'Packages System',
 
     // ── Users / Permissions ───────────────────────────────
+    'صلاحيات المستخدم': 'User Permissions',
+    'مسموح': 'Allowed',
+    'محظور': 'Denied',
+    'شاشة': 'Screen',
+    'مدير النظام لديه صلاحيات كاملة لا يمكن تقييدها.': 'System Admin has full permissions that cannot be restricted.',
+    'المدير لديه صلاحيات كاملة لا يمكن تقييدها.': 'Manager has full permissions that cannot be restricted.',
     'إدارة المستخدمين': 'User Management',
     'إضافة وتعديل المستخدمين وصلاحياتهم': 'Add and edit users and permissions',
     'إضافة مستخدم': 'Add User',

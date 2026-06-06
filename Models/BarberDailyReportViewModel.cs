@@ -39,20 +39,20 @@
         public string ClosingTime { get; set; } = string.Empty;
         public string? UserDepartment { get; set; }
 
-        // Department display helpers
+        // Department display helpers — compare against Arabic DB values
         public bool IsBarberOnly => UserDepartment == "حلاقة";
         public bool IsMassageOnly => UserDepartment == "مساج";
         public bool ShowBoth => !IsBarberOnly && !IsMassageOnly;
 
         public string ReportTitle => ShowBoth
-            ? "تقرير يومي للإيرادات (الحلاقة والمساج)"
-            : IsBarberOnly ? "تقرير يومي للإيرادات والحلاقين"
-            : "تقرير يومي للإيرادات والمساجين";
+            ? "Daily Revenue Report (Barber & Massage)"
+            : IsBarberOnly ? "Daily Revenue Report (Barbers)"
+            : "Daily Revenue Report (Massage)";
 
-        public string EmployeeLabel => ShowBoth ? "الموظف" : IsBarberOnly ? "الحلاق" : "المعالج";
-        public string RegisteredLabel => ShowBoth ? "الموظفين المسجلين" : IsBarberOnly ? "الحلاقين المسجلين" : "المعالجين المسجلين";
-        public string TableTitle => ShowBoth ? "إيرادات الموظفين" : IsBarberOnly ? "إيرادات الحلاقين" : "إيرادات المعالجين";
-        public string CommissionNoteLabel => ShowBoth ? "الموظفين" : IsBarberOnly ? "الحلاقين" : "المعالجين";
+        public string EmployeeLabel => ShowBoth ? "Employee" : IsBarberOnly ? "Barber" : "Therapist";
+        public string RegisteredLabel => ShowBoth ? "Registered Employees" : IsBarberOnly ? "Registered Barbers" : "Registered Therapists";
+        public string TableTitle => ShowBoth ? "Employee Revenue" : IsBarberOnly ? "Barber Revenue" : "Therapist Revenue";
+        public string CommissionNoteLabel => ShowBoth ? "Employees" : IsBarberOnly ? "Barbers" : "Therapists";
 
         // Revenue summary
         public decimal TotalRevenue { get; set; }
