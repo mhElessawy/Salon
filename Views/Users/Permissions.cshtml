@@ -146,8 +146,8 @@
 
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
-        <h1><i class="fas fa-key me-2"></i>صلاحيات: @userName</h1>
-        <p>الدور: <span class="badge bg-primary">@roleAr</span></p>
+        <h1><i class="fas fa-key me-2"></i><span data-i18n-en="Permissions:">صلاحيات:</span> @userName</h1>
+        <p><span data-i18n-en="Role:">الدور:</span> <span class="badge bg-primary">@roleAr</span></p>
     </div>
     <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
         <i class="fas fa-arrow-right me-1"></i> رجوع للمستخدمين
@@ -185,7 +185,7 @@ else
                 <div class="perm-group-header">
                     <i class="fas fa-layer-group text-primary"></i>
                     @group.Key
-                    <small class="text-muted me-auto">(@group.Count() شاشة)</small>
+                    <small class="text-muted me-auto">(@group.Count() <span data-i18n-en="Screen">شاشة</span>)</small>
                     <button type="button" class="btn btn-sm btn-outline-primary py-0"
                             onclick="setGroup('@group.Key', true)" style="font-size:12px">
                         كل المجموعة
@@ -289,13 +289,14 @@ else
 
 @section Scripts {
     <script>
+        var _isEn = () => localStorage.getItem('lang') === 'en';
         document.querySelectorAll('.perm-toggle').forEach(cb => {
             cb.addEventListener('change', function () {
                 const label = document.getElementById('label_' + this.value);
                 if (!label) return;
                 const isAdd    = this.classList.contains('add-toggle');
                 const isDelete = this.classList.contains('delete-toggle');
-                label.textContent = this.checked ? 'مسموح' : 'محظور';
+                label.textContent = this.checked ? (_isEn() ? 'Allowed' : 'مسموح') : (_isEn() ? 'Denied' : 'محظور');
                 if (this.checked) {
                     label.style.color = isDelete ? '#c0392b' : isAdd ? '#1e7e34' : 'var(--primary)';
                 } else {
@@ -318,7 +319,7 @@ else
             if (!label) return;
             const isAdd    = cb.classList.contains('add-toggle');
             const isDelete = cb.classList.contains('delete-toggle');
-            label.textContent = val ? 'مسموح' : 'محظور';
+            label.textContent = val ? (_isEn() ? 'Allowed' : 'مسموح') : (_isEn() ? 'Denied' : 'محظور');
             label.style.color = val
                 ? (isDelete ? '#c0392b' : isAdd ? '#1e7e34' : 'var(--primary)')
                 : '#adb5bd';

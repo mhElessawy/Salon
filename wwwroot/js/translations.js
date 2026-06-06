@@ -389,6 +389,12 @@ window.PAGE_TRANSLATIONS = {
     'نظام الباقات': 'Packages System',
 
     // ── Users / Permissions ───────────────────────────────
+    'صلاحيات المستخدم': 'User Permissions',
+    'مسموح': 'Allowed',
+    'محظور': 'Denied',
+    'شاشة': 'Screen',
+    'مدير النظام لديه صلاحيات كاملة لا يمكن تقييدها.': 'System Admin has full permissions that cannot be restricted.',
+    'المدير لديه صلاحيات كاملة لا يمكن تقييدها.': 'Manager has full permissions that cannot be restricted.',
     'إدارة المستخدمين': 'User Management',
     'إضافة وتعديل المستخدمين وصلاحياتهم': 'Add and edit users and permissions',
     'إضافة مستخدم': 'Add User',
