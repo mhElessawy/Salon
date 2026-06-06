@@ -113,8 +113,8 @@ else
 {
     <h5 class="mb-3" style="color:@grp.Color; border-bottom:2px solid #f0f0f0; padding-bottom:8px;">
         <i class="@(grp.Label == "حلاقة" ? "fas fa-cut" : grp.Label == "مساج" ? "fas fa-spa" : "fas fa-users") me-2"></i>
-        قسم @grp.Label
-        <span class="badge ms-2" style="background:@grp.Color; font-size:12px;">@grp.Rows.Count موظف</span>
+        <span data-i18n-en="Department">قسم</span> @grp.Label
+        <span class="badge ms-2" style="background:@grp.Color; font-size:12px;">@grp.Rows.Count <span data-i18n-en="employee">موظف</span></span>
     </h5>
 
     <div class="card mb-4 table-responsive">
