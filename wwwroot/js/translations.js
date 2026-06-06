@@ -365,7 +365,7 @@ window.PAGE_TRANSLATIONS = {
     'إعدادات الصالون': 'Salon Settings',
     'اسم الصالون': 'Salon Name',
     'العملة': 'Currency',
-    'دينار كويتي (د.ك)': 'Kuwaiti Dinar (KD)',
+    'دينار كويتي (د.ك)': 'Kuwaiti Dinar (K.D.)',
     'ريال سعودي (ر.س)': 'Saudi Riyal (SR)',
     'درهم إماراتي (د.إ)': 'UAE Dirham (AED)',
     'رقم الهاتف': 'Phone Number',
@@ -415,8 +415,11 @@ window.PAGE_TRANSLATIONS = {
     'الرقم': 'No.',
     'حلاقة': 'Barber',
     'مساج': 'Massage',
+    'الحلاقة': 'Barber',
+    'المساج': 'Massage',
+    'الكل': 'All',
     'دق': 'min',
-    'د.ك': 'KD',
+    'د.ك': 'K.D.',
     'إجمالي السلف': 'Total Advances',
 
     // ── Additional missing translations ──────────────────
@@ -443,7 +446,7 @@ window.PAGE_TRANSLATIONS = {
     '-- مشترك (للكل) --': '-- Shared (For All) --',
     '0 = سعر البيع الافتراضي': '0 = Default Sale Price',
     '0 فاتورة': '0 Invoice',
-    '0.000 د.ك': '0.000 KD',
+    '0.000 د.ك': '0.000 K.D.',
     '؟': '?',
     'آخر 100 معاملة': 'Last 100 Transactions',
     'آخر المشتريات': 'Recent Purchases',
@@ -587,10 +590,10 @@ window.PAGE_TRANSLATIONS = {
     'الكاش': 'Cash',
     'الكاشير — فاتورة جديدة': 'Cashier — New Invoice',
     'المبلغ': 'Amount',
-    'المبلغ (د.ك)': 'Amount (KD)',
+    'المبلغ (د.ك)': 'Amount (K.D.)',
     'المبلغ الأصلي': 'Original Amount',
     'المبلغ المدفوع الآن:': 'Amount Paid Now:',
-    'المبيعات (د.ك)': 'Sales (KD)',
+    'المبيعات (د.ك)': 'Sales (K.D.)',
     'المبيعات والفواتير': 'Sales & Invoices',
     'المجموع الكلي': 'Grand Total',
     'المخصوم': 'Deducted',
@@ -831,7 +834,7 @@ window.PAGE_TRANSLATIONS = {
     'ليس لديك صلاحية للوصول إلى هذه الصفحة': 'You do not have permission to access this page',
     'مؤكد': 'Confirmed',
     'مبالغ محصلة خارجية': 'External Collected Amounts',
-    'مبلغ الدفعة (د.ك)': 'Payment Amount (KD)',
+    'مبلغ الدفعة (د.ك)': 'Payment Amount (K.D.)',
     'مبلغ السلفة (استلام)': 'Advance Amount (Receipt)',
     'مبلغ كي نت': 'K-Net Amount',
     'مبيعات آخر 30 يوم': 'Sales Last 30 Days',
@@ -870,7 +873,7 @@ window.PAGE_TRANSLATIONS = {
     'مقفل': 'Locked',
     'ملاحظات (اختياري)': 'Notes (Optional)',
     'ملاحظات:': 'Notes:',
-    'ملاحظة: جميع المبالغ بالدينار الكويتي (د.ك)': 'Note: All amounts in Kuwaiti Dinar (KD)',
+    'ملاحظة: جميع المبالغ بالدينار الكويتي (د.ك)': 'Note: All amounts in Kuwaiti Dinar (K.D.)',
     'ملخص الإيرادات': 'Revenue Summary',
     'ملخص الموظفين': 'Employee Summary',
     'ملخص يوم': 'Day Summary',
@@ -1006,12 +1009,12 @@ function translatePageContent(lang) {
             }
         });
 
-        // Replace currency suffix د.ك → KD in any text node containing numbers
+        // Replace currency suffix د.ك → K.D. in any text node containing numbers
         (function replaceCurrency(node) {
             if (node.nodeType === 3) {
                 if (/د\.ك/.test(node.textContent)) {
                     if (!node._origCur) node._origCur = node.textContent;
-                    node.textContent = node.textContent.replace(/د\.ك/g, 'KD');
+                    node.textContent = node.textContent.replace(/د\.ك/g, 'K.D.');
                 }
             } else if (node.nodeType === 1 && !SKIP_TAGS[node.tagName]) {
                 for (var c = 0; c < node.childNodes.length; c++) replaceCurrency(node.childNodes[c]);
