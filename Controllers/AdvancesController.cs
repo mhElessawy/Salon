@@ -92,11 +92,11 @@ namespace Salon.Controllers
                 await _context.SaveChangesAsync();
 
                 var emp = await _context.Employees.FindAsync(model.EmployeeId);
-                await _audit.LogAsync("إضافة", "السلف",
-                    $"إضافة سلفة للموظف: {emp?.FullName ?? model.EmployeeId.ToString()} بمبلغ {model.Amount:N3} د.ك",
+                await _audit.LogAsync("Add", "Advances",
+                    $"إضافة سلفة للموظف: {emp?.FullName ?? model.EmployeeId.ToString()} بمبلغ {model.Amount:N3} KD",
                     model.Id);
 
-                TempData["Success"] = "تم إضافة السلفة بنجاح";
+                TempData["Success"] = "Advance added created successfully";
                 return RedirectToAction(nameof(Index));
             }
             var cu2 = await _userManager.GetUserAsync(User);
@@ -158,11 +158,11 @@ namespace Salon.Controllers
                 advance.Status = "موافق عليها";
                 await _context.SaveChangesAsync();
 
-                await _audit.LogAsync("موافقة", "السلف",
-                    $"الموافقة على سلفة الموظف: {advance.Employee?.FullName ?? advance.EmployeeId.ToString()} بمبلغ {advance.Amount:N3} د.ك",
+                await _audit.LogAsync("Approve", "Advances",
+                    $"الموافقة على سلفة Employee: {advance.Employee?.FullName ?? advance.EmployeeId.ToString()} بمبلغ {advance.Amount:N3} KD",
                     advance.Id);
 
-                TempData["Success"] = "تم الموافقة على السلفة بنجاح";
+                TempData["Success"] = "Advance approved created successfully";
             }
             return RedirectToAction(nameof(Index));
         }
@@ -179,11 +179,11 @@ namespace Salon.Controllers
                 _context.EmployeeAdvances.Remove(advance);
                 await _context.SaveChangesAsync();
 
-                await _audit.LogAsync("حذف", "السلف",
-                    $"حذف سلفة الموظف: {empName} بمبلغ {amount:N3} د.ك",
+                await _audit.LogAsync("Delete", "Advances",
+                    $"حذف سلفة Employee: {empName} بمبلغ {amount:N3} KD",
                     id);
 
-                TempData["Success"] = "تم حذف السلفة بنجاح";
+                TempData["Success"] = "Advance deleted created successfully";
             }
             return RedirectToAction(nameof(Index));
         }

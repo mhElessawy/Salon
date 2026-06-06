@@ -43,8 +43,8 @@ namespace Salon.Controllers
                 model.CreatedAt = DateTime.Now;
                 _context.Shifts.Add(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("فتح", "الشفتات", $"فتح شفت: {model.ShiftDate:yyyy/MM/dd} {model.StartTime}", model.Id);
-                TempData["Success"] = "تم فتح الشفت بنجاح";
+                await _audit.LogAsync("Open", "Shifts", $"Open shift: {model.ShiftDate:yyyy/MM/dd} {model.StartTime}", model.Id);
+                TempData["Success"] = "Shift opened created successfully";
                 return RedirectToAction(nameof(Index));
             }
             return View(model);
@@ -61,8 +61,8 @@ namespace Salon.Controllers
                 shift.Status = "مغلق";
                 shift.Notes = notes;
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("إغلاق", "الشفتات", $"إغلاق شفت: {shift.ShiftDate:yyyy/MM/dd} — الرصيد: {closingBalance:F3} د.ك", id);
-                TempData["Success"] = "تم إغلاق الشفت بنجاح";
+                await _audit.LogAsync("Close", "Shifts", $"Close shift: {shift.ShiftDate:yyyy/MM/dd} — Balance: {closingBalance:F3} KD", id);
+                TempData["Success"] = "Shift closed created successfully";
             }
             return RedirectToAction(nameof(Index));
         }

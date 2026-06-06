@@ -7,22 +7,22 @@ namespace Salon.Models
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "اسم الخدمة مطلوب")]
-        [Display(Name = "اسم الخدمة")]
+        [Required(ErrorMessage = "Service name is required")]
+        [Display(Name = "Service Name")]
         public string Name { get; set; } = string.Empty;
 
-        [Display(Name = "الوصف")]
+        [Display(Name = "Description")]
         public string? Description { get; set; }
 
-        [Required(ErrorMessage = "السعر مطلوب")]
-        [Display(Name = "السعر")]
+        [Required(ErrorMessage = "Price is required")]
+        [Display(Name = "Price")]
         [DataType(DataType.Currency)]
         public decimal Price { get; set; }
 
-        [Display(Name = "المدة (دقائق)")]
+        [Display(Name = "Duration (Minutes)")]
         public int? DurationMinutes { get; set; }
 
-        [Display(Name = "الفئة")]
+        [Display(Name = "Category")]
         public int? ServiceCategoryId { get; set; }
 
         [ForeignKey("ServiceCategoryId")]

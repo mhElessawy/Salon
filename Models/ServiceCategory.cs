@@ -6,21 +6,21 @@ namespace Salon.Models
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "اسم الفئة مطلوب")]
-        [Display(Name = "اسم الفئة")]
+        [Required(ErrorMessage = "Category name is required")]
+        [Display(Name = "Category Name")]
         public string Name { get; set; } = string.Empty;
 
-        [Display(Name = "الوصف")]
+        [Display(Name = "Description")]
         public string? Description { get; set; }
 
-        [Display(Name = "الأيقونة (Font Awesome)")]
+        [Display(Name = "Icon (Font Awesome)")]
         public string? Icon { get; set; } = "fas fa-cut";
 
-        [Display(Name = "اللون")]
+        [Display(Name = "Color")]
         public string? Color { get; set; } = "#F7941D";
 
-        [Display(Name = "القسم")]
-        public string? Department { get; set; } // "حلاقة" | "مساج"
+        [Display(Name = "Department")]
+        public string? Department { get; set; } // "Barber" | "Massage"
 
         public bool IsActive { get; set; } = true;
 

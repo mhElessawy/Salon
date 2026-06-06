@@ -8,40 +8,40 @@ namespace Salon.Models
         public int Id { get; set; }
 
         [Required]
-        [Display(Name = "المنتج")]
+        [Display(Name = "Product")]
         public int ProductId { get; set; }
 
         [ForeignKey("ProductId")]
         public Product? Product { get; set; }
 
-        /// <summary>استلام | إهلاك | بيع | استهلاك</summary>
-        [Display(Name = "نوع الحركة")]
-        public string MovementType { get; set; } = "استلام";
+        /// <summary>Received | Depreciation | Sale | Consumption</summary>
+        [Display(Name = "Movement Type")]
+        public string MovementType { get; set; } = "Received";
 
         [Required]
-        [Display(Name = "الكمية")]
+        [Display(Name = "Quantity")]
         public int Quantity { get; set; }
 
-        [Display(Name = "سعر الوحدة")]
+        [Display(Name = "Unit Price")]
         [DataType(DataType.Currency)]
         public decimal UnitPrice { get; set; }
 
-        [Display(Name = "الموظف")]
+        [Display(Name = "Employee")]
         public int? EmployeeId { get; set; }
 
         [ForeignKey("EmployeeId")]
         public Employee? Employee { get; set; }
 
-        [Display(Name = "المورد")]
+        [Display(Name = "Supplier")]
         public int? SupplierId { get; set; }
 
         [ForeignKey("SupplierId")]
         public Supplier? Supplier { get; set; }
 
-        [Display(Name = "السبب / الملاحظات")]
+        [Display(Name = "Reason / Notes")]
         public string? Notes { get; set; }
 
-        [Display(Name = "تاريخ الحركة")]
+        [Display(Name = "Movement Date")]
         [DataType(DataType.Date)]
         public DateTime MovementDate { get; set; } = DateTime.Today;
 

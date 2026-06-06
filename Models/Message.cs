@@ -6,27 +6,27 @@ namespace Salon.Models
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "المرسل مطلوب")]
-        [Display(Name = "المرسل")]
+        [Required(ErrorMessage = "Sender is required")]
+        [Display(Name = "Sender")]
         public string SenderId { get; set; } = string.Empty;
 
-        [Display(Name = "المرسل إليه")]
+        [Display(Name = "Recipient")]
         public string? ReceiverId { get; set; }
 
-        [Required(ErrorMessage = "الموضوع مطلوب")]
-        [Display(Name = "الموضوع")]
+        [Required(ErrorMessage = "Subject is required")]
+        [Display(Name = "Subject")]
         public string Subject { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "المحتوى مطلوب")]
-        [Display(Name = "المحتوى")]
+        [Required(ErrorMessage = "Content is required")]
+        [Display(Name = "Content")]
         public string Body { get; set; } = string.Empty;
 
-        [Display(Name = "تاريخ الإرسال")]
+        [Display(Name = "Send Date")]
         public DateTime SentAt { get; set; } = DateTime.Now;
 
         public bool IsRead { get; set; } = false;
 
-        [Display(Name = "للجميع")]
+        [Display(Name = "For All")]
         public bool IsBroadcast { get; set; } = false;
     }
 }

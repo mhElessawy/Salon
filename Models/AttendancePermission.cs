@@ -13,13 +13,13 @@ namespace Salon.Models
         [ForeignKey("AttendanceId")]
         public Attendance? Attendance { get; set; }
 
-        [Display(Name = "وقت الاستئذان")]
+        [Display(Name = "Permission Time")]
         public TimeSpan LeaveTime { get; set; }
 
-        [Display(Name = "وقت العودة")]
+        [Display(Name = "Return Time")]
         public TimeSpan? ReturnTime { get; set; }
 
-        [Display(Name = "ملاحظات")]
+        [Display(Name = "Notes")]
         public string? Notes { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;

@@ -6,32 +6,32 @@ namespace Salon.Models
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "البيان مطلوب")]
-        [Display(Name = "البيان")]
+        [Required(ErrorMessage = "Description is required")]
+        [Display(Name = "Description")]
         public string Description { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "المبلغ مطلوب")]
-        [Display(Name = "المبلغ")]
+        [Required(ErrorMessage = "Amount is required")]
+        [Display(Name = "Amount")]
         [DataType(DataType.Currency)]
         public decimal Amount { get; set; }
 
-        [Display(Name = "الفئة")]
+        [Display(Name = "Category")]
         public string? Category { get; set; }
 
         /// <summary>
-        /// القسم: "حلاقة" | "مساج" | null (مشترك للكل)
+        /// Department: "Barber" | "Massage" | null (shared for all)
         /// </summary>
-        [Display(Name = "القسم")]
+        [Display(Name = "Department")]
         public string? Department { get; set; }
 
-        [Display(Name = "تاريخ المصروف")]
+        [Display(Name = "Expense Date")]
         [DataType(DataType.Date)]
         public DateTime ExpenseDate { get; set; } = DateTime.Today;
 
-        [Display(Name = "طريقة الدفع")]
-        public string PaymentMethod { get; set; } = "نقدي";
+        [Display(Name = "Payment Method")]
+        public string PaymentMethod { get; set; } = "Cash";
 
-        [Display(Name = "ملاحظات")]
+        [Display(Name = "Notes")]
         public string? Notes { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;

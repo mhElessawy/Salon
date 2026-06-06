@@ -40,8 +40,8 @@ namespace Salon.Controllers
                 model.CreatedAt = DateTime.Now;
                 _context.Suppliers.Add(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("إضافة", "الموردين", $"مورد جديد: {model.Name}", model.Id);
-                TempData["Success"] = "تم إضافة المورد بنجاح";
+                await _audit.LogAsync("Add", "Suppliers", $"New supplier: {model.Name}", model.Id);
+                TempData["Success"] = "Supplier added created successfully";
                 return RedirectToAction(nameof(Index));
             }
             return View(model);
@@ -62,8 +62,8 @@ namespace Salon.Controllers
             {
                 _context.Update(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("تعديل", "الموردين", $"تعديل بيانات المورد: {model.Name}", model.Id);
-                TempData["Success"] = "تم تعديل بيانات المورد بنجاح";
+                await _audit.LogAsync("Edit", "Suppliers", $"Edit supplier: {model.Name}", model.Id);
+                TempData["Success"] = "Supplier data updated created successfully";
                 return RedirectToAction(nameof(Index));
             }
             return View(model);
@@ -77,8 +77,8 @@ namespace Salon.Controllers
             {
                 supplier.IsActive = false;
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("حذف", "الموردين", $"حذف المورد: {supplier.Name}", supplier.Id);
-                TempData["Success"] = "تم حذف المورد بنجاح";
+                await _audit.LogAsync("Delete", "Suppliers", $"Delete supplier: {supplier.Name}", supplier.Id);
+                TempData["Success"] = "Supplier deleted created successfully";
             }
             return RedirectToAction(nameof(Index));
         }

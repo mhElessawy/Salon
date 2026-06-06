@@ -6,26 +6,26 @@ namespace Salon.Models
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "اسم المورد مطلوب")]
-        [Display(Name = "اسم المورد")]
+        [Required(ErrorMessage = "Supplier name is required")]
+        [Display(Name = "Supplier Name")]
         public string Name { get; set; } = string.Empty;
 
-        [Display(Name = "رقم الهاتف")]
+        [Display(Name = "Phone Number")]
         public string? Phone { get; set; }
 
-        [Display(Name = "البريد الإلكتروني")]
+        [Display(Name = "Email")]
         public string? Email { get; set; }
 
-        [Display(Name = "العنوان")]
+        [Display(Name = "Address")]
         public string? Address { get; set; }
 
-        [Display(Name = "الشخص المسؤول")]
+        [Display(Name = "Contact Person")]
         public string? ContactPerson { get; set; }
 
-        [Display(Name = "ملاحظات")]
+        [Display(Name = "Notes")]
         public string? Notes { get; set; }
 
-        [Display(Name = "نشط")]
+        [Display(Name = "Active")]
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;

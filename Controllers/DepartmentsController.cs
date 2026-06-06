@@ -40,8 +40,8 @@ namespace Salon.Controllers
                 };
                 _context.Departments.Add(newDept);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("إضافة", "الأقسام", $"قسم جديد: {newDept.Name}", newDept.Id);
-                TempData["Success"] = "تم إضافة القسم بنجاح";
+                await _audit.LogAsync("Add", "Departments", $"New department: {newDept.Name}", newDept.Id);
+                TempData["Success"] = "Department added created successfully";
             }
             return RedirectToAction(nameof(Index));
         }
@@ -55,8 +55,8 @@ namespace Salon.Controllers
                 dept.Name = name.Trim();
                 dept.Description = description?.Trim();
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("تعديل", "الأقسام", $"تعديل قسم: {dept.Name}", dept.Id);
-                TempData["Success"] = "تم تعديل القسم بنجاح";
+                await _audit.LogAsync("Edit", "Departments", $"Edit department: {dept.Name}", dept.Id);
+                TempData["Success"] = "Department updated created successfully";
             }
             return RedirectToAction(nameof(Index));
         }
@@ -70,13 +70,13 @@ namespace Salon.Controllers
                 var hasEmployees = await _context.Employees.AnyAsync(e => e.DepartmentId == id && e.IsActive);
                 if (hasEmployees)
                 {
-                    TempData["Error"] = "لا يمكن حذف القسم — يوجد موظفون مرتبطون به";
+                    TempData["Error"] = "Cannot delete department — employees are linked to it";
                     return RedirectToAction(nameof(Index));
                 }
                 _context.Departments.Remove(dept);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("حذف", "الأقسام", $"حذف قسم: {dept.Name}", id);
-                TempData["Success"] = "تم حذف القسم";
+                await _audit.LogAsync("Delete", "Departments", $"Delete department: {dept.Name}", id);
+                TempData["Success"] = "Department deleted";
             }
             return RedirectToAction(nameof(Index));
         }

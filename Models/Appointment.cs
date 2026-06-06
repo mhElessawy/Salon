@@ -8,27 +8,27 @@ namespace Salon.Models
         public int Id { get; set; }
 
         [Required]
-        [Display(Name = "العميل")]
+        [Display(Name = "Customer")]
         public int CustomerId { get; set; }
 
         [ForeignKey("CustomerId")]
         public Customer? Customer { get; set; }
 
-        [Display(Name = "الموظف")]
+        [Display(Name = "Employee")]
         public int? EmployeeId { get; set; }
 
         [ForeignKey("EmployeeId")]
         public Employee? Employee { get; set; }
 
-        [Required(ErrorMessage = "تاريخ الموعد مطلوب")]
-        [Display(Name = "تاريخ الموعد")]
+        [Required(ErrorMessage = "Appointment date is required")]
+        [Display(Name = "Appointment Date")]
         [DataType(DataType.DateTime)]
         public DateTime AppointmentDate { get; set; }
 
-        [Display(Name = "الحالة")]
-        public string Status { get; set; } = "مجدول";
+        [Display(Name = "Status")]
+        public string Status { get; set; } = "Scheduled";
 
-        [Display(Name = "ملاحظات")]
+        [Display(Name = "Notes")]
         public string? Notes { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;

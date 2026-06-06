@@ -41,7 +41,7 @@ namespace Salon.Controllers
                 model.SentAt = DateTime.Now;
                 _context.Messages.Add(model);
                 await _context.SaveChangesAsync();
-                TempData["Success"] = "تم إرسال الرسالة بنجاح";
+                TempData["Success"] = "Message sent created successfully";
                 return RedirectToAction(nameof(Index));
             }
             return View(model);

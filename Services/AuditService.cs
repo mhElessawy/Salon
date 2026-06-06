@@ -30,13 +30,13 @@ namespace Salon.Services
             var user = ctx?.User;
 
             string userId = string.Empty;
-            string userName = "غير معروف";
+            string userName = "Unknown";
 
             if (user?.Identity?.IsAuthenticated == true)
             {
                 userId = _userManager.GetUserId(user) ?? string.Empty;
                 var appUser = await _userManager.GetUserAsync(user);
-                userName = appUser?.FullName ?? appUser?.UserName ?? user.Identity.Name ?? "غير معروف";
+                userName = appUser?.FullName ?? appUser?.UserName ?? user.Identity.Name ?? "Unknown";
             }
 
             string? ip = ctx?.Connection?.RemoteIpAddress?.ToString();

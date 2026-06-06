@@ -1,15 +1,15 @@
 @inject Microsoft.AspNetCore.Identity.UserManager<Salon.Models.ApplicationUser> LayoutUserManager
 @{
     var layoutUser = await LayoutUserManager.GetUserAsync(User);
-    var layoutFullName = layoutUser?.FullName ?? User.Identity?.Name?.Split('@').FirstOrDefault() ?? "المستخدم";
+    var layoutFullName = layoutUser?.FullName ?? User.Identity?.Name?.Split('@').FirstOrDefault() ?? "User";
     var layoutRoles = layoutUser != null ? await LayoutUserManager.GetRolesAsync(layoutUser) : new List<string>();
     var layoutRole = layoutRoles.FirstOrDefault() ?? "";
     var layoutRoleAr = layoutRole switch
     {
-        "Admin" => "مدير النظام",
-        "Manager" => "مدير",
-        "Cashier" => "كاشير",
-        "Employee" => "موظف",
+        "Admin" => "System Admin",
+        "Manager" => "Manager",
+        "Cashier" => "Cashier",
+        "Employee" => "Employee",
         _ => layoutRole
     };
     var layoutRoleEn = layoutRole switch
@@ -27,7 +27,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - نظام معهد موس</title>
+    <title>@ViewData["Title"] - Mus Institute System</title>
     <script>
         // Set direction BEFORE any CSS loads to prevent layout flash
         if (localStorage.getItem('lang') === 'en') {
@@ -55,7 +55,7 @@
     <!-- Overlay for mobile sidebar -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <!-- Floating close button (mobile only) -->
-    <button class="sidebar-close-btn d-lg-none" id="sidebarCloseBtn" aria-label="إغلاق القائمة">
+    <button class="sidebar-close-btn d-lg-none" id="sidebarCloseBtn" aria-label="Close Menu">
         <i class="fas fa-times"></i>
     </button>
 
@@ -66,21 +66,21 @@
             <header class="topbar">
                 <div class="topbar-right">
                     <!-- Hamburger button (mobile only) -->
-                    <button class="hamburger-btn d-lg-none" onclick="toggleSidebar()" title="القائمة">
+                    <button class="hamburger-btn d-lg-none" onclick="toggleSidebar()" title="Menu">
                         <i class="fas fa-bars"></i>
                     </button>
 
                     <!-- Sidebar toggle button (desktop only) -->
-                    <button class="sidebar-toggle-btn d-none d-lg-flex" id="sidebarToggleBtn" onclick="toggleSidebarDesktop()" title="إخفاء القائمة">
+                    <button class="sidebar-toggle-btn d-none d-lg-flex" id="sidebarToggleBtn" onclick="toggleSidebarDesktop()" title="Hide Menu">
                         <i class="fas fa-chevron-right" id="sidebarToggleIcon"></i>
                     </button>
 
                     <!-- Logout button -->
-                    <a href="@Url.Action("Logout", "Account")" class="logout-btn" title="تسجيل الخروج">
+                    <a href="@Url.Action("Logout", "Account")" class="logout-btn" title="Logout">
                         <i class="fas fa-sign-out-alt"></i>
                     </a>
 
-                    @* قائمة المستخدم المنسدلة *@
+                    @* User dropdown menu *@
                     <div class="dropdown">
                         <div class="topbar-user" role="button"
                              data-bs-toggle="dropdown" data-bs-offset="0,4"
@@ -278,11 +278,11 @@
             if (collapsed) {
                 icon.classList.remove('fa-chevron-right');
                 icon.classList.add('fa-chevron-left');
-                if (btn) btn.title = 'إظهار القائمة';
+                if (btn) btn.title = 'Show Menu';
             } else {
                 icon.classList.remove('fa-chevron-left');
                 icon.classList.add('fa-chevron-right');
-                if (btn) btn.title = 'إخفاء القائمة';
+                if (btn) btn.title = 'Hide Menu';
             }
         }
 
@@ -316,7 +316,7 @@
             const submenu = li.querySelector('.submenu');
             const isOpen = li.classList.contains('open');
 
-            // أغلق باقي القوائم
+            // Close other menus
             document.querySelectorAll('.has-submenu.open').forEach(function(item) {
                 if (item !== li) {
                     item.classList.remove('open');
@@ -324,7 +324,7 @@
                 }
             });
 
-            // افتح / أغلق الحالية
+            // Toggle current menu
             li.classList.toggle('open', !isOpen);
             submenu.classList.toggle('show', !isOpen);
         }

@@ -15,7 +15,7 @@ namespace Salon.Migrations
                 table: "Salaries",
                 type: "nvarchar(max)",
                 nullable: false,
-                defaultValue: "نقدي");
+                defaultValue: "Cash");
         }
 
         /// <inheritdoc />

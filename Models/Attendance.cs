@@ -8,30 +8,30 @@ namespace Salon.Models
         public int Id { get; set; }
 
         [Required]
-        [Display(Name = "الموظف")]
+        [Display(Name = "Employee")]
         public int EmployeeId { get; set; }
 
         [ForeignKey("EmployeeId")]
         public Employee? Employee { get; set; }
 
-        [Display(Name = "التاريخ")]
+        [Display(Name = "Date")]
         [DataType(DataType.Date)]
         public DateTime AttendanceDate { get; set; } = DateTime.Today;
 
-        [Display(Name = "وقت الحضور")]
+        [Display(Name = "Check-in Time")]
         public TimeSpan? CheckIn { get; set; }
 
-        [Display(Name = "وقت الانصراف")]
+        [Display(Name = "Check-out Time")]
         public TimeSpan? CheckOut { get; set; }
 
-        [Display(Name = "الحالة")]
-        public string Status { get; set; } = "حاضر";
+        [Display(Name = "Status")]
+        public string Status { get; set; } = "Present";
 
-        [Display(Name = "ملاحظات")]
+        [Display(Name = "Notes")]
         public string? Notes { get; set; }
 
-        /// <summary>رقم الدور في الطابور اليومي حسب القسم</summary>
-        [Display(Name = "الدور")]
+        /// <summary>Role number in daily queue by Department</summary>
+        [Display(Name = "Role")]
         public int? QueuePosition { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;

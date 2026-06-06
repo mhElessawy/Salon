@@ -362,7 +362,7 @@ namespace Salon.Migrations
                     Amount = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
                     AdvanceDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Reason = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PaymentMethod = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "نقدي"),
+                    PaymentMethod = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "Cash"),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     DeductedAmount = table.Column<decimal>(type: "decimal(18,3)", nullable: false, defaultValue: 0m),
                     PaidDate = table.Column<DateTime>(type: "datetime2", nullable: true),

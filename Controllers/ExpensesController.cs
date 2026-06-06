@@ -75,10 +75,10 @@ namespace Salon.Controllers
                 model.CreatedAt = DateTime.Now;
                 _context.Expenses.Add(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("إضافة", "المصروفات",
-                    $"{model.Description} - {model.Amount:F3} د.ك" + (!string.IsNullOrEmpty(model.Department) ? $" ({model.Department})" : ""),
+                await _audit.LogAsync("Add", "Expenses",
+                    $"{model.Description} - {model.Amount:F3} KD" + (!string.IsNullOrEmpty(model.Department) ? $" ({model.Department})" : ""),
                     model.Id);
-                TempData["Success"] = "تم إضافة المصروف بنجاح";
+                TempData["Success"] = "Expense added created successfully";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -107,10 +107,10 @@ namespace Salon.Controllers
             {
                 _context.Update(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("تعديل", "المصروفات",
-                    $"{model.Description} - {model.Amount:F3} د.ك",
+                await _audit.LogAsync("Edit", "Expenses",
+                    $"{model.Description} - {model.Amount:F3} KD",
                     model.Id);
-                TempData["Success"] = "تم تعديل المصروف بنجاح";
+                TempData["Success"] = "Expense updated created successfully";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -126,11 +126,11 @@ namespace Salon.Controllers
             var expense = await _context.Expenses.FindAsync(id);
             if (expense != null)
             {
-                var desc = $"{expense.Description} - {expense.Amount:F3} د.ك";
+                var desc = $"{expense.Description} - {expense.Amount:F3} KD";
                 _context.Expenses.Remove(expense);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("حذف", "المصروفات", desc, id);
-                TempData["Success"] = "تم حذف المصروف بنجاح";
+                await _audit.LogAsync("Delete", "Expenses", desc, id);
+                TempData["Success"] = "Expense deleted created successfully";
             }
             return RedirectToAction(nameof(Index));
         }

@@ -8,42 +8,42 @@ namespace Salon.Models
         public int Id { get; set; }
 
         [Required]
-        [Display(Name = "الموظف")]
+        [Display(Name = "Employee")]
         public int EmployeeId { get; set; }
 
         [ForeignKey("EmployeeId")]
         public Employee? Employee { get; set; }
 
-        [Required(ErrorMessage = "المبلغ مطلوب")]
-        [Display(Name = "المبلغ")]
+        [Required(ErrorMessage = "Amount is required")]
+        [Display(Name = "Amount")]
         [DataType(DataType.Currency)]
         public decimal Amount { get; set; }
 
-        [Display(Name = "تاريخ السلفة")]
+        [Display(Name = "Advance Date")]
         [DataType(DataType.Date)]
         public DateTime AdvanceDate { get; set; } = DateTime.Today;
 
-        [Display(Name = "السبب")]
+        [Display(Name = "Reason")]
         public string? Reason { get; set; }
 
-        [Display(Name = "طريقة الدفع")]
-        public string PaymentMethod { get; set; } = "نقدي";
+        [Display(Name = "Payment Method")]
+        public string PaymentMethod { get; set; } = "Cash";
 
-        [Display(Name = "الحالة")]
-        public string Status { get; set; } = "معلق";
+        [Display(Name = "Status")]
+        public string Status { get; set; } = "Pending";
 
-        [Display(Name = "المبلغ المخصوم")]
+        [Display(Name = "Deducted Amount")]
         public decimal DeductedAmount { get; set; } = 0;
 
         // Alias for DeductedAmount - for backward compatibility
         [NotMapped]
         public decimal AmountPaid { get => DeductedAmount; set => DeductedAmount = value; }
 
-        [Display(Name = "تاريخ السداد")]
+        [Display(Name = "Payment Date")]
         [DataType(DataType.Date)]
         public DateTime? PaidDate { get; set; }
 
-        [Display(Name = "ملاحظات")]
+        [Display(Name = "Notes")]
         public string? Notes { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;

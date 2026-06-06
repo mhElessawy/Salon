@@ -83,11 +83,11 @@ namespace Salon.Controllers
             {
                 _context.ServicePackages.Add(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("إضافة", "الباقات", $"باقة جديدة: {model.NameAr}", model.Id);
-                TempData["Success"] = "تم إضافة الباقة بنجاح";
+                await _audit.LogAsync("Add", "Packages", $"New package: {model.NameAr}", model.Id);
+                TempData["Success"] = "Package added created successfully";
                 return RedirectToAction(nameof(Index), new { tab = "packages" });
             }
-            TempData["Error"] = "يرجى مراجعة البيانات المدخلة";
+            TempData["Error"] = "Please check the entered data";
             return RedirectToAction(nameof(Index), new { tab = "packages" });
         }
 
@@ -108,8 +108,8 @@ namespace Salon.Controllers
             {
                 _context.Update(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("تعديل", "الباقات", $"تعديل باقة: {model.NameAr}", model.Id);
-                TempData["Success"] = "تم تعديل الباقة بنجاح";
+                await _audit.LogAsync("Edit", "Packages", $"Edit package: {model.NameAr}", model.Id);
+                TempData["Success"] = "Package updated created successfully";
                 return RedirectToAction(nameof(Index), new { tab = "packages" });
             }
             await PopulateCategories(model.ServiceCategoryId);
@@ -125,8 +125,8 @@ namespace Salon.Controllers
             {
                 pkg.IsActive = false;
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("حذف", "الباقات", $"حذف باقة: {pkg.NameAr}", pkg.Id);
-                TempData["Success"] = "تم حذف الباقة بنجاح";
+                await _audit.LogAsync("Delete", "Packages", $"Delete package: {pkg.NameAr}", pkg.Id);
+                TempData["Success"] = "Package deleted created successfully";
             }
             return RedirectToAction(nameof(Index), new { tab = "packages" });
         }
@@ -138,7 +138,7 @@ namespace Salon.Controllers
             var pkg = await _context.ServicePackages.FindAsync(servicePackageId);
             if (pkg == null)
             {
-                TempData["Error"] = "الباقة غير موجودة";
+                TempData["Error"] = "Package not found";
                 return RedirectToAction(nameof(Index), new { tab = "balances" });
             }
 
@@ -157,8 +157,8 @@ namespace Salon.Controllers
 
             _context.CustomerPackages.Add(customerPkg);
             await _context.SaveChangesAsync();
-            await _audit.LogAsync("تعيين", "الباقات", $"تعيين باقة: {pkg.NameAr} للعميل رقم {customerId} — المبلغ: {pricePaid:F3} د.ك", customerPkg.Id);
-            TempData["Success"] = "تم تعيين الباقة للعميل بنجاح";
+            await _audit.LogAsync("Assign", "Packages", $"Assign package: {pkg.NameAr} for customer ID {customerId} — Amount: {pricePaid:F3} KD", customerPkg.Id);
+            TempData["Success"] = "Package assigned to customer created successfully";
 
             // إذا كان الطلب AJAX ارجع JSON
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
@@ -177,19 +177,19 @@ namespace Salon.Controllers
 
             if (customerPkg == null)
             {
-                TempData["Error"] = "اشتراك العميل غير موجود";
+                TempData["Error"] = "Customer subscription not found";
                 return RedirectToAction(nameof(Index), new { tab = "balances" });
             }
 
             if (customerPkg.RemainingSessions <= 0)
             {
-                TempData["Error"] = "لا توجد جلسات متبقية في هذه الباقة";
+                TempData["Error"] = "No remaining sessions in this package";
                 return RedirectToAction(nameof(Index), new { tab = "balances" });
             }
 
             if (customerPkg.ExpiryDate.HasValue && customerPkg.ExpiryDate.Value < DateTime.Today)
             {
-                TempData["Error"] = "انتهت صلاحية هذه الباقة";
+                TempData["Error"] = "This package has expired";
                 return RedirectToAction(nameof(Index), new { tab = "balances" });
             }
 
@@ -207,8 +207,8 @@ namespace Salon.Controllers
 
             _context.CustomerPackageTransactions.Add(transaction);
             await _context.SaveChangesAsync();
-            await _audit.LogAsync("استخدام", "الباقات", $"استخدام جلسة: {customerPkg.ServicePackage?.NameAr} — المتبقي: {customerPkg.RemainingSessions}", customerPackageId);
-            TempData["Success"] = $"تم تسجيل الجلسة بنجاح. الجلسات المتبقية: {customerPkg.RemainingSessions}";
+            await _audit.LogAsync("Use", "Packages", $"Session used: {customerPkg.ServicePackage?.NameAr} — Remaining: {customerPkg.RemainingSessions}", customerPackageId);
+            TempData["Success"] = $"Session recorded created successfully. Remaining sessions: {customerPkg.RemainingSessions}";
             return RedirectToAction(nameof(Index), new { tab = "balances" });
         }
 
@@ -221,7 +221,7 @@ namespace Salon.Controllers
             {
                 cp.IsActive = false;
                 await _context.SaveChangesAsync();
-                TempData["Success"] = "تم إلغاء تنشيط الاشتراك";
+                TempData["Success"] = "Subscription deactivated";
             }
             return RedirectToAction(nameof(Index), new { tab = "balances" });
         }

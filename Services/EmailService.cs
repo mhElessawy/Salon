@@ -47,7 +47,7 @@ public class EmailService : IEmailService
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress(_settings.SenderName, _settings.SenderEmail));
             message.To.Add(MailboxAddress.Parse(_settings.NotificationEmail));
-            message.Subject = $"عملية بيع جديدة — فاتورة {sale.InvoiceNumber}";
+            message.Subject = $"New Sale — Invoice {sale.InvoiceNumber}";
             message.Body = new TextPart("html") { Text = BuildEmailBody(sale, cashierName) };
 
             using var smtp = new MailKit.Net.Smtp.SmtpClient();
@@ -99,28 +99,28 @@ public class EmailService : IEmailService
         string employeeName, string department, string action,
         TimeSpan actionTime, DateTime date, string? extra)
     {
-        // لون ورمز حسب نوع الإجراء
+        // Color and icon based on action type
         var (headerColor, icon, actionAr) = action switch
         {
-            "حضور" => ("#1a7a4a", "✅", "تسجيل حضور"),
-            "استئذان" => ("#e07b00", "🚪", "خروج باستئذان"),
-            "عودة" => ("#0d6efd", "↩️", "عودة من الاستئذان"),
-            "انصراف" => ("#c0392b", "🔴", "تسجيل انصراف"),
+            "Check-In" => ("#1a7a4a", "✅", "Check-In"),
+            "Permission" => ("#e07b00", "🚪", "Permission Leave"),
+            "Return" => ("#0d6efd", "↩️", "Return from Leave"),
+            "Check-Out" => ("#c0392b", "🔴", "Check-Out"),
             _ => ("#555", "📋", action)
         };
 
         var timeStr = $"{actionTime.Hours:D2}:{actionTime.Minutes:D2}";
-        var dateStr = date.ToString("dddd dd/MM/yyyy", new System.Globalization.CultureInfo("ar-EG"));
+        var dateStr = date.ToString("dddd dd/MM/yyyy", new System.Globalization.CultureInfo("en-US"));
         var extraRow = string.IsNullOrEmpty(extra) ? "" : $@"
         <tr>
-          <td style='padding:5px 0;font-size:14px;color:#555;'>ملاحظة:</td>
+          <td style='padding:5px 0;font-size:14px;color:#555;'>Note:</td>
           <td style='padding:5px 0;font-size:14px;color:#1a1a2e;font-weight:600;text-align:left;'>{extra}</td>
         </tr>";
 
         return $@"<!DOCTYPE html>
-<html lang='ar' dir='rtl'>
+<html lang='en'>
 <head><meta charset='utf-8'/></head>
-<body style='margin:0;padding:0;background:#f0f2f5;font-family:Segoe UI,Tahoma,Arial,sans-serif;direction:rtl;'>
+<body style='margin:0;padding:0;background:#f0f2f5;font-family:Segoe UI,Tahoma,Arial,sans-serif;'>
 <table width='100%' cellpadding='0' cellspacing='0' style='background:#f0f2f5;padding:30px 0;'>
 <tr><td align='center'>
 <table width='520' cellpadding='0' cellspacing='0'
@@ -130,7 +130,7 @@ public class EmailService : IEmailService
   <tr>
     <td style='background:linear-gradient(135deg,#1a1a2e,#0f3460);padding:22px 28px;'>
       <h2 style='margin:0;color:#F7941D;font-size:20px;'>{icon} {actionAr}</h2>
-      <p style='margin:4px 0 0;color:rgba(255,255,255,0.65);font-size:13px;'>معهد موس للرجال</p>
+      <p style='margin:4px 0 0;color:rgba(255,255,255,0.65);font-size:13px;'>Mus Institute</p>
     </td>
   </tr>
 
@@ -150,19 +150,19 @@ public class EmailService : IEmailService
       <table width='100%' cellpadding='0' cellspacing='0'
              style='background:#f7f8fa;border-radius:10px;padding:16px 18px;'>
         <tr>
-          <td style='padding:6px 0;font-size:14px;color:#555;'>الموظف:</td>
+          <td style='padding:6px 0;font-size:14px;color:#555;'>Employee:</td>
           <td style='padding:6px 0;font-size:15px;font-weight:700;color:#1a1a2e;text-align:left;'>{employeeName}</td>
         </tr>
         <tr>
-          <td style='padding:6px 0;font-size:14px;color:#555;'>القسم:</td>
+          <td style='padding:6px 0;font-size:14px;color:#555;'>Department:</td>
           <td style='padding:6px 0;font-size:14px;color:#1a1a2e;text-align:left;'>{department}</td>
         </tr>
         <tr>
-          <td style='padding:6px 0;font-size:14px;color:#555;'>التاريخ:</td>
+          <td style='padding:6px 0;font-size:14px;color:#555;'>Date:</td>
           <td style='padding:6px 0;font-size:14px;color:#1a1a2e;text-align:left;'>{dateStr}</td>
         </tr>
         <tr>
-          <td style='padding:6px 0;font-size:15px;font-weight:700;color:#555;'>الوقت:</td>
+          <td style='padding:6px 0;font-size:15px;font-weight:700;color:#555;'>Time:</td>
           <td style='padding:6px 0;font-size:20px;font-weight:800;color:{headerColor};
                      letter-spacing:2px;text-align:left;'>{timeStr}</td>
         </tr>
@@ -175,7 +175,7 @@ public class EmailService : IEmailService
   <tr>
     <td style='background:#f7f8fa;padding:12px 28px;border-top:1px solid #eee;
                font-size:12px;color:#aaa;text-align:center;'>
-      نظام معهد موس &nbsp;|&nbsp; {DateTime.Now:HH:mm  dd/MM/yyyy}
+      Mus Institute System &nbsp;|&nbsp; {DateTime.Now:HH:mm  dd/MM/yyyy}
     </td>
   </tr>
 
@@ -196,21 +196,21 @@ public class EmailService : IEmailService
             itemsHtml.Append($@"
             <div style='padding:10px 0;border-bottom:1px solid #eee;'>
                 <div style='font-weight:600;font-size:15px;color:#1a1a2e;margin-bottom:4px;'>{item.ItemName}</div>
-                <div style='font-size:13px;color:#555;'>الكمية: <strong>{item.Quantity} × {item.Price:N3} د.ك</strong></div>
-                <div style='font-size:13px;color:#888;margin-top:2px;'>الموظف: {employeeName}</div>
+                <div style='font-size:13px;color:#555;'>Qty: <strong>{item.Quantity} × {item.Price:N3} KD</strong></div>
+                <div style='font-size:13px;color:#888;margin-top:2px;'>Employee: {employeeName}</div>
             </div>");
         }
 
         var discountRow = sale.Discount > 0
-            ? $"<tr><td style='padding:5px 0;font-size:14px;color:#c0392b;'>الخصم</td><td style='text-align:left;color:#c0392b;'>- {sale.Discount:N3} د.ك</td></tr>"
+            ? $"<tr><td style='padding:5px 0;font-size:14px;color:#c0392b;'>Discount</td><td style='text-align:left;color:#c0392b;'>- {sale.Discount:N3} KD</td></tr>"
             : "";
 
         var dateStr = sale.SaleDate.ToString("MMM yyyy, HH:mm dd");
 
         return $@"<!DOCTYPE html>
-<html lang='ar' dir='rtl'>
+<html lang='en'>
 <head><meta charset='utf-8'/></head>
-<body style='margin:0;padding:0;background:#f0f2f5;font-family:Segoe UI,Tahoma,Arial,sans-serif;direction:rtl;'>
+<body style='margin:0;padding:0;background:#f0f2f5;font-family:Segoe UI,Tahoma,Arial,sans-serif;'>
 <table width='100%' cellpadding='0' cellspacing='0' style='background:#f0f2f5;padding:30px 0;'>
 <tr><td align='center'>
 <table width='560' cellpadding='0' cellspacing='0'
@@ -218,8 +218,8 @@ public class EmailService : IEmailService
 
   <tr>
     <td style='background:linear-gradient(135deg,#1a1a2e,#0f3460);padding:24px 28px;'>
-      <h2 style='margin:0;color:#F7941D;font-size:22px;'>عملية بيع جديدة</h2>
-      <p style='margin:6px 0 0;color:rgba(255,255,255,0.7);font-size:13px;'>معهد وصالون موس للرجال</p>
+      <h2 style='margin:0;color:#F7941D;font-size:22px;'>New Sale</h2>
+      <p style='margin:6px 0 0;color:rgba(255,255,255,0.7);font-size:13px;'>Mus Men's Institute & Salon</p>
     </td>
   </tr>
 
@@ -227,19 +227,19 @@ public class EmailService : IEmailService
     <td style='padding:20px 28px 10px;'>
       <table width='100%' cellpadding='0' cellspacing='0'>
         <tr>
-          <td style='padding:5px 0;font-size:14px;color:#555;'>رقم الفاتورة:</td>
+          <td style='padding:5px 0;font-size:14px;color:#555;'>Invoice No.:</td>
           <td style='padding:5px 0;font-size:14px;font-weight:700;color:#1a1a2e;text-align:left;'>{sale.InvoiceNumber}</td>
         </tr>
         <tr>
-          <td style='padding:5px 0;font-size:14px;color:#555;'>التاريخ:</td>
+          <td style='padding:5px 0;font-size:14px;color:#555;'>Date:</td>
           <td style='padding:5px 0;font-size:14px;color:#1a1a2e;text-align:left;'>{dateStr}</td>
         </tr>
         <tr>
-          <td style='padding:5px 0;font-size:14px;color:#555;'>القسم:</td>
+          <td style='padding:5px 0;font-size:14px;color:#555;'>Department:</td>
           <td style='padding:5px 0;font-size:14px;color:#1a1a2e;text-align:left;'>{sale.SaleType}</td>
         </tr>
         <tr>
-          <td style='padding:5px 0;font-size:14px;color:#555;'>الكاشير:</td>
+          <td style='padding:5px 0;font-size:14px;color:#555;'>Cashier:</td>
           <td style='padding:5px 0;font-size:14px;color:#1a1a2e;text-align:left;'>{cashierName}</td>
         </tr>
       </table>
@@ -250,7 +250,7 @@ public class EmailService : IEmailService
 
   <tr>
     <td style='padding:16px 28px 8px;'>
-      <p style='margin:0 0 10px;font-weight:700;font-size:15px;color:#1a1a2e;'>تفاصيل الفاتورة:</p>
+      <p style='margin:0 0 10px;font-weight:700;font-size:15px;color:#1a1a2e;'>Invoice Details:</p>
       {itemsHtml}
     </td>
   </tr>
@@ -260,19 +260,19 @@ public class EmailService : IEmailService
       <table width='100%' cellpadding='0' cellspacing='0'
              style='background:#f7f8fa;border-radius:10px;padding:14px 18px;'>
         <tr>
-          <td style='padding:5px 0;font-size:14px;color:#555;'>المجموع الفرعي:</td>
-          <td style='font-size:14px;color:#333;text-align:left;'>{sale.TotalAmount:N3} د.ك</td>
+          <td style='padding:5px 0;font-size:14px;color:#555;'>Subtotal:</td>
+          <td style='font-size:14px;color:#333;text-align:left;'>{sale.TotalAmount:N3} KD</td>
         </tr>
         {discountRow}
         <tr>
-          <td style='padding-top:8px;font-size:16px;font-weight:700;color:#1a1a2e;border-top:2px solid #ddd;'>الإجمالي:</td>
+          <td style='padding-top:8px;font-size:16px;font-weight:700;color:#1a1a2e;border-top:2px solid #ddd;'>Total:</td>
           <td style='font-size:16px;font-weight:700;color:#F7941D;text-align:left;border-top:2px solid #ddd;padding-top:8px;'>
-            {sale.NetAmount:N3} د.ك
+            {sale.NetAmount:N3} KD
           </td>
         </tr>
       </table>
       <p style='margin:12px 0 0;font-size:13px;color:#888;'>
-        طريقة الدفع: <strong style='color:#1a1a2e;'>{sale.PaymentMethod}</strong>
+        Payment Method: <strong style='color:#1a1a2e;'>{sale.PaymentMethod}</strong>
       </p>
     </td>
   </tr>
@@ -280,7 +280,7 @@ public class EmailService : IEmailService
   <tr>
     <td style='background:#f7f8fa;padding:14px 28px;border-top:1px solid #eee;
                font-size:12px;color:#aaa;text-align:center;'>
-      نظام معهد موس &nbsp;|&nbsp; شكراً لزيارتكم
+      Mus Institute System &nbsp;|&nbsp; Thank you for your visit
     </td>
   </tr>
 

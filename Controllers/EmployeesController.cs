@@ -71,8 +71,8 @@ namespace Salon.Controllers
                 model.CreatedAt = DateTime.Now;
                 _context.Employees.Add(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("إضافة", "الموظفين", $"موظف جديد: {model.FullName}", model.Id);
-                TempData["Success"] = "تم إضافة الموظف بنجاح";
+                await _audit.LogAsync("Add", "Employees", $"موظف جديد: {model.FullName}", model.Id);
+                TempData["Success"] = "Employee added created successfully";
                 return RedirectToAction(nameof(Index));
             }
             await LoadDepartments(model.DepartmentId);
@@ -102,8 +102,8 @@ namespace Salon.Controllers
 
                 _context.Update(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("تعديل", "الموظفين", $"تعديل بيانات الموظف: {model.FullName}", model.Id);
-                TempData["Success"] = "تم تعديل بيانات الموظف بنجاح";
+                await _audit.LogAsync("Edit", "Employees", $"تعديل بيانات Employee: {model.FullName}", model.Id);
+                TempData["Success"] = "Employee data updated created successfully";
                 return RedirectToAction(nameof(Index));
             }
             await LoadDepartments(model.DepartmentId);
@@ -136,8 +136,8 @@ namespace Salon.Controllers
             {
                 employee.IsActive = false;
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("حذف", "الموظفين", $"حذف الموظف: {employee.FullName}", employee.Id);
-                TempData["Success"] = "تم حذف الموظف بنجاح";
+                await _audit.LogAsync("Delete", "Employees", $"حذف Employee: {employee.FullName}", employee.Id);
+                TempData["Success"] = "Employee deleted created successfully";
             }
             return RedirectToAction(nameof(Index));
         }
@@ -149,15 +149,15 @@ namespace Salon.Controllers
                 query = query.Where(e => e.Id != excludeId.Value);
 
             if (await query.AnyAsync(e => e.FullName == model.FullName))
-                ModelState.AddModelError(nameof(model.FullName), "يوجد موظف آخر بنفس الاسم");
+                ModelState.AddModelError(nameof(model.FullName), "Another employee has the same name");
 
             if (!string.IsNullOrWhiteSpace(model.Phone) &&
                 await query.AnyAsync(e => e.Phone == model.Phone))
-                ModelState.AddModelError(nameof(model.Phone), "رقم الهاتف مستخدم لدى موظف آخر");
+                ModelState.AddModelError(nameof(model.Phone), "Phone number is used by another employee");
 
             if (!string.IsNullOrWhiteSpace(model.IdNumber) &&
                 await query.AnyAsync(e => e.IdNumber == model.IdNumber))
-                ModelState.AddModelError(nameof(model.IdNumber), "رقم الإقامة / الهوية مستخدم لدى موظف آخر");
+                ModelState.AddModelError(nameof(model.IdNumber), "Residency / ID number is used by another employee");
         }
 
         public async Task<IActionResult> Licenses()

@@ -9,10 +9,10 @@ namespace Salon.Models
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public bool IsActive { get; set; } = true;
 
-        /// <summary>القسم: "حلاقة" | "مساج" | "الكل" | null (Admin/Manager)</summary>
+        /// <summary>Department: "Barber" | "Massage" | "All" | null (Admin/Manager)</summary>
         public string? UserDepartment { get; set; }
 
-        /// <summary>ربط المستخدم بسجل موظف (للمستخدمين من نوع Employee)</summary>
+        /// <summary>Link user to Employee record (for Employee type users)</summary>
         public int? LinkedEmployeeId { get; set; }
     }
 }

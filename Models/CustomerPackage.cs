@@ -8,41 +8,41 @@ namespace Salon.Models
         public int Id { get; set; }
 
         [Required]
-        [Display(Name = "العميل")]
+        [Display(Name = "Customer")]
         public int CustomerId { get; set; }
 
         [ForeignKey("CustomerId")]
         public Customer? Customer { get; set; }
 
         [Required]
-        [Display(Name = "الباقة")]
+        [Display(Name = "Package")]
         public int ServicePackageId { get; set; }
 
         [ForeignKey("ServicePackageId")]
         public ServicePackage? ServicePackage { get; set; }
 
-        [Display(Name = "تاريخ الشراء")]
+        [Display(Name = "Purchase Date")]
         [DataType(DataType.Date)]
         public DateTime PurchaseDate { get; set; } = DateTime.Today;
 
-        [Display(Name = "تاريخ الانتهاء")]
+        [Display(Name = "Expiry Date")]
         [DataType(DataType.Date)]
         public DateTime? ExpiryDate { get; set; }
 
-        [Display(Name = "إجمالي الجلسات")]
+        [Display(Name = "Total Sessions")]
         public int TotalSessions { get; set; }
 
-        [Display(Name = "الجلسات المتبقية")]
+        [Display(Name = "Remaining Sessions")]
         public int RemainingSessions { get; set; }
 
-        [Display(Name = "السعر المدفوع")]
+        [Display(Name = "Paid Price")]
         [DataType(DataType.Currency)]
         public decimal PricePaid { get; set; }
 
-        [Display(Name = "ملاحظات")]
+        [Display(Name = "Notes")]
         public string? Notes { get; set; }
 
-        [Display(Name = "مفعّل")]
+        [Display(Name = "Active")]
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;

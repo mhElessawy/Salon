@@ -7,35 +7,35 @@ namespace Salon.Models
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "اسم الشفت مطلوب")]
-        [Display(Name = "اسم الشفت")]
+        [Required(ErrorMessage = "Shift name is required")]
+        [Display(Name = "Shift Name")]
         public string Name { get; set; } = string.Empty;
 
-        [Display(Name = "تاريخ الشفت")]
+        [Display(Name = "Shift Date")]
         [DataType(DataType.Date)]
         public DateTime ShiftDate { get; set; } = DateTime.Today;
 
-        [Display(Name = "وقت البداية")]
+        [Display(Name = "Start Time")]
         public TimeSpan StartTime { get; set; }
 
-        [Display(Name = "وقت النهاية")]
+        [Display(Name = "End Time")]
         public TimeSpan? EndTime { get; set; }
 
-        [Display(Name = "الكاشير")]
+        [Display(Name = "Cashier")]
         public string? CashierName { get; set; }
 
-        [Display(Name = "رصيد الفتح")]
+        [Display(Name = "Opening Balance")]
         [DataType(DataType.Currency)]
         public decimal OpeningBalance { get; set; }
 
-        [Display(Name = "رصيد الإغلاق")]
+        [Display(Name = "Closing Balance")]
         [DataType(DataType.Currency)]
         public decimal? ClosingBalance { get; set; }
 
-        [Display(Name = "الحالة")]
-        public string Status { get; set; } = "مفتوح";
+        [Display(Name = "Status")]
+        public string Status { get; set; } = "Open";
 
-        [Display(Name = "ملاحظات")]
+        [Display(Name = "Notes")]
         public string? Notes { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;

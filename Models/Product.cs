@@ -7,44 +7,44 @@ namespace Salon.Models
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "اسم المنتج مطلوب")]
-        [Display(Name = "اسم المنتج")]
+        [Required(ErrorMessage = "Product name is required")]
+        [Display(Name = "Product Name")]
         public string Name { get; set; } = string.Empty;
 
-        [Display(Name = "الفئة")]
+        [Display(Name = "Category")]
         public string? Category { get; set; }
 
-        [Display(Name = "المورد")]
+        [Display(Name = "Supplier")]
         public int? SupplierId { get; set; }
 
         [ForeignKey("SupplierId")]
         public Supplier? Supplier { get; set; }
 
-        [Display(Name = "سعر الشراء")]
+        [Display(Name = "Purchase Price")]
         [DataType(DataType.Currency)]
         public decimal PurchasePrice { get; set; }
 
-        [Display(Name = "سعر البيع")]
+        [Display(Name = "Sale Price")]
         [DataType(DataType.Currency)]
         public decimal SalePrice { get; set; }
 
-        [Display(Name = "الكمية الافتتاحية")]
+        [Display(Name = "Opening Quantity")]
         public int OpeningQuantity { get; set; }
 
-        [Display(Name = "الكمية في المخزون")]
+        [Display(Name = "Quantity in Stock")]
         public int StockQuantity { get; set; }
 
-        [Display(Name = "الحد الأدنى للمخزون")]
+        [Display(Name = "Minimum Stock Level")]
         public int MinStockLevel { get; set; } = 5;
 
-        [Display(Name = "تاريخ الانتهاء")]
+        [Display(Name = "Expiry Date")]
         [DataType(DataType.Date)]
         public DateTime? ExpiryDate { get; set; }
 
-        [Display(Name = "الملاحظات")]
+        [Display(Name = "Notes")]
         public string? Notes { get; set; }
 
-        // محتفظ بيه للتوافق مع الكود القديم
+        // Kept for backward compatibility
         public string? Barcode { get; set; }
         public string? Unit { get; set; }
 

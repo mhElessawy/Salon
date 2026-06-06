@@ -6,14 +6,14 @@ namespace Salon.Models
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "اسم القسم مطلوب")]
-        [Display(Name = "اسم القسم")]
+        [Required(ErrorMessage = "Department name is required")]
+        [Display(Name = "Department Name")]
         public string Name { get; set; } = string.Empty;
 
-        [Display(Name = "الوصف")]
+        [Display(Name = "Description")]
         public string? Description { get; set; }
 
-        [Display(Name = "نشط")]
+        [Display(Name = "Active")]
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;

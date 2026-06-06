@@ -7,62 +7,62 @@ namespace Salon.Models
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "الاسم مطلوب")]
-        [Display(Name = "الاسم الكامل")]
+        [Required(ErrorMessage = "Name is required")]
+        [Display(Name = "Full Name")]
         public string FullName { get; set; } = string.Empty;
 
-        // Alias للتوافق مع الكود القديم
-        [Display(Name = "الاسم")]
+        // Alias for backward compatibility
+        [Display(Name = "Name")]
         public string? Name { get; set; }
 
-        [Display(Name = "العمولة (%)")]
+        [Display(Name = "Commission (%)")]
         public decimal Commission { get; set; }
 
-        [Display(Name = "رقم الهاتف")]
+        [Display(Name = "Phone Number")]
         public string? Phone { get; set; }
 
-        [Display(Name = "البريد الإلكتروني")]
+        [Display(Name = "Email")]
         public string? Email { get; set; }
 
-        [Display(Name = "المسمى الوظيفي")]
+        [Display(Name = "Job Title")]
         public string? JobTitle { get; set; }
 
-        [Display(Name = "الراتب الأساسي")]
+        [Display(Name = "Basic Salary")]
         [DataType(DataType.Currency)]
         public decimal BasicSalary { get; set; }
 
-        [Display(Name = "تاريخ التعيين")]
+        [Display(Name = "Hire Date")]
         [DataType(DataType.Date)]
         public DateTime HireDate { get; set; } = DateTime.Today;
 
-        [Display(Name = "تاريخ الميلاد")]
+        [Display(Name = "Birth Date")]
         [DataType(DataType.Date)]
         public DateTime? BirthDate { get; set; }
 
-        [Display(Name = "الجنسية")]
+        [Display(Name = "Nationality")]
         public string? Nationality { get; set; }
 
-        [Display(Name = "رقم الإقامة / الهوية")]
+        [Display(Name = "Residency / ID Number")]
         public string? IdNumber { get; set; }
 
-        [Display(Name = "تاريخ انتهاء الإقامة")]
+        [Display(Name = "Residency Expiry Date")]
         [DataType(DataType.Date)]
         public DateTime? ResidencyExpiry { get; set; }
 
-        [Display(Name = "نوع العقد")]
+        [Display(Name = "Contract Type")]
         public string? ContractType { get; set; }
 
-        [Display(Name = "القسم")]
+        [Display(Name = "Department")]
         public int? DepartmentId { get; set; }
 
         [ForeignKey("DepartmentId")]
         public Department? DepartmentNav { get; set; }
 
-        // محتفظ للتوافق مع الكود القديم — يُقرأ من DepartmentNav
+        // Kept for backward compatibility — read from DepartmentNav
         [NotMapped]
         public string? Department => DepartmentNav?.Name;
 
-        [Display(Name = "ملاحظات")]
+        [Display(Name = "Notes")]
         public string? Notes { get; set; }
 
         public bool IsActive { get; set; } = true;

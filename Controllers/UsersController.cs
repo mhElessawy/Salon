@@ -77,8 +77,8 @@ namespace Salon.Controllers
             if (result.Succeeded)
             {
                 await _userManager.AddToRoleAsync(user, model.Role);
-                await _audit.LogAsync("إضافة", "المستخدمين", $"مستخدم جديد: {model.FullName} ({model.Role})");
-                TempData["Success"] = $"تم إنشاء المستخدم {model.FullName} بنجاح";
+                await _audit.LogAsync("Add", "Users", $"New user: {model.FullName} ({model.Role})");
+                TempData["Success"] = $"User created: {model.FullName} created successfully";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -147,8 +147,8 @@ namespace Salon.Controllers
             await _userManager.RemoveFromRolesAsync(user, currentRoles);
             await _userManager.AddToRoleAsync(user, model.Role);
 
-            await _audit.LogAsync("تعديل", "المستخدمين", $"تعديل مستخدم: {model.FullName} ({model.Role})");
-            TempData["Success"] = "تم تعديل بيانات المستخدم بنجاح";
+            await _audit.LogAsync("Edit", "Users", $"Edit user: {model.FullName} ({model.Role})");
+            TempData["Success"] = "User data updated created successfully";
             return RedirectToAction(nameof(Index));
         }
 
@@ -179,8 +179,8 @@ namespace Salon.Controllers
 
             if (result.Succeeded)
             {
-                await _audit.LogAsync("تعديل", "المستخدمين", $"تغيير كلمة مرور: {user.FullName}");
-                TempData["Success"] = $"تم تغيير كلمة مرور {user.FullName} بنجاح";
+                await _audit.LogAsync("Edit", "Users", $"Change password: {user.FullName}");
+                TempData["Success"] = $"Password changed for {user.FullName} created successfully";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -241,8 +241,8 @@ namespace Salon.Controllers
             }
 
             await _context.SaveChangesAsync();
-            await _audit.LogAsync("تعديل", "المستخدمين", $"تعديل صلاحيات: {user.FullName}");
-            TempData["Success"] = $"تم حفظ صلاحيات {user.FullName} بنجاح";
+            await _audit.LogAsync("Edit", "Users", $"Edit permissions: {user.FullName}");
+            TempData["Success"] = $"Permissions saved for {user.FullName} created successfully";
             return RedirectToAction(nameof(Index));
         }
 
@@ -301,8 +301,8 @@ namespace Salon.Controllers
             {
                 user.IsActive = !user.IsActive;
                 await _userManager.UpdateAsync(user);
-                await _audit.LogAsync("تعديل", "المستخدمين", $"{(user.IsActive ? "تفعيل" : "تعطيل")} مستخدم: {user.FullName}");
-                TempData["Success"] = user.IsActive ? "تم تفعيل المستخدم" : "تم تعطيل المستخدم";
+                await _audit.LogAsync("Edit", "Users", $"{(user.IsActive ? "Enable" : "Disable")} user: {user.FullName}");
+                TempData["Success"] = user.IsActive ? "User enabled" : "User disabled";
             }
             return RedirectToAction(nameof(Index));
         }

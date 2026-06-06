@@ -6,34 +6,34 @@ namespace Salon.Models
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "الاسم مطلوب")]
-        [Display(Name = "الاسم الكامل عربي")]
+        [Required(ErrorMessage = "Name is required")]
+        [Display(Name = "Full Name (Arabic)")]
         public string FullName { get; set; } = string.Empty;
 
         [Display(Name = "Full Name English")]
         public string? FullNameEn { get; set; }
 
-        [Display(Name = "القسم")]
+        [Display(Name = "Department")]
         public string? Department { get; set; }
 
-        [Display(Name = "رقم الهاتف")]
+        [Display(Name = "Phone Number")]
         public string? Phone { get; set; }
 
-        [Display(Name = "البريد الإلكتروني")]
+        [Display(Name = "Email")]
         [EmailAddress]
         public string? Email { get; set; }
 
-        [Display(Name = "تاريخ الميلاد")]
+        [Display(Name = "Birth Date")]
         [DataType(DataType.Date)]
         public DateTime? BirthDate { get; set; }
 
-        [Display(Name = "الجنس")]
+        [Display(Name = "Gender")]
         public string? Gender { get; set; }
 
-        [Display(Name = "الملاحظات")]
+        [Display(Name = "Notes")]
         public string? Notes { get; set; }
 
-        [Display(Name = "تاريخ الإضافة")]
+        [Display(Name = "Added Date")]
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public bool IsActive { get; set; } = true;

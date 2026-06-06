@@ -4,17 +4,17 @@ namespace Salon.Models
 {
     public class LoginViewModel
     {
-        [Required(ErrorMessage = "البريد الإلكتروني مطلوب")]
-        [EmailAddress(ErrorMessage = "صيغة البريد الإلكتروني غير صحيحة")]
-        [Display(Name = "البريد الإلكتروني")]
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Invalid email format")]
+        [Display(Name = "Email")]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "كلمة المرور مطلوبة")]
+        [Required(ErrorMessage = "Password is required")]
         [DataType(DataType.Password)]
-        [Display(Name = "كلمة المرور")]
+        [Display(Name = "Password")]
         public string Password { get; set; } = string.Empty;
 
-        [Display(Name = "تذكرني")]
+        [Display(Name = "Remember Me")]
         public bool RememberMe { get; set; }
     }
 }

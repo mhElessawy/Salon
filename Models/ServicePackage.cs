@@ -7,36 +7,36 @@ namespace Salon.Models
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "اسم الباقة (عربي) مطلوب")]
-        [Display(Name = "اسم الباقة (عربي)")]
+        [Required(ErrorMessage = "Package name (Arabic) is required")]
+        [Display(Name = "Package Name (Arabic)")]
         public string NameAr { get; set; } = string.Empty;
 
-        [Display(Name = "اسم الباقة (English)")]
+        [Display(Name = "Package Name (English)")]
         public string? NameEn { get; set; }
 
-        [Required(ErrorMessage = "عدد الجلسات مطلوب")]
-        [Display(Name = "عدد الجلسات")]
-        [Range(1, 1000, ErrorMessage = "عدد الجلسات يجب أن يكون بين 1 و 1000")]
+        [Required(ErrorMessage = "Session count is required")]
+        [Display(Name = "Session Count")]
+        [Range(1, 1000, ErrorMessage = "Session count must be between 1 and 1000")]
         public int SessionCount { get; set; } = 4;
 
-        [Required(ErrorMessage = "السعر مطلوب")]
-        [Display(Name = "السعر")]
+        [Required(ErrorMessage = "Price is required")]
+        [Display(Name = "Price")]
         [DataType(DataType.Currency)]
         public decimal Price { get; set; }
 
-        [Display(Name = "مدة الصلاحية (أيام)")]
-        [Range(1, 3650, ErrorMessage = "مدة الصلاحية يجب أن تكون بين 1 و 3650 يوم")]
+        [Display(Name = "Validity Duration (Days)")]
+        [Range(1, 3650, ErrorMessage = "Validity must be between 1 and 3650 days")]
         public int ValidityDays { get; set; } = 90;
 
-        [Display(Name = "الوصف")]
+        [Display(Name = "Description")]
         public string? Description { get; set; }
 
-        [Display(Name = "مفعّل")]
+        [Display(Name = "Active")]
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-        [Display(Name = "فئة الخدمة")]
+        [Display(Name = "Service Category")]
         public int? ServiceCategoryId { get; set; }
 
         [ForeignKey("ServiceCategoryId")]

@@ -48,9 +48,9 @@ namespace Salon.Controllers
                 model.CreatedAt = DateTime.Now;
                 _context.Deposits.Add(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("إضافة", "الإيداعات",
-                    $"{model.Description} - {model.Amount:F3} د.ك", model.Id);
-                TempData["Success"] = "تم إضافة الإيداع بنجاح";
+                await _audit.LogAsync("Add", "Deposits",
+                    $"{model.Description} - {model.Amount:F3} KD", model.Id);
+                TempData["Success"] = "Deposit added created successfully";
                 return RedirectToAction(nameof(Index));
             }
             return View(model);
@@ -71,9 +71,9 @@ namespace Salon.Controllers
             {
                 _context.Update(model);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("تعديل", "الإيداعات",
-                    $"{model.Description} - {model.Amount:F3} د.ك", model.Id);
-                TempData["Success"] = "تم تعديل الإيداع بنجاح";
+                await _audit.LogAsync("Edit", "Deposits",
+                    $"{model.Description} - {model.Amount:F3} KD", model.Id);
+                TempData["Success"] = "Deposit updated created successfully";
                 return RedirectToAction(nameof(Index));
             }
             return View(model);
@@ -85,11 +85,11 @@ namespace Salon.Controllers
             var deposit = await _context.Deposits.FindAsync(id);
             if (deposit != null)
             {
-                var desc = $"{deposit.Description} - {deposit.Amount:F3} د.ك";
+                var desc = $"{deposit.Description} - {deposit.Amount:F3} KD";
                 _context.Deposits.Remove(deposit);
                 await _context.SaveChangesAsync();
-                await _audit.LogAsync("حذف", "الإيداعات", desc, id);
-                TempData["Success"] = "تم حذف الإيداع بنجاح";
+                await _audit.LogAsync("Delete", "Deposits", desc, id);
+                TempData["Success"] = "Deposit deleted created successfully";
             }
             return RedirectToAction(nameof(Index));
         }

@@ -8,23 +8,23 @@ namespace Salon.Models
         public int Id { get; set; }
 
         [Required]
-        [Display(Name = "اشتراك العميل")]
+        [Display(Name = "Customer Subscription")]
         public int CustomerPackageId { get; set; }
 
         [ForeignKey("CustomerPackageId")]
         public CustomerPackage? CustomerPackage { get; set; }
 
-        [Display(Name = "تاريخ الاستخدام")]
+        [Display(Name = "Usage Date")]
         [DataType(DataType.DateTime)]
         public DateTime UsedDate { get; set; } = DateTime.Now;
 
-        [Display(Name = "الموظف")]
+        [Display(Name = "Employee")]
         public int? EmployeeId { get; set; }
 
         [ForeignKey("EmployeeId")]
         public Employee? Employee { get; set; }
 
-        [Display(Name = "ملاحظات")]
+        [Display(Name = "Notes")]
         public string? Notes { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;

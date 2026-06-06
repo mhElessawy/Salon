@@ -12,35 +12,35 @@ namespace Salon.Models
 
     public class CreateUserViewModel
     {
-        [Required(ErrorMessage = "الاسم الكامل مطلوب")]
-        [Display(Name = "الاسم الكامل")]
+        [Required(ErrorMessage = "Full name is required")]
+        [Display(Name = "Full Name")]
         public string FullName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "البريد الإلكتروني مطلوب")]
-        [EmailAddress(ErrorMessage = "بريد إلكتروني غير صحيح")]
-        [Display(Name = "البريد الإلكتروني")]
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Invalid email")]
+        [Display(Name = "Email")]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "كلمة المرور مطلوبة")]
-        [MinLength(6, ErrorMessage = "كلمة المرور يجب أن تكون 6 أحرف على الأقل")]
+        [Required(ErrorMessage = "Password is required")]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
         [DataType(DataType.Password)]
-        [Display(Name = "كلمة المرور")]
+        [Display(Name = "Password")]
         public string Password { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "تأكيد كلمة المرور مطلوب")]
+        [Required(ErrorMessage = "Password confirmation is required")]
         [DataType(DataType.Password)]
-        [Compare("Password", ErrorMessage = "كلمتا المرور غير متطابقتين")]
-        [Display(Name = "تأكيد كلمة المرور")]
+        [Compare("Password", ErrorMessage = "Passwords do not match")]
+        [Display(Name = "Confirm Password")]
         public string ConfirmPassword { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "الدور مطلوب")]
-        [Display(Name = "الدور / الصلاحية")]
+        [Required(ErrorMessage = "Role is required")]
+        [Display(Name = "Role / Permission")]
         public string Role { get; set; } = "Cashier";
 
-        [Display(Name = "القسم")]
-        public string? UserDepartment { get; set; } // "حلاقة" | "مساج" | "الكل"
+        [Display(Name = "Department")]
+        public string? UserDepartment { get; set; } // "Barber" | "Massage" | "All"
 
-        [Display(Name = "الموظف المرتبط")]
+        [Display(Name = "Associated Employee")]
         public int? LinkedEmployeeId { get; set; }
     }
 
@@ -48,26 +48,26 @@ namespace Salon.Models
     {
         public string Id { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "الاسم الكامل مطلوب")]
-        [Display(Name = "الاسم الكامل")]
+        [Required(ErrorMessage = "Full name is required")]
+        [Display(Name = "Full Name")]
         public string FullName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "البريد الإلكتروني مطلوب")]
-        [EmailAddress(ErrorMessage = "بريد إلكتروني غير صحيح")]
-        [Display(Name = "البريد الإلكتروني")]
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Invalid email")]
+        [Display(Name = "Email")]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "الدور مطلوب")]
-        [Display(Name = "الدور / الصلاحية")]
+        [Required(ErrorMessage = "Role is required")]
+        [Display(Name = "Role / Permission")]
         public string Role { get; set; } = "Cashier";
 
-        [Display(Name = "الحالة")]
+        [Display(Name = "Status")]
         public bool IsActive { get; set; } = true;
 
-        [Display(Name = "القسم")]
+        [Display(Name = "Department")]
         public string? UserDepartment { get; set; }
 
-        [Display(Name = "الموظف المرتبط")]
+        [Display(Name = "Associated Employee")]
         public int? LinkedEmployeeId { get; set; }
     }
 
@@ -76,36 +76,36 @@ namespace Salon.Models
         public string UserId { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "كلمة المرور الجديدة مطلوبة")]
-        [MinLength(6, ErrorMessage = "كلمة المرور يجب أن تكون 6 أحرف على الأقل")]
+        [Required(ErrorMessage = "New password is required")]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
         [DataType(DataType.Password)]
-        [Display(Name = "كلمة المرور الجديدة")]
+        [Display(Name = "New Password")]
         public string NewPassword { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "تأكيد كلمة المرور مطلوب")]
+        [Required(ErrorMessage = "Password confirmation is required")]
         [DataType(DataType.Password)]
-        [Compare("NewPassword", ErrorMessage = "كلمتا المرور غير متطابقتين")]
-        [Display(Name = "تأكيد كلمة المرور")]
+        [Compare("NewPassword", ErrorMessage = "Passwords do not match")]
+        [Display(Name = "Confirm Password")]
         public string ConfirmPassword { get; set; } = string.Empty;
     }
 
     public class ChangePasswordViewModel
     {
-        [Required(ErrorMessage = "كلمة المرور الحالية مطلوبة")]
+        [Required(ErrorMessage = "Current password is required")]
         [DataType(DataType.Password)]
-        [Display(Name = "كلمة المرور الحالية")]
+        [Display(Name = "Current Password")]
         public string CurrentPassword { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "كلمة المرور الجديدة مطلوبة")]
-        [MinLength(6, ErrorMessage = "كلمة المرور يجب أن تكون 6 أحرف على الأقل")]
+        [Required(ErrorMessage = "New password is required")]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
         [DataType(DataType.Password)]
-        [Display(Name = "كلمة المرور الجديدة")]
+        [Display(Name = "New Password")]
         public string NewPassword { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "تأكيد كلمة المرور مطلوب")]
+        [Required(ErrorMessage = "Password confirmation is required")]
         [DataType(DataType.Password)]
-        [Compare("NewPassword", ErrorMessage = "كلمتا المرور غير متطابقتين")]
-        [Display(Name = "تأكيد كلمة المرور")]
+        [Compare("NewPassword", ErrorMessage = "Passwords do not match")]
+        [Display(Name = "Confirm Password")]
         public string ConfirmPassword { get; set; } = string.Empty;
     }
 }
