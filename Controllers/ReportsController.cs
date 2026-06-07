@@ -728,24 +728,23 @@ namespace Salon.Controllers
 
             if (showSales)
             {
-                var sales = await _context.Sales
-                    .Include(s => s.Employee)
-                    .Include(s => s.Customer)
+                var salesRaw = await _context.Sales
                     .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي")
-                    .OrderByDescending(s => s.SaleDate)
                     .ToListAsync();
 
-                items.AddRange(sales.Select(s => new CashMovementReportItem
-                {
-                    Date = s.SaleDate,
-                    Type = "مبيعات",
-                    Description = $"فاتورة {s.InvoiceNumber}" +
-                                  (s.Employee != null ? $" — {s.Employee.FullName}" : "") +
-                                  (s.Customer != null ? $" / {s.Customer.FullName}" : ""),
-                    Amount = s.NetAmount,
-                    Category = s.SaleType,
-                    Notes = s.PaymentMethod
-                }));
+                var dailySales = salesRaw
+                    .GroupBy(s => s.SaleDate.Date)
+                    .Select(g => new CashMovementReportItem
+                    {
+                        Date = g.Key,
+                        Type = "مبيعات",
+                        Description = $"مبيعات يوم {g.Key:yyyy/MM/dd}",
+                        Amount = g.Sum(s => s.NetAmount),
+                        Category = $"{g.Count()} فاتورة",
+                        Notes = ""
+                    });
+
+                items.AddRange(dailySales);
             }
 
             items = items.OrderByDescending(i => i.Date).ThenBy(i => i.Type).ToList();

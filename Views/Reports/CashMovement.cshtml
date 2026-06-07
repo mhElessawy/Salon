@@ -133,7 +133,7 @@
                             bool isSale = item.Type == "مبيعات";
                             <tr style="@(isSale ? "background:#f0faff;" : "")">
                                 <td class="text-muted small">@row</td>
-                                <td>@item.Date.ToString("yyyy/MM/dd hh:mm tt")</td>
+                                <td>@(item.Type == "مبيعات" ? item.Date.ToString("yyyy/MM/dd") : item.Date.ToString("yyyy/MM/dd hh:mm tt"))</td>
                                 <td>
                                     @switch (item.Type)
                                     {
