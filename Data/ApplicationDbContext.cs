@@ -144,6 +144,11 @@ namespace Salon.Data
                 .HasColumnType("decimal(18,3)")
                 .IsRequired(false);
 
+            builder.Entity<Salary>()
+                .Property(s => s.HadiyaAmount)
+                .HasColumnType("decimal(18,3)")
+                .IsRequired(false);
+
             builder.Entity<EmployeeAdvance>()
                 .Property(a => a.Amount)
                 .HasColumnType("decimal(18,3)");

@@ -59,6 +59,10 @@ namespace Salon.Models
         [DataType(DataType.Currency)]
         public decimal? GiftAmount { get; set; }
 
+        [Display(Name = "هدية للموظف")]
+        [DataType(DataType.Currency)]
+        public decimal? HadiyaAmount { get; set; }
+
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
 

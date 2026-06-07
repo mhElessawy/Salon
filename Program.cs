@@ -113,6 +113,7 @@ using (var scope = app.Services.CreateScope())
             TryExec("ALTER TABLE Sales ADD COLUMN EmployeeGift REAL NULL");
             TryExec("ALTER TABLE Sales ADD COLUMN GiftForEmployee REAL NULL");
             TryExec("ALTER TABLE Salaries ADD COLUMN GiftAmount REAL NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Salaries ADD COLUMN HadiyaAmount REAL NULL");
             TryExec("ALTER TABLE Salaries ADD COLUMN CommissionAmount REAL NOT NULL DEFAULT 0");
             TryExec("ALTER TABLE Salaries ADD COLUMN PaymentMethod TEXT NOT NULL DEFAULT '����'");
             TryExec("ALTER TABLE Salaries ADD COLUMN EmployeeDebtDeducted REAL NOT NULL DEFAULT 0");
@@ -197,6 +198,7 @@ using (var scope = app.Services.CreateScope())
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Sales' AND COLUMN_NAME='EmployeeGift') ALTER TABLE Sales ADD EmployeeGift DECIMAL(18,3) NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Sales' AND COLUMN_NAME='GiftForEmployee') ALTER TABLE Sales ADD GiftForEmployee DECIMAL(18,3) NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='GiftAmount') ALTER TABLE Salaries ADD GiftAmount DECIMAL(18,3) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='HadiyaAmount') ALTER TABLE Salaries ADD HadiyaAmount DECIMAL(18,3) NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='CommissionAmount') ALTER TABLE Salaries ADD CommissionAmount DECIMAL(18,3) NOT NULL DEFAULT 0");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='PaymentMethod') ALTER TABLE Salaries ADD PaymentMethod NVARCHAR(50) NOT NULL DEFAULT N'����'");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='EmployeeDebtDeducted') ALTER TABLE Salaries ADD EmployeeDebtDeducted DECIMAL(18,3) NOT NULL DEFAULT 0");

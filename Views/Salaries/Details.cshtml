@@ -219,11 +219,18 @@
                             <td>إجمالي الهدايا</td>
                             <td class="text-end fw-bold">@((Model.GiftAmount ?? 0).ToString("N3")) د.ك</td>
                         </tr>
+                        @if ((Model.HadiyaAmount ?? 0) > 0)
+                        {
+                            <tr style="background:#fdf2f2;">
+                                <td style="color:#c0392b;"><i class="fas fa-gift me-1"></i>هدية للموظف</td>
+                                <td class="text-end fw-bold" style="color:#c0392b;">@((Model.HadiyaAmount ?? 0).ToString("N3")) د.ك</td>
+                            </tr>
+                        }
                     </tbody>
                     <tfoot class="table-success fw-bold">
                         <tr>
                             <td>إجمالي الإضافات</td>
-                            <td class="text-end">@((Model.BasicSalary + Model.CommissionAmount + Model.Allowances + (Model.GiftAmount ?? 0)).ToString("N3")) د.ك</td>
+                            <td class="text-end">@((Model.BasicSalary + Model.CommissionAmount + Model.Allowances + (Model.GiftAmount ?? 0) + (Model.HadiyaAmount ?? 0)).ToString("N3")) د.ك</td>
                         </tr>
                     </tfoot>
                 </table>
