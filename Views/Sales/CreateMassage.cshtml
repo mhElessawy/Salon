@@ -720,10 +720,19 @@
                 }
                 <div class="total-row net"><span>الصافي:</span><span id="netDisplay">0.000 د.ك</span></div>
                 <div class="total-row" style="border-top:1px dashed #a8e6ef;padding-top:8px;margin-top:4px;">
-                    <span style="color:#17a2b8;font-size:12px;"><i class="fas fa-hand-holding-usd me-1"></i>عمولة خدمة للموظف:</span>
+                    <span style="color:#17a2b8;font-size:12px;"><i class="fas fa-gift me-1"></i>هدية للموظف:</span>
                     <input type="number" name="EmployeeGift" id="giftInput" class="discount-input"
                            value="" step="0.001" min="0" placeholder="0.000"
-                           style="border-color:#a8e6ef;width:90px;" />
+                           style="border-color:#a8e6ef;width:90px;" oninput="recalc()" />
+                </div>
+                <div id="giftTotalRow" style="display:none;border-top:2px solid #17a2b8;margin-top:6px;padding-top:6px;">
+                    <div class="total-row" style="font-size:14px;font-weight:700;color:#17a2b8;">
+                        <span><i class="fas fa-hand-holding-usd me-1"></i>إجمالي التحصيل من العميل:</span>
+                        <span id="totalCollectDisplay" style="background:#e8f8fb;padding:2px 8px;border-radius:4px;border:1px solid #a8e6ef;">0.000 د.ك</span>
+                    </div>
+                    <div style="font-size:10px;color:#888;text-align:left;margin-top:2px;">
+                        <i class="fas fa-info-circle me-1"></i>الهدية تُصرف للموظف مع الراتب
+                    </div>
                 </div>
             </div>
 
@@ -974,6 +983,7 @@
             var s = items.reduce(function(a,i) { return a + i.total; }, 0);
             var d = parseFloat(document.getElementById('discountInput').value) || 0;
             var pkgPay = parseFloat(document.getElementById('packagePaymentAmount').value) || 0;
+            var gift = parseFloat(document.getElementById('giftInput').value) || 0;
             document.getElementById('subtotalDisplay').textContent = s.toFixed(3) + ' د.ك';
             var pkgRow = document.getElementById('pkgPayTotalRow');
             if (pkgPay > 0) {
@@ -982,7 +992,16 @@
             } else {
                 pkgRow.style.display = 'none';
             }
-            document.getElementById('netDisplay').textContent = Math.max(0, s + pkgPay - d).toFixed(3) + ' د.ك';
+            var net = Math.max(0, s + pkgPay - d);
+            document.getElementById('netDisplay').textContent = net.toFixed(3) + ' د.ك';
+            // سطر إجمالي التحصيل (صافي + هدية)
+            var giftRow = document.getElementById('giftTotalRow');
+            if (gift > 0) {
+                giftRow.style.display = '';
+                document.getElementById('totalCollectDisplay').textContent = (net + gift).toFixed(3) + ' د.ك';
+            } else {
+                giftRow.style.display = 'none';
+            }
         }
         function filterItems(q) {
             q = q.toLowerCase();
