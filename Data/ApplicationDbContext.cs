@@ -57,6 +57,10 @@ namespace Salon.Data
                 .Property(s => s.EmployeeGift)
                 .HasColumnType("decimal(18,3)");
 
+            builder.Entity<Sale>()
+                .Property(s => s.GiftForEmployee)
+                .HasColumnType("decimal(18,3)");
+
             builder.Entity<SaleItem>()
                 .Property(s => s.Price)
                 .HasColumnType("decimal(18,3)");

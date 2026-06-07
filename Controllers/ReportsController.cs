@@ -100,6 +100,7 @@ namespace Salon.Controllers
             ViewBag.TotalCancelled = cancelledSales.Sum(s => s.NetAmount);
             ViewBag.TotalCancelledCount = cancelledSales.Count;
             ViewBag.TotalGifts = activeSales.Sum(s => s.EmployeeGift ?? 0);
+            ViewBag.TotalHadiya = activeSales.Sum(s => s.GiftForEmployee ?? 0);
             ViewBag.Employees = employees;
             ViewBag.Customers = customers;
             ViewBag.SelectedEmployeeId = employeeId;
@@ -294,6 +295,7 @@ namespace Salon.Controllers
             ViewBag.CancelledTotal = cancelledSalesReport.Sum(s => s.NetAmount);
             ViewBag.CancelledCount = cancelledSalesReport.Count;
             ViewBag.TotalGiftsToday = activeSalesReport.Sum(s => s.EmployeeGift ?? 0);
+            ViewBag.TotalHadiyaToday = activeSalesReport.Sum(s => s.GiftForEmployee ?? 0);
 
             // تشخيص: تفاصيل طرق الدفع الفعلية في قاعدة البيانات
             ViewBag.PaymentBreakdown = activeSalesReport
@@ -469,6 +471,7 @@ namespace Salon.Controllers
                 var debts = sales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
                 var advance = todayAdvances.Where(a => a.EmployeeId == emp.Id).Sum(a => a.Amount);
                 var gift = sales.Sum(s => s.EmployeeGift ?? 0);
+                var hadiya = sales.Sum(s => s.GiftForEmployee ?? 0);
                 var commission = emp.Commission;
                 var dueAmount = Math.Round(totalWork * commission / 100, 3);
                 var deductions = advance + debts;
@@ -485,7 +488,8 @@ namespace Salon.Controllers
                     Deductions = deductions,
                     NetAfterDeduction = dueAmount - deductions,
                     ShopNet = totalWork - dueAmount,
-                    Gift = gift
+                    Gift = gift,
+                    Hadiya = hadiya
                 };
             }).ToList();
 

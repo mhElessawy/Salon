@@ -66,6 +66,10 @@ namespace Salon.Models
         [DataType(DataType.Currency)]
         public decimal? EmployeeGift { get; set; }
 
+        [Display(Name = "هدية للموظف")]
+        [DataType(DataType.Currency)]
+        public decimal? GiftForEmployee { get; set; }
+
         public ICollection<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
     }
 

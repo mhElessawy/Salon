@@ -402,7 +402,7 @@
                     <th>خصم السلف<br />والديون<br /><small>د.ك</small></th>
                     <th>الصافي<br />بعد الخصم<br /><small>د.ك</small></th>
                     <th>صافي المحل<br /><small>د.ك</small></th>
-                    <th>هدية<br />الموظف<br /><small>د.ك</small></th>
+                    <th>هدية<br />للموظف<br /><small>د.ك</small></th>
                 </tr>
             </thead>
             <tbody>
@@ -445,7 +445,7 @@
                         <td class="@(row.Deductions > 0 ? "text-danger" : "")">@row.Deductions.ToString("N3")</td>
                         <td style="color:#16a34a;font-weight:bold;">@row.NetAfterDeduction.ToString("N3")</td>
                         <td style="color:#1d4ed8;font-weight:bold;">@row.ShopNet.ToString("N3")</td>
-                        <td style="color:#e67e22;font-weight:bold;">@(row.Gift > 0 ? row.Gift.ToString("N3") : "-")</td>
+                        <td style="color:#c0392b;font-weight:bold;">@(row.Hadiya > 0 ? row.Hadiya.ToString("N3") : "-")</td>
                     </tr>
                 }
             </tbody>
@@ -464,7 +464,7 @@
                         <td>@Model.TotalDeductions.ToString("N3")</td>
                         <td>@Model.TotalNetAfterDeduction.ToString("N3")</td>
                         <td>@Model.TotalShopNet.ToString("N3")</td>
-                        <td style="color:#e67e22;font-weight:bold;">@(Model.TotalGifts > 0 ? Model.TotalGifts.ToString("N3") : "-")</td>
+                        <td style="color:#c0392b;font-weight:bold;">@(Model.TotalHadiya > 0 ? Model.TotalHadiya.ToString("N3") : "-")</td>
                     </tr>
                 </tfoot>
             }
@@ -510,12 +510,12 @@
                 <div class="sum-val blue">@Model.TotalShopNet.ToString("N3")</div>
                 <div class="sum-cur">د.ك</div>
             </div>
-            @if (Model.TotalGifts > 0)
+            @if (Model.TotalHadiya > 0)
             {
                 <div class="bdr-sum-cell">
                     <div class="sum-icon"><i class="fas fa-gift"></i></div>
-                    <div class="sum-label">هدايا الموظفين<br /><small style="color:#aaa;">(تُصرف مع الراتب)</small></div>
-                    <div class="sum-val" style="color:#e67e22;">@Model.TotalGifts.ToString("N3")</div>
+                    <div class="sum-label">هدايا للموظفين<br /><small style="color:#aaa;">(تُصرف مع الراتب)</small></div>
+                    <div class="sum-val" style="color:#c0392b;">@Model.TotalHadiya.ToString("N3")</div>
                     <div class="sum-cur">د.ك</div>
                 </div>
             }

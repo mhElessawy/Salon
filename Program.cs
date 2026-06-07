@@ -111,6 +111,7 @@ using (var scope = app.Services.CreateScope())
             TryExec("ALTER TABLE Products ADD COLUMN OpeningQuantity INTEGER NOT NULL DEFAULT 0");
             TryExec("ALTER TABLE Attendances ADD COLUMN QueuePosition INTEGER NULL");
             TryExec("ALTER TABLE Sales ADD COLUMN EmployeeGift REAL NULL");
+            TryExec("ALTER TABLE Sales ADD COLUMN GiftForEmployee REAL NULL");
             TryExec("ALTER TABLE Salaries ADD COLUMN GiftAmount REAL NOT NULL DEFAULT 0");
             TryExec("ALTER TABLE Salaries ADD COLUMN CommissionAmount REAL NOT NULL DEFAULT 0");
             TryExec("ALTER TABLE Salaries ADD COLUMN PaymentMethod TEXT NOT NULL DEFAULT '����'");
@@ -194,6 +195,7 @@ using (var scope = app.Services.CreateScope())
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Products' AND COLUMN_NAME='OpeningQuantity') ALTER TABLE Products ADD OpeningQuantity INT NOT NULL DEFAULT 0");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Attendances' AND COLUMN_NAME='QueuePosition') ALTER TABLE Attendances ADD QueuePosition INT NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Sales' AND COLUMN_NAME='EmployeeGift') ALTER TABLE Sales ADD EmployeeGift DECIMAL(18,3) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Sales' AND COLUMN_NAME='GiftForEmployee') ALTER TABLE Sales ADD GiftForEmployee DECIMAL(18,3) NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='GiftAmount') ALTER TABLE Salaries ADD GiftAmount DECIMAL(18,3) NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='CommissionAmount') ALTER TABLE Salaries ADD CommissionAmount DECIMAL(18,3) NOT NULL DEFAULT 0");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='PaymentMethod') ALTER TABLE Salaries ADD PaymentMethod NVARCHAR(50) NOT NULL DEFAULT N'����'");
