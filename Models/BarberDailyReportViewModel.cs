@@ -14,6 +14,7 @@
         public decimal Deductions { get; set; }
         public decimal NetAfterDeduction { get; set; }
         public decimal ShopNet { get; set; }
+        public decimal Gift { get; set; }
     }
 
     public class CashMovementRow
@@ -85,6 +86,7 @@
         public decimal TotalDeductions => BarberRows.Sum(r => r.Deductions);
         public decimal TotalNetAfterDeduction => BarberRows.Sum(r => r.NetAfterDeduction);
         public decimal TotalShopNet => BarberRows.Sum(r => r.ShopNet);
+        public decimal TotalGifts => BarberRows.Sum(r => r.Gift);
 
         // Cash movement
         public List<CashMovementRow> CashMovement { get; set; } = new();

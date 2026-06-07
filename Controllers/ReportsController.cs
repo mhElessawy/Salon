@@ -99,6 +99,7 @@ namespace Salon.Controllers
             ViewBag.TotalOwnerDebt = activeSales.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount);
             ViewBag.TotalCancelled = cancelledSales.Sum(s => s.NetAmount);
             ViewBag.TotalCancelledCount = cancelledSales.Count;
+            ViewBag.TotalGifts = activeSales.Sum(s => s.EmployeeGift ?? 0);
             ViewBag.Employees = employees;
             ViewBag.Customers = customers;
             ViewBag.SelectedEmployeeId = employeeId;
@@ -292,6 +293,7 @@ namespace Salon.Controllers
             ViewBag.OwnerDebtTotal = activeSalesReport.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount);
             ViewBag.CancelledTotal = cancelledSalesReport.Sum(s => s.NetAmount);
             ViewBag.CancelledCount = cancelledSalesReport.Count;
+            ViewBag.TotalGiftsToday = activeSalesReport.Sum(s => s.EmployeeGift ?? 0);
 
             // تشخيص: تفاصيل طرق الدفع الفعلية في قاعدة البيانات
             ViewBag.PaymentBreakdown = activeSalesReport
@@ -466,6 +468,7 @@ namespace Salon.Controllers
                     mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
                 var debts = sales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
                 var advance = todayAdvances.Where(a => a.EmployeeId == emp.Id).Sum(a => a.Amount);
+                var gift = sales.Sum(s => s.EmployeeGift ?? 0);
                 var commission = emp.Commission;
                 var dueAmount = Math.Round(totalWork * commission / 100, 3);
                 var deductions = advance + debts;
@@ -481,7 +484,8 @@ namespace Salon.Controllers
                     DueAmount = dueAmount,
                     Deductions = deductions,
                     NetAfterDeduction = dueAmount - deductions,
-                    ShopNet = totalWork - dueAmount
+                    ShopNet = totalWork - dueAmount,
+                    Gift = gift
                 };
             }).ToList();
 

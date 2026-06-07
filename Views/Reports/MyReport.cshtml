@@ -19,6 +19,7 @@
     var depositsTodayList = ViewBag.DepositsTodayList as List<Deposit> ?? new List<Deposit>();
     decimal totalExpensesWithSalaries = ViewBag.TotalExpensesWithSalaries is decimal tews ? tews : 0m;
     decimal depositsToday = ViewBag.DepositsToday is decimal dt ? dt : 0m;
+    decimal totalGiftsToday = ViewBag.TotalGiftsToday is decimal tgt ? tgt : 0m;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -66,6 +67,16 @@
         </div>
         <div class="stat-value" style="color:#16a34a;">@depositsToday.ToString("N3") د.ك</div>
     </div>
+    @if (totalGiftsToday > 0)
+    {
+        <div class="stat-card" style="border-right:4px solid #e67e22;">
+            <div class="stat-card-header">
+                <span class="stat-label">هدايا الموظفين</span>
+                <div class="stat-icon" style="background:#e67e22;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-gift"></i></div>
+            </div>
+            <div class="stat-value" style="color:#e67e22;">@totalGiftsToday.ToString("N3") د.ك</div>
+        </div>
+    }
     <div class="stat-card orange">
         <div class="stat-card-header">
             <span class="stat-label">صافي الربح</span>
@@ -242,6 +253,7 @@
                         <th>الإجمالي</th>
                         <th>الخصم</th>
                         <th>الصافي</th>
+                        <th>هدية الموظف</th>
                         <th>طريقة الدفع</th>
                         <th>ملاحظات</th>
                         <th>الوقت</th>
@@ -304,6 +316,16 @@
                                 }
                             </td>
                             <td><strong class="@(isCancelled ? "text-danger" : "text-success")">@s.NetAmount.ToString("N3") د.ك</strong></td>
+                            <td>
+                                @if (s.EmployeeGift.HasValue && s.EmployeeGift > 0)
+                                {
+                                    <span class="badge" style="background:#e67e22;" title="تُصرف مع الراتب"><i class="fas fa-gift me-1"></i>@s.EmployeeGift.Value.ToString("N3") د.ك</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">-</span>
+                                }
+                            </td>
                             <td>
                                 @if (s.PaymentMethod == "كاش")
                                 {
@@ -381,7 +403,7 @@
                     @if (!Model.Any() && !advancesList.Any())
                     {
                         <tr>
-                            <td colspan="11" class="text-center text-muted py-5">
+                            <td colspan="12" class="text-center text-muted py-5">
                                 <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
                                 لا توجد فواتير اليوم
                             </td>
@@ -403,6 +425,10 @@
                             <td class="fs-6">@Model.Sum(s => s.TotalAmount).ToString("N3") <small>د.ك</small></td>
                             <td class="text-warning fs-6">@Model.Sum(s => s.Discount).ToString("N3") <small>د.ك</small></td>
                             <td class="text-success fs-6">@Model.Sum(s => s.NetAmount).ToString("N3") <small>د.ك</small></td>
+                            <td style="color:#e67e22;" class="fs-6">
+                                @{var giftSum = Model.Sum(s => s.EmployeeGift ?? 0);}
+                                @(giftSum > 0 ? giftSum.ToString("N3") + " د.ك" : "-")
+                            </td>
                             <td colspan="3"></td>
                         </tr>
                     </tfoot>
