@@ -654,9 +654,10 @@ namespace Salon.Controllers
 
             var items = new List<CashMovementReportItem>();
 
-            bool showExpenses = string.IsNullOrEmpty(type) || type == "مصروف";
-            bool showDeposits = string.IsNullOrEmpty(type) || type == "إيداع";
-            bool showSales    = string.IsNullOrEmpty(type) || type == "مبيعات";
+            bool showExpenses    = string.IsNullOrEmpty(type) || type == "مصروف";
+            bool showDeposits    = string.IsNullOrEmpty(type) || type == "إيداع";
+            bool showSales       = string.IsNullOrEmpty(type) || type == "مبيعات";
+            bool showWithdrawals = string.IsNullOrEmpty(type) || type == "سحب";
 
             if (showExpenses)
             {
@@ -747,20 +748,40 @@ namespace Salon.Controllers
                 items.AddRange(dailySales);
             }
 
+            if (showWithdrawals)
+            {
+                var withdrawals = await _context.Withdrawals
+                    .Where(w => w.WithdrawalDate >= dateFrom && w.WithdrawalDate < dateTo)
+                    .OrderByDescending(w => w.WithdrawalDate)
+                    .ToListAsync();
+
+                items.AddRange(withdrawals.Select(w => new CashMovementReportItem
+                {
+                    Date = w.WithdrawalDate,
+                    Type = "سحب",
+                    Description = w.Description,
+                    Amount = w.Amount,
+                    Category = w.Reason,
+                    Notes = w.Notes
+                }));
+            }
+
             items = items.OrderByDescending(i => i.Date).ThenBy(i => i.Type).ToList();
 
             string[] expenseTypes = { "مصروف", "سلفة", "راتب" };
-            decimal totalExp   = items.Where(i => expenseTypes.Contains(i.Type)).Sum(i => i.Amount);
-            decimal totalDep   = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount);
-            decimal totalSales = items.Where(i => i.Type == "مبيعات").Sum(i => i.Amount);
+            decimal totalExp         = items.Where(i => expenseTypes.Contains(i.Type)).Sum(i => i.Amount);
+            decimal totalDep         = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount);
+            decimal totalSales       = items.Where(i => i.Type == "مبيعات").Sum(i => i.Amount);
+            decimal totalWithdrawals = items.Where(i => i.Type == "سحب").Sum(i => i.Amount);
 
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
             ViewBag.SelectedType = type;
-            ViewBag.TotalExpenses = totalExp;
-            ViewBag.TotalDeposits = totalDep;
-            ViewBag.TotalSales    = totalSales;
-            ViewBag.NetBalance    = totalDep + totalSales - totalExp;
+            ViewBag.TotalExpenses    = totalExp;
+            ViewBag.TotalDeposits    = totalDep;
+            ViewBag.TotalSales       = totalSales;
+            ViewBag.TotalWithdrawals = totalWithdrawals;
+            ViewBag.NetBalance       = totalDep + totalSales - totalExp - totalWithdrawals;
 
             return View(items);
         }

@@ -21,6 +21,7 @@ namespace Salon.Data
         public DbSet<SaleItem> SaleItems { get; set; }
         public DbSet<Expense> Expenses { get; set; }
         public DbSet<Deposit> Deposits { get; set; }
+        public DbSet<Withdrawal> Withdrawals { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<Shift> Shifts { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
@@ -87,6 +88,10 @@ namespace Salon.Data
 
             builder.Entity<Deposit>()
                 .Property(d => d.Amount)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<Withdrawal>()
+                .Property(w => w.Amount)
                 .HasColumnType("decimal(18,3)");
 
             builder.Entity<Employee>()

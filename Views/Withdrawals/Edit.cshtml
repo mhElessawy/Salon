@@ -1,0 +1,54 @@
+@model Salon.Models.Withdrawal
+@{
+    ViewData["Title"] = "تعديل السحب";
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-edit me-2"></i>تعديل السحب</h1>
+</div>
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <input asp-for="Id" type="hidden" />
+            <input asp-for="CreatedAt" type="hidden" />
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Description" class="form-label"></label>
+                    <input asp-for="Description" class="form-control" />
+                    <span asp-validation-for="Description" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Reason" class="form-label"></label>
+                    <select asp-for="Reason" class="form-select">
+                        <option value="">-- اختر السبب --</option>
+                        <option>سحب صاحب العمل</option>
+                        <option>دفع فاتورة</option>
+                        <option>مصروف طارئ</option>
+                        <option>أخرى</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Amount" class="form-label"></label>
+                    <div class="input-group">
+                        <input asp-for="Amount" type="number" step="0.001" min="0.001" class="form-control" />
+                        <span class="input-group-text">د.ك</span>
+                    </div>
+                    <span asp-validation-for="Amount" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="WithdrawalDate" class="form-label"></label>
+                    <input asp-for="WithdrawalDate" type="date" class="form-control" />
+                </div>
+                <div class="col-12">
+                    <label asp-for="Notes" class="form-label"></label>
+                    <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-warning me-2"><i class="fas fa-save me-1"></i> حفظ التعديلات</button>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>

@@ -22,7 +22,7 @@
     bool defsOpen = IsGroupOpen("services", "servicecategories", "departments", "packages");
     bool inventoryOpen = IsGroupOpen("inventory", "suppliers");
     bool hrOpen = IsGroupOpen("employees", "salaries", "advances", "attendance");
-    bool cashOpen = IsGroupOpen("expenses", "deposits") ||
+    bool cashOpen = IsGroupOpen("expenses", "deposits", "withdrawals") ||
                     (ctrl == "reports" && act == "cashmovement");
     bool financeOpen = IsGroupOpen("reports");
     bool settingsOpen = IsGroupOpen("settings", "users");
@@ -340,7 +340,7 @@
 
         @* حركة الصندوق *@
         @{
-            bool hasCashGroup = canSee("Expenses") || canSee("Deposits");
+            bool hasCashGroup = canSee("Expenses") || canSee("Deposits") || canSee("Withdrawals");
         }
         @if (hasCashGroup)
         {
@@ -370,7 +370,16 @@
                             </a>
                         </li>
                     }
-                    @if (canSee("Expenses") || canSee("Deposits"))
+                    @if (canSee("Withdrawals"))
+                    {
+                        <li>
+                            <a href="@Url.Action("Index", "Withdrawals")" class="@IsActive("Withdrawals")">
+                                <i class="fas fa-hand-holding-usd" style="color:#dc2626;"></i>
+                                <span data-i18n-en="Withdrawals">السحوبات</span>
+                            </a>
+                        </li>
+                    }
+                    @if (canSee("Expenses") || canSee("Deposits") || canSee("Withdrawals"))
                     {
                         <li>
                             <a href="@Url.Action("CashMovement", "Reports")" class="@IsActive("Reports", "CashMovement")">
