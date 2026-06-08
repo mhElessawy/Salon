@@ -186,7 +186,7 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">تاريخ الصرف <small class="text-muted fw-normal">(اختياري - إذا تم الصرف)</small></label>
-                    <input type="date" name="PaidDate" id="paidDate" class="form-control" />
+                    <input type="date" name="PaidDate" id="paidDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
                 </div>
                 <input type="hidden" name="PaymentMethod" value="نقدي" />
                 <div class="col-12">
