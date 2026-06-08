@@ -99,6 +99,8 @@ namespace Salon.Controllers
             ViewBag.TotalOwnerDebt = activeSales.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount);
             ViewBag.TotalCancelled = cancelledSales.Sum(s => s.NetAmount);
             ViewBag.TotalCancelledCount = cancelledSales.Count;
+            ViewBag.TotalGifts = activeSales.Sum(s => s.EmployeeGift ?? 0);
+            ViewBag.TotalHadiya = activeSales.Sum(s => s.GiftForEmployee ?? 0);
             ViewBag.Employees = employees;
             ViewBag.Customers = customers;
             ViewBag.SelectedEmployeeId = employeeId;
@@ -292,6 +294,8 @@ namespace Salon.Controllers
             ViewBag.OwnerDebtTotal = activeSalesReport.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount);
             ViewBag.CancelledTotal = cancelledSalesReport.Sum(s => s.NetAmount);
             ViewBag.CancelledCount = cancelledSalesReport.Count;
+            ViewBag.TotalGiftsToday = activeSalesReport.Sum(s => s.EmployeeGift ?? 0);
+            ViewBag.TotalHadiyaToday = activeSalesReport.Sum(s => s.GiftForEmployee ?? 0);
 
             // تشخيص: تفاصيل طرق الدفع الفعلية في قاعدة البيانات
             ViewBag.PaymentBreakdown = activeSalesReport
@@ -466,6 +470,8 @@ namespace Salon.Controllers
                     mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
                 var debts = sales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
                 var advance = todayAdvances.Where(a => a.EmployeeId == emp.Id).Sum(a => a.Amount);
+                var gift = sales.Sum(s => s.EmployeeGift ?? 0);
+                var hadiya = sales.Sum(s => s.GiftForEmployee ?? 0);
                 var commission = emp.Commission;
                 var dueAmount = Math.Round(totalWork * commission / 100, 3);
                 var deductions = advance + debts;
@@ -481,7 +487,9 @@ namespace Salon.Controllers
                     DueAmount = dueAmount,
                     Deductions = deductions,
                     NetAfterDeduction = dueAmount - deductions,
-                    ShopNet = totalWork - dueAmount
+                    ShopNet = totalWork - dueAmount,
+                    Gift = gift,
+                    Hadiya = hadiya
                 };
             }).ToList();
 
@@ -648,6 +656,8 @@ namespace Salon.Controllers
 
             bool showExpenses = string.IsNullOrEmpty(type) || type == "مصروف";
             bool showDeposits = string.IsNullOrEmpty(type) || type == "إيداع";
+            bool showSales = string.IsNullOrEmpty(type) || type == "مبيعات";
+            bool showWithdrawals = string.IsNullOrEmpty(type) || type == "سحب";
 
             if (showExpenses)
             {
@@ -717,18 +727,61 @@ namespace Salon.Controllers
                 }));
             }
 
+            if (showSales)
+            {
+                var salesRaw = await _context.Sales
+                    .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي")
+                    .ToListAsync();
+
+                var dailySales = salesRaw
+                    .GroupBy(s => s.SaleDate.Date)
+                    .Select(g => new CashMovementReportItem
+                    {
+                        Date = g.Key,
+                        Type = "مبيعات",
+                        Description = $"مبيعات يوم {g.Key:yyyy/MM/dd}",
+                        Amount = g.Sum(s => s.NetAmount),
+                        Category = $"{g.Count()} فاتورة",
+                        Notes = ""
+                    });
+
+                items.AddRange(dailySales);
+            }
+
+            if (showWithdrawals)
+            {
+                var withdrawals = await _context.Withdrawals
+                    .Where(w => w.WithdrawalDate >= dateFrom && w.WithdrawalDate < dateTo)
+                    .OrderByDescending(w => w.WithdrawalDate)
+                    .ToListAsync();
+
+                items.AddRange(withdrawals.Select(w => new CashMovementReportItem
+                {
+                    Date = w.WithdrawalDate,
+                    Type = "سحب",
+                    Description = w.Description,
+                    Amount = w.Amount,
+                    Category = w.Reason,
+                    Notes = w.Notes
+                }));
+            }
+
             items = items.OrderByDescending(i => i.Date).ThenBy(i => i.Type).ToList();
 
             string[] expenseTypes = { "مصروف", "سلفة", "راتب" };
             decimal totalExp = items.Where(i => expenseTypes.Contains(i.Type)).Sum(i => i.Amount);
             decimal totalDep = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount);
+            decimal totalSales = items.Where(i => i.Type == "مبيعات").Sum(i => i.Amount);
+            decimal totalWithdrawals = items.Where(i => i.Type == "سحب").Sum(i => i.Amount);
 
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
             ViewBag.SelectedType = type;
             ViewBag.TotalExpenses = totalExp;
             ViewBag.TotalDeposits = totalDep;
-            ViewBag.NetBalance = totalDep - totalExp;
+            ViewBag.TotalSales = totalSales;
+            ViewBag.TotalWithdrawals = totalWithdrawals;
+            ViewBag.NetBalance = totalDep + totalSales - totalExp - totalWithdrawals;
 
             return View(items);
         }

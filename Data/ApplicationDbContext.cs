@@ -21,6 +21,7 @@ namespace Salon.Data
         public DbSet<SaleItem> SaleItems { get; set; }
         public DbSet<Expense> Expenses { get; set; }
         public DbSet<Deposit> Deposits { get; set; }
+        public DbSet<Withdrawal> Withdrawals { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<Shift> Shifts { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
@@ -57,6 +58,10 @@ namespace Salon.Data
                 .Property(s => s.EmployeeGift)
                 .HasColumnType("decimal(18,3)");
 
+            builder.Entity<Sale>()
+                .Property(s => s.GiftForEmployee)
+                .HasColumnType("decimal(18,3)");
+
             builder.Entity<SaleItem>()
                 .Property(s => s.Price)
                 .HasColumnType("decimal(18,3)");
@@ -83,6 +88,10 @@ namespace Salon.Data
 
             builder.Entity<Deposit>()
                 .Property(d => d.Amount)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<Withdrawal>()
+                .Property(w => w.Amount)
                 .HasColumnType("decimal(18,3)");
 
             builder.Entity<Employee>()
@@ -137,6 +146,11 @@ namespace Salon.Data
 
             builder.Entity<Salary>()
                 .Property(s => s.GiftAmount)
+                .HasColumnType("decimal(18,3)")
+                .IsRequired(false);
+
+            builder.Entity<Salary>()
+                .Property(s => s.HadiyaAmount)
                 .HasColumnType("decimal(18,3)")
                 .IsRequired(false);
 

@@ -1,4 +1,4 @@
-﻿@model  Salon.Models.BarberDailyReportViewModel
+﻿@model   Salon.Models.BarberDailyReportViewModel
 @{
     ViewData["Title"] = Model.ReportTitle;
     var selectedDate = Model.ReportDate.ToString("yyyy-MM-dd");
@@ -402,13 +402,14 @@
                     <th>خصم السلف<br />والديون<br /><small>د.ك</small></th>
                     <th>الصافي<br />بعد الخصم<br /><small>د.ك</small></th>
                     <th>صافي المحل<br /><small>د.ك</small></th>
+                    <th>هدية<br />للموظف<br /><small>د.ك</small></th>
                 </tr>
             </thead>
             <tbody>
                 @if (!Model.BarberRows.Any())
                 {
                     <tr>
-                        <td colspan="@(Model.ShowBoth ? 13 : 12)" class="text-center text-muted py-4">
+                        <td colspan="@(Model.ShowBoth ? 14 : 13)" class="text-center text-muted py-4">
                             <i class="fas fa-inbox me-1"></i> لا يوجد موظفون نشطون أو لا توجد مبيعات لهذا اليوم
                         </td>
                     </tr>
@@ -444,6 +445,7 @@
                         <td class="@(row.Deductions > 0 ? "text-danger" : "")">@row.Deductions.ToString("N3")</td>
                         <td style="color:#16a34a;font-weight:bold;">@row.NetAfterDeduction.ToString("N3")</td>
                         <td style="color:#1d4ed8;font-weight:bold;">@row.ShopNet.ToString("N3")</td>
+                        <td style="color:#c0392b;font-weight:bold;">@(row.Hadiya > 0 ? row.Hadiya.ToString("N3") : "-")</td>
                     </tr>
                 }
             </tbody>
@@ -462,6 +464,7 @@
                         <td>@Model.TotalDeductions.ToString("N3")</td>
                         <td>@Model.TotalNetAfterDeduction.ToString("N3")</td>
                         <td>@Model.TotalShopNet.ToString("N3")</td>
+                        <td style="color:#c0392b;font-weight:bold;">@(Model.TotalHadiya > 0 ? Model.TotalHadiya.ToString("N3") : "-")</td>
                     </tr>
                 </tfoot>
             }
@@ -507,6 +510,15 @@
                 <div class="sum-val blue">@Model.TotalShopNet.ToString("N3")</div>
                 <div class="sum-cur">د.ك</div>
             </div>
+            @if (Model.TotalHadiya > 0)
+            {
+                <div class="bdr-sum-cell">
+                    <div class="sum-icon"><i class="fas fa-gift"></i></div>
+                    <div class="sum-label">هدايا للموظفين<br /><small style="color:#aaa;">(تُصرف مع الراتب)</small></div>
+                    <div class="sum-val" style="color:#c0392b;">@Model.TotalHadiya.ToString("N3")</div>
+                    <div class="sum-cur">د.ك</div>
+                </div>
+            }
         </div>
         <div class="bdr-note-bar" data-i18n-en="@noteTextEn">
             ملاحظة: تم اعتماد نسبة @Model.CommissionNoteLabel @Model.OverallCommissionPercent.ToString("N0")% من إجمالي الشغل

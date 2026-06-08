@@ -59,15 +59,17 @@
                                             <th>التاريخ</th>
                                             <th>طريقة الدفع</th>
                                             <th class="text-end">صافي الفاتورة</th>
+                                            <th class="text-end" style="color:#c0392b;"><i class="fas fa-gift me-1"></i>هدية للموظف</th>
                                         </tr>
                                     </thead>
                                     <tbody id="salesTableBody">
-                                        <tr><td colspan="4" class="text-center text-muted py-3">لا توجد فواتير لهذا الشهر</td></tr>
+                                        <tr><td colspan="5" class="text-center text-muted py-3">لا توجد فواتير لهذا الشهر</td></tr>
                                     </tbody>
                                     <tfoot class="table-light fw-bold">
                                         <tr>
                                             <td colspan="3">إجمالي الفواتير</td>
                                             <td class="text-end" id="totalSalesDisplay">0.000</td>
+                                            <td class="text-end" style="color:#c0392b;" id="totalHadiyaTableDisplay">-</td>
                                         </tr>
                                         <tr class="table-success">
                                             <td colspan="3">
@@ -156,6 +158,14 @@
                            style="background:#fff8f0;" />
                 </div>
                 <div class="col-md-3">
+                    <label class="form-label" style="color:#c0392b;">
+                        <i class="fas fa-gift me-1"></i>هدية للموظف
+                        <small class="text-muted fw-normal">(من الفواتير)</small>
+                    </label>
+                    <input type="number" name="HadiyaAmount" id="hadiyaAmount" step="0.001" class="form-control" value="0" oninput="calcNet()"
+                           style="background:#fdf2f2;border-color:#e74c3c;" />
+                </div>
+                <div class="col-md-3">
                     <label class="form-label">الخصومات</label>
                     <input type="number" name="Deductions" id="deductions" step="0.001" class="form-control" value="0" oninput="calcNet()" />
                 </div>
@@ -195,10 +205,11 @@
             const comm   = parseFloat(document.getElementById('commissionAmount').value)      || 0;
             const allow  = parseFloat(document.getElementById('allowances').value)            || 0;
             const gift   = parseFloat(document.getElementById('giftAmount').value)            || 0;
+            const hadiya = parseFloat(document.getElementById('hadiyaAmount').value)          || 0;
             const ded    = parseFloat(document.getElementById('deductions').value)            || 0;
             const adv    = parseFloat(document.getElementById('advanceDeducted').value)       || 0;
             const debt   = parseFloat(document.getElementById('employeeDebtDeducted').value)  || 0;
-            document.getElementById('netSalary').value = (basic + comm + allow + gift - ded - adv - debt).toFixed(3);
+            document.getElementById('netSalary').value = (basic + comm + allow + gift + hadiya - ded - adv - debt).toFixed(3);
         }
 
         async function loadSalary() {
@@ -224,6 +235,7 @@
                 document.getElementById('commissionAmount').value      = data.commissionAmount.toFixed(3);
                 document.getElementById('advanceDeducted').value       = data.advanceDeducted.toFixed(3);
                 document.getElementById('giftAmount').value            = data.totalGifts.toFixed(3);
+                document.getElementById('hadiyaAmount').value          = (data.totalHadiya || 0).toFixed(3);
                 document.getElementById('employeeDebtDeducted').value  = (data.employeeDebtTotal || 0).toFixed(3);
 
                 // توتالات طرق الدفع
@@ -259,7 +271,7 @@
                 }
 
                 if (data.sales.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">لا توجد فواتير لهذا الشهر</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">لا توجد فواتير لهذا الشهر</td></tr>';
                     salesCard.classList.add('d-none');
                 } else {
                     tbody.innerHTML = data.sales.map(s =>
@@ -268,8 +280,20 @@
                             <td>${s.saleDate}</td>
                             <td>${paymentBadge(s.paymentMethod)}</td>
                             <td class="text-end">${s.netAmount.toFixed(3)} د.ك</td>
+                            <td class="text-end">${s.giftForEmployee > 0
+                                ? `<span class="badge" style="background:#c0392b;"><i class="fas fa-gift me-1"></i>${s.giftForEmployee.toFixed(3)} د.ك</span>`
+                                : '<span class="text-muted">-</span>'
+                            }</td>
                         </tr>`
                     ).join('');
+                    // تحديث إجمالي الهدايا في الـ tfoot
+                    const totalHadiyaVal = data.totalHadiya || 0;
+                    const hadiyaDisplay = document.getElementById('totalHadiyaTableDisplay');
+                    if (hadiyaDisplay) {
+                        hadiyaDisplay.innerHTML = totalHadiyaVal > 0
+                            ? `<span class="badge" style="background:#c0392b;">${totalHadiyaVal.toFixed(3)} د.ك</span>`
+                            : '-';
+                    }
                     salesCard.classList.remove('d-none');
                 }
 

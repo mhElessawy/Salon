@@ -174,6 +174,24 @@
             <div class="stat-value" style="font-size:1.2rem;">@ViewBag.TotalProducts?.ToString("N3") د.ك</div>
         </div>
     </div>
+    @if ((decimal)(ViewBag.TotalGifts ?? 0m) > 0)
+    {
+        <div class="col-md-2">
+            <div class="stat-card" style="border-right: 4px solid #e67e22; background:#fff8ec;">
+                <div class="stat-label"><i class="fas fa-hand-holding-usd me-1"></i>عمولات الموظفين</div>
+                <div class="stat-value" style="font-size:1.2rem;color:#e67e22;">@((decimal)(ViewBag.TotalGifts ?? 0m)).ToString("N3") د.ك</div>
+            </div>
+        </div>
+    }
+    @if ((decimal)(ViewBag.TotalHadiya ?? 0m) > 0)
+    {
+        <div class="col-md-2">
+            <div class="stat-card" style="border-right: 4px solid #c0392b; background:#fdf2f2;">
+                <div class="stat-label"><i class="fas fa-gift me-1"></i>هدايا للموظفين</div>
+                <div class="stat-value" style="font-size:1.2rem;color:#c0392b;">@((decimal)(ViewBag.TotalHadiya ?? 0m)).ToString("N3") د.ك</div>
+            </div>
+        </div>
+    }
 </div>
 
 <div class="row g-3 mb-3">
@@ -227,6 +245,7 @@
                         <th>الموظف</th>
                         <th>التاريخ</th>
                         <th>الصافي</th>
+                        <th>هدية للموظف</th>
                         <th>الدفع</th>
                         <th>الحالة</th>
                     </tr>
@@ -257,13 +276,23 @@
                             <td>@(s.Employee?.FullName ?? "-")</td>
                             <td>@s.SaleDate.ToString("yyyy/MM/dd")</td>
                             <td><strong>@s.NetAmount.ToString("N3") د.ك</strong></td>
+                            <td>
+                                @if (s.GiftForEmployee.HasValue && s.GiftForEmployee > 0)
+                                {
+                                    <span class="badge" style="background:#c0392b;"><i class="fas fa-gift me-1"></i>@s.GiftForEmployee.Value.ToString("N3") د.ك</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
                             <td>@s.PaymentMethod</td>
                             <td><span class="badge @(s.Status == "مكتمل" ? "bg-success" : "bg-danger")">@s.Status</span></td>
                         </tr>
                     }
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="@(isDeptUser ? 7 : 8)" class="text-center text-muted py-4">لا توجد مبيعات في هذه الفترة</td></tr>
+                        <tr><td colspan="@(isDeptUser ? 8 : 9)" class="text-center text-muted py-4">لا توجد مبيعات في هذه الفترة</td></tr>
                     }
                 </tbody>
             </table>

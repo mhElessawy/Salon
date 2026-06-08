@@ -152,7 +152,8 @@ namespace Salon.Controllers
                     status = s.Status,
                     paymentMethod = s.PaymentMethod,
                     cashAmount = s.CashAmount,
-                    linkAmount = s.LinkAmount
+                    linkAmount = s.LinkAmount,
+                    giftForEmployee = s.GiftForEmployee ?? 0
                 })
                 .ToListAsync();
 
@@ -183,6 +184,13 @@ namespace Salon.Controllers
                 .Select(s => s.EmployeeGift!.Value)
                 .SumAsync();
 
+            var totalHadiya = await _context.Sales
+                .Where(s => s.EmployeeId == employeeId
+                         && s.SaleDate >= rangeStart
+                         && s.SaleDate < rangeEnd
+                         && s.GiftForEmployee != null && s.GiftForEmployee > 0)
+                .SumAsync(s => s.GiftForEmployee!.Value);
+
             return Json(new
             {
                 basicSalary = employee.BasicSalary,
@@ -197,6 +205,7 @@ namespace Salon.Controllers
                 customerDebtTotal,
                 advanceDeducted = totalAdvances,
                 totalGifts,
+                totalHadiya,
                 alreadyPaid
             });
         }
@@ -220,7 +229,7 @@ namespace Salon.Controllers
                     return View(model);
                 }
 
-                model.NetSalary = model.BasicSalary + model.CommissionAmount + model.Allowances + (model.GiftAmount ?? 0) - model.Deductions - model.AdvanceDeducted - model.EmployeeDebtDeducted;
+                model.NetSalary = model.BasicSalary + model.CommissionAmount + model.Allowances + (model.GiftAmount ?? 0) + (model.HadiyaAmount ?? 0) - model.Deductions - model.AdvanceDeducted - model.EmployeeDebtDeducted;
                 model.CreatedAt = DateTime.Now;
                 _context.Salaries.Add(model);
                 await _context.SaveChangesAsync();
