@@ -52,13 +52,13 @@
                     <option value="">الكل</option>
                     @if (!isMassage)
                     {
-                        <option value="حلاقة" @(selectedType == "حلاقة" ? "selected" : "")>حلاقة</option>
+                        <option value="حلاقة" selected="@(selectedType == "حلاقة")">حلاقة</option>
                     }
                     @if (!isHaircut)
                     {
-                        <option value="مساج" @(selectedType == "مساج" ? "selected" : "")>مساج</option>
+                        <option value="مساج" selected="@(selectedType == "مساج")">مساج</option>
                     }
-                    <option value="منتجات" @(selectedType == "منتجات" ? "selected" : "")>منتجات</option>
+                    <option value="منتجات" selected="@(selectedType == "منتجات")">منتجات</option>
                 </select>
             </div>
             <div class="col-auto">
@@ -81,7 +81,7 @@
                     {
                         <option value="@emp.Id"
                                 data-dept="@(emp.Department ?? "")"
-                                @(selectedEmployee == emp.Id ? "selected" : "")>@emp.FullName</option>
+                                selected="@(selectedEmployee == emp.Id)">@emp.FullName</option>
                     }
                 </select>
             </div>
@@ -93,7 +93,7 @@
                     {
                         <option value="@cust.Id"
                                 data-dept="@(cust.Department ?? "")"
-                                @(selectedCustomer == cust.Id ? "selected" : "")>@cust.FullName</option>
+                                selected="@(selectedCustomer == cust.Id)">@cust.FullName</option>
                     }
                 </select>
             </div>
