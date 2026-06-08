@@ -94,8 +94,10 @@
 <div class="card mb-3">
     <div class="card-body">
         <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
-            <label class="form-label mb-0">التاريخ:</label>
-            <input type="date" name="date" value="@ViewBag.FilterDate" class="form-control" style="max-width:180px;" />
+            <label class="form-label mb-0">من:</label>
+            <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:170px;" />
+            <label class="form-label mb-0">إلى:</label>
+            <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:170px;" />
             <label class="form-label mb-0">النوع:</label>
             <select name="type" class="form-select" style="max-width:160px;">
                 <option value="">الكل</option>
@@ -113,10 +115,7 @@
                 }
             </select>
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> بحث</button>
-            @if (!string.IsNullOrEmpty(filterType))
-            {
-                <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">إلغاء الفلتر</a>
-            }
+            <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm"><i class="fas fa-undo"></i></a>
         </form>
     </div>
 </div>
