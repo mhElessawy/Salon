@@ -660,25 +660,26 @@ namespace Salon.Controllers
             return View(vm);
         }
 
-        public async Task<IActionResult> CashMovement(string? from, string? to, string? type)
+        public async Task<IActionResult> CashMovement(string? from, string? to, string? type, string? dept)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
 
             var items = new List<CashMovementReportItem>();
 
-            bool showExpenses = string.IsNullOrEmpty(type) || type == "مصروف";
-            bool showAdvances = string.IsNullOrEmpty(type) || type == "مصروف" || type == "سلفة";
-            bool showDeposits = string.IsNullOrEmpty(type) || type == "إيداع";
-            bool showSales = string.IsNullOrEmpty(type) || type == "مبيعات";
+            bool showExpenses   = string.IsNullOrEmpty(type) || type == "مصروف";
+            bool showAdvances   = string.IsNullOrEmpty(type) || type == "مصروف" || type == "سلفة";
+            bool showDeposits   = string.IsNullOrEmpty(type) || type == "إيداع";
+            bool showSales      = string.IsNullOrEmpty(type) || type == "مبيعات" || type == "مبيعات كاش" || type == "مبيعات كي نت";
             bool showWithdrawals = string.IsNullOrEmpty(type) || type == "سحب";
 
             if (showExpenses)
             {
-                var expenses = await _context.Expenses
-                    .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo)
-                    .OrderByDescending(e => e.ExpenseDate)
-                    .ToListAsync();
+                var expQuery = _context.Expenses
+                    .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo);
+                if (!string.IsNullOrEmpty(dept))
+                    expQuery = expQuery.Where(e => e.Department == dept);
+                var expenses = await expQuery.OrderByDescending(e => e.ExpenseDate).ToListAsync();
 
                 items.AddRange(expenses.Select(e => new CashMovementReportItem
                 {
@@ -690,11 +691,12 @@ namespace Salon.Controllers
                     Notes = e.Notes
                 }));
 
-                var salaries = await _context.Salaries
-                    .Include(s => s.Employee)
-                    .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= dateFrom && s.PaidDate.Value < dateTo)
-                    .OrderByDescending(s => s.PaidDate)
-                    .ToListAsync();
+                var salQuery = _context.Salaries
+                    .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
+                    .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= dateFrom && s.PaidDate.Value < dateTo);
+                if (!string.IsNullOrEmpty(dept))
+                    salQuery = salQuery.Where(s => s.Employee!.DepartmentNav!.Name == dept);
+                var salaries = await salQuery.OrderByDescending(s => s.PaidDate).ToListAsync();
 
                 items.AddRange(salaries.Select(s => new CashMovementReportItem
                 {
@@ -709,11 +711,12 @@ namespace Salon.Controllers
 
             if (showAdvances)
             {
-                var advances = await _context.EmployeeAdvances
-                    .Include(a => a.Employee)
-                    .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo)
-                    .OrderByDescending(a => a.AdvanceDate)
-                    .ToListAsync();
+                var advQuery = _context.EmployeeAdvances
+                    .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                    .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo);
+                if (!string.IsNullOrEmpty(dept))
+                    advQuery = advQuery.Where(a => a.Employee!.DepartmentNav!.Name == dept);
+                var advances = await advQuery.OrderByDescending(a => a.AdvanceDate).ToListAsync();
 
                 items.AddRange(advances.Select(a => new CashMovementReportItem
                 {
@@ -746,13 +749,17 @@ namespace Salon.Controllers
 
             if (showSales)
             {
-                var salesRaw = await _context.Sales
-                    .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي")
-                    .ToListAsync();
+                var salesQuery = _context.Sales
+                    .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
+                if (!string.IsNullOrEmpty(dept))
+                    salesQuery = salesQuery.Where(s => s.SaleType == dept);
+                var salesRaw = await salesQuery.ToListAsync();
 
-                string[] cashSaleMethods = { "كاش", "نقدي", "Cash" };
-                string[] knetSaleMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+                string[] cashSaleMethods  = { "كاش", "نقدي", "Cash" };
+                string[] knetSaleMethods  = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
                 string[] mixedSaleMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+                bool onlyCash = type == "مبيعات كاش";
+                bool onlyKnet = type == "مبيعات كي نت";
 
                 foreach (var g in salesRaw.GroupBy(s => s.SaleDate.Date))
                 {
@@ -763,7 +770,7 @@ namespace Salon.Controllers
                         knetSaleMethods.Contains(s.PaymentMethod) ? s.NetAmount :
                         mixedSaleMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
 
-                    if (cashAmt > 0)
+                    if (!onlyKnet && cashAmt > 0)
                         items.Add(new CashMovementReportItem
                         {
                             Date = g.Key,
@@ -774,7 +781,7 @@ namespace Salon.Controllers
                             Notes = ""
                         });
 
-                    if (knetAmt > 0)
+                    if (!onlyCash && knetAmt > 0)
                         items.Add(new CashMovementReportItem
                         {
                             Date = g.Key,
@@ -818,6 +825,7 @@ namespace Salon.Controllers
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
             ViewBag.SelectedType = type;
+            ViewBag.SelectedDept = dept;
             ViewBag.TotalExpenses = totalExp;
             ViewBag.TotalDeposits = totalDep;
             ViewBag.TotalCashSales = totalCashSales;

@@ -9,6 +9,7 @@
     decimal totalWithdrawals = ViewBag.TotalWithdrawals is decimal tw ? tw : 0m;
     decimal netBalance       = ViewBag.NetBalance;
     string selectedType      = ViewBag.SelectedType ?? "";
+    string selectedDept      = ViewBag.SelectedDept as string ?? "";
 
     string[] expenseTypes = { "مصروف", "سلفة", "راتب" };
 }
@@ -27,29 +28,45 @@
 <div class="card mb-4">
     <div class="card-body">
         <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label fw-semibold">من تاريخ</label>
                 <input type="date" name="from" value="@ViewBag.From" class="form-control" />
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label fw-semibold">إلى تاريخ</label>
                 <input type="date" name="to" value="@ViewBag.To" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold">النوع</label>
+                <select name="dept" class="form-select">
+                    <option value="" selected="@(selectedDept == "")">الكل</option>
+                    <option value="حلاقة" selected="@(selectedDept == "حلاقة")">حلاقة</option>
+                    <option value="مساج" selected="@(selectedDept == "مساج")">مساج</option>
+                </select>
             </div>
             <div class="col-md-3">
                 <label class="form-label fw-semibold">نوع الحركة</label>
                 <select name="type" class="form-select">
                     <option value="" selected="@(selectedType == "" ? "selected" : null)">الكل</option>
-                    <option value="مصروف" selected="@(selectedType == "مصروف" ? "selected" : null)">المصروفات (مصروفات + سلف + مرتبات)</option>
-                    <option value="إيداع" selected="@(selectedType == "إيداع" ? "selected" : null)">الإيداعات اليدوية فقط</option>
-                    <option value="مبيعات" selected="@(selectedType == "مبيعات" ? "selected" : null)">مبيعات الفواتير فقط</option>
+                    <option value="مصروف" selected="@(selectedType == "مصروف" ? "selected" : null)">المصروفات (مصروفات + مرتبات)</option>
                     <option value="سلفة" selected="@(selectedType == "سلفة" ? "selected" : null)">السلف فقط</option>
+                    <option value="إيداع" selected="@(selectedType == "إيداع" ? "selected" : null)">الإيداعات اليدوية فقط</option>
+                    <option value="مبيعات" selected="@(selectedType == "مبيعات" ? "selected" : null)">مبيعات (كاش + كي نت)</option>
+                    <option value="مبيعات كاش" selected="@(selectedType == "مبيعات كاش" ? "selected" : null)">مبيعات كاش فقط</option>
+                    <option value="مبيعات كي نت" selected="@(selectedType == "مبيعات كي نت" ? "selected" : null)">مبيعات كي نت فقط</option>
                     <option value="سحب" selected="@(selectedType == "سحب" ? "selected" : null)">السحوبات فقط</option>
                 </select>
             </div>
             <div class="col-md-3">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="fas fa-search me-1"></i> بحث
-                </button>
+                <label class="form-label fw-semibold">&nbsp;</label>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="fas fa-search me-1"></i> بحث
+                    </button>
+                    <a href="@Url.Action("CashMovement")" class="btn btn-outline-secondary">
+                        <i class="fas fa-undo"></i>
+                    </a>
+                </div>
             </div>
         </form>
     </div>
