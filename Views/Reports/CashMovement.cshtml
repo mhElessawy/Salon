@@ -1,8 +1,11 @@
 ﻿@model   List<Salon.Models.CashMovementReportItem>
 @{
     ViewData["Title"] = "تقرير حركة الصندوق";
-    decimal totalExpenses    = ViewBag.TotalExpenses;
-    decimal totalDeposits    = ViewBag.TotalDeposits;
+    decimal totalExpenses     = ViewBag.TotalExpenses;
+    decimal totalExpensesOnly = ViewBag.TotalExpensesOnly is decimal teo ? teo : 0m;
+    decimal totalSalariesOnly = ViewBag.TotalSalariesOnly is decimal tsalo ? tsalo : 0m;
+    decimal totalAdvancesOnly = ViewBag.TotalAdvancesOnly is decimal tado ? tado : 0m;
+    decimal totalDeposits     = ViewBag.TotalDeposits;
     decimal totalSales       = ViewBag.TotalSales is decimal ts ? ts : 0m;
     decimal totalCashSales   = ViewBag.TotalCashSales is decimal tcs ? tcs : 0m;
     decimal totalKnetSales   = ViewBag.TotalKnetSales is decimal tkns ? tkns : 0m;
@@ -48,8 +51,10 @@
                 <label class="form-label fw-semibold">نوع الحركة</label>
                 <select name="type" class="form-select">
                     <option value="" selected="@(selectedType == "" ? "selected" : null)">الكل</option>
-                    <option value="مصروف" selected="@(selectedType == "مصروف" ? "selected" : null)">المصروفات (مصروفات + مرتبات)</option>
-                    <option value="سلفة" selected="@(selectedType == "سلفة" ? "selected" : null)">السلف فقط</option>
+                    <option value="مصروف" selected="@(selectedType == "مصروف" ? "selected" : null)">المصروف الكل (مصروفات + سلف + مرتبات)</option>
+                    <option value="مصروفات" selected="@(selectedType == "مصروفات" ? "selected" : null)">مصروفات عامة فقط</option>
+                    <option value="سلفة" selected="@(selectedType == "سلفة" ? "selected" : null)">سلف فقط</option>
+                    <option value="مرتبات" selected="@(selectedType == "مرتبات" ? "selected" : null)">مرتبات فقط</option>
                     <option value="إيداع" selected="@(selectedType == "إيداع" ? "selected" : null)">الإيداعات اليدوية فقط</option>
                     <option value="مبيعات" selected="@(selectedType == "مبيعات" ? "selected" : null)">مبيعات (كاش + كي نت)</option>
                     <option value="مبيعات كاش" selected="@(selectedType == "مبيعات كاش" ? "selected" : null)">مبيعات كاش فقط</option>
@@ -77,10 +82,27 @@
     <div class="col-6 col-md">
         <div class="card text-center border-0 shadow-sm h-100">
             <div class="card-body p-3">
-                <div class="text-danger mb-1" style="font-size:28px;"><i class="fas fa-receipt"></i></div>
-                <div class="text-muted small mb-1">إجمالي المصروفات</div>
-                <div class="text-muted" style="font-size:11px;">(مصروفات + سلف + مرتبات)</div>
-                <div class="fw-bold fs-5 text-danger mt-1">@totalExpenses.ToString("N3") د.ك</div>
+                <div class="text-danger mb-1" style="font-size:24px;"><i class="fas fa-receipt"></i></div>
+                <div class="text-muted small mb-1">مصروفات عامة</div>
+                <div class="fw-bold fs-6 text-danger mt-1">@totalExpensesOnly.ToString("N3") د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="card text-center border-0 shadow-sm h-100">
+            <div class="card-body p-3">
+                <div class="mb-1" style="font-size:24px; color:#b45309;"><i class="fas fa-hand-holding-usd"></i></div>
+                <div class="text-muted small mb-1">سلف</div>
+                <div class="fw-bold fs-6 mt-1" style="color:#b45309;">@totalAdvancesOnly.ToString("N3") د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="card text-center border-0 shadow-sm h-100">
+            <div class="card-body p-3">
+                <div class="mb-1" style="font-size:24px; color:#6f42c1;"><i class="fas fa-money-check-alt"></i></div>
+                <div class="text-muted small mb-1">مرتبات</div>
+                <div class="fw-bold fs-6 mt-1" style="color:#6f42c1;">@totalSalariesOnly.ToString("N3") د.ك</div>
             </div>
         </div>
     </div>

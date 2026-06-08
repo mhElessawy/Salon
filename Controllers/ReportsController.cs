@@ -667,13 +667,14 @@ namespace Salon.Controllers
 
             var items = new List<CashMovementReportItem>();
 
-            bool showExpenses   = string.IsNullOrEmpty(type) || type == "مصروف";
-            bool showAdvances   = string.IsNullOrEmpty(type) || type == "مصروف" || type == "سلفة";
-            bool showDeposits   = string.IsNullOrEmpty(type) || type == "إيداع";
-            bool showSales      = string.IsNullOrEmpty(type) || type == "مبيعات" || type == "مبيعات كاش" || type == "مبيعات كي نت";
+            bool showExpensesOnly = string.IsNullOrEmpty(type) || type == "مصروف" || type == "مصروفات";
+            bool showSalaries    = string.IsNullOrEmpty(type) || type == "مصروف" || type == "مرتبات";
+            bool showAdvances    = string.IsNullOrEmpty(type) || type == "مصروف" || type == "سلفة";
+            bool showDeposits    = string.IsNullOrEmpty(type) || type == "إيداع";
+            bool showSales       = string.IsNullOrEmpty(type) || type == "مبيعات" || type == "مبيعات كاش" || type == "مبيعات كي نت";
             bool showWithdrawals = string.IsNullOrEmpty(type) || type == "سحب";
 
-            if (showExpenses)
+            if (showExpensesOnly)
             {
                 var expQuery = _context.Expenses
                     .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo);
@@ -690,7 +691,10 @@ namespace Salon.Controllers
                     Category = e.Category,
                     Notes = e.Notes
                 }));
+            }
 
+            if (showSalaries)
+            {
                 var salQuery = _context.Salaries
                     .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
                     .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= dateFrom && s.PaidDate.Value < dateTo);
@@ -814,8 +818,10 @@ namespace Salon.Controllers
 
             items = items.OrderByDescending(i => i.Date).ThenBy(i => i.Type).ToList();
 
-            string[] expenseTypes = { "مصروف", "سلفة", "راتب" };
-            decimal totalExp = items.Where(i => expenseTypes.Contains(i.Type)).Sum(i => i.Amount);
+            decimal totalExpensesOnly = items.Where(i => i.Type == "مصروف").Sum(i => i.Amount);
+            decimal totalSalariesOnly = items.Where(i => i.Type == "راتب").Sum(i => i.Amount);
+            decimal totalAdvancesOnly = items.Where(i => i.Type == "سلفة").Sum(i => i.Amount);
+            decimal totalExp = totalExpensesOnly + totalSalariesOnly + totalAdvancesOnly;
             decimal totalDep = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount);
             decimal totalCashSales = items.Where(i => i.Type == "مبيعات كاش").Sum(i => i.Amount);
             decimal totalKnetSales = items.Where(i => i.Type == "مبيعات كي نت").Sum(i => i.Amount);
@@ -827,6 +833,9 @@ namespace Salon.Controllers
             ViewBag.SelectedType = type;
             ViewBag.SelectedDept = dept;
             ViewBag.TotalExpenses = totalExp;
+            ViewBag.TotalExpensesOnly = totalExpensesOnly;
+            ViewBag.TotalSalariesOnly = totalSalariesOnly;
+            ViewBag.TotalAdvancesOnly = totalAdvancesOnly;
             ViewBag.TotalDeposits = totalDep;
             ViewBag.TotalCashSales = totalCashSales;
             ViewBag.TotalKnetSales = totalKnetSales;
