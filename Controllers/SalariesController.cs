@@ -231,6 +231,8 @@ namespace Salon.Controllers
 
                 model.NetSalary = model.BasicSalary + model.CommissionAmount + model.Allowances + (model.GiftAmount ?? 0) + (model.HadiyaAmount ?? 0) - model.Deductions - model.AdvanceDeducted - model.EmployeeDebtDeducted;
                 model.CreatedAt = DateTime.Now;
+                if (model.PaidDate.HasValue)
+                    model.Status = "مصروف";
                 _context.Salaries.Add(model);
                 await _context.SaveChangesAsync();
 
