@@ -18,6 +18,13 @@ namespace Salon.Models
         [Display(Name = "العمولة (%)")]
         public decimal Commission { get; set; }
 
+        [Display(Name = "التارجت الشهري")]
+        [DataType(DataType.Currency)]
+        public decimal? SalesTarget { get; set; }
+
+        [Display(Name = "العمولة بعد التارجت (%)")]
+        public decimal? CommissionAfterTarget { get; set; }
+
         [Display(Name = "رقم الهاتف")]
         public string? Phone { get; set; }
 

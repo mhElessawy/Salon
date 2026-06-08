@@ -44,6 +44,10 @@
                     <input type="number" name="Year" id="yearInput" value="@DateTime.Today.Year" class="form-control" onchange="loadSalary()" />
                 </div>
 
+                <div id="targetStatusCard" class="col-12 d-none">
+                    <div id="targetStatusInner"></div>
+                </div>
+
                 <div class="col-12 d-none" id="salesCard">
                     <div class="card border-info">
                         <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center">
@@ -251,6 +255,41 @@
                 // تحديث تسمية العمولة
                 const pct = data.commission || 0;
                 document.getElementById('commissionPctLabel').textContent = pct > 0 ? `(${pct}%)` : '';
+
+                // عرض حالة التارجت
+                const targetCard = document.getElementById('targetStatusCard');
+                const targetInner = document.getElementById('targetStatusInner');
+                if (data.salesTarget && data.salesTarget > 0) {
+                    targetCard.classList.remove('d-none');
+                    if (data.targetReached) {
+                        targetInner.innerHTML = `
+                            <div class="alert alert-success py-2 mb-0 d-flex align-items-center gap-2">
+                                <i class="fas fa-trophy text-warning fs-5"></i>
+                                <span>
+                                    <strong>تم تحقيق التارجت!</strong>
+                                    التارجت: <strong>${data.salesTarget.toFixed(3)} د.ك</strong> —
+                                    المبيعات: <strong>${data.totalSalesAmount.toFixed(3)} د.ك</strong> —
+                                    العمولة المطبقة: <strong>${data.commissionAfterTarget}%</strong>
+                                    <span class="text-muted">(بدل ${data.normalCommission}%)</span>
+                                </span>
+                            </div>`;
+                    } else {
+                        const remaining = (data.salesTarget - data.totalSalesAmount).toFixed(3);
+                        targetInner.innerHTML = `
+                            <div class="alert alert-warning py-2 mb-0 d-flex align-items-center gap-2">
+                                <i class="fas fa-bullseye text-danger fs-5"></i>
+                                <span>
+                                    <strong>لم يتحقق التارجت بعد</strong> —
+                                    التارجت: <strong>${data.salesTarget.toFixed(3)} د.ك</strong> —
+                                    المبيعات: <strong>${data.totalSalesAmount.toFixed(3)} د.ك</strong> —
+                                    المتبقي: <strong>${remaining} د.ك</strong> —
+                                    العمولة المطبقة: <strong>${data.normalCommission}%</strong>
+                                </span>
+                            </div>`;
+                    }
+                } else {
+                    targetCard.classList.add('d-none');
+                }
 
                 // بطاقة الفواتير
                 const salesCard = document.getElementById('salesCard');
