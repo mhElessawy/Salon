@@ -136,6 +136,17 @@ namespace Salon.Controllers
                 .OrderBy(d => d.DepositDate)
                 .ToListAsync();
 
+            var advancesQuery = _context.EmployeeAdvances
+                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo);
+
+            if (saleType == "مساج" || (string.IsNullOrEmpty(saleType) && userDept == "مساج"))
+                advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == "مساج");
+            else if (saleType == "حلاقة" || (string.IsNullOrEmpty(saleType) && userDept == "حلاقة"))
+                advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == "حلاقة");
+
+            var advancesInRange = await advancesQuery.OrderBy(a => a.AdvanceDate).ToListAsync();
+
             ViewBag.ExpensesInRange = salesExpenses;
             ViewBag.TotalExpensesAmount = salesExpenses.Sum(e => e.Amount);
             ViewBag.SalariesInRange = salesSalaries;
@@ -143,6 +154,8 @@ namespace Salon.Controllers
             ViewBag.TotalCombinedExpenses = salesExpenses.Sum(e => e.Amount) + salesSalaries.Sum(s => s.NetSalary);
             ViewBag.DepositsInRange = salesDeposits;
             ViewBag.TotalDepositsAmount = salesDeposits.Sum(d => d.Amount);
+            ViewBag.AdvancesInRange = advancesInRange;
+            ViewBag.TotalAdvancesAmount = advancesInRange.Sum(a => a.Amount);
 
             return View(sales);
         }
