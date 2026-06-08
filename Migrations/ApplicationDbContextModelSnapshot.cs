@@ -456,6 +456,9 @@ namespace Salon.Migrations
                 b.Property<decimal>("Commission")
                     .HasColumnType("decimal(18,2)");
 
+                b.Property<decimal?>("CommissionAfterTarget")
+                    .HasColumnType("decimal(18,2)");
+
                 b.Property<string>("ContractType")
                     .HasColumnType("nvarchar(max)");
 
@@ -495,6 +498,9 @@ namespace Salon.Migrations
 
                 b.Property<string>("Phone")
                     .HasColumnType("nvarchar(max)");
+
+                b.Property<decimal?>("SalesTarget")
+                    .HasColumnType("decimal(18,3)");
 
                 b.Property<DateTime?>("ResidencyExpiry")
                     .HasColumnType("datetime2");

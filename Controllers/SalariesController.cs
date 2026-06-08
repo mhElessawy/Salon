@@ -165,7 +165,13 @@ namespace Salon.Controllers
             string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
 
             var totalSalesAmount = sales.Sum(s => s.netAmount);
-            var commissionAmount = Math.Round(totalSalesAmount * employee.Commission / 100, 3);
+            bool targetReached = employee.SalesTarget.HasValue
+                                 && employee.SalesTarget.Value > 0
+                                 && totalSalesAmount >= employee.SalesTarget.Value;
+            var effectiveCommission = (targetReached && employee.CommissionAfterTarget.HasValue)
+                                      ? employee.CommissionAfterTarget.Value
+                                      : employee.Commission;
+            var commissionAmount = Math.Round(totalSalesAmount * effectiveCommission / 100, 3);
 
             var cashTotal = Math.Round(sales.Sum(s =>
                 cashMethods.Contains(s.paymentMethod) ? s.netAmount :
@@ -194,7 +200,7 @@ namespace Salon.Controllers
             return Json(new
             {
                 basicSalary = employee.BasicSalary,
-                commission = employee.Commission,
+                commission = effectiveCommission,
                 sales,
                 cancelledSales,
                 totalSalesAmount,
@@ -206,7 +212,11 @@ namespace Salon.Controllers
                 advanceDeducted = totalAdvances,
                 totalGifts,
                 totalHadiya,
-                alreadyPaid
+                alreadyPaid,
+                salesTarget = employee.SalesTarget,
+                targetReached,
+                normalCommission = employee.Commission,
+                commissionAfterTarget = employee.CommissionAfterTarget
             });
         }
 
