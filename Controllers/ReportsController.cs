@@ -668,6 +668,7 @@ namespace Salon.Controllers
             var items = new List<CashMovementReportItem>();
 
             bool showExpenses = string.IsNullOrEmpty(type) || type == "مصروف";
+            bool showAdvances = string.IsNullOrEmpty(type) || type == "مصروف" || type == "سلفة";
             bool showDeposits = string.IsNullOrEmpty(type) || type == "إيداع";
             bool showSales = string.IsNullOrEmpty(type) || type == "مبيعات";
             bool showWithdrawals = string.IsNullOrEmpty(type) || type == "سحب";
@@ -689,22 +690,6 @@ namespace Salon.Controllers
                     Notes = e.Notes
                 }));
 
-                var advances = await _context.EmployeeAdvances
-                    .Include(a => a.Employee)
-                    .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo)
-                    .OrderByDescending(a => a.AdvanceDate)
-                    .ToListAsync();
-
-                items.AddRange(advances.Select(a => new CashMovementReportItem
-                {
-                    Date = a.AdvanceDate,
-                    Type = "سلفة",
-                    Description = $"سلفة - {a.Employee?.FullName ?? ""}".Trim(' ', '-'),
-                    Amount = a.Amount,
-                    Category = "سلف الموظفين",
-                    Notes = a.Reason
-                }));
-
                 var salaries = await _context.Salaries
                     .Include(s => s.Employee)
                     .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= dateFrom && s.PaidDate.Value < dateTo)
@@ -719,6 +704,25 @@ namespace Salon.Controllers
                     Amount = s.NetSalary,
                     Category = "رواتب الموظفين",
                     Notes = s.Notes
+                }));
+            }
+
+            if (showAdvances)
+            {
+                var advances = await _context.EmployeeAdvances
+                    .Include(a => a.Employee)
+                    .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo)
+                    .OrderByDescending(a => a.AdvanceDate)
+                    .ToListAsync();
+
+                items.AddRange(advances.Select(a => new CashMovementReportItem
+                {
+                    Date = a.AdvanceDate,
+                    Type = "سلفة",
+                    Description = $"سلفة - {a.Employee?.FullName ?? ""}".Trim(' ', '-'),
+                    Amount = a.Amount,
+                    Category = "سلف الموظفين",
+                    Notes = a.Reason
                 }));
             }
 
@@ -746,19 +750,41 @@ namespace Salon.Controllers
                     .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي")
                     .ToListAsync();
 
-                var dailySales = salesRaw
-                    .GroupBy(s => s.SaleDate.Date)
-                    .Select(g => new CashMovementReportItem
-                    {
-                        Date = g.Key,
-                        Type = "مبيعات",
-                        Description = $"مبيعات يوم {g.Key:yyyy/MM/dd}",
-                        Amount = g.Sum(s => s.NetAmount),
-                        Category = $"{g.Count()} فاتورة",
-                        Notes = ""
-                    });
+                string[] cashSaleMethods = { "كاش", "نقدي", "Cash" };
+                string[] knetSaleMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+                string[] mixedSaleMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
 
-                items.AddRange(dailySales);
+                foreach (var g in salesRaw.GroupBy(s => s.SaleDate.Date))
+                {
+                    decimal cashAmt = g.Sum(s =>
+                        cashSaleMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                        mixedSaleMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+                    decimal knetAmt = g.Sum(s =>
+                        knetSaleMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                        mixedSaleMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
+
+                    if (cashAmt > 0)
+                        items.Add(new CashMovementReportItem
+                        {
+                            Date = g.Key,
+                            Type = "مبيعات كاش",
+                            Description = $"مبيعات كاش يوم {g.Key:yyyy/MM/dd}",
+                            Amount = cashAmt,
+                            Category = $"{g.Count(s => cashSaleMethods.Contains(s.PaymentMethod) || mixedSaleMethods.Contains(s.PaymentMethod))} فاتورة",
+                            Notes = ""
+                        });
+
+                    if (knetAmt > 0)
+                        items.Add(new CashMovementReportItem
+                        {
+                            Date = g.Key,
+                            Type = "مبيعات كي نت",
+                            Description = $"مبيعات كي نت يوم {g.Key:yyyy/MM/dd}",
+                            Amount = knetAmt,
+                            Category = $"{g.Count(s => knetSaleMethods.Contains(s.PaymentMethod) || mixedSaleMethods.Contains(s.PaymentMethod))} فاتورة",
+                            Notes = ""
+                        });
+                }
             }
 
             if (showWithdrawals)
@@ -784,7 +810,9 @@ namespace Salon.Controllers
             string[] expenseTypes = { "مصروف", "سلفة", "راتب" };
             decimal totalExp = items.Where(i => expenseTypes.Contains(i.Type)).Sum(i => i.Amount);
             decimal totalDep = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount);
-            decimal totalSales = items.Where(i => i.Type == "مبيعات").Sum(i => i.Amount);
+            decimal totalCashSales = items.Where(i => i.Type == "مبيعات كاش").Sum(i => i.Amount);
+            decimal totalKnetSales = items.Where(i => i.Type == "مبيعات كي نت").Sum(i => i.Amount);
+            decimal totalSales = totalCashSales + totalKnetSales;
             decimal totalWithdrawals = items.Where(i => i.Type == "سحب").Sum(i => i.Amount);
 
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
@@ -792,6 +820,8 @@ namespace Salon.Controllers
             ViewBag.SelectedType = type;
             ViewBag.TotalExpenses = totalExp;
             ViewBag.TotalDeposits = totalDep;
+            ViewBag.TotalCashSales = totalCashSales;
+            ViewBag.TotalKnetSales = totalKnetSales;
             ViewBag.TotalSales = totalSales;
             ViewBag.TotalWithdrawals = totalWithdrawals;
             ViewBag.NetBalance = totalDep + totalSales - totalExp - totalWithdrawals;
