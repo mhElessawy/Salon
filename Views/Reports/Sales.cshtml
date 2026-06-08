@@ -181,7 +181,7 @@
         <div class="col-md-2">
             <div class="stat-card" style="border-right: 4px solid #e67e22; background:#fff8ec;">
                 <div class="stat-label"><i class="fas fa-hand-holding-usd me-1"></i>عمولات الموظفين</div>
-                <div class="stat-value" style="font-size:1.2rem;color:#e67e22;">@((decimal)(ViewBag.TotalGifts ?? 0m)).ToString("N3") د.ك</div>
+                <div class="stat-value" style="font-size:1.2rem;color:#e67e22;">@(((decimal)(ViewBag.TotalGifts ?? 0m)).ToString("N3")) د.ك</div>
             </div>
         </div>
     }
@@ -190,7 +190,7 @@
         <div class="col-md-2">
             <div class="stat-card" style="border-right: 4px solid #c0392b; background:#fdf2f2;">
                 <div class="stat-label"><i class="fas fa-gift me-1"></i>هدايا للموظفين</div>
-                <div class="stat-value" style="font-size:1.2rem;color:#c0392b;">@((decimal)(ViewBag.TotalHadiya ?? 0m)).ToString("N3") د.ك</div>
+                <div class="stat-value" style="font-size:1.2rem;color:#c0392b;">@(((decimal)(ViewBag.TotalHadiya ?? 0m)).ToString("N3")) د.ك</div>
             </div>
         </div>
     }
