@@ -34,8 +34,8 @@
 
     /* Summary cards */
     .dpr-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
-    @media (max-width: 1200px) { .dpr-cards { grid-template-columns: repeat(3, 1fr); } }
-    @media (max-width: 768px) { .dpr-cards { grid-template-columns: repeat(2, 1fr); } }
+    @@media (max-width: 1200px) { .dpr-cards { grid-template-columns: repeat(3, 1fr); } }
+    @@media (max-width: 768px) { .dpr-cards { grid-template-columns: repeat(2, 1fr); } }
 
     .dpr-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; position: relative; overflow: hidden; }
     .dpr-card::before { content: ''; position: absolute; top: 0; right: 0; width: 4px; height: 100%; border-radius: 0 12px 12px 0; }
@@ -62,11 +62,11 @@
 
     /* Main content grid */
     .dpr-content { display: grid; grid-template-columns: 1fr 280px; gap: 16px; margin-bottom: 16px; }
-    @media (max-width: 1024px) { .dpr-content { grid-template-columns: 1fr; } }
+    @@media (max-width: 1024px) { .dpr-content { grid-template-columns: 1fr; } }
     .dpr-left { display: flex; flex-direction: column; gap: 16px; }
     .dpr-panels-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-    @media (max-width: 1200px) { .dpr-panels-row { grid-template-columns: 1fr 1fr; } }
-    @media (max-width: 768px) { .dpr-panels-row { grid-template-columns: 1fr; } }
+    @@media (max-width: 1200px) { .dpr-panels-row { grid-template-columns: 1fr 1fr; } }
+    @@media (max-width: 768px) { .dpr-panels-row { grid-template-columns: 1fr; } }
 
     /* Panel shared */
     .dpr-panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
