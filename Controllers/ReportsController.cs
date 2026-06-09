@@ -654,9 +654,10 @@ namespace Salon.Controllers
 
             var items = new List<CashMovementReportItem>();
 
-            bool showExpenses = string.IsNullOrEmpty(type) || type == "مصروف";
-            bool showDeposits = string.IsNullOrEmpty(type) || type == "إيداع";
-            bool showSales = string.IsNullOrEmpty(type) || type == "مبيعات";
+            bool showExpenses    = string.IsNullOrEmpty(type) || type == "مصروف";
+            bool showDeposits    = string.IsNullOrEmpty(type) || type == "إيداع";
+            bool showCashSales   = string.IsNullOrEmpty(type) || type == "كاش";
+            bool showKNetSales   = string.IsNullOrEmpty(type) || type == "كي نت";
             bool showWithdrawals = string.IsNullOrEmpty(type) || type == "سحب";
 
             if (showExpenses)
@@ -727,25 +728,65 @@ namespace Salon.Controllers
                 }));
             }
 
-            if (showSales)
+            if (showCashSales || showKNetSales)
             {
                 var salesRaw = await _context.Sales
                     .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي")
                     .ToListAsync();
 
-                var dailySales = salesRaw
-                    .GroupBy(s => s.SaleDate.Date)
-                    .Select(g => new CashMovementReportItem
-                    {
-                        Date = g.Key,
-                        Type = "مبيعات",
-                        Description = $"مبيعات يوم {g.Key:yyyy/MM/dd}",
-                        Amount = g.Sum(s => s.NetAmount),
-                        Category = $"{g.Count()} فاتورة",
-                        Notes = ""
-                    });
+                if (showCashSales)
+                {
+                    var dailyCash = salesRaw
+                        .GroupBy(s => s.SaleDate.Date)
+                        .Select(g => new
+                        {
+                            Date = g.Key,
+                            Amount = g.Sum(s => s.PaymentMethod == "كاش"
+                                ? s.NetAmount
+                                : s.PaymentMethod == "كي نت و كاش"
+                                    ? (s.CashAmount ?? 0)
+                                    : 0m),
+                            Count = g.Count(s => s.PaymentMethod == "كاش" || s.PaymentMethod == "كي نت و كاش")
+                        })
+                        .Where(d => d.Amount > 0);
 
-                items.AddRange(dailySales);
+                    items.AddRange(dailyCash.Select(d => new CashMovementReportItem
+                    {
+                        Date = d.Date,
+                        Type = "مبيعات كاش",
+                        Description = $"مبيعات كاش {d.Date:yyyy/MM/dd}",
+                        Amount = d.Amount,
+                        Category = $"{d.Count} فاتورة",
+                        Notes = ""
+                    }));
+                }
+
+                if (showKNetSales)
+                {
+                    var dailyKNet = salesRaw
+                        .GroupBy(s => s.SaleDate.Date)
+                        .Select(g => new
+                        {
+                            Date = g.Key,
+                            Amount = g.Sum(s => s.PaymentMethod == "كي نت"
+                                ? s.NetAmount
+                                : s.PaymentMethod == "كي نت و كاش"
+                                    ? (s.LinkAmount ?? 0)
+                                    : 0m),
+                            Count = g.Count(s => s.PaymentMethod == "كي نت" || s.PaymentMethod == "كي نت و كاش")
+                        })
+                        .Where(d => d.Amount > 0);
+
+                    items.AddRange(dailyKNet.Select(d => new CashMovementReportItem
+                    {
+                        Date = d.Date,
+                        Type = "كي نت",
+                        Description = $"مبيعات كي نت {d.Date:yyyy/MM/dd}",
+                        Amount = d.Amount,
+                        Category = $"{d.Count} فاتورة",
+                        Notes = ""
+                    }));
+                }
             }
 
             if (showWithdrawals)
@@ -768,20 +809,30 @@ namespace Salon.Controllers
 
             items = items.OrderByDescending(i => i.Date).ThenBy(i => i.Type).ToList();
 
-            string[] expenseTypes = { "مصروف", "سلفة", "راتب" };
-            decimal totalExp = items.Where(i => expenseTypes.Contains(i.Type)).Sum(i => i.Amount);
-            decimal totalDep = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount);
-            decimal totalSales = items.Where(i => i.Type == "مبيعات").Sum(i => i.Amount);
+            decimal totalMasrouf     = items.Where(i => i.Type == "مصروف").Sum(i => i.Amount);
+            decimal totalSulfa       = items.Where(i => i.Type == "سلفة").Sum(i => i.Amount);
+            decimal totalRatib       = items.Where(i => i.Type == "راتب").Sum(i => i.Amount);
+            decimal totalExp         = totalMasrouf + totalSulfa + totalRatib;
+            decimal totalDep         = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount);
+            decimal totalCashSales   = items.Where(i => i.Type == "مبيعات كاش").Sum(i => i.Amount);
+            decimal totalKNet        = items.Where(i => i.Type == "كي نت").Sum(i => i.Amount);
             decimal totalWithdrawals = items.Where(i => i.Type == "سحب").Sum(i => i.Amount);
 
-            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
-            ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
-            ViewBag.SelectedType = type;
-            ViewBag.TotalExpenses = totalExp;
-            ViewBag.TotalDeposits = totalDep;
-            ViewBag.TotalSales = totalSales;
+            ViewBag.From             = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To               = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
+            ViewBag.SelectedType     = type;
+            ViewBag.TotalMasrouf     = totalMasrouf;
+            ViewBag.TotalSulfa       = totalSulfa;
+            ViewBag.TotalRatib       = totalRatib;
+            ViewBag.TotalExpenses    = totalExp;
+            ViewBag.TotalDeposits    = totalDep;
+            ViewBag.TotalCashSales   = totalCashSales;
+            ViewBag.TotalKNet        = totalKNet;
+            ViewBag.TotalSales       = totalCashSales + totalKNet;
             ViewBag.TotalWithdrawals = totalWithdrawals;
-            ViewBag.NetBalance = totalDep + totalSales - totalExp - totalWithdrawals;
+            // رصيد الكاش = مبيعات كاش + إيداعات - مصروفات - سلف - مرتبات - سحوبات (الكي نت خارج الحساب)
+            ViewBag.CashBalance      = totalCashSales + totalDep - totalExp - totalWithdrawals;
+            ViewBag.NetBalance       = ViewBag.CashBalance;
 
             return View(items);
         }
