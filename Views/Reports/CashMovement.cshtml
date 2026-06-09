@@ -9,6 +9,17 @@
     string selectedType      = ViewBag.SelectedType ?? "";
 
     string[] expenseTypes = { "مصروف", "سلفة", "راتب" };
+    string[] debitTypes   = { "مصروف", "سلفة", "راتب", "سحب" };
+
+    // حساب الرصيد الجاري بعد كل حركة (ترتيب زمني تصاعدي)
+    var ascItems = Model.OrderBy(i => i.Date).ThenBy(i => i.Type).ToList();
+    var itemBalance = new Dictionary<Salon.Models.CashMovementReportItem, decimal>();
+    decimal runBal = 0m;
+    foreach (var itm in ascItems)
+    {
+        runBal += debitTypes.Contains(itm.Type) ? -itm.Amount : itm.Amount;
+        itemBalance[itm] = runBal;
+    }
 }
 
 <div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
@@ -92,15 +103,16 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-md">
-        <div class="card text-center border-0 shadow-sm h-100">
+    <div class="col-12 col-md">
+        <div class="card text-center border-2 shadow h-100" style="border-color:@(netBalance >= 0 ? "#0d6efd" : "#dc3545") !important; background:@(netBalance >= 0 ? "#f0f4ff" : "#fff0f0");">
             <div class="card-body p-3">
-                <div class="mb-1" style="font-size:28px; color:@(netBalance >= 0 ? "#0d6efd" : "#dc3545");">
-                    <i class="fas fa-balance-scale"></i>
+                <div class="mb-1" style="font-size:32px; color:@(netBalance >= 0 ? "#0d6efd" : "#dc3545");">
+                    <i class="fas fa-wallet"></i>
                 </div>
-                <div class="text-muted small">الصافي</div>
-                <div class="fw-bold fs-5 mt-1" style="color:@(netBalance >= 0 ? "#0d6efd" : "#dc3545");">
-                    @netBalance.ToString("N3") د.ك
+                <div class="fw-semibold" style="color:@(netBalance >= 0 ? "#0d6efd" : "#dc3545");">رصيد الكاش</div>
+                <div class="text-muted" style="font-size:11px;">(إيداعات + مبيعات − مصروفات − سلف − سحوبات)</div>
+                <div class="fw-bold mt-1" style="font-size:1.5rem; color:@(netBalance >= 0 ? "#0d6efd" : "#dc3545");">
+                    @netBalance.ToString("N3") <span style="font-size:1rem;">د.ك</span>
                 </div>
             </div>
         </div>
@@ -133,6 +145,7 @@
                             <th>الفئة / المصدر</th>
                             <th>ملاحظات</th>
                             <th class="text-end">المبلغ (د.ك)</th>
+                            <th class="text-end" style="background:#f0f4ff;">رصيد الكاش (د.ك)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -188,6 +201,13 @@
                                     style="@(isSale ? "color:#0891b2;" : isWithdrawal ? "color:#dc2626;" : "")">
                                     @(isExpenseGroup || isWithdrawal ? "-" : "+")@item.Amount.ToString("N3")
                                 </td>
+                                @{
+                                    decimal bal = itemBalance.TryGetValue(item, out decimal b) ? b : 0m;
+                                }
+                                <td class="text-end fw-bold @(bal >= 0 ? "text-primary" : "text-danger")"
+                                    style="background:#f8faff; font-size:0.95em;">
+                                    @bal.ToString("N3")
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -204,6 +224,7 @@
                             <tr>
                                 <td colspan="6" class="text-end text-muted">المصروفات العامة</td>
                                 <td class="text-end text-danger">@tMasrouf.ToString("N3")</td>
+                                <td></td>
                             </tr>
                         }
                         @if (tSulfa > 0)
@@ -211,6 +232,7 @@
                             <tr>
                                 <td colspan="6" class="text-end text-muted">السلف</td>
                                 <td class="text-end text-danger">@tSulfa.ToString("N3")</td>
+                                <td></td>
                             </tr>
                         }
                         @if (tRatib > 0)
@@ -218,17 +240,20 @@
                             <tr>
                                 <td colspan="6" class="text-end text-muted">المرتبات</td>
                                 <td class="text-end text-danger">@tRatib.ToString("N3")</td>
+                                <td></td>
                             </tr>
                         }
                         <tr class="table-danger">
                             <td colspan="6" class="text-end fw-bold">إجمالي المصروفات</td>
                             <td class="text-end text-danger fw-bold">@totalExpenses.ToString("N3")</td>
+                            <td></td>
                         </tr>
                         @if (tSahb > 0)
                         {
                             <tr>
                                 <td colspan="6" class="text-end text-muted">السحوبات</td>
                                 <td class="text-end" style="color:#dc2626;">@tSahb.ToString("N3")</td>
+                                <td></td>
                             </tr>
                         }
                         @if (totalDeposits > 0)
@@ -236,6 +261,7 @@
                             <tr>
                                 <td colspan="6" class="text-end text-muted">الإيداعات اليدوية</td>
                                 <td class="text-end text-success">@totalDeposits.ToString("N3")</td>
+                                <td></td>
                             </tr>
                         }
                         @if (tSales > 0)
@@ -243,20 +269,32 @@
                             <tr>
                                 <td colspan="6" class="text-end text-muted">مبيعات الفواتير</td>
                                 <td class="text-end" style="color:#0891b2;">@tSales.ToString("N3")</td>
+                                <td></td>
                             </tr>
                         }
                         <tr class="table-success">
                             <td colspan="6" class="text-end fw-bold">إجمالي الدخل (إيداعات + مبيعات)</td>
                             <td class="text-end text-success fw-bold">@(totalDeposits + tSales).ToString("N3")</td>
+                            <td></td>
                         </tr>
                         <tr style="background:#fff0f0;">
                             <td colspan="6" class="text-end fw-bold" style="color:#dc2626;">إجمالي المصروف (مصروفات + سحوبات)</td>
                             <td class="text-end fw-bold" style="color:#dc2626;">@(totalExpenses + tSahb).ToString("N3")</td>
+                            <td></td>
                         </tr>
                         <tr class="table-secondary">
                             <td colspan="6" class="text-end fw-bold">الصافي</td>
                             <td class="text-end fw-bold @(netBalance >= 0 ? "text-primary" : "text-danger")">
                                 @netBalance.ToString("N3") د.ك
+                            </td>
+                            <td></td>
+                        </tr>
+                        <tr style="background:#e8f0fe;">
+                            <td colspan="7" class="text-end fw-bold fs-6" style="color:#1a237e;">
+                                <i class="fas fa-wallet me-1"></i> رصيد الكاش
+                            </td>
+                            <td class="text-end fw-bold fs-5 @(netBalance >= 0 ? "text-primary" : "text-danger")" style="background:#dce8ff;">
+                                @netBalance.ToString("N3") <small>د.ك</small>
                             </td>
                         </tr>
                     </tfoot>
