@@ -26,6 +26,7 @@ namespace Salon.Models
         public decimal CashTotal { get; set; }
         public decimal KNetTotal { get; set; }
         public decimal DebtTotal { get; set; }
+        public decimal TotalDiscount { get; set; }
         public decimal TipsTotal { get; set; }
         public decimal TipsDelivered { get; set; }
         public decimal TipsRemaining => TipsTotal - TipsDelivered;
@@ -33,6 +34,9 @@ namespace Salon.Models
         public decimal CashPercent => TotalSales > 0 ? Math.Round(CashTotal / TotalSales * 100, 1) : 0;
         public decimal KNetPercent => TotalSales > 0 ? Math.Round(KNetTotal / TotalSales * 100, 1) : 0;
         public decimal DebtPercent => TotalSales > 0 ? Math.Round(DebtTotal / TotalSales * 100, 1) : 0;
+        // discount % of gross amount (before discount)
+        public decimal GrossTotal => TotalSales + TotalDiscount;
+        public decimal DiscountPercent => GrossTotal > 0 ? Math.Round(TotalDiscount / GrossTotal * 100, 1) : 0;
 
         // Cash register summary
         public decimal OpeningBalance { get; set; }
@@ -50,8 +54,11 @@ namespace Salon.Models
         public decimal AvgExpense => ExpenseCount > 0 ? Math.Round(TotalExpensesAmount / ExpenseCount, 3) : 0;
         public Dictionary<string, decimal> ExpensesByCategory { get; set; } = new();
 
-        // Employee performance table
-        public List<EmployeePerformanceRow> EmployeeRows { get; set; } = new();
+        // Employee performance — separated by department
+        public List<EmployeePerformanceRow> BarberRows { get; set; } = new();
+        public List<EmployeePerformanceRow> MassageRows { get; set; } = new();
+        // All rows combined for aggregate calcs
+        public List<EmployeePerformanceRow> EmployeeRows => BarberRows.Concat(MassageRows).ToList();
 
         // Quick summary
         public int WorkHours { get; set; }

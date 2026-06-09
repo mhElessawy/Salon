@@ -126,14 +126,17 @@ namespace Salon.Controllers
             decimal tipsTotal = allSales.Sum(s => s.GiftForEmployee ?? 0);
             decimal tipsDelivered = allSales.Sum(s => s.EmployeeGift ?? 0);
 
+            // Total discount
+            decimal totalDiscount = staffSales.Sum(s => s.Discount);
+
             // Expenses analytics
             decimal totalExpenses = expenses.Sum(e => e.Amount);
             var expensesByCategory = expenses
                 .GroupBy(e => string.IsNullOrEmpty(e.Category) ? "أخرى" : e.Category)
                 .ToDictionary(g => g.Key, g => g.Sum(e => e.Amount));
 
-            // Employee performance rows
-            var employeeRows = employees.Select(emp =>
+            // Build per-employee performance row helper
+            EmployeePerformanceRow BuildRow(Employee emp)
             {
                 var empDeptType = emp.DepartmentNav?.Name == "مساج" ? "مساج" : "حلاقة";
                 var empSales = staffSales.Where(s => s.EmployeeId == emp.Id && s.SaleType == empDeptType).ToList();
@@ -158,7 +161,12 @@ namespace Salon.Controllers
                     Advances = empAdv,
                     SalesPercent = totalSales > 0 ? Math.Round(empTotal / totalSales * 100, 1) : 0
                 };
-            }).ToList();
+            }
+
+            var barberEmployees = employees.Where(e => e.DepartmentNav?.Name == "حلاقة").ToList();
+            var massageEmployees = employees.Where(e => e.DepartmentNav?.Name == "مساج").ToList();
+            var barberRows = barberEmployees.Select(BuildRow).ToList();
+            var massageRows = massageEmployees.Select(BuildRow).ToList();
 
             // Report number
             var reportCount = await _context.Sales
@@ -186,6 +194,7 @@ namespace Salon.Controllers
                 CashTotal = cashRevenue,
                 KNetTotal = knetRevenue,
                 DebtTotal = debtRevenue,
+                TotalDiscount = totalDiscount,
                 TipsTotal = tipsTotal,
                 TipsDelivered = tipsDelivered,
 
@@ -200,7 +209,8 @@ namespace Salon.Controllers
                 MaxExpense = expenses.Any() ? expenses.Max(e => e.Amount) : 0,
                 ExpensesByCategory = expensesByCategory,
 
-                EmployeeRows = employeeRows,
+                BarberRows = barberRows,
+                MassageRows = massageRows,
                 WorkHours = workHours,
 
                 Invoices = allSales,
