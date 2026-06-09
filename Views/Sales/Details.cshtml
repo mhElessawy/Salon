@@ -22,7 +22,24 @@
                 <table class="table table-borderless mb-0">
                     <tr><th>العميل:</th><td>@(Model.Customer?.FullName ?? "زائر")</td></tr>
                     <tr><th>الموظف:</th><td>@(Model.Employee?.FullName ?? "-")</td></tr>
-                    <tr><th>طريقة الدفع:</th><td>@Model.PaymentMethod</td></tr>
+                    <tr>
+                        <th>طريقة الدفع:</th>
+                        <td>
+                            @Model.PaymentMethod
+                            @if ((Model.PaymentMethod == "كي نت و كاش" || Model.PaymentMethod == "مناصفة" || Model.PaymentMethod == "Cash & K-Net")
+                                 && ((Model.CashAmount ?? 0) > 0 || (Model.LinkAmount ?? 0) > 0))
+                            {
+                                <div style="margin-top:4px;font-size:12px;line-height:1.8;">
+                                    <span style="display:inline-block;background:#dcfce7;color:#15803d;border-radius:6px;padding:1px 8px;font-weight:600;">
+                                        <i class="fas fa-money-bill-wave" style="font-size:10px;"></i> كاش: @((Model.CashAmount ?? 0).ToString("N3")) د.ك
+                                    </span><br />
+                                    <span style="display:inline-block;background:#dbeafe;color:#1d4ed8;border-radius:6px;padding:1px 8px;font-weight:600;">
+                                        <i class="fas fa-credit-card" style="font-size:10px;"></i> كي نت: @((Model.LinkAmount ?? 0).ToString("N3")) د.ك
+                                    </span>
+                                </div>
+                            }
+                        </td>
+                    </tr>
                     <tr>
                         <th>الحالة:</th>
                         <td>
