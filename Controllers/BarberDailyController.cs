@@ -19,7 +19,7 @@ namespace Salon.Controllers
             _userManager = userManager;
         }
 
-        public async Task<IActionResult> Index(string? date)
+        public async Task<IActionResult> Index(string? date, string? dept)
         {
             var today = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
             var tomorrow = today.AddDays(1);
@@ -31,6 +31,11 @@ namespace Salon.Controllers
 
             bool isBarberOnly = userDept == "حلاقة";
             bool isMassageOnly = userDept == "مساج";
+
+            // dept filter: user-locked departments can't be overridden; admins can choose freely
+            string? filterDept = isBarberOnly ? "حلاقة"
+                                : isMassageOnly ? "مساج"
+                                : dept;   // null = all (admin/manager choice)
 
             string[] cashMethods = { "كاش", "نقدي", "Cash" };
             string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
@@ -45,9 +50,9 @@ namespace Salon.Controllers
 
             if (isEmployee)
                 salesQuery = salesQuery.Where(s => s.EmployeeId == (linkedEmpId ?? -1));
-            else if (isBarberOnly)
+            else if (filterDept == "حلاقة")
                 salesQuery = salesQuery.Where(s => s.SaleType == "حلاقة");
-            else if (isMassageOnly)
+            else if (filterDept == "مساج")
                 salesQuery = salesQuery.Where(s => s.SaleType == "مساج");
 
             var allSales = await salesQuery.OrderByDescending(s => s.SaleDate).ToListAsync();
@@ -60,9 +65,9 @@ namespace Salon.Controllers
 
             if (isEmployee)
                 empQuery = empQuery.Where(e => e.Id == (linkedEmpId ?? -1));
-            else if (isBarberOnly)
+            else if (filterDept == "حلاقة")
                 empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "حلاقة");
-            else if (isMassageOnly)
+            else if (filterDept == "مساج")
                 empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "مساج");
             else
                 empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "حلاقة" || e.DepartmentNav!.Name == "مساج");
@@ -74,9 +79,9 @@ namespace Salon.Controllers
             var expQuery = _context.Expenses
                 .Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow);
 
-            if (isBarberOnly)
+            if (filterDept == "حلاقة")
                 expQuery = expQuery.Where(e => e.Department == "حلاقة" || e.Department == null || e.Department == "");
-            else if (isMassageOnly)
+            else if (filterDept == "مساج")
                 expQuery = expQuery.Where(e => e.Department == "مساج" || e.Department == null || e.Department == "");
 
             var expenses = await expQuery.OrderBy(e => e.Id).ToListAsync();
@@ -188,6 +193,7 @@ namespace Salon.Controllers
                 ReportTime = DateTime.Now.ToString("hh:mm tt"),
                 ReportNumber = $"DY-{reportCount:D6}",
                 UserDepartment = userDept,
+                SelectedDept = filterDept,
 
                 TotalSales = totalSales,
                 InvoiceCount = staffSales.Count,

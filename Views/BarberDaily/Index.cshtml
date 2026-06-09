@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "تقرير الأداء اليومي";
     var selectedDate = Model.ReportDate.ToString("yyyy-MM-dd");
+    var selectedDept = Model.SelectedDept ?? "";
     var catColors = new[] { "#16a34a", "#1d4ed8", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#be185d" };
     var categories = Model.ExpensesByCategory.Keys.ToList();
     var catAmounts = Model.ExpensesByCategory.Values.ToList();
@@ -31,6 +32,13 @@
     .dpr-date-nav { display: flex; align-items: center; gap: 6px; }
     .dpr-nav-btn { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 5px 10px; cursor: pointer; color: #475569; font-size: 14px; }
     .dpr-date-input { border: 1px solid #e2e8f0; border-radius: 6px; padding: 5px 10px; font-size: 13px; color: #0f172a; }
+    .dept-filter { display: flex; gap: 0; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+    .dept-btn { padding: 6px 16px; font-size: 12px; font-weight: 600; color: #64748b; background: #f8fafc; text-decoration: none; border: none; cursor: pointer; border-left: 1px solid #e2e8f0; white-space: nowrap; }
+    .dept-btn:last-child { border-left: none; }
+    .dept-btn:hover { background: #f1f5f9; color: #1e293b; }
+    .dept-btn.active-all  { background: #1e293b; color: #fff; }
+    .dept-btn.active-barber { background: #1a1a2e; color: #fff; }
+    .dept-btn.active-massage { background: #0891b2; color: #fff; }
 
     /* Summary cards */
     .dpr-cards { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 16px; }
@@ -211,24 +219,41 @@
                     <span class="mc-val">@Model.ReportTime</span>
                 </div>
             </div>
-            <div class="dpr-date-nav no-print">
-                <a href="@Url.Action("Index", "BarberDaily", new { date = Model.PrevDate.ToString("yyyy-MM-dd") })" class="dpr-nav-btn">
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-                <form method="get" action="@Url.Action("Index","BarberDaily")" id="dateForm" style="display:inline;">
-                    <input type="date" name="date" value="@selectedDate" class="dpr-date-input"
-                           onchange="document.getElementById('dateForm').submit();" />
-                </form>
-                @if (Model.ReportDate.Date < DateTime.Today)
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;" class="no-print">
+
+                @* Department filter — only shown to admin/manager (not dept-locked users) *@
+                @if (Model.UserDepartment != "حلاقة" && Model.UserDepartment != "مساج")
                 {
-                    <a href="@Url.Action("Index", "BarberDaily", new { date = Model.NextDate.ToString("yyyy-MM-dd") })" class="dpr-nav-btn">
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
+                    <div class="dept-filter">
+                        <a href="@Url.Action("Index","BarberDaily",new{date=selectedDate,dept=""})"
+                           class="dept-btn @(selectedDept == "" ? "active-all" : "")">الكل</a>
+                        <a href="@Url.Action("Index","BarberDaily",new{date=selectedDate,dept="حلاقة"})"
+                           class="dept-btn @(selectedDept == "حلاقة" ? "active-barber" : "")">✂ حلاقة</a>
+                        <a href="@Url.Action("Index","BarberDaily",new{date=selectedDate,dept="مساج"})"
+                           class="dept-btn @(selectedDept == "مساج" ? "active-massage" : "")">🌿 مساج</a>
+                    </div>
                 }
-                else
-                {
-                    <span class="dpr-nav-btn" style="opacity:.3;cursor:default;"><i class="fas fa-chevron-left"></i></span>
-                }
+
+                @* Date navigation *@
+                <div class="dpr-date-nav">
+                    <a href="@Url.Action("Index","BarberDaily",new{date=Model.PrevDate.ToString("yyyy-MM-dd"),dept=selectedDept})"
+                       class="dpr-nav-btn"><i class="fas fa-chevron-right"></i></a>
+                    <form method="get" action="@Url.Action("Index","BarberDaily")" id="dateForm" style="display:inline;">
+                        <input type="date" name="date" value="@selectedDate" class="dpr-date-input"
+                               onchange="document.getElementById('dateForm').submit();" />
+                        <input type="hidden" name="dept" value="@selectedDept" />
+                    </form>
+                    @if (Model.ReportDate.Date < DateTime.Today)
+                    {
+                        <a href="@Url.Action("Index","BarberDaily",new{date=Model.NextDate.ToString("yyyy-MM-dd"),dept=selectedDept})"
+                           class="dpr-nav-btn"><i class="fas fa-chevron-left"></i></a>
+                    }
+                    else
+                    {
+                        <span class="dpr-nav-btn" style="opacity:.3;cursor:default;"><i class="fas fa-chevron-left"></i></span>
+                    }
+                </div>
+
             </div>
         </div>
     </div>

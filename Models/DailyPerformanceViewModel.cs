@@ -19,6 +19,7 @@ namespace Salon.Models
         public string ReportTime { get; set; } = string.Empty;
         public string ReportNumber { get; set; } = string.Empty;
         public string? UserDepartment { get; set; }
+        public string? SelectedDept { get; set; }   // active dept filter (null = all)
 
         // Top summary cards
         public decimal TotalSales { get; set; }
