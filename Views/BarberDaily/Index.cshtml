@@ -665,7 +665,16 @@
                                     <td>@(inv.Employee?.FullName ?? "—")</td>
                                     <td>@(string.Join("، ", inv.SaleItems.Take(2).Select(si => si.ItemName)) + (inv.SaleItems.Count > 2 ? "..." : ""))</td>
                                     <td><strong>@inv.NetAmount.ToString("N3")</strong></td>
-                                    <td><span class="pay-badge @payClass">@inv.PaymentMethod</span></td>
+                                    <td>
+                                        <span class="pay-badge @payClass">@inv.PaymentMethod</span>
+                                        @if (payClass == "pay-mix")
+                                        {
+                                            <div style="font-size:10px;margin-top:4px;line-height:1.6;">
+                                                <span style="color:#15803d;font-weight:700;">كاش: @((inv.CashAmount ?? 0).ToString("N3"))</span><br />
+                                                <span style="color:#1d4ed8;font-weight:700;">كي نت: @((inv.LinkAmount ?? 0).ToString("N3"))</span>
+                                            </div>
+                                        }
+                                    </td>
                                     <td>@((inv.GiftForEmployee ?? 0) > 0 ? (inv.GiftForEmployee ?? 0).ToString("N3") : "—")</td>
                                     <td>
                                         <a href="@Url.Action("Details","Sales",new{id=inv.Id})" class="inv-view-btn" title="عرض">
