@@ -647,7 +647,7 @@ namespace Salon.Controllers
             return View(vm);
         }
 
-        public async Task<IActionResult> CashMovement(string? from, string? to, string? type)
+        public async Task<IActionResult> CashMovement(string? from, string? to, string? type, string? dept)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
@@ -659,6 +659,8 @@ namespace Salon.Controllers
             bool showCashSales   = string.IsNullOrEmpty(type) || type == "كاش";
             bool showKNetSales   = string.IsNullOrEmpty(type) || type == "كي نت";
             bool showWithdrawals = string.IsNullOrEmpty(type) || type == "سحب";
+            // فلتر القسم: يطبق على المبيعات فقط
+            bool filterDept = !string.IsNullOrEmpty(dept);
 
             if (showExpenses)
             {
@@ -730,9 +732,13 @@ namespace Salon.Controllers
 
             if (showCashSales || showKNetSales)
             {
-                var salesRaw = await _context.Sales
-                    .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي")
-                    .ToListAsync();
+                var salesQuery = _context.Sales
+                    .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
+
+                if (filterDept)
+                    salesQuery = salesQuery.Where(s => s.SaleType == dept);
+
+                var salesRaw = await salesQuery.ToListAsync();
 
                 if (showCashSales)
                 {
@@ -821,6 +827,7 @@ namespace Salon.Controllers
             ViewBag.From             = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To               = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
             ViewBag.SelectedType     = type;
+            ViewBag.SelectedDept     = dept;
             ViewBag.TotalMasrouf     = totalMasrouf;
             ViewBag.TotalSulfa       = totalSulfa;
             ViewBag.TotalRatib       = totalRatib;

@@ -1,6 +1,7 @@
 @model List<Salon.Models.CashMovementReportItem>
 @{
     ViewData["Title"] = "تقرير حركة الصندوق";
+    string selectedDept = ViewBag.SelectedDept ?? "";
     decimal totalMasrouf     = ViewBag.TotalMasrouf     is decimal tm  ? tm  : 0m;
     decimal totalSulfa       = ViewBag.TotalSulfa       is decimal ts2 ? ts2 : 0m;
     decimal totalRatib       = ViewBag.TotalRatib       is decimal tr  ? tr  : 0m;
@@ -37,9 +38,17 @@
         <h1><i class="fas fa-cash-register me-2"></i>تقرير حركة الصندوق</h1>
         <p>المصروفات والسلف والمرتبات والمبيعات والإيداعات خلال الفترة المحددة</p>
     </div>
-    <a href="@Url.Action("Index", "Reports")" class="btn btn-outline-secondary btn-sm">
-        <i class="fas fa-arrow-right me-1"></i> التقارير
-    </a>
+    <div class="d-flex align-items-center gap-2">
+        @if (!string.IsNullOrEmpty(selectedDept))
+        {
+            <span class="badge fs-6 px-3 py-2" style="background:@(selectedDept == "حلاقة" ? "#dbeafe" : "#f3e8ff"); color:@(selectedDept == "حلاقة" ? "#1d4ed8" : "#7c3aed");">
+                <i class="fas fa-filter me-1"></i>@selectedDept
+            </span>
+        }
+        <a href="@Url.Action("Index", "Reports")" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-right me-1"></i> التقارير
+        </a>
+    </div>
 </div>
 
 @* ── فلاتر البحث ── *@
@@ -54,18 +63,26 @@
                 <label class="form-label fw-semibold">إلى تاريخ</label>
                 <input type="date" name="to" value="@ViewBag.To" class="form-control" />
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label fw-semibold">نوع الحركة</label>
                 <select name="type" class="form-select">
                     <option value=""         selected="@(selectedType == ""        ? "selected" : null)">الكل</option>
-                    <option value="مصروف"    selected="@(selectedType == "مصروف"   ? "selected" : null)">المصروفات (مصروفات + سلف + مرتبات)</option>
+                    <option value="مصروف"    selected="@(selectedType == "مصروف"   ? "selected" : null)">المصروفات</option>
                     <option value="كاش"      selected="@(selectedType == "كاش"     ? "selected" : null)">مبيعات الكاش</option>
                     <option value="كي نت"    selected="@(selectedType == "كي نت"   ? "selected" : null)">مبيعات الكي نت</option>
                     <option value="إيداع"    selected="@(selectedType == "إيداع"   ? "selected" : null)">الإيداعات</option>
                     <option value="سحب"      selected="@(selectedType == "سحب"     ? "selected" : null)">السحوبات</option>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
+                <label class="form-label fw-semibold">قسم المبيعات</label>
+                <select name="dept" class="form-select">
+                    <option value=""         selected="@(selectedDept == ""         ? "selected" : null)">الكل</option>
+                    <option value="حلاقة"    selected="@(selectedDept == "حلاقة"    ? "selected" : null)">مبيعات الحلاقة</option>
+                    <option value="مساج"     selected="@(selectedDept == "مساج"     ? "selected" : null)">مبيعات المساج</option>
+                </select>
+            </div>
+            <div class="col-md-2">
                 <button type="submit" class="btn btn-primary w-100">
                     <i class="fas fa-search me-1"></i> بحث
                 </button>
