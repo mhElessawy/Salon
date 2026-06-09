@@ -629,6 +629,45 @@
             }
             else
             {
+                @{
+                    string[] _cash  = { "كاش", "نقدي", "Cash" };
+                    string[] _knet  = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+                    string[] _mix   = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+                    decimal tabCash  = Model.Invoices.Sum(s =>
+                        _cash.Contains(s.PaymentMethod) ? s.NetAmount :
+                        _mix.Contains(s.PaymentMethod)  ? (s.CashAmount ?? 0) : 0);
+                    decimal tabKNet  = Model.Invoices.Sum(s =>
+                        _knet.Contains(s.PaymentMethod) ? s.NetAmount :
+                        _mix.Contains(s.PaymentMethod)  ? (s.LinkAmount ?? 0) : 0);
+                    decimal tabDebt  = Model.Invoices.Where(s =>
+                        s.PaymentMethod?.Contains("دين") == true).Sum(s => s.NetAmount);
+                    decimal tabTotal = Model.Invoices.Sum(s => s.NetAmount);
+                }
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+                    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 16px;display:flex;flex-direction:column;align-items:center;min-width:110px;">
+                        <span style="font-size:10px;color:#15803d;font-weight:600;">الكاش</span>
+                        <span style="font-size:16px;font-weight:700;color:#15803d;">@tabCash.ToString("N3")</span>
+                        <span style="font-size:10px;color:#64748b;">د.ك</span>
+                    </div>
+                    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 16px;display:flex;flex-direction:column;align-items:center;min-width:110px;">
+                        <span style="font-size:10px;color:#1d4ed8;font-weight:600;">كي نت</span>
+                        <span style="font-size:16px;font-weight:700;color:#1d4ed8;">@tabKNet.ToString("N3")</span>
+                        <span style="font-size:10px;color:#64748b;">د.ك</span>
+                    </div>
+                    @if (tabDebt > 0)
+                    {
+                        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 16px;display:flex;flex-direction:column;align-items:center;min-width:110px;">
+                            <span style="font-size:10px;color:#c2410c;font-weight:600;">ديون</span>
+                            <span style="font-size:16px;font-weight:700;color:#c2410c;">@tabDebt.ToString("N3")</span>
+                            <span style="font-size:10px;color:#64748b;">د.ك</span>
+                        </div>
+                    }
+                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 16px;display:flex;flex-direction:column;align-items:center;min-width:110px;">
+                        <span style="font-size:10px;color:#475569;font-weight:600;">الإجمالي</span>
+                        <span style="font-size:16px;font-weight:700;color:#0f172a;">@tabTotal.ToString("N3")</span>
+                        <span style="font-size:10px;color:#64748b;">د.ك</span>
+                    </div>
+                </div>
                 <div style="overflow-x:auto;">
                     <table class="inv-table">
                         <thead>
