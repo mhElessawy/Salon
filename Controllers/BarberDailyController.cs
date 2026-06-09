@@ -245,5 +245,18 @@ namespace Salon.Controllers
             }
             return RedirectToAction("Index", new { date });
         }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdatePaymentSplit(int saleId, decimal cashAmount, decimal linkAmount, string date, string? dept)
+        {
+            var sale = await _context.Sales.FindAsync(saleId);
+            if (sale != null)
+            {
+                sale.CashAmount = cashAmount;
+                sale.LinkAmount = linkAmount;
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction("Index", new { date, dept });
+        }
     }
 }

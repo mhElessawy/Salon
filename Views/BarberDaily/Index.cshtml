@@ -710,6 +710,12 @@
                                                 <span style="color:#15803d;font-weight:700;">كاش: @((inv.CashAmount ?? 0).ToString("N3"))</span><br />
                                                 <span style="color:#1d4ed8;font-weight:700;">كي نت: @((inv.LinkAmount ?? 0).ToString("N3"))</span>
                                             </div>
+                                            <button type="button"
+                                                    onclick="openSplitModal(@inv.Id, '@inv.InvoiceNumber', @inv.NetAmount.ToString("F3"), @((inv.CashAmount ?? 0).ToString("F3")), @((inv.LinkAmount ?? 0).ToString("F3")))"
+                                                    class="no-print"
+                                                    style="margin-top:4px;font-size:10px;padding:2px 8px;border:1px solid #f59e0b;border-radius:10px;background:#fef9c3;color:#854d0e;cursor:pointer;">
+                                                <i class="fas fa-edit" style="font-size:9px;"></i> تحديد
+                                            </button>
                                         }
                                     </td>
                                     <td>@((inv.GiftForEmployee ?? 0) > 0 ? (inv.GiftForEmployee ?? 0).ToString("N3") : "—")</td>
@@ -879,6 +885,52 @@
     </div>
 </div>
 
+<!-- ========== SPLIT PAYMENT MODAL ========== -->
+<div class="modal fade" id="splitModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content" dir="rtl">
+            <div class="modal-header" style="background:#1e293b;color:#fff;padding:10px 16px;">
+                <h6 class="modal-title" style="font-size:14px;margin:0;">
+                    <i class="fas fa-edit me-2"></i>توزيع الدفع — كي نت و كاش
+                </h6>
+                <button type="button" class="btn-close btn-close-white ms-0 me-auto" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="@Url.Action("UpdatePaymentSplit","BarberDaily")" id="splitForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="saleId" id="splitSaleId" />
+                <input type="hidden" name="date" value="@selectedDate" />
+                <input type="hidden" name="dept" value="@selectedDept" />
+                <div class="modal-body" style="padding:16px;">
+                    <div id="splitInvoiceInfo" style="font-size:12px;color:#64748b;background:#f8fafc;border-radius:6px;padding:8px 12px;margin-bottom:14px;"></div>
+                    <div class="mb-3">
+                        <label style="font-size:13px;font-weight:600;color:#0f172a;display:block;margin-bottom:4px;">
+                            <i class="fas fa-money-bill-wave me-1" style="color:#16a34a;"></i>كاش (د.ك)
+                        </label>
+                        <input type="number" name="cashAmount" id="splitCashAmount"
+                               class="form-control form-control-sm" step="0.001" min="0"
+                               style="direction:ltr;" oninput="updateSplitWarning()" />
+                    </div>
+                    <div class="mb-2">
+                        <label style="font-size:13px;font-weight:600;color:#0f172a;display:block;margin-bottom:4px;">
+                            <i class="fas fa-credit-card me-1" style="color:#1d4ed8;"></i>كي نت (د.ك)
+                        </label>
+                        <input type="number" name="linkAmount" id="splitLinkAmount"
+                               class="form-control form-control-sm" step="0.001" min="0"
+                               style="direction:ltr;" oninput="updateSplitWarning()" />
+                    </div>
+                    <div id="splitWarning" style="font-size:11px;margin-top:8px;padding:6px 10px;border-radius:6px;display:none;"></div>
+                </div>
+                <div class="modal-footer" style="padding:8px 16px;justify-content:flex-start;gap:8px;border-top:1px solid #f1f5f9;">
+                    <button type="submit" class="btn btn-sm" style="background:#1e293b;color:#fff;font-weight:600;padding:6px 16px;">
+                        <i class="fas fa-save me-1"></i>حفظ
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
@@ -948,6 +1000,40 @@
             navigator.clipboard.writeText(window.location.href).then(function() {
                 alert('تم نسخ الرابط!');
             });
+        }
+    }
+
+    // Split payment modal
+    var splitTotal = 0;
+    function openSplitModal(saleId, invoiceNum, total, cash, knet) {
+        splitTotal = total;
+        document.getElementById('splitSaleId').value = saleId;
+        document.getElementById('splitInvoiceInfo').innerHTML =
+            'فاتورة: <strong>' + invoiceNum + '</strong> &nbsp;|&nbsp; الإجمالي: <strong>' + total.toFixed(3) + ' د.ك</strong>';
+        document.getElementById('splitCashAmount').value = cash > 0 ? cash : '';
+        document.getElementById('splitLinkAmount').value = knet > 0 ? knet : '';
+        document.getElementById('splitWarning').style.display = 'none';
+        new bootstrap.Modal(document.getElementById('splitModal')).show();
+        setTimeout(function() { document.getElementById('splitCashAmount').focus(); }, 300);
+    }
+
+    function updateSplitWarning() {
+        var c = parseFloat(document.getElementById('splitCashAmount').value) || 0;
+        var k = parseFloat(document.getElementById('splitLinkAmount').value) || 0;
+        var warn = document.getElementById('splitWarning');
+        var diff = Math.abs(c + k - splitTotal);
+        if (diff > 0.005) {
+            warn.style.display = 'block';
+            warn.style.background = '#fee2e2';
+            warn.style.color = '#dc2626';
+            warn.textContent = 'تنبيه: المجموع (' + (c + k).toFixed(3) + ') لا يساوي إجمالي الفاتورة (' + splitTotal.toFixed(3) + ')';
+        } else if (c + k > 0) {
+            warn.style.display = 'block';
+            warn.style.background = '#dcfce7';
+            warn.style.color = '#15803d';
+            warn.textContent = 'المجموع صحيح ✓';
+        } else {
+            warn.style.display = 'none';
         }
     }
 </script>
