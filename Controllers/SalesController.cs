@@ -40,10 +40,10 @@ namespace Salon.Controllers
         }
 
         // ===== قائمة الفواتير =====
-        public async Task<IActionResult> Index(string? date, string? type)
+        public async Task<IActionResult> Index(string? from, string? to, string? type)
         {
-            DateTime filterDate = string.IsNullOrEmpty(date) ? KuwaitToday : DateTime.Parse(date);
-            var nextDay = filterDate.AddDays(1);
+            DateTime dateFrom = string.IsNullOrEmpty(from) ? KuwaitToday : DateTime.Parse(from);
+            DateTime dateTo = string.IsNullOrEmpty(to) ? KuwaitToday.AddDays(1) : DateTime.Parse(to).AddDays(1);
 
             var user = await _userManager.GetUserAsync(User);
             var userDept = user?.UserDepartment;
@@ -54,7 +54,7 @@ namespace Salon.Controllers
                 .Include(s => s.Customer)
                 .Include(s => s.Employee)
                 .Include(s => s.SaleItems)
-                .Where(s => s.SaleDate >= filterDate && s.SaleDate < nextDay);
+                .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo);
 
             // Department users see only their own department's invoices
             if (userDept == "مساج")
@@ -74,7 +74,8 @@ namespace Salon.Controllers
             var activeSales = sales.Where(s => s.Status != "ملغي").ToList();
             var cancelledSales = sales.Where(s => s.Status == "ملغي").ToList();
 
-            ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
             ViewBag.FilterType = type;
             ViewBag.TotalSales = activeSales.Sum(s => s.NetAmount);
             ViewBag.TotalCancelled = cancelledSales.Sum(s => s.NetAmount);

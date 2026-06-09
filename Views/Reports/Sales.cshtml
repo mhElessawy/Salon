@@ -19,10 +19,12 @@
     var expensesInRange = ViewBag.ExpensesInRange as List<Expense> ?? new List<Expense>();
     var salariesInRange = ViewBag.SalariesInRange as List<Salary> ?? new List<Salary>();
     var depositsInRange = ViewBag.DepositsInRange as List<Deposit> ?? new List<Deposit>();
+    var advancesInRange = ViewBag.AdvancesInRange as List<EmployeeAdvance> ?? new List<EmployeeAdvance>();
     decimal totalExpensesAmount = ViewBag.TotalExpensesAmount is decimal tea ? tea : 0m;
     decimal totalSalariesAmount = ViewBag.TotalSalariesAmount is decimal tsa ? tsa : 0m;
     decimal totalCombinedExpenses = ViewBag.TotalCombinedExpenses is decimal tce ? tce : 0m;
     decimal totalDepositsAmount = ViewBag.TotalDepositsAmount is decimal tda ? tda : 0m;
+    decimal totalAdvancesAmount = ViewBag.TotalAdvancesAmount is decimal tadv ? tadv : 0m;
     decimal netProfit = ((decimal)(ViewBag.TotalSales ?? 0m)) + totalDepositsAmount - totalCombinedExpenses;
 }
 
@@ -50,13 +52,13 @@
                     <option value="">الكل</option>
                     @if (!isMassage)
                     {
-                        <option value="حلاقة" @@(selectedType= ="حلاقة" ? "selected" : "" )>حلاقة</option>
+                        <option value="حلاقة" selected="@(selectedType == "حلاقة")">حلاقة</option>
                     }
                     @if (!isHaircut)
                     {
-                        <option value="مساج" @@(selectedType= ="مساج" ? "selected" : "" )>مساج</option>
+                        <option value="مساج" selected="@(selectedType == "مساج")">مساج</option>
                     }
-                    <option value="منتجات" @@(selectedType= ="منتجات" ? "selected" : "" )>منتجات</option>
+                    <option value="منتجات" selected="@(selectedType == "منتجات")">منتجات</option>
                 </select>
             </div>
             <div class="col-auto">
@@ -79,7 +81,7 @@
                     {
                         <option value="@emp.Id"
                                 data-dept="@(emp.Department ?? "")"
-                                @@(selectedEmployee= =emp.Id ? "selected" : "" )>@emp.FullName</option>
+                                selected="@(selectedEmployee == emp.Id)">@emp.FullName</option>
                     }
                 </select>
             </div>
@@ -91,7 +93,7 @@
                     {
                         <option value="@cust.Id"
                                 data-dept="@(cust.Department ?? "")"
-                                @@(selectedCustomer= =cust.Id ? "selected" : "" )>@cust.FullName</option>
+                                selected="@(selectedCustomer == cust.Id)">@cust.FullName</option>
                     }
                 </select>
             </div>
@@ -179,7 +181,7 @@
         <div class="col-md-2">
             <div class="stat-card" style="border-right: 4px solid #e67e22; background:#fff8ec;">
                 <div class="stat-label"><i class="fas fa-hand-holding-usd me-1"></i>عمولات الموظفين</div>
-                <div class="stat-value" style="font-size:1.2rem;color:#e67e22;">@((decimal)(ViewBag.TotalGifts ?? 0m)).ToString("N3") د.ك</div>
+                <div class="stat-value" style="font-size:1.2rem;color:#e67e22;">@(((decimal)(ViewBag.TotalGifts ?? 0m)).ToString("N3")) د.ك</div>
             </div>
         </div>
     }
@@ -188,7 +190,7 @@
         <div class="col-md-2">
             <div class="stat-card" style="border-right: 4px solid #c0392b; background:#fdf2f2;">
                 <div class="stat-label"><i class="fas fa-gift me-1"></i>هدايا للموظفين</div>
-                <div class="stat-value" style="font-size:1.2rem;color:#c0392b;">@((decimal)(ViewBag.TotalHadiya ?? 0m)).ToString("N3") د.ك</div>
+                <div class="stat-value" style="font-size:1.2rem;color:#c0392b;">@(((decimal)(ViewBag.TotalHadiya ?? 0m)).ToString("N3")) د.ك</div>
             </div>
         </div>
     }
@@ -225,6 +227,15 @@
             <div class="stat-card" style="border-right:4px solid #dc2626;">
                 <div class="stat-label"><span data-i18n-en="Total Cancelled">إجمالي الملغاة</span> (@ViewBag.TotalCancelledCount <span data-i18n-en="Invoice">فاتورة</span>)</div>
                 <div class="stat-value" style="color:#dc2626;">@ViewBag.TotalCancelled?.ToString("N3") د.ك</div>
+            </div>
+        </div>
+    }
+    @if (totalAdvancesAmount > 0)
+    {
+        <div class="col-md-2">
+            <div class="stat-card" style="border-right:4px solid #b45309; background:#fffbeb;">
+                <div class="stat-label"><i class="fas fa-hand-holding-usd me-1"></i>إجمالي السلف</div>
+                <div class="stat-value" style="color:#b45309;">@totalAdvancesAmount.ToString("N3") د.ك</div>
             </div>
         </div>
     }
@@ -317,7 +328,7 @@
         </div>
     </div>
     <div class="card-body p-0">
-        @if (!expensesInRange.Any() && !salariesInRange.Any() && !depositsInRange.Any())
+        @if (!expensesInRange.Any() && !salariesInRange.Any() && !depositsInRange.Any() && !advancesInRange.Any())
         {
             <div class="text-center text-muted py-4">
                 <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
@@ -376,6 +387,18 @@
                                 <td class="text-muted small">@dep.Notes</td>
                             </tr>
                         }
+                        @foreach (var adv in advancesInRange)
+                        {
+                            <tr style="background:#fffbeb;">
+                                <td><span class="badge" style="background:#b45309;"><i class="fas fa-hand-holding-usd me-1"></i>سلفة</span></td>
+                                <td>@(adv.Reason ?? "سلفة")</td>
+                                <td>@(adv.Employee?.FullName ?? "-")</td>
+                                <td><strong style="color:#b45309;">@adv.Amount.ToString("N3") د.ك</strong></td>
+                                <td>@adv.PaymentMethod</td>
+                                <td>@adv.AdvanceDate.ToString("yyyy/MM/dd")</td>
+                                <td class="text-muted small">@adv.Notes</td>
+                            </tr>
+                        }
                     </tbody>
                     <tfoot class="table-dark fw-bold">
                         <tr>
@@ -388,6 +411,14 @@
                             <tr style="background:#166534;color:#fff;">
                                 <td colspan="3" class="text-end">إجمالي الإيداعات</td>
                                 <td>@totalDepositsAmount.ToString("N3") د.ك</td>
+                                <td colspan="3"></td>
+                            </tr>
+                        }
+                        @if (totalAdvancesAmount > 0)
+                        {
+                            <tr style="background:#92400e;color:#fff;">
+                                <td colspan="3" class="text-end">إجمالي السلف</td>
+                                <td>@totalAdvancesAmount.ToString("N3") د.ك</td>
                                 <td colspan="3"></td>
                             </tr>
                         }
