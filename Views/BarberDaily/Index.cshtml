@@ -66,9 +66,11 @@
     .dpr-content { display: grid; grid-template-columns: 1fr 280px; gap: 16px; margin-bottom: 16px; }
     @@media (max-width: 1024px) { .dpr-content { grid-template-columns: 1fr; } }
     .dpr-left { display: flex; flex-direction: column; gap: 16px; }
-    .dpr-panels-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-    @@media (max-width: 1200px) { .dpr-panels-row { grid-template-columns: 1fr 1fr; } }
+    .dpr-panels-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     @@media (max-width: 768px) { .dpr-panels-row { grid-template-columns: 1fr; } }
+    .emp-full-panel { margin-top: 14px; }
+    .emp-tables-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; overflow-x: auto; }
+    @@media (max-width: 900px) { .emp-tables-grid { grid-template-columns: 1fr; } }
 
     /* Panel shared */
     .dpr-panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
@@ -231,65 +233,30 @@
         </div>
     </div>
 
-    <!-- ========== SUMMARY CARDS ========== -->
+    <!-- ========== SUMMARY CARDS (right→left: إكراميات first in RTL) ========== -->
     <div class="dpr-cards">
-        <!-- Total Sales -->
-        <div class="dpr-card c-blue">
+
+        <!-- 1: Tips — rightmost -->
+        <div class="dpr-card c-purple">
             <div class="dpr-card-header">
-                <span class="dpr-card-label">إجمالي المبيعات</span>
-                <div class="dpr-card-icon ic-blue"><i class="fas fa-shopping-bag"></i></div>
+                <span class="dpr-card-label">إكراميات (كي نت)</span>
+                <div class="dpr-card-icon ic-purple"><i class="fas fa-gift"></i></div>
             </div>
-            <div class="dpr-card-value">@Model.TotalSales.ToString("N3")</div>
+            <div class="dpr-card-value">@Model.TipsTotal.ToString("N3")</div>
             <div class="dpr-card-cur">د.ك</div>
-            <div class="dpr-card-sub">
-                <span>عدد الفواتير</span>
-                <span class="dpr-badge bg-blue">@Model.InvoiceCount</span>
+            <div class="dpr-card-sub" style="flex-direction:column;gap:3px;">
+                <div style="display:flex;justify-content:space-between;">
+                    <span>تم تسليم</span>
+                    <span style="font-weight:700;color:#7c3aed;">@Model.TipsDelivered.ToString("N3")</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                    <span>المتبقي</span>
+                    <span style="font-weight:700;color:#dc2626;">@Model.TipsRemaining.ToString("N3")</span>
+                </div>
             </div>
         </div>
 
-        <!-- Cash -->
-        <div class="dpr-card c-green">
-            <div class="dpr-card-header">
-                <span class="dpr-card-label">كاش</span>
-                <div class="dpr-card-icon ic-green"><i class="fas fa-money-bill-wave"></i></div>
-            </div>
-            <div class="dpr-card-value">@Model.CashTotal.ToString("N3")</div>
-            <div class="dpr-card-cur">د.ك</div>
-            <div class="dpr-card-sub">
-                <span>نسبة الكاش</span>
-                <span class="dpr-badge bg-green">@Model.CashPercent.ToString("N1")%</span>
-            </div>
-        </div>
-
-        <!-- K-Net -->
-        <div class="dpr-card c-knet">
-            <div class="dpr-card-header">
-                <span class="dpr-card-label">كي نت</span>
-                <div class="dpr-card-icon ic-knet"><i class="fas fa-credit-card"></i></div>
-            </div>
-            <div class="dpr-card-value">@Model.KNetTotal.ToString("N3")</div>
-            <div class="dpr-card-cur">د.ك</div>
-            <div class="dpr-card-sub">
-                <span>نسبة كي نت</span>
-                <span class="dpr-badge bg-blue">@Model.KNetPercent.ToString("N1")%</span>
-            </div>
-        </div>
-
-        <!-- Debt -->
-        <div class="dpr-card c-orange">
-            <div class="dpr-card-header">
-                <span class="dpr-card-label">دين إدارة / موظفين</span>
-                <div class="dpr-card-icon ic-orange"><i class="fas fa-user-slash"></i></div>
-            </div>
-            <div class="dpr-card-value">@Model.DebtTotal.ToString("N3")</div>
-            <div class="dpr-card-cur">د.ك</div>
-            <div class="dpr-card-sub">
-                <span>نسبة الديون</span>
-                <span class="dpr-badge bg-red">@Model.DebtPercent.ToString("N1")%</span>
-            </div>
-        </div>
-
-        <!-- Discount -->
+        <!-- 2: Discount -->
         <div class="dpr-card c-red">
             <div class="dpr-card-header">
                 <span class="dpr-card-label">الخصومات</span>
@@ -303,25 +270,62 @@
             </div>
         </div>
 
-        <!-- Tips -->
-        <div class="dpr-card c-purple">
+        <!-- 3: Debt -->
+        <div class="dpr-card c-orange">
             <div class="dpr-card-header">
-                <span class="dpr-card-label">إكراميات (كي نت)</span>
-                <div class="dpr-card-icon ic-purple"><i class="fas fa-gift"></i></div>
+                <span class="dpr-card-label">دين إدارة / موظفين</span>
+                <div class="dpr-card-icon ic-orange"><i class="fas fa-user-slash"></i></div>
             </div>
-            <div class="dpr-card-value">@Model.TipsTotal.ToString("N3")</div>
+            <div class="dpr-card-value">@Model.DebtTotal.ToString("N3")</div>
             <div class="dpr-card-cur">د.ك</div>
-            <div class="dpr-card-sub" style="flex-direction:column; gap:3px;">
-                <div style="display:flex;justify-content:space-between;">
-                    <span>تم تسليم</span>
-                    <span style="font-weight:700;color:#7c3aed;">@Model.TipsDelivered.ToString("N3")</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;">
-                    <span>المتبقي</span>
-                    <span style="font-weight:700;color:#dc2626;">@Model.TipsRemaining.ToString("N3")</span>
-                </div>
+            <div class="dpr-card-sub">
+                <span>نسبة الديون</span>
+                <span class="dpr-badge bg-red">@Model.DebtPercent.ToString("N1")%</span>
             </div>
         </div>
+
+        <!-- 4: K-Net -->
+        <div class="dpr-card c-knet">
+            <div class="dpr-card-header">
+                <span class="dpr-card-label">كي نت</span>
+                <div class="dpr-card-icon ic-knet"><i class="fas fa-credit-card"></i></div>
+            </div>
+            <div class="dpr-card-value">@Model.KNetTotal.ToString("N3")</div>
+            <div class="dpr-card-cur">د.ك</div>
+            <div class="dpr-card-sub">
+                <span>نسبة كي نت</span>
+                <span class="dpr-badge bg-blue">@Model.KNetPercent.ToString("N1")%</span>
+            </div>
+        </div>
+
+        <!-- 5: Cash -->
+        <div class="dpr-card c-green">
+            <div class="dpr-card-header">
+                <span class="dpr-card-label">كاش</span>
+                <div class="dpr-card-icon ic-green"><i class="fas fa-money-bill-wave"></i></div>
+            </div>
+            <div class="dpr-card-value">@Model.CashTotal.ToString("N3")</div>
+            <div class="dpr-card-cur">د.ك</div>
+            <div class="dpr-card-sub">
+                <span>نسبة الكاش</span>
+                <span class="dpr-badge bg-green">@Model.CashPercent.ToString("N1")%</span>
+            </div>
+        </div>
+
+        <!-- 6: Total Sales — leftmost -->
+        <div class="dpr-card c-blue">
+            <div class="dpr-card-header">
+                <span class="dpr-card-label">إجمالي المبيعات</span>
+                <div class="dpr-card-icon ic-blue"><i class="fas fa-shopping-bag"></i></div>
+            </div>
+            <div class="dpr-card-value">@Model.TotalSales.ToString("N3")</div>
+            <div class="dpr-card-cur">د.ك</div>
+            <div class="dpr-card-sub">
+                <span>عدد الفواتير</span>
+                <span class="dpr-badge bg-blue">@Model.InvoiceCount</span>
+            </div>
+        </div>
+
     </div>
 
     <!-- ========== MAIN CONTENT ========== -->
@@ -438,78 +442,82 @@
                     </div>
                 </div>
 
-                <!-- EMPLOYEE PERFORMANCE -->
-                <div class="dpr-panel">
-                    <div class="dpr-panel-header">
-                        <div class="ph-icon" style="background:#eff6ff;color:#1d4ed8;"><i class="fas fa-users"></i></div>
-                        <span class="ph-title">أداء الموظفين اليوم</span>
-                    </div>
-                    <div class="dpr-panel-body" style="padding:0;">
+            </div>
 
-                        @{ /* Helper to render one department table */ }
+            <!-- EMPLOYEE PERFORMANCE — full width, two tables side by side -->
+            <div class="dpr-panel emp-full-panel">
+                <div class="dpr-panel-header">
+                    <div class="ph-icon" style="background:#eff6ff;color:#1d4ed8;"><i class="fas fa-users"></i></div>
+                    <span class="ph-title">أداء الموظفين اليوم</span>
+                </div>
+                <div class="dpr-panel-body" style="padding:0;">
+                    <div class="emp-tables-grid">
+
                         @{
                             void RenderEmpTable(string sectionTitle, string titleColor, string iconClass, IEnumerable<Salon.Models.EmployeePerformanceRow> rows)
                             {
                                 var rowList = rows.ToList();
-                                <div class="emp-section-header" style="background:@titleColor;color:#fff;padding:6px 12px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;">
-                                    <i class="@iconClass"></i> @sectionTitle
-                                    <span style="margin-right:auto;background:rgba(255,255,255,0.25);border-radius:10px;padding:1px 8px;font-size:11px;">@rowList.Count موظف</span>
+                                <div style="border-left:1px solid #f1f5f9;">
+                                    <div style="background:@titleColor;color:#fff;padding:7px 12px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;">
+                                        <i class="@iconClass"></i> @sectionTitle
+                                        <span style="margin-right:auto;background:rgba(255,255,255,0.25);border-radius:10px;padding:1px 8px;font-size:11px;">@rowList.Count موظف</span>
+                                    </div>
+                                    <table class="emp-table">
+                                        <thead>
+                                            <tr>
+                                                <th>الموظف</th>
+                                                <th>فواتير</th>
+                                                <th>المبيعات<br /><small>د.ك</small></th>
+                                                <th>المحصل<br /><small>د.ك</small></th>
+                                                <th>دين<br /><small>د.ك</small></th>
+                                                <th>سلف<br /><small>د.ك</small></th>
+                                                <th>نسبة</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @if (!rowList.Any())
+                                            {
+                                                <tr><td colspan="7" class="text-center text-muted py-3" style="font-size:12px;">لا يوجد بيانات</td></tr>
+                                            }
+                                            @foreach (var row in rowList)
+                                            {
+                                                <tr>
+                                                    <td style="text-align:right;">
+                                                        <div style="display:flex;align-items:center;gap:5px;">
+                                                            <div class="emp-avatar" style="background:@titleColor;">@(row.Employee.FullName.FirstOrDefault())</div>
+                                                            <span style="font-weight:600;font-size:12px;">@row.Employee.FullName</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>@row.InvoiceCount</td>
+                                                    <td style="font-weight:700;">@row.TotalSales.ToString("N3")</td>
+                                                    <td style="color:#16a34a;font-weight:600;">@row.InstantCollection.ToString("N3")</td>
+                                                    <td class="@(row.Debts > 0 ? "text-danger" : "")">@row.Debts.ToString("N3")</td>
+                                                    <td class="@(row.Advances > 0 ? "text-danger" : "")">@row.Advances.ToString("N3")</td>
+                                                    <td>
+                                                        <div class="pct-bar-wrap">
+                                                            <div class="pct-bar" style="width:@(row.SalesPercent)px;max-width:36px;background:@titleColor;"></div>
+                                                            <span style="font-size:11px;font-weight:700;">@row.SalesPercent.ToString("N1")%</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                        @if (rowList.Any())
+                                        {
+                                            <tfoot>
+                                                <tr>
+                                                    <td>الإجمالي</td>
+                                                    <td>@rowList.Sum(r => r.InvoiceCount)</td>
+                                                    <td>@rowList.Sum(r => r.TotalSales).ToString("N3")</td>
+                                                    <td>@rowList.Sum(r => r.InstantCollection).ToString("N3")</td>
+                                                    <td>@rowList.Sum(r => r.Debts).ToString("N3")</td>
+                                                    <td>@rowList.Sum(r => r.Advances).ToString("N3")</td>
+                                                    <td>100%</td>
+                                                </tr>
+                                            </tfoot>
+                                        }
+                                    </table>
                                 </div>
-                                <table class="emp-table">
-                                    <thead>
-                                        <tr>
-                                            <th>الموظف</th>
-                                            <th>فواتير</th>
-                                            <th>المبيعات<br /><small>د.ك</small></th>
-                                            <th>المحصل<br /><small>د.ك</small></th>
-                                            <th>دين<br /><small>د.ك</small></th>
-                                            <th>سلف<br /><small>د.ك</small></th>
-                                            <th>نسبة</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @if (!rowList.Any())
-                                        {
-                                            <tr><td colspan="7" class="text-center text-muted py-2" style="font-size:12px;">لا يوجد بيانات</td></tr>
-                                        }
-                                        @foreach (var row in rowList)
-                                        {
-                                            <tr>
-                                                <td style="text-align:right;">
-                                                    <div style="display:flex;align-items:center;gap:5px;">
-                                                        <div class="emp-avatar" style="background:@titleColor;">@(row.Employee.FullName.FirstOrDefault())</div>
-                                                        <span style="font-weight:600;font-size:12px;">@row.Employee.FullName</span>
-                                                    </div>
-                                                </td>
-                                                <td>@row.InvoiceCount</td>
-                                                <td style="font-weight:700;">@row.TotalSales.ToString("N3")</td>
-                                                <td style="color:#16a34a;font-weight:600;">@row.InstantCollection.ToString("N3")</td>
-                                                <td class="@(row.Debts > 0 ? "text-danger" : "")">@row.Debts.ToString("N3")</td>
-                                                <td class="@(row.Advances > 0 ? "text-danger" : "")">@row.Advances.ToString("N3")</td>
-                                                <td>
-                                                    <div class="pct-bar-wrap">
-                                                        <div class="pct-bar" style="width:@(row.SalesPercent)px;max-width:36px;background:@titleColor;"></div>
-                                                        <span style="font-size:11px;font-weight:700;">@row.SalesPercent.ToString("N1")%</span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                    @if (rowList.Any())
-                                    {
-                                        <tfoot>
-                                            <tr>
-                                                <td>الإجمالي</td>
-                                                <td>@rowList.Sum(r => r.InvoiceCount)</td>
-                                                <td>@rowList.Sum(r => r.TotalSales).ToString("N3")</td>
-                                                <td>@rowList.Sum(r => r.InstantCollection).ToString("N3")</td>
-                                                <td>@rowList.Sum(r => r.Debts).ToString("N3")</td>
-                                                <td>@rowList.Sum(r => r.Advances).ToString("N3")</td>
-                                                <td>100%</td>
-                                            </tr>
-                                        </tfoot>
-                                    }
-                                </table>
                             }
                         }
 
@@ -524,50 +532,12 @@
 
                     </div>
                 </div>
-
             </div>
+
         </div>
 
-        <!-- RIGHT PANEL -->
+        <!-- RIGHT PANEL — Quick Summary only -->
         <div class="dpr-right">
-            <!-- Daily Notes -->
-            <div class="dpr-panel">
-                <div class="dpr-panel-header">
-                    <div class="ph-icon" style="background:#fef9c3;color:#854d0e;"><i class="fas fa-sticky-note"></i></div>
-                    <span class="ph-title">ملاحظات اليوم</span>
-                </div>
-                <div class="dpr-panel-body">
-                    @if (string.IsNullOrEmpty(Model.DailyNotes))
-                    {
-                        <div class="notes-empty">
-                            <i class="fas fa-clipboard"></i>
-                            لا يوجد ملاحظات
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="notes-text">@Model.DailyNotes</div>
-                    }
-                    @if (Model.ShiftId > 0)
-                    {
-                        <div class="no-print" style="margin-top:10px;">
-                            <button class="btn btn-sm btn-outline-warning w-100" onclick="toggleNotesEdit()">
-                                <i class="fas fa-plus me-1"></i>@(string.IsNullOrEmpty(Model.DailyNotes) ? "إضافة ملاحظة" : "تعديل الملاحظة")
-                            </button>
-                            <div id="notesEditBox" style="display:none;margin-top:8px;">
-                                <form method="post" action="@Url.Action("SaveNote","BarberDaily")">
-                                    <input type="hidden" name="shiftId" value="@Model.ShiftId" />
-                                    <input type="hidden" name="date" value="@selectedDate" />
-                                    <textarea name="notes" class="notes-textarea" rows="4">@Model.DailyNotes</textarea>
-                                    <button type="submit" class="btn btn-sm btn-warning mt-2 w-100">
-                                        <i class="fas fa-save me-1"></i>حفظ
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    }
-                </div>
-            </div>
 
             <!-- Quick Summary -->
             <div class="dpr-panel">
@@ -853,12 +823,6 @@
         if (id !== 'tab-invoices') {
             content.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-    }
-
-    // Notes edit toggle
-    function toggleNotesEdit() {
-        var box = document.getElementById('notesEditBox');
-        box.style.display = box.style.display === 'none' ? 'block' : 'none';
     }
 
     // Donut chart
