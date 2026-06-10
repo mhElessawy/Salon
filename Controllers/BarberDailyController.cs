@@ -32,16 +32,14 @@ namespace Salon.Controllers
             bool isBarberOnly = userDept == "حلاقة";
             bool isMassageOnly = userDept == "مساج";
 
-            // dept filter: user-locked departments can't be overridden; admins can choose freely
             string? filterDept = isBarberOnly ? "حلاقة"
                                 : isMassageOnly ? "مساج"
-                                : dept;   // null = all (admin/manager choice)
+                                : dept;
 
             string[] cashMethods = { "كاش", "نقدي", "Cash" };
             string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
             string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
 
-            // --- Sales for today ---
             var salesQuery = _context.Sales
                 .Include(s => s.Customer)
                 .Include(s => s.Employee)
@@ -58,7 +56,6 @@ namespace Salon.Controllers
             var allSales = await salesQuery.OrderByDescending(s => s.SaleDate).ToListAsync();
             var staffSales = allSales.Where(s => s.SaleType == "حلاقة" || s.SaleType == "مساج").ToList();
 
-            // --- Employees ---
             var empQuery = _context.Employees
                 .Include(e => e.DepartmentNav)
                 .Where(e => e.IsActive && e.DepartmentNav != null);
@@ -75,7 +72,6 @@ namespace Salon.Controllers
             var employees = await empQuery.OrderBy(e => e.DepartmentNav!.Name).ThenBy(e => e.FullName).ToListAsync();
             var employeeIds = employees.Select(e => e.Id).ToList();
 
-            // --- Expenses today ---
             var expQuery = _context.Expenses
                 .Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow);
 
@@ -86,7 +82,6 @@ namespace Salon.Controllers
 
             var expenses = await expQuery.OrderBy(e => e.Id).ToListAsync();
 
-            // --- Advances today ---
             var advancesQuery = _context.EmployeeAdvances
                 .Include(a => a.Employee)
                 .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow);
@@ -98,23 +93,41 @@ namespace Salon.Controllers
 
             var advances = await advancesQuery.OrderBy(a => a.Id).ToListAsync();
 
-            // --- Deposits today ---
             var deposits = await _context.Deposits
                 .Where(d => d.DepositDate >= today && d.DepositDate < tomorrow)
                 .ToListAsync();
 
-            // --- Withdrawals today ---
             var withdrawals = await _context.Withdrawals
                 .Where(w => w.WithdrawalDate >= today && w.WithdrawalDate < tomorrow)
                 .ToListAsync();
 
-            // --- Shift for opening balance ---
             var shift = await _context.Shifts
                 .Where(s => s.ShiftDate >= today && s.ShiftDate < tomorrow)
                 .OrderByDescending(s => s.CreatedAt)
                 .FirstOrDefaultAsync();
 
-            // --- Revenue totals ---
+            var monthStart = new DateTime(today.Year, today.Month, 1);
+            var firstDayShift = await _context.Shifts
+                .Where(s => s.ShiftDate >= monthStart && s.ShiftDate < monthStart.AddDays(1))
+                .OrderByDescending(s => s.CreatedAt).FirstOrDefaultAsync();
+            decimal baseBalance = firstDayShift?.OpeningBalance ?? shift?.OpeningBalance ?? 0;
+
+            var prevSales = await _context.Sales
+                .Where(s => s.SaleDate >= monthStart && s.SaleDate < today && s.Status != "ملغي")
+                .ToListAsync();
+            decimal prevCash = prevSales.Sum(s =>
+                cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+            decimal prevDeposits = await _context.Deposits
+                .Where(d => d.DepositDate >= monthStart && d.DepositDate < today).SumAsync(d => d.Amount);
+            decimal prevExpenses = await _context.Expenses
+                .Where(e => e.ExpenseDate >= monthStart && e.ExpenseDate < today).SumAsync(e => e.Amount);
+            decimal prevAdvances = await _context.EmployeeAdvances
+                .Where(a => a.AdvanceDate >= monthStart && a.AdvanceDate < today).SumAsync(a => a.Amount);
+            decimal prevWithdrawals = await _context.Withdrawals
+                .Where(w => w.WithdrawalDate >= monthStart && w.WithdrawalDate < today).SumAsync(w => w.Amount);
+            decimal openingBalance = baseBalance + prevCash + prevDeposits - prevExpenses - prevAdvances - prevWithdrawals;
+
             decimal totalSales = staffSales.Sum(s => s.NetAmount);
             decimal cashRevenue = staffSales.Sum(s =>
                 cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
@@ -126,21 +139,16 @@ namespace Salon.Controllers
                 s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "دين على صاحب المكان")
                 .Sum(s => s.NetAmount);
 
-            // Tips/gratuities
             var tipInvoices = allSales.Where(s => (s.GiftForEmployee ?? 0) > 0).ToList();
             decimal tipsTotal = allSales.Sum(s => s.GiftForEmployee ?? 0);
             decimal tipsDelivered = allSales.Sum(s => s.EmployeeGift ?? 0);
-
-            // Total discount
             decimal totalDiscount = staffSales.Sum(s => s.Discount);
-
-            // Expenses analytics
             decimal totalExpenses = expenses.Sum(e => e.Amount);
+
             var expensesByCategory = expenses
                 .GroupBy(e => string.IsNullOrEmpty(e.Category) ? "أخرى" : e.Category)
                 .ToDictionary(g => g.Key, g => g.Sum(e => e.Amount));
 
-            // Build per-employee performance row helper
             EmployeePerformanceRow BuildRow(Employee emp)
             {
                 var empDeptType = emp.DepartmentNav?.Name == "مساج" ? "مساج" : "حلاقة";
@@ -156,15 +164,25 @@ namespace Salon.Controllers
                     s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "دين على صاحب المكان")
                     .Sum(s => s.NetAmount);
                 var empAdv = advances.Where(a => a.EmployeeId == emp.Id).Sum(a => a.Amount);
+                var empHadiya = empSales.Sum(s => s.GiftForEmployee ?? 0);
+                var commission = emp.Commission;
+                var dueAmount = Math.Round(empTotal * commission / 100, 3);
+
                 return new EmployeePerformanceRow
                 {
                     Employee = emp,
                     InvoiceCount = empSales.Count,
                     TotalSales = empTotal,
                     InstantCollection = empCash + empKNet,
+                    Cash = empCash,
+                    KNet = empKNet,
                     Debts = empDebts,
                     Advances = empAdv,
-                    SalesPercent = totalSales > 0 ? Math.Round(empTotal / totalSales * 100, 1) : 0
+                    SalesPercent = totalSales > 0 ? Math.Round(empTotal / totalSales * 100, 1) : 0,
+                    CommissionPercent = commission,
+                    DueAmount = dueAmount,
+                    ShopNet = empTotal - dueAmount - empHadiya,
+                    Hadiya = empHadiya,
                 };
             }
 
@@ -173,14 +191,12 @@ namespace Salon.Controllers
             var barberRows = barberEmployees.Select(BuildRow).ToList();
             var massageRows = massageEmployees.Select(BuildRow).ToList();
 
-            // Report number
             var reportCount = await _context.Sales
                 .Where(s => s.SaleDate.Date <= today)
                 .Select(s => s.SaleDate.Date).Distinct().CountAsync();
 
             string[] arabicDays = { "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت" };
 
-            // Shift hours
             int workHours = 10;
             if (shift?.StartTime != null && shift?.EndTime != null)
                 workHours = (int)(shift.EndTime.Value - shift.StartTime).TotalHours;
@@ -204,7 +220,7 @@ namespace Salon.Controllers
                 TipsTotal = tipsTotal,
                 TipsDelivered = tipsDelivered,
 
-                OpeningBalance = shift?.OpeningBalance ?? 0,
+                OpeningBalance = openingBalance,
                 CashRevenue = cashRevenue,
                 TotalDeposits = deposits.Sum(d => d.Amount),
                 TotalExpensesAmount = totalExpenses,
@@ -225,7 +241,7 @@ namespace Salon.Controllers
                 TipInvoices = tipInvoices,
 
                 DailyNotes = shift?.Notes ?? string.Empty,
-                ShiftId = shift?.Id ?? 0
+                ShiftId = shift?.Id ?? 0,
             };
 
             return View(vm);
