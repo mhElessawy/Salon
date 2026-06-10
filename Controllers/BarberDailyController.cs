@@ -106,6 +106,28 @@ namespace Salon.Controllers
                 .OrderByDescending(s => s.CreatedAt)
                 .FirstOrDefaultAsync();
 
+            var monthStart = new DateTime(today.Year, today.Month, 1);
+            var firstDayShift = await _context.Shifts
+                .Where(s => s.ShiftDate >= monthStart && s.ShiftDate < monthStart.AddDays(1))
+                .OrderByDescending(s => s.CreatedAt).FirstOrDefaultAsync();
+            decimal baseBalance = firstDayShift?.OpeningBalance ?? shift?.OpeningBalance ?? 0;
+
+            var prevSales = await _context.Sales
+                .Where(s => s.SaleDate >= monthStart && s.SaleDate < today && s.Status != "ملغي")
+                .ToListAsync();
+            decimal prevCash = prevSales.Sum(s =>
+                cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+            decimal prevDeposits = await _context.Deposits
+                .Where(d => d.DepositDate >= monthStart && d.DepositDate < today).SumAsync(d => d.Amount);
+            decimal prevExpenses = await _context.Expenses
+                .Where(e => e.ExpenseDate >= monthStart && e.ExpenseDate < today).SumAsync(e => e.Amount);
+            decimal prevAdvances = await _context.EmployeeAdvances
+                .Where(a => a.AdvanceDate >= monthStart && a.AdvanceDate < today).SumAsync(a => a.Amount);
+            decimal prevWithdrawals = await _context.Withdrawals
+                .Where(w => w.WithdrawalDate >= monthStart && w.WithdrawalDate < today).SumAsync(w => w.Amount);
+            decimal openingBalance = baseBalance + prevCash + prevDeposits - prevExpenses - prevAdvances - prevWithdrawals;
+
             decimal totalSales = staffSales.Sum(s => s.NetAmount);
             decimal cashRevenue = staffSales.Sum(s =>
                 cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
@@ -198,7 +220,7 @@ namespace Salon.Controllers
                 TipsTotal = tipsTotal,
                 TipsDelivered = tipsDelivered,
 
-                OpeningBalance = shift?.OpeningBalance ?? 0,
+                OpeningBalance = openingBalance,
                 CashRevenue = cashRevenue,
                 TotalDeposits = deposits.Sum(d => d.Amount),
                 TotalExpensesAmount = totalExpenses,
