@@ -460,6 +460,47 @@
         border-top: 1px solid #eee;
         padding-top: 8px;
     }
+    /* Dept filter bar */
+    .dept-filter-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #ddd;
+        flex-wrap: wrap;
+    }
+    .dept-filter-label {
+        font-size: 12px;
+        color: #555;
+        font-weight: 600;
+        margin-left: 4px;
+    }
+    .dept-btn {
+        padding: 4px 14px;
+        border-radius: 20px;
+        border: 1.5px solid #1a1a2e;
+        background: #fff;
+        color: #1a1a2e;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .15s, color .15s;
+    }
+    .dept-btn.active, .dept-btn[data-filter="all"]:hover {
+        background: #1a1a2e;
+        color: #fff;
+    }
+    .dept-btn[data-filter="حلاقة"]:hover, .dept-btn[data-filter="حلاقة"].active {
+        background: #1a1a2e;
+        color: #fff;
+        border-color: #1a1a2e;
+    }
+    .dept-btn[data-filter="مساج"]:hover, .dept-btn[data-filter="مساج"].active {
+        background: #0891b2;
+        color: #fff;
+        border-color: #0891b2;
+    }
     /* Print */
     @@media print {
         .no-print {
@@ -648,7 +689,16 @@
     <!-- -->
     <div class="bdr-table-wrap">
         <div class="bdr-section-title">@Model.TableTitle</div>
-        <table class="bdr-table">
+        @if (Model.ShowBoth && Model.BarberRows.Any())
+        {
+            <div class="dept-filter-bar no-print" id="deptFilterBar">
+                <span class="dept-filter-label">فلتر القسم:</span>
+                <button class="dept-btn active" data-filter="all">الكل (@Model.BarberRows.Count)</button>
+                <button class="dept-btn" data-filter="حلاقة">✂ حلاقة (@Model.BarberRows.Count(r => r.DepartmentName == "حلاقة"))</button>
+                <button class="dept-btn" data-filter="مساج">🌿 مساج (@Model.BarberRows.Count(r => r.DepartmentName == "مساج"))</button>
+            </div>
+        }
+        <table class="bdr-table" id="staffTable">
             <thead>
                 <tr>
                     <th>#</th>
@@ -684,7 +734,17 @@
                 }
                 @foreach (var row in Model.BarberRows)
                 {
-                    <tr>
+                    <tr data-dept="@row.DepartmentName"
+                        data-work="@(row.TotalWork.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                        data-knet="@(row.KNet.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                        data-cash="@(row.Cash.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                        data-debts="@(row.Debts.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                        data-advance="@(row.Advance.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                        data-due="@(row.DueAmount.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                        data-hadiya="@(row.Hadiya.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                        data-deductions="@(row.Deductions.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                        data-net="@(row.NetAfterDeduction.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                        data-shopnet="@(row.ShopNet.ToString(System.Globalization.CultureInfo.InvariantCulture))">
                         <td>@(rowNum++)</td>
                         @if (Model.ShowBoth)
                         {
@@ -729,17 +789,17 @@
                 <tfoot>
                     <tr>
                         <td colspan="@(Model.ShowBoth ? 3 : 2)">الإجمالي</td>
-                        <td>@Model.TotalWork.ToString("N3")</td>
-                        <td>@Model.TotalKNetWork.ToString("N3")</td>
-                        <td>@Model.TotalCashWork.ToString("N3")</td>
-                        <td>@Model.TotalDebts.ToString("N3")</td>
-                        <td>@Model.TotalAdvances.ToString("N3")</td>
-                        <td>@Model.OverallCommissionPercent.ToString("N0")%</td>
-                        <td>@Model.TotalDueAmount.ToString("N3")</td>
-                        <td style="color:#fbbf24;">@Model.TotalHadiya.ToString("N3")</td>
-                        <td>@Model.TotalDeductions.ToString("N3")</td>
-                        <td>@Model.TotalNetAfterDeduction.ToString("N3")</td>
-                        <td>@Model.TotalShopNet.ToString("N3")</td>
+                        <td data-col="work">@Model.TotalWork.ToString("N3")</td>
+                        <td data-col="knet">@Model.TotalKNetWork.ToString("N3")</td>
+                        <td data-col="cash">@Model.TotalCashWork.ToString("N3")</td>
+                        <td data-col="debts">@Model.TotalDebts.ToString("N3")</td>
+                        <td data-col="advance">@Model.TotalAdvances.ToString("N3")</td>
+                        <td data-col="pct">@Model.OverallCommissionPercent.ToString("N0")%</td>
+                        <td data-col="due">@Model.TotalDueAmount.ToString("N3")</td>
+                        <td data-col="hadiya" style="color:#fbbf24;">@Model.TotalHadiya.ToString("N3")</td>
+                        <td data-col="deductions">@Model.TotalDeductions.ToString("N3")</td>
+                        <td data-col="net">@Model.TotalNetAfterDeduction.ToString("N3")</td>
+                        <td data-col="shopnet">@Model.TotalShopNet.ToString("N3")</td>
                     </tr>
                 </tfoot>
             }
@@ -868,3 +928,64 @@
         ملاحظة: جميع المبالغ بالدينار الكويتي (د.ك)
     </div>
 </div>
+
+<script>
+(function () {
+    var filterBar = document.getElementById('deptFilterBar');
+    if (!filterBar) return;
+
+    var table = document.getElementById('staffTable');
+    var tbody = table.querySelector('tbody');
+    var tfoot = table.querySelector('tfoot');
+
+    function sumRows(rows, filter, attr) {
+        var total = 0;
+        rows.forEach(function (r) {
+            if (filter === 'all' || r.dataset.dept === filter)
+                total += parseFloat(r.dataset[attr] || 0);
+        });
+        return total;
+    }
+
+    function fmt(v) { return v.toFixed(3); }
+
+    function updateTotals(rows, filter) {
+        if (!tfoot) return;
+        var work = sumRows(rows, filter, 'work');
+        var due  = sumRows(rows, filter, 'due');
+        var pct  = work > 0 ? (due / work * 100).toFixed(1) : '0.0';
+        var map  = {
+            work: fmt(work),
+            knet: fmt(sumRows(rows, filter, 'knet')),
+            cash: fmt(sumRows(rows, filter, 'cash')),
+            debts: fmt(sumRows(rows, filter, 'debts')),
+            advance: fmt(sumRows(rows, filter, 'advance')),
+            pct: pct + '%',
+            due: fmt(due),
+            hadiya: fmt(sumRows(rows, filter, 'hadiya')),
+            deductions: fmt(sumRows(rows, filter, 'deductions')),
+            net: fmt(sumRows(rows, filter, 'net')),
+            shopnet: fmt(sumRows(rows, filter, 'shopnet'))
+        };
+        tfoot.querySelectorAll('td[data-col]').forEach(function (td) {
+            if (map[td.dataset.col] !== undefined) td.textContent = map[td.dataset.col];
+        });
+    }
+
+    filterBar.querySelectorAll('.dept-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            filterBar.querySelectorAll('.dept-btn').forEach(function (b) { b.classList.remove('active'); });
+            this.classList.add('active');
+            var filter = this.dataset.filter;
+            var rows = Array.from(tbody.querySelectorAll('tr[data-dept]'));
+            var seq = 1;
+            rows.forEach(function (row) {
+                var show = filter === 'all' || row.dataset.dept === filter;
+                row.style.display = show ? '' : 'none';
+                if (show) row.querySelector('td:first-child').textContent = seq++;
+            });
+            updateTotals(rows, filter);
+        });
+    });
+})();
+</script>
