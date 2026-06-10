@@ -19,11 +19,10 @@ namespace Salon.Controllers
             _userManager = userManager;
         }
 
-        public async Task<IActionResult> Index(string? date)
+        public async Task<IActionResult> Index(string? date, string? dept)
         {
             var today = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
             var tomorrow = today.AddDays(1);
-            var monthStart = new DateTime(today.Year, today.Month, 1);
 
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
@@ -32,271 +31,232 @@ namespace Salon.Controllers
 
             bool isBarberOnly = userDept == "حلاقة";
             bool isMassageOnly = userDept == "مساج";
-            bool showBoth = !isBarberOnly && !isMassageOnly;
+
+            // dept filter: user-locked departments can't be overridden; admins can choose freely
+            string? filterDept = isBarberOnly ? "حلاقة"
+                                : isMassageOnly ? "مساج"
+                                : dept;   // null = all (admin/manager choice)
 
             string[] cashMethods = { "كاش", "نقدي", "Cash" };
             string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
             string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
 
+            // --- Sales for today ---
+            var salesQuery = _context.Sales
+                .Include(s => s.Customer)
+                .Include(s => s.Employee)
+                .Include(s => s.SaleItems)
+                .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow && s.Status != "ملغي");
+
+            if (isEmployee)
+                salesQuery = salesQuery.Where(s => s.EmployeeId == (linkedEmpId ?? -1));
+            else if (filterDept == "حلاقة")
+                salesQuery = salesQuery.Where(s => s.SaleType == "حلاقة");
+            else if (filterDept == "مساج")
+                salesQuery = salesQuery.Where(s => s.SaleType == "مساج");
+
+            var allSales = await salesQuery.OrderByDescending(s => s.SaleDate).ToListAsync();
+            var staffSales = allSales.Where(s => s.SaleType == "حلاقة" || s.SaleType == "مساج").ToList();
+
+            // --- Employees ---
             var empQuery = _context.Employees
                 .Include(e => e.DepartmentNav)
                 .Where(e => e.IsActive && e.DepartmentNav != null);
 
-            // Employee role → only their own record; Cashier → filter by department
             if (isEmployee)
                 empQuery = empQuery.Where(e => e.Id == (linkedEmpId ?? -1));
-            else if (isBarberOnly)
+            else if (filterDept == "حلاقة")
                 empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "حلاقة");
-            else if (isMassageOnly)
+            else if (filterDept == "مساج")
                 empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "مساج");
             else
                 empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "حلاقة" || e.DepartmentNav!.Name == "مساج");
 
-            var employees = await empQuery
-                .OrderBy(e => e.DepartmentNav!.Name)
-                .ThenBy(e => e.FullName)
-                .ToListAsync();
-
+            var employees = await empQuery.OrderBy(e => e.DepartmentNav!.Name).ThenBy(e => e.FullName).ToListAsync();
             var employeeIds = employees.Select(e => e.Id).ToList();
 
-            var staffSalesQuery = _context.Sales
-                .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow && s.Status != "ملغي");
+            // --- Expenses today ---
+            var expQuery = _context.Expenses
+                .Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow);
 
-            // Employee sees only their own sales; Cashier sees their department
-            if (isEmployee)
-                staffSalesQuery = staffSalesQuery.Where(s => s.EmployeeId == (linkedEmpId ?? -1));
-            else if (isBarberOnly)
-                staffSalesQuery = staffSalesQuery.Where(s => s.SaleType == "حلاقة");
-            else if (isMassageOnly)
-                staffSalesQuery = staffSalesQuery.Where(s => s.SaleType == "مساج");
+            if (filterDept == "حلاقة")
+                expQuery = expQuery.Where(e => e.Department == "حلاقة" || e.Department == null || e.Department == "");
+            else if (filterDept == "مساج")
+                expQuery = expQuery.Where(e => e.Department == "مساج" || e.Department == null || e.Department == "");
+
+            var expenses = await expQuery.OrderBy(e => e.Id).ToListAsync();
+
+            // --- Advances today ---
+            var advancesQuery = _context.EmployeeAdvances
+                .Include(a => a.Employee)
+                .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow);
+
+            if (!isEmployee)
+                advancesQuery = advancesQuery.Where(a => employeeIds.Contains(a.EmployeeId));
             else
-                staffSalesQuery = staffSalesQuery.Where(s => s.SaleType == "حلاقة" || s.SaleType == "مساج");
+                advancesQuery = advancesQuery.Where(a => a.EmployeeId == (linkedEmpId ?? -1));
 
-            var staffSales = await staffSalesQuery.ToListAsync();
+            var advances = await advancesQuery.OrderBy(a => a.Id).ToListAsync();
 
-            var productSales = await _context.Sales
-                .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow
-                         && s.Status != "ملغي" && s.SaleType == "منتجات")
+            // --- Deposits today ---
+            var deposits = await _context.Deposits
+                .Where(d => d.DepositDate >= today && d.DepositDate < tomorrow)
                 .ToListAsync();
 
-            var attendances = await _context.Attendances
-                .Where(a => a.AttendanceDate >= today && a.AttendanceDate < tomorrow
-                         && employeeIds.Contains(a.EmployeeId))
+            // --- Withdrawals today ---
+            var withdrawals = await _context.Withdrawals
+                .Where(w => w.WithdrawalDate >= today && w.WithdrawalDate < tomorrow)
                 .ToListAsync();
 
-            var todayAdvances = await _context.EmployeeAdvances
-                .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow
-                         && employeeIds.Contains(a.EmployeeId))
-                .ToListAsync();
-
+            // --- Shift for opening balance ---
             var shift = await _context.Shifts
                 .Where(s => s.ShiftDate >= today && s.ShiftDate < tomorrow)
                 .OrderByDescending(s => s.CreatedAt)
                 .FirstOrDefaultAsync();
 
-            var staffRows = employees.Select(emp =>
-            {
-                var empDeptSaleType = emp.DepartmentNav?.Name == "مساج" ? "مساج" : "حلاقة";
-                var sales = staffSales.Where(s => s.EmployeeId == emp.Id && s.SaleType == empDeptSaleType).ToList();
-                var totalWork = sales.Sum(s => s.NetAmount);
-                var knet = sales.Sum(s =>
-                    knetMethods.Contains(s.PaymentMethod) ? s.NetAmount :
-                    mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
-                var cash = sales.Sum(s =>
-                    cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
-                    mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
-                var debts = sales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
-                var advance = todayAdvances.Where(a => a.EmployeeId == emp.Id).Sum(a => a.Amount);
-                var commission = emp.Commission;
-                var dueAmount = Math.Round(totalWork * commission / 100, 3);
-                var deductions = advance + debts;
-                return new BarberDailyRow
-                {
-                    Employee = emp,
-                    TotalWork = totalWork,
-                    KNet = knet,
-                    Cash = cash,
-                    Debts = debts,
-                    Advance = advance,
-                    CommissionPercent = commission,
-                    DueAmount = dueAmount,
-                    Deductions = deductions,
-                    NetAfterDeduction = dueAmount - deductions,
-                    ShopNet = totalWork - dueAmount
-                };
-            }).ToList();
-
-            var totalRevenue = staffSales.Sum(s => s.NetAmount);
-            var totalKNet = staffSales.Sum(s =>
-                knetMethods.Contains(s.PaymentMethod) ? s.NetAmount :
-                mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
-            var totalCash = staffSales.Sum(s =>
+            // --- Revenue totals ---
+            decimal totalSales = staffSales.Sum(s => s.NetAmount);
+            decimal cashRevenue = staffSales.Sum(s =>
                 cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
                 mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+            decimal knetRevenue = staffSales.Sum(s =>
+                knetMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
+            decimal debtRevenue = staffSales.Where(s =>
+                s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "دين على صاحب المكان")
+                .Sum(s => s.NetAmount);
 
-            var attendedIds = attendances.Select(a => a.EmployeeId).Distinct().ToList();
-            var presentCount = attendances.Count(a => a.Status == "حاضر");
-            var absentCount = attendances.Count(a => a.Status == "غائب")
-                            + employeeIds.Count(id => !attendedIds.Contains(id));
-            var vacationCount = attendances.Count(a => a.Status == "إجازة");
-            var lateCount = attendances.Count(a => a.Status == "متأخر");
-            var earlyLeaveCount = attendances.Count(a => a.Status == "منصرف مبكراً");
+            // Tips/gratuities
+            var tipInvoices = allSales.Where(s => (s.GiftForEmployee ?? 0) > 0).ToList();
+            decimal tipsTotal = allSales.Sum(s => s.GiftForEmployee ?? 0);
+            decimal tipsDelivered = allSales.Sum(s => s.EmployeeGift ?? 0);
 
-            var reportCount = await _context.Sales
-                .Where(s => s.SaleDate.Date <= today)
-                .Select(s => s.SaleDate.Date)
-                .Distinct()
-                .CountAsync();
+            // Total discount
+            decimal totalDiscount = staffSales.Sum(s => s.Discount);
 
-            string[] arabicDays = { "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت" };
-            var dayName = arabicDays[(int)today.DayOfWeek];
+            // Expenses analytics
+            decimal totalExpenses = expenses.Sum(e => e.Amount);
+            var expensesByCategory = expenses
+                .GroupBy(e => string.IsNullOrEmpty(e.Category) ? "أخرى" : e.Category)
+                .ToDictionary(g => g.Key, g => g.Sum(e => e.Amount));
 
-            var closingTime = shift?.EndTime != null
-                ? DateTime.Today.Add(shift.EndTime.Value).ToString("hh:mm tt")
-                : DateTime.Now.ToString("hh:mm tt");
-            var cashierName = shift?.CashierName ?? "-";
-
-            // Employees don't see the cash movement (store treasury is not their concern)
-            var cashMovement = new List<CashMovementRow>();
-            if (!isEmployee)
+            // Build per-employee performance row helper
+            EmployeePerformanceRow BuildRow(Employee emp)
             {
-                var monthAllSales = await _context.Sales
-                    .Where(s => s.SaleDate >= monthStart && s.SaleDate < tomorrow && s.Status != "ملغي")
-                    .ToListAsync();
-
-                if (isBarberOnly)
-                    monthAllSales = monthAllSales.Where(s => s.SaleType == "حلاقة").ToList();
-                else if (isMassageOnly)
-                    monthAllSales = monthAllSales.Where(s => s.SaleType == "مساج").ToList();
-
-                var expQuery = _context.Expenses
-                    .Where(e => e.ExpenseDate >= monthStart && e.ExpenseDate < tomorrow);
-
-                if (isBarberOnly)
-                    expQuery = expQuery.Where(e => e.Department == "حلاقة" || e.Department == null || e.Department == "");
-                else if (isMassageOnly)
-                    expQuery = expQuery.Where(e => e.Department == "مساج" || e.Department == null || e.Department == "");
-
-                var monthExpenses = await expQuery
-                    .OrderBy(e => e.ExpenseDate).ThenBy(e => e.Id)
-                    .ToListAsync();
-
-                var monthAdvances = await _context.EmployeeAdvances
-                    .Include(a => a.Employee)
-                    .Where(a => a.AdvanceDate >= monthStart && a.AdvanceDate < tomorrow
-                             && employeeIds.Contains(a.EmployeeId))
-                    .OrderBy(a => a.AdvanceDate).ThenBy(a => a.Id)
-                    .ToListAsync();
-
-                var firstDayShift = await _context.Shifts
-                    .Where(s => s.ShiftDate >= monthStart && s.ShiftDate < monthStart.AddDays(1))
-                    .OrderBy(s => s.CreatedAt)
-                    .FirstOrDefaultAsync();
-
-                decimal runningBalance = firstDayShift?.OpeningBalance ?? 0;
-
-                var monthDeposits = await _context.Deposits
-                    .Where(d => d.DepositDate >= monthStart && d.DepositDate < tomorrow)
-                    .OrderBy(d => d.DepositDate).ThenBy(d => d.Id)
-                    .ToListAsync();
-
-                // events: Delta>0 إيداع، Delta<0 سحب
-                var allEvents = new List<(DateTime Date, decimal Withdrawal, decimal Deposit, string Type, string Notes, string By)>();
-                foreach (var exp in monthExpenses)
-                    allEvents.Add((exp.ExpenseDate.Date, exp.Amount, 0,
-                        !string.IsNullOrEmpty(exp.Category) ? $"سحب لـ{exp.Category}" : "سحب لمصروفات",
-                        exp.Description, "المدير"));
-                foreach (var adv in monthAdvances)
-                    allEvents.Add((adv.AdvanceDate.Date, adv.Amount, 0,
-                        "سحب لدفع سلف موظفين",
-                        $"سلفة {adv.Employee?.FullName ?? ""}".Trim(), "المدير"));
-                foreach (var dep in monthDeposits)
-                    allEvents.Add((dep.DepositDate.Date, 0, dep.Amount,
-                        "إيداع في الصندوق",
-                        dep.Description, dep.Source ?? ""));
-
-                allEvents = allEvents.OrderBy(x => x.Date).ThenBy(x => x.Deposit > 0 ? 0 : 1).ToList();
-
-                for (var d = monthStart; d <= today; d = d.AddDays(1))
+                var empDeptType = emp.DepartmentNav?.Name == "مساج" ? "مساج" : "حلاقة";
+                var empSales = staffSales.Where(s => s.EmployeeId == emp.Id && s.SaleType == empDeptType).ToList();
+                var empTotal = empSales.Sum(s => s.NetAmount);
+                var empCash = empSales.Sum(s =>
+                    cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                    mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+                var empKNet = empSales.Sum(s =>
+                    knetMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                    mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
+                var empDebts = empSales.Where(s =>
+                    s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "دين على صاحب المكان")
+                    .Sum(s => s.NetAmount);
+                var empAdv = advances.Where(a => a.EmployeeId == emp.Id).Sum(a => a.Amount);
+                return new EmployeePerformanceRow
                 {
-                    var dailyCashRev = monthAllSales
-                        .Where(s => s.SaleDate.Date == d)
-                        .Sum(s =>
-                            cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
-                            mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
-
-                    var dayEvents = allEvents.Where(e => e.Date == d).ToList();
-
-                    if (!dayEvents.Any())
-                    {
-                        var closing = runningBalance + dailyCashRev;
-                        cashMovement.Add(new CashMovementRow
-                        {
-                            Date = d,
-                            OpeningBalance = runningBalance,
-                            CashRevenue = dailyCashRev,
-                            Deposit = 0,
-                            DepositType = "-",
-                            Withdrawal = 0,
-                            WithdrawalType = "-",
-                            WithdrawnBy = "-",
-                            ClosingBalance = closing,
-                            Notes = "-"
-                        });
-                        runningBalance = closing;
-                    }
-                    else
-                    {
-                        bool first = true;
-                        foreach (var (_, withdrawal, deposit, type, notes, by) in dayEvents)
-                        {
-                            var rev = first ? dailyCashRev : 0;
-                            var closing = runningBalance + rev + deposit - withdrawal;
-                            cashMovement.Add(new CashMovementRow
-                            {
-                                Date = d,
-                                OpeningBalance = runningBalance,
-                                CashRevenue = rev,
-                                Deposit = deposit,
-                                DepositType = deposit > 0 ? type : "-",
-                                Withdrawal = withdrawal,
-                                WithdrawalType = withdrawal > 0 ? type : "-",
-                                WithdrawnBy = withdrawal > 0 ? by : "-",
-                                ClosingBalance = closing,
-                                Notes = notes
-                            });
-                            runningBalance = closing;
-                            first = false;
-                        }
-                    }
-                }
+                    Employee = emp,
+                    InvoiceCount = empSales.Count,
+                    TotalSales = empTotal,
+                    InstantCollection = empCash + empKNet,
+                    Debts = empDebts,
+                    Advances = empAdv,
+                    SalesPercent = totalSales > 0 ? Math.Round(empTotal / totalSales * 100, 1) : 0
+                };
             }
 
-            var vm = new BarberDailyReportViewModel
+            var barberEmployees = employees.Where(e => e.DepartmentNav?.Name == "حلاقة").ToList();
+            var massageEmployees = employees.Where(e => e.DepartmentNav?.Name == "مساج").ToList();
+            var barberRows = barberEmployees.Select(BuildRow).ToList();
+            var massageRows = massageEmployees.Select(BuildRow).ToList();
+
+            // Report number
+            var reportCount = await _context.Sales
+                .Where(s => s.SaleDate.Date <= today)
+                .Select(s => s.SaleDate.Date).Distinct().CountAsync();
+
+            string[] arabicDays = { "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت" };
+
+            // Shift hours
+            int workHours = 10;
+            if (shift?.StartTime != null && shift?.EndTime != null)
+                workHours = (int)(shift.EndTime.Value - shift.StartTime).TotalHours;
+
+            var vm = new DailyPerformanceViewModel
             {
                 ReportDate = today,
+                DayName = arabicDays[(int)today.DayOfWeek],
+                UserName = currentUser?.FullName ?? currentUser?.UserName ?? "المستخدم",
+                ReportTime = DateTime.Now.ToString("hh:mm tt"),
                 ReportNumber = $"DY-{reportCount:D6}",
-                DayName = dayName,
-                CashierName = cashierName,
-                ClosingTime = closingTime,
                 UserDepartment = userDept,
-                TotalRevenue = totalRevenue,
-                TotalKNet = totalKNet,
-                TotalCash = totalCash,
-                ProductSalesTotal = productSales.Sum(s => s.NetAmount),
-                NetShopIncome = totalRevenue - staffRows.Sum(r => r.DueAmount),
-                RegisteredBarbers = employees.Count,
-                PresentToday = presentCount,
-                AbsentToday = absentCount,
-                VacationToday = vacationCount,
-                LateToday = lateCount,
-                EarlyLeaveToday = earlyLeaveCount,
-                BarberRows = staffRows,
-                CashMovement = cashMovement,
-                MonthStart = monthStart
+                SelectedDept = filterDept,
+
+                TotalSales = totalSales,
+                InvoiceCount = staffSales.Count,
+                CashTotal = cashRevenue,
+                KNetTotal = knetRevenue,
+                DebtTotal = debtRevenue,
+                TotalDiscount = totalDiscount,
+                TipsTotal = tipsTotal,
+                TipsDelivered = tipsDelivered,
+
+                OpeningBalance = shift?.OpeningBalance ?? 0,
+                CashRevenue = cashRevenue,
+                TotalDeposits = deposits.Sum(d => d.Amount),
+                TotalExpensesAmount = totalExpenses,
+                TotalAdvancesAmount = advances.Sum(a => a.Amount),
+                TotalWithdrawals = withdrawals.Sum(w => w.Amount),
+
+                ExpenseCount = expenses.Count,
+                MaxExpense = expenses.Any() ? expenses.Max(e => e.Amount) : 0,
+                ExpensesByCategory = expensesByCategory,
+
+                BarberRows = barberRows,
+                MassageRows = massageRows,
+                WorkHours = workHours,
+
+                Invoices = allSales,
+                Expenses = expenses,
+                Advances = advances,
+                TipInvoices = tipInvoices,
+
+                DailyNotes = shift?.Notes ?? string.Empty,
+                ShiftId = shift?.Id ?? 0
             };
 
             return View(vm);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SaveNote(int shiftId, string notes, string date)
+        {
+            if (shiftId > 0)
+            {
+                var shift = await _context.Shifts.FindAsync(shiftId);
+                if (shift != null)
+                {
+                    shift.Notes = notes;
+                    await _context.SaveChangesAsync();
+                }
+            }
+            return RedirectToAction("Index", new { date });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdatePaymentSplit(int saleId, decimal cashAmount, decimal linkAmount, string date, string? dept)
+        {
+            var sale = await _context.Sales.FindAsync(saleId);
+            if (sale != null)
+            {
+                sale.CashAmount = cashAmount;
+                sale.LinkAmount = linkAmount;
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction("Index", new { date, dept });
         }
     }
 }
