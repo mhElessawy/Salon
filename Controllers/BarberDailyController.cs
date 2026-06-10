@@ -110,6 +110,8 @@ namespace Salon.Controllers
                 var commission = emp.Commission;
                 var dueAmount = Math.Round(totalWork * commission / 100, 3);
                 var deductions = advance + debts;
+                var hadiya = sales.Sum(s => s.GiftForEmployee ?? 0);
+                var gift = sales.Sum(s => s.EmployeeGift ?? 0);
                 return new BarberDailyRow
                 {
                     Employee = emp,
@@ -121,8 +123,10 @@ namespace Salon.Controllers
                     CommissionPercent = commission,
                     DueAmount = dueAmount,
                     Deductions = deductions,
-                    NetAfterDeduction = dueAmount - deductions,
-                    ShopNet = totalWork - dueAmount
+                    NetAfterDeduction = dueAmount + hadiya - deductions,
+                    ShopNet = totalWork - dueAmount - hadiya,
+                    Gift = gift,
+                    Hadiya = hadiya,
                 };
             }).ToList();
 
