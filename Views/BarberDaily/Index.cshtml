@@ -1,24 +1,34 @@
-﻿@model   Salon.Models.BarberDailyReportViewModel
+@model Salon.Models.DailyPerformanceViewModel
 @{
-    ViewData["Title"] = Model.ReportTitle;
+    ViewData["Title"] = "تقرير الأداء اليومي";
     var selectedDate = Model.ReportDate.ToString("yyyy-MM-dd");
-    var dayNameEn = Model.ReportDate.ToString("ddd", new System.Globalization.CultureInfo("en-US"));
-    var noteTextEn = $"Note: {Model.CommissionNoteLabel} commission rate {Model.OverallCommissionPercent.ToString("N0")}% from total work";
-    var balanceTitleEn = $"Current Cash in Safe (as of {Model.ReportDate.ToString("yyyy/MM/dd")}) =";
+    var allRows = Model.EmployeeRows;
+    bool showDeptCol = Model.SelectedDept == null;
+    var totalInv      = allRows.Sum(r => r.InvoiceCount);
+    var totalWork     = allRows.Sum(r => r.TotalSales);
+    var totalCash     = allRows.Sum(r => r.Cash);
+    var totalKNet     = allRows.Sum(r => r.KNet);
+    var totalDebts    = allRows.Sum(r => r.Debts);
+    var totalAdv      = allRows.Sum(r => r.Advances);
+    var totalDue      = allRows.Sum(r => r.DueAmount);
+    var totalHadiya   = allRows.Sum(r => r.Hadiya);
+    var totalShopNet  = allRows.Sum(r => r.ShopNet);
+    var overallPct    = totalWork > 0 ? Math.Round(totalDue / totalWork * 100, 1) : 0m;
+    string deptSuffix = Model.SelectedDept != null ? $"&dept={Model.SelectedDept}" : "";
 }
 
 <style>
-    .bdr-page {
+    .dp-page {
         font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
         direction: rtl;
-        max-width: 1100px;
+        max-width: 1150px;
         margin: 0 auto;
         background: #fff;
         color: #111;
         font-size: 13px;
     }
-    /* ===== Header ===== */
-    .bdr-header {
+    /* Header */
+    .dp-header {
         display: grid;
         grid-template-columns: auto 1fr auto;
         align-items: center;
@@ -27,518 +37,161 @@
         padding-bottom: 12px;
         margin-bottom: 14px;
     }
-
-    .bdr-logo {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
+    .dp-logo-circle {
+        width: 60px; height: 60px; border-radius: 50%;
+        background: #1a1a2e; color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 24px; font-weight: bold;
     }
-
-    .bdr-logo-circle {
-        width: 64px;
-        height: 64px;
-        border-radius: 50%;
-        background: #1a1a2e;
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 26px;
-        font-weight: bold;
+    .dp-logo-text { font-size: 11px; text-align: center; color: #555; margin-top: 4px; }
+    .dp-title-center { text-align: center; }
+    .dp-title-center h1 { font-size: 20px; font-weight: bold; margin: 0 0 4px; }
+    .dp-title-center h2 { font-size: 13px; font-weight: 600; margin: 0 0 8px; color: #333; }
+    .dp-meta-row {
+        display: flex; justify-content: center; gap: 0;
+        border: 1px solid #ccc; border-radius: 6px; overflow: hidden;
     }
-
-    .bdr-logo-text {
-        font-size: 11px;
-        text-align: center;
-        color: #555;
-        line-height: 1.3;
+    .dp-meta-cell {
+        display: flex; flex-direction: column; align-items: center;
+        padding: 5px 14px; border-left: 1px solid #ccc; min-width: 100px;
     }
-
-    .bdr-title-center {
-        text-align: center;
+    .dp-meta-cell:last-child { border-left: none; }
+    .dp-meta-cell .mlbl { font-size: 10px; color: #666; }
+    .dp-meta-cell .mval { font-weight: bold; font-size: 12px; }
+    .dp-num-box {
+        border: 2px solid #1a1a2e; border-radius: 8px;
+        padding: 8px 14px; text-align: center; min-width: 120px;
     }
-
-        .bdr-title-center h1 {
-            font-size: 22px;
-            font-weight: bold;
-            margin: 0 0 4px;
-        }
-
-        .bdr-title-center h2 {
-            font-size: 14px;
-            font-weight: 600;
-            margin: 0 0 10px;
-            color: #333;
-        }
-
-    .bdr-meta-row {
-        display: flex;
-        justify-content: center;
-        gap: 0;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        overflow: hidden;
-    }
-
-    .bdr-meta-cell {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 5px 16px;
-        border-left: 1px solid #ccc;
-        min-width: 110px;
-    }
-
-        .bdr-meta-cell:last-child {
-            border-left: none;
-        }
-
-        .bdr-meta-cell .meta-label {
-            font-size: 11px;
-            color: #555;
-        }
-
-        .bdr-meta-cell .meta-val {
-            font-weight: bold;
-            font-size: 13px;
-        }
-
-        .bdr-meta-cell .meta-icon {
-            font-size: 14px;
-            color: #333;
-            margin-bottom: 2px;
-        }
-
-    .bdr-num-box {
-        border: 2px solid #1a1a2e;
-        border-radius: 8px;
-        padding: 8px 14px;
-        text-align: center;
-        min-width: 130px;
-    }
-
-        .bdr-num-box .num-label {
-            font-size: 11px;
-            color: #555;
-        }
-
-        .bdr-num-box .num-val {
-            font-size: 18px;
-            font-weight: bold;
-            color: #1a1a2e;
-            letter-spacing: 1px;
-        }
-    /* ===== Section title ===== */
-    .bdr-section-title {
-        background: #1a1a2e;
-        color: #fff;
-        text-align: center;
-        font-weight: bold;
-        font-size: 14px;
-        padding: 6px 10px;
-        border-radius: 4px 4px 0 0;
-        margin-bottom: 0;
-    }
-    /* ===== Summary panels ===== */
-    .bdr-summary-row {
+    .dp-num-box .nlbl { font-size: 10px; color: #666; }
+    .dp-num-box .nval { font-size: 16px; font-weight: bold; color: #1a1a2e; letter-spacing: 1px; }
+    /* Summary cards */
+    .dp-cards-row {
         display: grid;
-        grid-template-columns: 1fr 320px;
-        gap: 12px;
-        margin-bottom: 14px;
-    }
-
-    .bdr-panel {
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        overflow: hidden;
-    }
-    /* Revenue boxes */
-    .bdr-rev-boxes {
-        display: flex;
-        padding: 12px;
-        gap: 8px;
-    }
-
-    .bdr-rev-box {
-        flex: 1;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        padding: 10px 8px;
-        text-align: center;
-        position: relative;
-    }
-
-        .bdr-rev-box .badge-num {
-            position: absolute;
-            top: 6px;
-            right: 6px;
-            width: 22px;
-            height: 22px;
-            background: #1a1a2e;
-            color: #fff;
-            border-radius: 50%;
-            font-size: 11px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .bdr-rev-box .rev-icon {
-            font-size: 20px;
-            color: #555;
-            margin-bottom: 4px;
-        }
-
-        .bdr-rev-box .rev-label {
-            font-size: 11px;
-            color: #333;
-            margin-bottom: 4px;
-            font-weight: 600;
-        }
-
-        .bdr-rev-box .rev-val {
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        .bdr-rev-box .rev-cur {
-            font-size: 11px;
-            color: #555;
-        }
-
-    .rev-val.green {
-        color: #16a34a;
-    }
-
-    .rev-val.blue {
-        color: #1d4ed8;
-    }
-
-    .rev-val.red {
-        color: #dc2626;
-    }
-    /* Employee summary */
-    .bdr-emp-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 0;
-        padding: 10px;
-    }
-
-    .bdr-emp-cell {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 6px 4px;
-        text-align: center;
-        border-left: 1px dashed #ddd;
-    }
-
-        .bdr-emp-cell:nth-child(3n) {
-            border-left: none;
-        }
-
-        .bdr-emp-cell .emp-icon {
-            font-size: 22px;
-            color: #555;
-            margin-bottom: 3px;
-        }
-
-        .bdr-emp-cell .emp-num {
-            font-size: 22px;
-            font-weight: bold;
-        }
-
-        .bdr-emp-cell .emp-label {
-            font-size: 10px;
-            color: #555;
-        }
-
-    .emp-num.present {
-        color: #16a34a;
-    }
-
-    .emp-num.absent {
-        color: #dc2626;
-    }
-
-    .bdr-emp-divider {
-        grid-column: 1 / -1;
-        border-top: 1px solid #ddd;
-        margin: 4px 0;
-    }
-    /* ===== Barber table ===== */
-    .bdr-table-wrap {
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        overflow: hidden;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
         margin-bottom: 12px;
     }
-
-    .bdr-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 12px;
+    .dp-card {
+        border: 1px solid #ddd; border-radius: 8px;
+        padding: 12px 10px; text-align: center;
+        position: relative; overflow: hidden;
     }
-
-        .bdr-table thead tr {
-            background: #1a1a2e;
-            color: #fff;
-        }
-
-        .bdr-table thead th {
-            padding: 8px 6px;
-            text-align: center;
-            font-weight: 600;
-            border-left: 1px solid #333;
-        }
-
-            .bdr-table thead th:last-child {
-                border-left: none;
-            }
-
-        .bdr-table tbody tr:nth-child(even) {
-            background: #f9f9f9;
-        }
-
-        .bdr-table tbody td {
-            padding: 7px 6px;
-            text-align: center;
-            border-left: 1px solid #eee;
-        }
-
-        .bdr-table tfoot tr {
-            background: #1a1a2e;
-            color: #fff;
-            font-weight: bold;
-        }
-
-        .bdr-table tfoot td {
-            padding: 8px 6px;
-            text-align: center;
-            border-left: 1px solid #333;
-        }
-    /* ===== Bottom summary ===== */
-    .bdr-bottom-summary {
-        display: flex;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        overflow: hidden;
-        margin-bottom: 10px;
+    .dp-card .card-icon { font-size: 22px; color: #999; margin-bottom: 4px; }
+    .dp-card .card-lbl { font-size: 11px; color: #555; font-weight: 600; margin-bottom: 4px; }
+    .dp-card .card-val { font-size: 18px; font-weight: bold; }
+    .dp-card .card-cur { font-size: 10px; color: #666; }
+    .dp-card .card-sub { font-size: 11px; color: #888; margin-top: 3px; }
+    .dp-card .card-pct {
+        position: absolute; top: 8px; left: 8px;
+        background: #1a1a2e; color: #fff;
+        font-size: 10px; font-weight: bold;
+        padding: 2px 6px; border-radius: 10px;
     }
-
-    .bdr-sum-cell {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 10px 6px;
-        text-align: center;
-        border-left: 1px solid #ddd;
+    .card-val.blue { color: #1d4ed8; }
+    .card-val.green { color: #16a34a; }
+    .card-val.red { color: #dc2626; }
+    .card-val.amber { color: #d97706; }
+    .card-val.purple { color: #7c3aed; }
+    /* Tips card */
+    .dp-tips-bar {
+        border: 1px solid #d97706; border-radius: 8px;
+        background: #fffbeb; padding: 12px 16px;
+        margin-bottom: 12px;
+        display: grid; grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px; align-items: center;
     }
-
-        .bdr-sum-cell:last-child {
-            border-left: none;
-        }
-
-        .bdr-sum-cell .sum-icon {
-            font-size: 22px;
-            color: #555;
-            margin-bottom: 4px;
-        }
-
-        .bdr-sum-cell .sum-label {
-            font-size: 10px;
-            color: #333;
-            font-weight: 600;
-            margin-bottom: 4px;
-            line-height: 1.3;
-        }
-
-        .bdr-sum-cell .sum-val {
-            font-size: 17px;
-            font-weight: bold;
-        }
-
-        .bdr-sum-cell .sum-cur {
-            font-size: 11px;
-            color: #666;
-        }
-
-    .sum-val.green {
-        color: #16a34a;
+    .dp-tips-cell { text-align: center; }
+    .dp-tips-cell .t-lbl { font-size: 11px; color: #92400e; font-weight: 600; }
+    .dp-tips-cell .t-val { font-size: 20px; font-weight: bold; }
+    .dp-tips-cell .t-cur { font-size: 10px; color: #666; }
+    .tips-badge {
+        display: inline-block; font-size: 10px; font-weight: bold;
+        padding: 2px 8px; border-radius: 10px; margin-top: 3px;
     }
-
-    .sum-val.red {
-        color: #dc2626;
+    .badge-delivered { background: #dcfce7; color: #166534; }
+    .badge-remaining { background: #fee2e2; color: #991b1b; }
+    /* Cash register */
+    .dp-cash-box {
+        border: 1px solid #ccc; border-radius: 8px;
+        margin-bottom: 12px; overflow: hidden;
     }
-
-    .sum-val.blue {
-        color: #1d4ed8;
+    .dp-cash-title {
+        background: #1a1a2e; color: #fff; text-align: center;
+        font-weight: bold; font-size: 13px; padding: 6px;
     }
-
-    .bdr-note-bar {
-        background: #f5f5f5;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        text-align: center;
-        padding: 6px;
-        font-size: 12px;
-        color: #444;
-        margin-bottom: 14px;
+    .dp-cash-flow {
+        display: flex; align-items: center; justify-content: center;
+        flex-wrap: wrap; gap: 0; padding: 12px 8px;
     }
-    /* ===== Cash movement ===== */
-    .cash-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 12px;
+    .dp-cf-item {
+        display: flex; flex-direction: column; align-items: center;
+        padding: 6px 14px; text-align: center; min-width: 100px;
     }
-
-        .cash-table thead tr {
-            background: #1a1a2e;
-            color: #fff;
-        }
-
-        .cash-table thead th {
-            padding: 7px 6px;
-            text-align: center;
-            border-left: 1px solid #333;
-        }
-
-            .cash-table thead th:last-child {
-                border-left: none;
-            }
-
-        .cash-table tbody tr:nth-child(even) {
-            background: #f9f9f9;
-        }
-
-        .cash-table tbody td {
-            padding: 6px 6px;
-            text-align: center;
-            border-left: 1px solid #eee;
-        }
-
-        .cash-table tfoot tr {
-            background: #1a1a2e;
-            color: #fff;
-            font-weight: bold;
-        }
-
-        .cash-table tfoot td {
-            padding: 7px 6px;
-            text-align: center;
-        }
-
-    .cash-withdraw {
-        color: #dc2626;
-        font-weight: 600;
+    .dp-cf-item .cf-icon { font-size: 18px; margin-bottom: 3px; }
+    .dp-cf-item .cf-lbl { font-size: 10px; color: #555; font-weight: 600; }
+    .dp-cf-item .cf-val { font-size: 14px; font-weight: bold; }
+    .dp-cf-op { font-size: 20px; font-weight: bold; color: #555; padding: 0 4px; line-height: 50px; }
+    .dp-cash-result {
+        background: #1a1a2e; color: #fff; text-align: center;
+        padding: 8px; font-size: 15px; font-weight: bold;
     }
-
-    .bdr-balance-box {
-        background: #1a1a2e;
-        color: #fff;
-        text-align: center;
-        padding: 10px;
-        border-radius: 4px;
-        font-size: 15px;
-        font-weight: bold;
-        margin-top: 10px;
+    .dp-cash-result span { color: #fbbf24; }
+    /* Section title */
+    .dp-section-title {
+        background: #1a1a2e; color: #fff; text-align: center;
+        font-weight: bold; font-size: 13px; padding: 6px 10px;
+        border-radius: 4px 4px 0 0; margin-bottom: 0;
     }
-
-        .bdr-balance-box span {
-            color: #fbbf24;
-        }
-
-    .bdr-footer {
-        text-align: center;
-        color: #888;
-        font-size: 11px;
-        margin-top: 14px;
-        border-top: 1px solid #eee;
-        padding-top: 8px;
-    }
-    /* Dept filter bar */
+    /* Dept filter */
     .dept-filter-bar {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        background: #f8f9fa;
-        border-bottom: 1px solid #ddd;
-        flex-wrap: wrap;
+        display: flex; align-items: center; gap: 8px;
+        padding: 8px 12px; background: #f8f9fa;
+        border-bottom: 1px solid #ddd; flex-wrap: wrap;
     }
-    .dept-filter-label {
-        font-size: 12px;
-        color: #555;
-        font-weight: 600;
-        margin-left: 4px;
-    }
+    .dept-filter-label { font-size: 12px; color: #555; font-weight: 600; }
     .dept-btn {
-        padding: 4px 14px;
-        border-radius: 20px;
-        border: 1.5px solid #1a1a2e;
-        background: #fff;
-        color: #1a1a2e;
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background .15s, color .15s;
+        padding: 4px 14px; border-radius: 20px;
+        border: 1.5px solid #1a1a2e; background: #fff;
+        color: #1a1a2e; font-size: 12px; font-weight: 600;
+        cursor: pointer; text-decoration: none; transition: background .15s, color .15s;
+        display: inline-block;
     }
-    .dept-btn.active, .dept-btn[data-filter="all"]:hover {
-        background: #1a1a2e;
-        color: #fff;
+    .dept-btn.active, .dept-btn[data-dept="all"]:hover { background: #1a1a2e; color: #fff; }
+    .dept-btn[data-dept="حلاقة"]:hover, .dept-btn[data-dept="حلاقة"].active { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
+    .dept-btn[data-dept="مساج"]:hover, .dept-btn[data-dept="مساج"].active { background: #0891b2; color: #fff; border-color: #0891b2; }
+    /* Table */
+    .dp-table-wrap { border: 1px solid #ccc; border-radius: 6px; overflow: hidden; margin-bottom: 12px; }
+    .dp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .dp-table thead tr { background: #1a1a2e; color: #fff; }
+    .dp-table thead th { padding: 8px 5px; text-align: center; border-left: 1px solid #333; }
+    .dp-table thead th:last-child { border-left: none; }
+    .dp-table tbody tr:nth-child(even) { background: #f9f9f9; }
+    .dp-table tbody td { padding: 7px 5px; text-align: center; border-left: 1px solid #eee; }
+    .dp-table tfoot tr { background: #1a1a2e; color: #fff; font-weight: bold; }
+    .dp-table tfoot td { padding: 8px 5px; text-align: center; border-left: 1px solid #333; }
+    /* Notes */
+    .dp-notes-box {
+        border: 1px solid #e2e8f0; border-radius: 6px;
+        padding: 10px 14px; background: #f8fafc; margin-bottom: 10px;
     }
-    .dept-btn[data-filter="حلاقة"]:hover, .dept-btn[data-filter="حلاقة"].active {
-        background: #1a1a2e;
-        color: #fff;
-        border-color: #1a1a2e;
-    }
-    .dept-btn[data-filter="مساج"]:hover, .dept-btn[data-filter="مساج"].active {
-        background: #0891b2;
-        color: #fff;
-        border-color: #0891b2;
-    }
+    .dp-notes-title { font-weight: bold; font-size: 12px; color: #334155; margin-bottom: 6px; }
+    /* Footer */
+    .dp-footer { text-align: center; color: #888; font-size: 11px; margin-top: 12px; border-top: 1px solid #eee; padding-top: 8px; }
     /* Print */
     @@media print {
-        .no-print {
-            display: none !important;
-        }
-
-        .bdr-page {
-            max-width: 100%;
-        }
-
-        body {
-            background: #fff;
-        }
-
-        .bdr-table tbody tr:nth-child(even) {
-            background: #f5f5f5 !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-
-        .bdr-table thead tr, .bdr-table tfoot tr, .cash-table thead tr, .cash-table tfoot tr {
-            background: #1a1a2e !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-
-        .bdr-section-title, .bdr-balance-box {
-            background: #1a1a2e !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
+        .no-print { display: none !important; }
+        .dp-page { max-width: 100%; }
+        body { background: #fff; }
+        .dp-table thead tr, .dp-table tfoot tr, .dp-cash-title, .dp-section-title { background: #1a1a2e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .dp-tips-bar { background: #fffbeb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
 </style>
 
+<!-- Controls (no print) -->
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 no-print">
     <div>
-        <h1><i class="fas fa-cut me-2"></i>@Model.ReportTitle</h1>
-        <p class="mb-0">@Model.ReportDate.ToString("yyyy/MM/dd") — <span data-i18n-en="@dayNameEn">@Model.DayName</span></p>
+        <h1><i class="fas fa-chart-line me-2"></i>تقرير الأداء اليومي</h1>
+        <p class="mb-0">@Model.ReportDate.ToString("yyyy/MM/dd") — @Model.DayName</p>
     </div>
     <button onclick="window.print()" class="btn btn-dark btn-sm">
         <i class="fas fa-print me-1"></i>طباعة
@@ -547,208 +200,269 @@
 
 <div class="card mb-3 no-print">
     <div class="card-body py-2">
-        <form method="get" action="@Url.Action("Index", "BarberDaily")" class="d-flex align-items-end gap-3">
-            <div>
-                <label class="form-label small fw-semibold mb-1">التاريخ</label>
-                <div class="input-group input-group-sm">
-                    <input type="date" id="dateInput" name="date" value="@selectedDate" class="form-control" style="max-width:160px;" />
-                    <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('dateInput').value=new Date().toISOString().slice(0,10);this.form.submit();" title="اليوم">
-                        <i class="fas fa-calendar-day"></i>
-                    </button>
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <form method="get" action="@Url.Action("Index","BarberDaily")" class="d-flex align-items-end gap-2">
+                <div>
+                    <label class="form-label small fw-semibold mb-1">التاريخ</label>
+                    <div class="input-group input-group-sm">
+                        <input type="date" name="date" value="@selectedDate" class="form-control" style="max-width:160px;" />
+                        @if (Model.SelectedDept != null)
+                        {
+                            <input type="hidden" name="dept" value="@Model.SelectedDept" />
+                        }
+                        <button type="button" class="btn btn-outline-secondary"
+                                onclick="this.previousElementSibling.value=new Date().toISOString().slice(0,10);this.form.submit();" title="اليوم">
+                            <i class="fas fa-calendar-day"></i>
+                        </button>
+                    </div>
                 </div>
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i>عرض</button>
+            </form>
+            <!-- Day navigation -->
+            <div class="d-flex gap-1 align-items-center">
+                <a href="?date=@Model.PrevDate.ToString("yyyy-MM-dd")@deptSuffix" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                <span class="fw-semibold small">@Model.DayName</span>
+                <a href="?date=@Model.NextDate.ToString("yyyy-MM-dd")@deptSuffix" class="btn btn-outline-secondary btn-sm"
+                   @(Model.NextDate > DateTime.Today ? "style=opacity:.4;pointer-events:none;" : "")>
+                    <i class="fas fa-chevron-left"></i>
+                </a>
             </div>
-            <button type="submit" class="btn btn-primary btn-sm">
-                <i class="fas fa-search me-1"></i>عرض
-            </button>
-        </form>
+        </div>
     </div>
 </div>
 
-<div class="bdr-page" dir="rtl">
+<!-- ===== Print page ===== -->
+<div class="dp-page" dir="rtl">
 
-    <!-- -->
-    <div class="bdr-header">
-        <div class="bdr-logo">
-            <div class="bdr-logo-circle"><i class="fas fa-cut"></i></div>
-            <div class="bdr-logo-text">معهد وصالون<br />للرجال</div>
+    <!-- Header -->
+    <div class="dp-header">
+        <div style="text-align:center;">
+            <div class="dp-logo-circle"><i class="fas fa-cut"></i></div>
+            <div class="dp-logo-text">معهد وصالون<br />للرجال</div>
         </div>
-        <div class="bdr-title-center">
+        <div class="dp-title-center">
             <h1>معهد وصالون موس للرجال</h1>
-            <h2>@Model.ReportTitle</h2>
-            <div class="bdr-meta-row">
-                <div class="bdr-meta-cell">
-                    <span class="meta-icon"><i class="fas fa-calendar-alt"></i></span>
-                    <span class="meta-label">التاريخ</span>
-                    <span class="meta-val">@Model.ReportDate.ToString("yyyy/MM/dd")</span>
+            <h2>تقرير الأداء اليومي</h2>
+            <div class="dp-meta-row">
+                <div class="dp-meta-cell">
+                    <span class="mlbl">التاريخ</span>
+                    <span class="mval">@Model.ReportDate.ToString("yyyy/MM/dd")</span>
                 </div>
-                <div class="bdr-meta-cell">
-                    <span class="meta-icon"><i class="fas fa-calendar-day"></i></span>
-                    <span class="meta-label">اليوم</span>
-                    <span class="meta-val" data-i18n-en="@dayNameEn">@Model.DayName</span>
+                <div class="dp-meta-cell">
+                    <span class="mlbl">اليوم</span>
+                    <span class="mval">@Model.DayName</span>
                 </div>
-                <div class="bdr-meta-cell">
-                    <span class="meta-icon"><i class="fas fa-user-tie"></i></span>
-                    <span class="meta-label">الكاشير</span>
-                    <span class="meta-val">@Model.CashierName</span>
+                <div class="dp-meta-cell">
+                    <span class="mlbl">الكاشير</span>
+                    <span class="mval">@Model.UserName</span>
                 </div>
-                <div class="bdr-meta-cell">
-                    <span class="meta-icon"><i class="fas fa-clock"></i></span>
-                    <span class="meta-label">وقت الإغلاق</span>
-                    <span class="meta-val">@Model.ClosingTime</span>
+                <div class="dp-meta-cell">
+                    <span class="mlbl">وقت الطباعة</span>
+                    <span class="mval">@Model.ReportTime</span>
                 </div>
+                @if (Model.SelectedDept != null)
+                {
+                    <div class="dp-meta-cell">
+                        <span class="mlbl">القسم</span>
+                        <span class="mval">@Model.SelectedDept</span>
+                    </div>
+                }
             </div>
         </div>
-        <div class="bdr-num-box">
-            <div class="num-label">رقم اليومية</div>
-            <div class="num-val">@Model.ReportNumber</div>
-        </div>
-    </div>
-
-    <!-- -->
-    <div class="bdr-summary-row">
-        <!-- -->
-        <div class="bdr-panel">
-            <div class="bdr-section-title">ملخص الإيرادات</div>
-            <div class="bdr-rev-boxes">
-                <div class="bdr-rev-box">
-                    <div class="badge-num">1</div>
-                    <div class="rev-icon"><i class="fas fa-cash-register"></i></div>
-                    <div class="rev-label">الإيراد الإجمالي</div>
-                    <div class="rev-val blue">@Model.TotalRevenue.ToString("N3")</div>
-                    <div class="rev-cur">د.ك</div>
-                </div>
-                <div class="bdr-rev-box">
-                    <div class="badge-num">2</div>
-                    <div class="rev-icon"><i class="fas fa-credit-card"></i></div>
-                    <div class="rev-label">كي نت</div>
-                    <div class="rev-val blue">@Model.TotalKNet.ToString("N3")</div>
-                    <div class="rev-cur">د.ك</div>
-                </div>
-                <div class="bdr-rev-box">
-                    <div class="badge-num">3</div>
-                    <div class="rev-icon"><i class="fas fa-money-bill-wave"></i></div>
-                    <div class="rev-label">الكاش</div>
-                    <div class="rev-val blue">@Model.TotalCash.ToString("N3")</div>
-                    <div class="rev-cur">د.ك</div>
-                </div>
-                <div class="bdr-rev-box">
-                    <div class="badge-num">4</div>
-                    <div class="rev-icon"><i class="fas fa-cut"></i></div>
-                    <div class="rev-label">مبيعات الصالون</div>
-                    <div class="rev-val @(Model.ProductSalesTotal > 0 ? "blue" : "red")">@Model.ProductSalesTotal.ToString("N3")</div>
-                    <div class="rev-cur">د.ك</div>
-                </div>
-                <div class="bdr-rev-box">
-                    <div class="badge-num">5</div>
-                    <div class="rev-icon"><i class="fas fa-chart-bar"></i></div>
-                    <div class="rev-label">صافي الدخل</div>
-                    <div class="rev-val green">@Model.NetShopIncome.ToString("N3")</div>
-                    <div class="rev-cur">د.ك</div>
-                </div>
-            </div>
-        </div>
-        <!-- -->
-        <div class="bdr-panel">
-            <div class="bdr-section-title">ملخص الموظفين</div>
-            <div class="bdr-emp-grid">
-                <div class="bdr-emp-cell">
-                    <div class="emp-icon"><i class="fas fa-users"></i></div>
-                    <div class="emp-num">@Model.RegisteredBarbers</div>
-                    <div class="emp-label" data-i18n-en="Count @Model.RegisteredLabel">عدد @Model.RegisteredLabel</div>
-                </div>
-                <div class="bdr-emp-cell">
-                    <div class="emp-icon" style="color:#16a34a;"><i class="fas fa-user-check"></i></div>
-                    <div class="emp-num present">@Model.PresentToday</div>
-                    <div class="emp-label">الحضور</div>
-                </div>
-                <div class="bdr-emp-cell">
-                    <div class="emp-icon" style="color:#dc2626;"><i class="fas fa-user-times"></i></div>
-                    <div class="emp-num absent">@Model.AbsentToday</div>
-                    <div class="emp-label">الغياب</div>
-                </div>
-                <div class="bdr-emp-divider"></div>
-                <div class="bdr-emp-cell">
-                    <div class="emp-icon"><i class="fas fa-umbrella-beach"></i></div>
-                    <div class="emp-num">@Model.VacationToday</div>
-                    <div class="emp-label">إجازة</div>
-                </div>
-                <div class="bdr-emp-cell">
-                    <div class="emp-icon"><i class="fas fa-user-clock"></i></div>
-                    <div class="emp-num">@Model.LateToday</div>
-                    <div class="emp-label">متأخرين</div>
-                </div>
-                <div class="bdr-emp-cell">
-                    <div class="emp-icon"><i class="fas fa-sign-out-alt"></i></div>
-                    <div class="emp-num">@Model.EarlyLeaveToday</div>
-                    <div class="emp-label">منصرفين مبكراً</div>
-                </div>
-            </div>
+        <div class="dp-num-box">
+            <div class="nlbl">رقم اليومية</div>
+            <div class="nval">@Model.ReportNumber</div>
         </div>
     </div>
 
-    <!-- -->
-    <div class="bdr-table-wrap">
-        <div class="bdr-section-title">@Model.TableTitle</div>
-        @if (Model.ShowBoth && Model.BarberRows.Any())
-        {
-            var barberCount = ((IEnumerable<Salon.Models.BarberDailyRow>)Model.BarberRows).Count(r => r.DepartmentName == "حلاقة");
-            var massageCount = ((IEnumerable<Salon.Models.BarberDailyRow>)Model.BarberRows).Count(r => r.DepartmentName == "مساج");
-            <div class="dept-filter-bar no-print" id="deptFilterBar">
-                <span class="dept-filter-label">فلتر القسم:</span>
-                <button class="dept-btn active" data-filter="all">الكل (@Model.BarberRows.Count)</button>
-                <button class="dept-btn" data-filter="حلاقة">✂ حلاقة (@barberCount)</button>
-                <button class="dept-btn" data-filter="مساج">🌿 مساج (@massageCount)</button>
+    <!-- Summary Cards -->
+    <div class="dp-cards-row">
+        <div class="dp-card">
+            <div class="card-icon"><i class="fas fa-cash-register"></i></div>
+            <div class="card-lbl">إجمالي المبيعات</div>
+            <div class="card-val blue">@Model.TotalSales.ToString("N3")</div>
+            <div class="card-cur">د.ك</div>
+            <div class="card-sub">@Model.InvoiceCount فاتورة — متوسط @Model.AvgInvoiceValue.ToString("N3") د.ك</div>
+        </div>
+        <div class="dp-card">
+            <div class="card-pct">@Model.CashPercent.ToString("N1")%</div>
+            <div class="card-icon"><i class="fas fa-money-bill-wave"></i></div>
+            <div class="card-lbl">كاش</div>
+            <div class="card-val green">@Model.CashTotal.ToString("N3")</div>
+            <div class="card-cur">د.ك</div>
+            <div class="card-sub" style="color:#1d4ed8;">كي نت: @Model.KNetTotal.ToString("N3") د.ك (@Model.KNetPercent.ToString("N1")%)</div>
+        </div>
+        <div class="dp-card">
+            <div class="card-pct" style="background:#dc2626;">@Model.DebtPercent.ToString("N1")%</div>
+            <div class="card-icon"><i class="fas fa-exclamation-circle"></i></div>
+            <div class="card-lbl">الديون</div>
+            <div class="card-val red">@Model.DebtTotal.ToString("N3")</div>
+            <div class="card-cur">د.ك</div>
+            <div class="card-sub" style="color:#d97706;">خصومات: @Model.TotalDiscount.ToString("N3") د.ك (@Model.DiscountPercent.ToString("N1")%)</div>
+        </div>
+        <div class="dp-card">
+            <div class="card-icon"><i class="fas fa-building"></i></div>
+            <div class="card-lbl">صافي المحل</div>
+            <div class="card-val blue">@totalShopNet.ToString("N3")</div>
+            <div class="card-cur">د.ك</div>
+            <div class="card-sub">عمولة الموظفين: @totalDue.ToString("N3") د.ك</div>
+        </div>
+    </div>
+
+    <!-- Tips -->
+    @if (Model.TipsTotal > 0 || true)
+    {
+        <div class="dp-tips-bar">
+            <div class="dp-tips-cell">
+                <div class="t-lbl"><i class="fas fa-hand-holding-heart me-1"></i>إجمالي الإكراميات</div>
+                <div class="t-val" style="color:#d97706;">@Model.TipsTotal.ToString("N3")</div>
+                <div class="t-cur">د.ك</div>
             </div>
-        }
-        <table class="bdr-table" id="staffTable">
+            <div class="dp-tips-cell">
+                <div class="t-lbl">تم التسليم للموظفين</div>
+                <div class="t-val" style="color:#16a34a;">@Model.TipsDelivered.ToString("N3")</div>
+                <div class="t-cur">د.ك</div>
+                @if (Model.TipsDelivered > 0)
+                {
+                    <span class="tips-badge badge-delivered">✓ تم التسليم</span>
+                }
+            </div>
+            <div class="dp-tips-cell">
+                <div class="t-lbl">المتبقي للتسليم</div>
+                <div class="t-val" style="color:@(Model.TipsRemaining > 0 ? "#dc2626" : "#16a34a");">@Model.TipsRemaining.ToString("N3")</div>
+                <div class="t-cur">د.ك</div>
+                @if (Model.TipsRemaining > 0)
+                {
+                    <span class="tips-badge badge-remaining">⚠ لم يُسلَّم بعد</span>
+                }
+                else if (Model.TipsTotal > 0)
+                {
+                    <span class="tips-badge badge-delivered">✓ تم التسليم الكامل</span>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Cash Register -->
+    @if (!User.IsInRole("Employee"))
+    {
+        <div class="dp-cash-box">
+            <div class="dp-cash-title"><i class="fas fa-safe me-1"></i> حركة الصندوق اليوم</div>
+            <div class="dp-cash-flow">
+                <div class="dp-cf-item">
+                    <div class="cf-icon" style="color:#555;"><i class="fas fa-box-open"></i></div>
+                    <div class="cf-lbl">رصيد البداية</div>
+                    <div class="cf-val">@Model.OpeningBalance.ToString("N3")</div>
+                </div>
+                <div class="dp-cf-op">+</div>
+                <div class="dp-cf-item">
+                    <div class="cf-icon" style="color:#16a34a;"><i class="fas fa-money-bill-wave"></i></div>
+                    <div class="cf-lbl">إيرادات كاش</div>
+                    <div class="cf-val" style="color:#16a34a;">@Model.CashRevenue.ToString("N3")</div>
+                </div>
+                @if (Model.TotalDeposits > 0)
+                {
+                    <div class="dp-cf-op">+</div>
+                    <div class="dp-cf-item">
+                        <div class="cf-icon" style="color:#1d4ed8;"><i class="fas fa-arrow-down"></i></div>
+                        <div class="cf-lbl">إيداعات</div>
+                        <div class="cf-val" style="color:#1d4ed8;">@Model.TotalDeposits.ToString("N3")</div>
+                    </div>
+                }
+                @if (Model.TotalExpensesAmount > 0)
+                {
+                    <div class="dp-cf-op">−</div>
+                    <div class="dp-cf-item">
+                        <div class="cf-icon" style="color:#dc2626;"><i class="fas fa-receipt"></i></div>
+                        <div class="cf-lbl">مصروفات (@Model.ExpenseCount)</div>
+                        <div class="cf-val" style="color:#dc2626;">@Model.TotalExpensesAmount.ToString("N3")</div>
+                    </div>
+                }
+                @if (Model.TotalAdvancesAmount > 0)
+                {
+                    <div class="dp-cf-op">−</div>
+                    <div class="dp-cf-item">
+                        <div class="cf-icon" style="color:#d97706;"><i class="fas fa-hand-holding-usd"></i></div>
+                        <div class="cf-lbl">سلف موظفين</div>
+                        <div class="cf-val" style="color:#d97706;">@Model.TotalAdvancesAmount.ToString("N3")</div>
+                    </div>
+                }
+                @if (Model.TotalWithdrawals > 0)
+                {
+                    <div class="dp-cf-op">−</div>
+                    <div class="dp-cf-item">
+                        <div class="cf-icon" style="color:#dc2626;"><i class="fas fa-arrow-up"></i></div>
+                        <div class="cf-lbl">سحوبات</div>
+                        <div class="cf-val" style="color:#dc2626;">@Model.TotalWithdrawals.ToString("N3")</div>
+                    </div>
+                }
+                <div class="dp-cf-op">=</div>
+                <div class="dp-cf-item" style="background:#f0fdf4;border-radius:6px;border:1px solid #bbf7d0;">
+                    <div class="cf-icon" style="color:#16a34a;"><i class="fas fa-safe"></i></div>
+                    <div class="cf-lbl" style="color:#166534;">الرصيد الحالي</div>
+                    <div class="cf-val" style="color:#16a34a;font-size:16px;">@Model.CurrentCashBalance.ToString("N3")</div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Employee Performance Table -->
+    <div class="dp-table-wrap">
+        <div class="dp-section-title">
+            <i class="fas fa-chart-bar me-1"></i>
+            أداء الموظفين اليوم
+            @if (Model.SelectedDept != null){ <span>— @Model.SelectedDept</span> }
+        </div>
+
+        <!-- Dept filter (no-print) -->
+        <div class="dept-filter-bar no-print">
+            <span class="dept-filter-label">فلتر:</span>
+            <a href="?date=@selectedDate" class="dept-btn @(Model.SelectedDept == null ? "active" : "")" data-dept="all">
+                الكل (@allRows.Count)
+            </a>
+            <a href="?date=@selectedDate&dept=حلاقة" class="dept-btn @(Model.SelectedDept == "حلاقة" ? "active" : "")" data-dept="حلاقة">
+                ✂ حلاقة (@Model.BarberRows.Count)
+            </a>
+            <a href="?date=@selectedDate&dept=مساج" class="dept-btn @(Model.SelectedDept == "مساج" ? "active" : "")" data-dept="مساج">
+                🌿 مساج (@Model.MassageRows.Count)
+            </a>
+        </div>
+
+        <table class="dp-table">
             <thead>
                 <tr>
                     <th>#</th>
-                    @if (Model.ShowBoth)
-                    {
-                        <th>القسم</th>
-                    }
-                    <th>@Model.EmployeeLabel</th>
+                    @if (showDeptCol){ <th>القسم</th> }
+                    <th>الموظف</th>
+                    <th>الفواتير<br /><small>#</small></th>
                     <th>إجمالي الشغل<br /><small>د.ك</small></th>
-                    <th>كي نت<br /><small>د.ك</small></th>
                     <th>كاش<br /><small>د.ك</small></th>
+                    <th>كي نت<br /><small>د.ك</small></th>
                     <th>الديون<br /><small>د.ك</small></th>
                     <th>السلف<br /><small>د.ك</small></th>
                     <th>نسبة<br />%</th>
-                    <th>المبلغ<br />المستحق<br /><small>د.ك</small></th>
+                    <th>المستحق<br />للموظف<br /><small>د.ك</small></th>
                     <th>الإكرامية<br /><small>د.ك</small></th>
-                    <th>خصم السلف<br />والديون<br /><small>د.ك</small></th>
-                    <th>الصافي<br />بعد الخصم<br /><small>د.ك</small></th>
-                    <th>صافي المحل<br /><small>د.ك</small></th>
+                    <th>المستحق<br />للمحل<br /><small>د.ك</small></th>
                 </tr>
             </thead>
             <tbody>
-                @if (!Model.BarberRows.Any())
+                @if (!allRows.Any())
                 {
                     <tr>
-                        <td colspan="@(Model.ShowBoth ? 14 : 13)" class="text-center text-muted py-4">
-                            <i class="fas fa-inbox me-1"></i> لا يوجد موظفون نشطون أو لا توجد مبيعات لهذا اليوم
+                        <td colspan="@(showDeptCol ? 13 : 12)" class="text-center text-muted py-4">
+                            <i class="fas fa-inbox me-1"></i> لا يوجد موظفون أو لا توجد مبيعات لهذا اليوم
                         </td>
                     </tr>
                 }
-                @{
-                    int rowNum = 1;
-                }
-                @foreach (var row in Model.BarberRows)
+                @{ int seq = 1; }
+                @foreach (var row in allRows)
                 {
-                    <tr data-dept="@row.DepartmentName"
-                        data-work="@(row.TotalWork.ToString(System.Globalization.CultureInfo.InvariantCulture))"
-                        data-knet="@(row.KNet.ToString(System.Globalization.CultureInfo.InvariantCulture))"
-                        data-cash="@(row.Cash.ToString(System.Globalization.CultureInfo.InvariantCulture))"
-                        data-debts="@(row.Debts.ToString(System.Globalization.CultureInfo.InvariantCulture))"
-                        data-advance="@(row.Advance.ToString(System.Globalization.CultureInfo.InvariantCulture))"
-                        data-due="@(row.DueAmount.ToString(System.Globalization.CultureInfo.InvariantCulture))"
-                        data-hadiya="@(row.Hadiya.ToString(System.Globalization.CultureInfo.InvariantCulture))"
-                        data-deductions="@(row.Deductions.ToString(System.Globalization.CultureInfo.InvariantCulture))"
-                        data-net="@(row.NetAfterDeduction.ToString(System.Globalization.CultureInfo.InvariantCulture))"
-                        data-shopnet="@(row.ShopNet.ToString(System.Globalization.CultureInfo.InvariantCulture))">
-                        <td>@(rowNum++)</td>
-                        @if (Model.ShowBoth)
+                    <tr>
+                        <td>@(seq++)</td>
+                        @if (showDeptCol)
                         {
                             <td>
                                 @if (row.DepartmentName == "حلاقة")
@@ -762,232 +476,73 @@
                             </td>
                         }
                         <td><strong>@row.Employee.FullName</strong></td>
-                        <td>@row.TotalWork.ToString("N3")</td>
-                        <td>@row.KNet.ToString("N3")</td>
+                        <td>@row.InvoiceCount</td>
+                        <td>@row.TotalSales.ToString("N3")</td>
                         <td>@row.Cash.ToString("N3")</td>
+                        <td>@row.KNet.ToString("N3")</td>
                         <td class="@(row.Debts > 0 ? "text-danger" : "")">@row.Debts.ToString("N3")</td>
-                        <td class="@(row.Advance > 0 ? "text-danger" : "")">@row.Advance.ToString("N3")</td>
+                        <td class="@(row.Advances > 0 ? "text-danger" : "")">@row.Advances.ToString("N3")</td>
                         <td><strong>@row.CommissionPercent.ToString("N0")%</strong></td>
-                        <td><strong>@row.DueAmount.ToString("N3")</strong></td>
+                        <td style="color:#16a34a;font-weight:bold;">@row.DueAmount.ToString("N3")</td>
                         <td>
                             @if (row.Hadiya > 0)
                             {
                                 <span style="color:#d97706;font-weight:bold;">@row.Hadiya.ToString("N3")</span>
-                                <br /><span class="badge" style="background:#16a34a;font-size:10px;">✓ تم التسليم</span>
+                                <br /><span class="badge" style="background:#16a34a;font-size:10px;">✓ تم</span>
                             }
                             else
                             {
-                                <span class="text-muted">-</span>
+                                <span class="text-muted">—</span>
                             }
                         </td>
-                        <td class="@(row.Deductions > 0 ? "text-danger" : "")">@row.Deductions.ToString("N3")</td>
-                        <td style="color:#16a34a;font-weight:bold;">@row.NetAfterDeduction.ToString("N3")</td>
                         <td style="color:#1d4ed8;font-weight:bold;">@row.ShopNet.ToString("N3")</td>
                     </tr>
                 }
             </tbody>
-            @if (Model.BarberRows.Any())
+            @if (allRows.Any())
             {
                 <tfoot>
                     <tr>
-                        <td colspan="@(Model.ShowBoth ? 3 : 2)">الإجمالي</td>
-                        <td data-col="work">@Model.TotalWork.ToString("N3")</td>
-                        <td data-col="knet">@Model.TotalKNetWork.ToString("N3")</td>
-                        <td data-col="cash">@Model.TotalCashWork.ToString("N3")</td>
-                        <td data-col="debts">@Model.TotalDebts.ToString("N3")</td>
-                        <td data-col="advance">@Model.TotalAdvances.ToString("N3")</td>
-                        <td data-col="pct">@Model.OverallCommissionPercent.ToString("N0")%</td>
-                        <td data-col="due">@Model.TotalDueAmount.ToString("N3")</td>
-                        <td data-col="hadiya" style="color:#fbbf24;">@Model.TotalHadiya.ToString("N3")</td>
-                        <td data-col="deductions">@Model.TotalDeductions.ToString("N3")</td>
-                        <td data-col="net">@Model.TotalNetAfterDeduction.ToString("N3")</td>
-                        <td data-col="shopnet">@Model.TotalShopNet.ToString("N3")</td>
+                        <td colspan="@(showDeptCol ? 3 : 2)">الإجمالي</td>
+                        <td>@totalInv</td>
+                        <td>@totalWork.ToString("N3")</td>
+                        <td>@totalCash.ToString("N3")</td>
+                        <td>@totalKNet.ToString("N3")</td>
+                        <td>@totalDebts.ToString("N3")</td>
+                        <td>@totalAdv.ToString("N3")</td>
+                        <td>@overallPct.ToString("N1")%</td>
+                        <td>@totalDue.ToString("N3")</td>
+                        <td style="color:#fbbf24;">@totalHadiya.ToString("N3")</td>
+                        <td>@totalShopNet.ToString("N3")</td>
                     </tr>
                 </tfoot>
             }
         </table>
     </div>
 
-    <!-- -->
-    @if (Model.BarberRows.Any())
+    <!-- Daily Notes -->
+    @if (!string.IsNullOrWhiteSpace(Model.DailyNotes) || Model.ShiftId > 0)
     {
-        <div class="bdr-bottom-summary">
-            <div class="bdr-sum-cell">
-                <div class="sum-icon"><i class="fas fa-dollar-sign"></i></div>
-                <div class="sum-label">إجمالي الشغل</div>
-                <div class="sum-val blue">@Model.TotalWork.ToString("N3")</div>
-                <div class="sum-cur">د.ك</div>
-            </div>
-            <div class="bdr-sum-cell">
-                <div class="sum-icon"><i class="fas fa-users"></i></div>
-                <div class="sum-label" data-i18n-en="Overall @Model.CommissionNoteLabel Rate">نسبة @Model.CommissionNoteLabel الإجمالية</div>
-                <div class="sum-val">@Model.OverallCommissionPercent.ToString("N0")%</div>
-            </div>
-            <div class="bdr-sum-cell">
-                <div class="sum-icon"><i class="fas fa-hand-holding-usd"></i></div>
-                <div class="sum-label">إجمالي السلف</div>
-                <div class="sum-val red">@Model.TotalAdvances.ToString("N3")</div>
-                <div class="sum-cur">د.ك</div>
-            </div>
-            <div class="bdr-sum-cell">
-                <div class="sum-icon"><i class="fas fa-minus-circle"></i></div>
-                <div class="sum-label">إجمالي خصم الديون والسلف</div>
-                <div class="sum-val red">@Model.TotalDeductions.ToString("N3")</div>
-                <div class="sum-cur">د.ك</div>
-            </div>
-            <div class="bdr-sum-cell">
-                <div class="sum-icon"><i class="fas fa-wallet"></i></div>
-                <div class="sum-label" data-i18n-en="Total Net for @Model.CommissionNoteLabel After Deduction">إجمالي صافي ما سيستلم لـ@Model.CommissionNoteLabel بعد الخصم</div>
-                <div class="sum-val green">@Model.TotalNetAfterDeduction.ToString("N3")</div>
-                <div class="sum-cur">د.ك</div>
-            </div>
-            <div class="bdr-sum-cell">
-                <div class="sum-icon"><i class="fas fa-store"></i></div>
-                <div class="sum-label" data-i18n-en="Shop Net from @Model.CommissionNoteLabel">صافي المحل من @Model.CommissionNoteLabel</div>
-                <div class="sum-val blue">@Model.TotalShopNet.ToString("N3")</div>
-                <div class="sum-cur">د.ك</div>
-            </div>
-        </div>
-        <div class="bdr-note-bar" data-i18n-en="@noteTextEn">
-            ملاحظة: تم اعتماد نسبة @Model.CommissionNoteLabel @Model.OverallCommissionPercent.ToString("N0")% من إجمالي الشغل
+        <div class="dp-notes-box no-print">
+            <div class="dp-notes-title"><i class="fas fa-sticky-note me-1"></i> ملاحظات اليوم</div>
+            @if (!string.IsNullOrWhiteSpace(Model.DailyNotes))
+            {
+                <p class="mb-2" style="font-size:13px;">@Model.DailyNotes</p>
+            }
+            @if (Model.ShiftId > 0)
+            {
+                <form method="post" action="@Url.Action("SaveNote","BarberDaily")" class="d-flex gap-2">
+                    <input type="hidden" name="shiftId" value="@Model.ShiftId" />
+                    <input type="hidden" name="date" value="@selectedDate" />
+                    <input type="text" name="notes" class="form-control form-control-sm" placeholder="أضف ملاحظة..." value="@Model.DailyNotes" style="max-width:400px;" />
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">حفظ</button>
+                </form>
+            }
         </div>
     }
 
-    <!-- -->
-    @if (Model.CashMovement.Any())
-    {
-        <div class="bdr-table-wrap">
-            <div class="bdr-section-title" data-i18n-en="Cash Movement in Safe (From 1st to @Model.ReportDate.Day)">
-                حركة الكاش في الصندوق (من تاريخ 1 إلى @Model.ReportDate.Day)
-            </div>
-            <table class="cash-table">
-                <thead>
-                    <tr>
-                        <th>التاريخ</th>
-                        <th>رصيد بداية اليوم<br /><small>د.ك</small></th>
-                        <th>إيرادات كاش<br /><small>د.ك</small></th>
-                        <th>إيداع في الصندوق<br /><small>د.ك</small></th>
-                        <th>سحب من الصندوق<br /><small>د.ك</small></th>
-                        <th>نوع السحب</th>
-                        <th>سحب من قبل</th>
-                        <th>رصيد نهاية اليوم<br /><small>د.ك</small></th>
-                        <th>ملاحظات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var cm in Model.CashMovement)
-                    {
-                        <tr>
-                            <td dir="ltr">@cm.Date.ToString("(yyyy/MM/dd)") @cm.Date.Day</td>
-                            <td>@cm.OpeningBalance.ToString("N3")</td>
-                            <td>
-                                @if (cm.CashRevenue > 0)
-                                {
-                                    <span style="color:#16a34a;font-weight:600;">@cm.CashRevenue.ToString("N3")</span>
-                                }
-                                else
-                                {
-                                    <span>@cm.CashRevenue.ToString("N3")</span>
-                                }
-                            </td>
-                            <td>
-                                @if (cm.Deposit > 0)
-                                {
-                                    <span style="color:#16a34a;font-weight:700;">@cm.Deposit.ToString("N3")</span>
-                                }
-                                else
-                                {
-                                    <span>-</span>
-                                }
-                            </td>
-                            <td>
-                                @if (cm.Withdrawal > 0)
-                                {
-                                    <span class="cash-withdraw">@cm.Withdrawal.ToString("N3")</span>
-                                }
-                                else
-                                {
-                                    <span>-</span>
-                                }
-                            </td>
-                            <td>@cm.WithdrawalType</td>
-                            <td>@cm.WithdrawnBy</td>
-                            <td><strong>@cm.ClosingBalance.ToString("N3")</strong></td>
-                            <td>@cm.Notes</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-
-        <div class="bdr-balance-box">
-            <span data-i18n-en="@balanceTitleEn">الكاش الحالي في الصندوق (كما في @Model.ReportDate.ToString("yyyy/MM/dd")) =</span>
-            <span>@Model.CurrentCashBalance.ToString("N3") د.ك</span>
-        </div>
-    }
-
-    <div class="bdr-footer">
+    <div class="dp-footer">
         ملاحظة: جميع المبالغ بالدينار الكويتي (د.ك)
     </div>
+
 </div>
-
-<script>
-(function () {
-    var filterBar = document.getElementById('deptFilterBar');
-    if (!filterBar) return;
-
-    var table = document.getElementById('staffTable');
-    var tbody = table.querySelector('tbody');
-    var tfoot = table.querySelector('tfoot');
-
-    function sumRows(rows, filter, attr) {
-        var total = 0;
-        rows.forEach(function (r) {
-            if (filter === 'all' || r.dataset.dept === filter)
-                total += parseFloat(r.dataset[attr] || 0);
-        });
-        return total;
-    }
-
-    function fmt(v) { return v.toFixed(3); }
-
-    function updateTotals(rows, filter) {
-        if (!tfoot) return;
-        var work = sumRows(rows, filter, 'work');
-        var due  = sumRows(rows, filter, 'due');
-        var pct  = work > 0 ? (due / work * 100).toFixed(1) : '0.0';
-        var map  = {
-            work: fmt(work),
-            knet: fmt(sumRows(rows, filter, 'knet')),
-            cash: fmt(sumRows(rows, filter, 'cash')),
-            debts: fmt(sumRows(rows, filter, 'debts')),
-            advance: fmt(sumRows(rows, filter, 'advance')),
-            pct: pct + '%',
-            due: fmt(due),
-            hadiya: fmt(sumRows(rows, filter, 'hadiya')),
-            deductions: fmt(sumRows(rows, filter, 'deductions')),
-            net: fmt(sumRows(rows, filter, 'net')),
-            shopnet: fmt(sumRows(rows, filter, 'shopnet'))
-        };
-        tfoot.querySelectorAll('td[data-col]').forEach(function (td) {
-            if (map[td.dataset.col] !== undefined) td.textContent = map[td.dataset.col];
-        });
-    }
-
-    filterBar.querySelectorAll('.dept-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            filterBar.querySelectorAll('.dept-btn').forEach(function (b) { b.classList.remove('active'); });
-            this.classList.add('active');
-            var filter = this.dataset.filter;
-            var rows = Array.from(tbody.querySelectorAll('tr[data-dept]'));
-            var seq = 1;
-            rows.forEach(function (row) {
-                var show = filter === 'all' || row.dataset.dept === filter;
-                row.style.display = show ? '' : 'none';
-                if (show) row.querySelector('td:first-child').textContent = seq++;
-            });
-            updateTotals(rows, filter);
-        });
-    });
-})();
-</script>
