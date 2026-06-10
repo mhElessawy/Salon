@@ -691,11 +691,13 @@
         <div class="bdr-section-title">@Model.TableTitle</div>
         @if (Model.ShowBoth && Model.BarberRows.Any())
         {
+            var barberCount = ((IEnumerable<Salon.Models.BarberDailyRow>)Model.BarberRows).Count(r => r.DepartmentName == "حلاقة");
+            var massageCount = ((IEnumerable<Salon.Models.BarberDailyRow>)Model.BarberRows).Count(r => r.DepartmentName == "مساج");
             <div class="dept-filter-bar no-print" id="deptFilterBar">
                 <span class="dept-filter-label">فلتر القسم:</span>
                 <button class="dept-btn active" data-filter="all">الكل (@Model.BarberRows.Count)</button>
-                <button class="dept-btn" data-filter="حلاقة">✂ حلاقة (@Model.BarberRows.Count(r => r.DepartmentName == "حلاقة"))</button>
-                <button class="dept-btn" data-filter="مساج">🌿 مساج (@Model.BarberRows.Count(r => r.DepartmentName == "مساج"))</button>
+                <button class="dept-btn" data-filter="حلاقة">✂ حلاقة (@barberCount)</button>
+                <button class="dept-btn" data-filter="مساج">🌿 مساج (@massageCount)</button>
             </div>
         }
         <table class="bdr-table" id="staffTable">
