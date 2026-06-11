@@ -190,11 +190,8 @@
                 document.querySelectorAll('.sidebar-menu .arrow-icon').forEach(function (i) {
                     i.classList.replace('fa-chevron-left', 'fa-chevron-right');
                 });
-                if (mc) {
-                    var isCollapsed = document.body.classList.contains('sidebar-collapsed');
-                    mc.style.marginRight = '0';
-                    mc.style.marginLeft = (!isCollapsed && window.innerWidth >= 992) ? 'var(--sidebar-width)' : '0';
-                }
+                // مسح inline styles لتطبيق قواعد CSS بحرية
+                if (mc) { mc.style.marginRight = ''; mc.style.marginLeft = ''; }
                 updateToggleIcon(document.body.classList.contains('sidebar-collapsed'));
             } else {
                 html.setAttribute('lang', 'ar');
@@ -204,10 +201,7 @@
                 document.querySelectorAll('.sidebar-menu .arrow-icon').forEach(function (i) {
                     i.classList.replace('fa-chevron-right', 'fa-chevron-left');
                 });
-                if (mc) {
-                    mc.style.marginRight = '';
-                    mc.style.marginLeft = '';
-                }
+                if (mc) { mc.style.marginRight = ''; mc.style.marginLeft = ''; }
                 updateToggleIcon(document.body.classList.contains('sidebar-collapsed'));
             }
 
@@ -226,16 +220,7 @@
         // Apply text translations now (dir+css already set in <head> script above)
         if (localStorage.getItem('lang') === 'en') applyLanguage('en');
 
-        // Fix margin on screen resize (e.g. phone rotation)
-        window.addEventListener('resize', function () {
-            if (localStorage.getItem('lang') === 'en') {
-                var mc = document.querySelector('.main-content');
-                if (mc) {
-                    var isCollapsed = document.body.classList.contains('sidebar-collapsed');
-                    mc.style.marginLeft = (!isCollapsed && window.innerWidth >= 992) ? 'var(--sidebar-width)' : '0';
-                }
-            }
-        });
+        // CSS media queries handle margin on resize automatically
     </script>
     <script>
         // Mobile sidebar
@@ -291,11 +276,6 @@
 
         function toggleSidebarDesktop() {
             var collapsed = document.body.classList.toggle('sidebar-collapsed');
-            var mc = document.querySelector('.main-content');
-            var lang = localStorage.getItem('lang') || 'ar';
-            if (lang === 'en' && mc) {
-                mc.style.marginLeft = collapsed ? '0' : (window.innerWidth >= 992 ? 'var(--sidebar-width)' : '0');
-            }
             localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
             updateToggleIcon(collapsed);
         }
@@ -305,11 +285,6 @@
             if (localStorage.getItem('sidebarCollapsed') === '1') {
                 document.body.classList.add('sidebar-collapsed');
                 updateToggleIcon(true);
-                var mc = document.querySelector('.main-content');
-                var lang = localStorage.getItem('lang') || 'ar';
-                if (lang === 'en' && mc) {
-                    mc.style.marginLeft = '0';
-                }
             }
         })();
 

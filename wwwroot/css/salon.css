@@ -1198,8 +1198,8 @@ html[dir="ltr"] .password-toggle {
 
 @media (min-width: 992px) {
     html[dir="ltr"] .main-content {
-        margin-right: 0;
-        margin-left: var(--sidebar-width);
+        margin-right: 0 !important;
+        margin-left: var(--sidebar-width) !important;
     }
 
     html[dir="ltr"] .sidebar {
@@ -1214,7 +1214,7 @@ html[dir="ltr"] .password-toggle {
     }
 
     html[dir="ltr"] body.sidebar-collapsed .main-content {
-        margin-left: 0;
+        margin-left: 0 !important;
     }
 }
 
