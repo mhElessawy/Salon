@@ -21,12 +21,22 @@
             <label class="form-label mb-0 ms-2">القسم:</label>
             <select name="department" class="form-select" style="max-width:160px;">
                 <option value="">-- الكل --</option>
-                <option value="حلاقة" @(ViewBag.FilterDepartment == "حلاقة" ? "selected" : "")>
-                    <i class="fas fa-cut"></i> حلاقة
-                </option>
-                <option value="مساج" @(ViewBag.FilterDepartment == "مساج" ? "selected" : "")>
-                    مساج
-                </option>
+                @if (ViewBag.FilterDepartment == "حلاقة")
+                {
+                    <option value="حلاقة" selected="selected">حلاقة</option>
+                }
+                else
+                {
+                    <option value="حلاقة">حلاقة</option>
+                }
+                @if (ViewBag.FilterDepartment == "مساج")
+                {
+                    <option value="مساج" selected="selected">مساج</option>
+                }
+                else
+                {
+                    <option value="مساج">مساج</option>
+                }
             </select>
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
         </form>
