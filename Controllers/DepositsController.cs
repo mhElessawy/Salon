@@ -20,17 +20,23 @@ namespace Salon.Controllers
             _audit = audit;
         }
 
-        public async Task<IActionResult> Index(string? date)
+        public async Task<IActionResult> Index(string? date, string? department)
         {
             DateTime filterDate = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
             var nextDay = filterDate.AddDays(1);
 
-            var deposits = await _context.Deposits
-                .Where(d => d.DepositDate >= filterDate && d.DepositDate < nextDay)
+            var query = _context.Deposits
+                .Where(d => d.DepositDate >= filterDate && d.DepositDate < nextDay);
+
+            if (!string.IsNullOrEmpty(department))
+                query = query.Where(d => d.Department == department);
+
+            var deposits = await query
                 .OrderByDescending(d => d.CreatedAt)
                 .ToListAsync();
 
             ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
+            ViewBag.FilterDepartment = department ?? "";
             ViewBag.Total = deposits.Sum(d => d.Amount);
             return View(deposits);
         }

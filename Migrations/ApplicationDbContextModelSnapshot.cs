@@ -576,6 +576,11 @@ namespace Salon.Migrations
                 b.Property<DateTime>("DepositDate")
                     .HasColumnType("datetime2");
 
+                b.Property<string>("Department")
+                    .IsRequired()
+                    .HasDefaultValue("حلاقة")
+                    .HasColumnType("nvarchar(max)");
+
                 b.Property<string>("Description")
                     .IsRequired()
                     .HasColumnType("nvarchar(max)");

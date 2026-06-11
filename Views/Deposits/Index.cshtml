@@ -15,9 +15,19 @@
 
 <div class="card mb-3">
     <div class="card-body">
-        <form method="get" class="d-flex gap-2 align-items-center">
+        <form method="get" class="d-flex flex-wrap gap-2 align-items-center">
             <label class="form-label mb-0">التاريخ:</label>
             <input type="date" name="date" value="@ViewBag.FilterDate" class="form-control" style="max-width:200px;" />
+            <label class="form-label mb-0 ms-2">القسم:</label>
+            <select name="department" class="form-select" style="max-width:160px;">
+                <option value="">-- الكل --</option>
+                <option value="حلاقة" @(ViewBag.FilterDepartment == "حلاقة" ? "selected" : "")>
+                    <i class="fas fa-cut"></i> حلاقة
+                </option>
+                <option value="مساج" @(ViewBag.FilterDepartment == "مساج" ? "selected" : "")>
+                    مساج
+                </option>
+            </select>
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
         </form>
     </div>
@@ -30,6 +40,7 @@
                 <thead>
                     <tr>
                         <th>#</th>
+                        <th>القسم</th>
                         <th>البيان</th>
                         <th>المصدر</th>
                         <th>المبلغ</th>
@@ -41,12 +52,26 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="7" class="text-center text-muted py-4">لا توجد إيداعات في هذا اليوم</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted py-4">لا توجد إيداعات في هذا اليوم</td></tr>
                     }
                     @foreach (var d in Model)
                     {
                         <tr>
                             <td>@d.Id</td>
+                            <td>
+                                @if (d.Department == "حلاقة")
+                                {
+                                    <span class="badge bg-primary"><i class="fas fa-cut me-1"></i>حلاقة</span>
+                                }
+                                else if (d.Department == "مساج")
+                                {
+                                    <span class="badge bg-success"><i class="fas fa-spa me-1"></i>مساج</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@d.Department</span>
+                                }
+                            </td>
                             <td>@d.Description</td>
                             <td>@(d.Source ?? "-")</td>
                             <td><strong class="text-success">@d.Amount.ToString("N3") د.ك</strong></td>
@@ -68,7 +93,7 @@
                 {
                     <tfoot class="table-light fw-bold">
                         <tr>
-                            <td colspan="3" class="text-end">الإجمالي</td>
+                            <td colspan="4" class="text-end">الإجمالي</td>
                             <td class="text-success">@ViewBag.Total?.ToString("N3") د.ك</td>
                             <td colspan="3"></td>
                         </tr>
