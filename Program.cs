@@ -189,7 +189,9 @@ using (var scope = app.Services.CreateScope())
                 Source TEXT,
                 DepositDate TEXT NOT NULL DEFAULT (date('now')),
                 Notes TEXT,
+                Department TEXT NOT NULL DEFAULT 'حلاقة',
                 CreatedAt TEXT NOT NULL DEFAULT (datetime('now')))");
+            TryExec("ALTER TABLE Deposits ADD COLUMN Department TEXT NOT NULL DEFAULT 'حلاقة'");
             TryExec(@"CREATE TABLE IF NOT EXISTS Withdrawals (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 Amount REAL NOT NULL DEFAULT 0,
@@ -256,7 +258,9 @@ using (var scope = app.Services.CreateScope())
                 Source NVARCHAR(MAX) NULL,
                 DepositDate DATE NOT NULL DEFAULT GETDATE(),
                 Notes NVARCHAR(MAX) NULL,
+                Department NVARCHAR(MAX) NOT NULL DEFAULT N'حلاقة',
                 CreatedAt DATETIME NOT NULL DEFAULT GETDATE())");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Deposits' AND COLUMN_NAME='Department') ALTER TABLE Deposits ADD Department NVARCHAR(MAX) NOT NULL DEFAULT N'حلاقة'");
             TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='Withdrawals')
                 CREATE TABLE Withdrawals (Id INT IDENTITY PRIMARY KEY,
                 Amount DECIMAL(18,3) NOT NULL DEFAULT 0,
