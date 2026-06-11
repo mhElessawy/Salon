@@ -1201,6 +1201,21 @@ html[dir="ltr"] .password-toggle {
         margin-right: 0;
         margin-left: var(--sidebar-width);
     }
+
+    html[dir="ltr"] .sidebar {
+        left: 0;
+        right: auto;
+        border-right: 1px solid var(--border-color);
+        border-left: none;
+    }
+
+    html[dir="ltr"] body.sidebar-collapsed .sidebar {
+        transform: translateX(-100%);
+    }
+
+    html[dir="ltr"] body.sidebar-collapsed .main-content {
+        margin-left: 0;
+    }
 }
 
 @media (max-width: 992px) {
