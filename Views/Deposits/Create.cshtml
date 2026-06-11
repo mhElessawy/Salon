@@ -10,7 +10,46 @@
     <div class="card-body">
         <form asp-action="Create" method="post">
             @Html.AntiForgeryToken()
+            @{
+                string userDept = ViewBag.UserDept ?? "";
+                bool isRestricted = userDept == "حلاقة" || userDept == "مساج";
+            }
             <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Department" class="form-label fw-bold"></label>
+                    @if (isRestricted)
+                    {
+                        <input asp-for="Department" type="hidden" value="@userDept" />
+                        <div class="form-control-plaintext fw-bold">
+                            @if (userDept == "حلاقة")
+                            {
+                                <span class="badge bg-primary fs-6"><i class="fas fa-cut me-1"></i>حلاقة</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success fs-6"><i class="fas fa-spa me-1"></i>مساج</span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex gap-3 mt-1">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" asp-for="Department" id="deptHair" value="حلاقة" checked />
+                                <label class="form-check-label" for="deptHair">
+                                    <i class="fas fa-cut me-1 text-primary"></i> حلاقة
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" asp-for="Department" id="deptMassage" value="مساج" />
+                                <label class="form-check-label" for="deptMassage">
+                                    <i class="fas fa-spa me-1 text-success"></i> مساج
+                                </label>
+                            </div>
+                        </div>
+                    }
+                    <span asp-validation-for="Department" class="text-danger small"></span>
+                </div>
                 <div class="col-md-6">
                     <label asp-for="Description" class="form-label"></label>
                     <input asp-for="Description" class="form-control" placeholder="مثال: إيداع نقدي من المالك" />

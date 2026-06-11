@@ -22,6 +22,13 @@ namespace Salon.Models
         [DataType(DataType.Date)]
         public DateTime DepositDate { get; set; } = DateTime.Today;
 
+        /// <summary>
+        /// القسم: "حلاقة" | "مساج" | null (مشترك)
+        /// </summary>
+        [Required(ErrorMessage = "القسم مطلوب")]
+        [Display(Name = "القسم")]
+        public string Department { get; set; } = string.Empty;
+
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
 

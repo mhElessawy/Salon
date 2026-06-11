@@ -232,10 +232,14 @@ namespace Salon.Controllers
                 filtered = filtered.Where(s => s.EmployeeId == employeeId);
             var filteredList = filtered.ToList();
 
+            // القسم الفعّال: يُعطى الأولوية لقسم المستخدم، ثم فلتر النوع المحدد
+            string? filterDept = (userDept == "حلاقة" || userDept == "مساج") ? userDept
+                : (saleType == "حلاقة" || saleType == "مساج") ? saleType : null;
+
             var expensesTodayQuery = _context.Expenses
                 .Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow);
-            if (saleType == "حلاقة" || saleType == "مساج")
-                expensesTodayQuery = expensesTodayQuery.Where(e => e.Department == saleType);
+            if (!string.IsNullOrEmpty(filterDept))
+                expensesTodayQuery = expensesTodayQuery.Where(e => e.Department == filterDept);
             var expensesTodayList = await expensesTodayQuery
                 .OrderBy(e => e.ExpenseDate)
                 .ToListAsync();
@@ -244,8 +248,8 @@ namespace Salon.Controllers
             var salariesTodayQuery = _context.Salaries
                 .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Where(s => s.PaidDate >= today && s.PaidDate < tomorrow);
-            if (saleType == "حلاقة" || saleType == "مساج")
-                salariesTodayQuery = salariesTodayQuery.Where(s => s.Employee!.DepartmentNav!.Name == saleType);
+            if (!string.IsNullOrEmpty(filterDept))
+                salariesTodayQuery = salariesTodayQuery.Where(s => s.Employee!.DepartmentNav!.Name == filterDept);
             var salariesTodayList = await salariesTodayQuery
                 .OrderBy(s => s.Employee!.FullName)
                 .ToListAsync();
@@ -254,15 +258,17 @@ namespace Salon.Controllers
             var advancesQuery = _context.EmployeeAdvances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow);
-
-            if (userDept == "حلاقة" || userDept == "مساج")
-                advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
+            if (!string.IsNullOrEmpty(filterDept))
+                advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == filterDept);
 
             var advancesList = await advancesQuery.OrderBy(a => a.AdvanceDate).ToListAsync();
             var advancesToday = advancesList.Sum(a => a.Amount);
 
-            var depositsTodayList = await _context.Deposits
-                .Where(d => d.DepositDate >= today && d.DepositDate < tomorrow)
+            var depositsTodayQuery = _context.Deposits
+                .Where(d => d.DepositDate >= today && d.DepositDate < tomorrow);
+            if (!string.IsNullOrEmpty(filterDept))
+                depositsTodayQuery = depositsTodayQuery.Where(d => d.Department == filterDept);
+            var depositsTodayList = await depositsTodayQuery
                 .OrderBy(d => d.DepositDate)
                 .ToListAsync();
             var depositsToday = depositsTodayList.Sum(d => d.Amount);
