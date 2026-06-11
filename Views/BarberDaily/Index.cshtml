@@ -842,7 +842,7 @@
                             }
                             @if (Model.Expenses.Any())
                             {
-                                <a class="dp2-show-all no-print" href="#exp-details"><i class="fas fa-eye"></i> عرض التفاصيل</a>
+                                <button class="dp2-show-all no-print" onclick="openExpModal()" style="border:none;background:none;cursor:pointer;"><i class="fas fa-eye"></i> عرض التفاصيل</button>
                             }
                         </div>
                     </div>
@@ -1268,6 +1268,156 @@
 
 </div>
 
+<!-- ===== Expenses Detail Modal ===== -->
+<div id="expModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:12px;width:min(780px,96vw);max-height:92vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25);direction:rtl;font-size:13px;">
+        <!-- Header -->
+        <div style="background:#dc2626;color:#fff;padding:14px 18px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <span style="font-size:15px;font-weight:700;"><i class="fas fa-receipt me-2"></i>تفاصيل مصروفات اليوم</span>
+                <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px;">@Model.ReportDate.ToString("yyyy/MM/dd") — @Model.DayName</div>
+            </div>
+            <button onclick="closeExpModal()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:14px;">✕</button>
+        </div>
+        <!-- Body -->
+        <div style="padding:16px 18px;">
+            @if (Model.Expenses.Any())
+            {
+                <!-- إجمالي سريع -->
+                <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+                    <div style="background:#fff5f5;border:1px solid #fecaca;border-radius:8px;padding:10px 16px;flex:1;min-width:120px;text-align:center;">
+                        <div style="font-size:10px;color:#dc2626;font-weight:700;margin-bottom:4px;">عدد البنود</div>
+                        <div style="font-size:22px;font-weight:800;color:#dc2626;">@Model.Expenses.Count</div>
+                    </div>
+                    <div style="background:#fff5f5;border:1px solid #fecaca;border-radius:8px;padding:10px 16px;flex:1;min-width:140px;text-align:center;">
+                        <div style="font-size:10px;color:#dc2626;font-weight:700;margin-bottom:4px;">إجمالي المصروفات</div>
+                        <div style="font-size:22px;font-weight:800;color:#dc2626;">@Model.TotalExpensesAmount.ToString("N3")</div>
+                        <div style="font-size:9px;color:#888;">د.ك</div>
+                    </div>
+                    @{
+                        var expByDept = Model.Expenses.GroupBy(e => string.IsNullOrEmpty(e.Department) ? "مشترك" : e.Department).ToList();
+                    }
+                    @foreach (var dg in expByDept)
+                    {
+                        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 16px;flex:1;min-width:120px;text-align:center;">
+                            <div style="font-size:10px;color:#475569;font-weight:700;margin-bottom:4px;">@dg.Key</div>
+                            <div style="font-size:18px;font-weight:800;color:#1a1a2e;">@dg.Sum(e => e.Amount).ToString("N3")</div>
+                            <div style="font-size:9px;color:#888;">د.ك</div>
+                        </div>
+                    }
+                </div>
+
+                <!-- جدول المصروفات -->
+                <div style="margin-bottom:4px;font-weight:700;font-size:12px;color:#1a1a2e;"><i class="fas fa-list me-1"></i> بنود المصروفات</div>
+                <div style="overflow-x:auto;border-radius:8px;border:1px solid #e2e8f0;">
+                    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                        <thead>
+                            <tr style="background:#1a1a2e;color:#fff;">
+                                <th style="padding:8px 10px;text-align:right;">#</th>
+                                <th style="padding:8px 10px;text-align:right;">البيان</th>
+                                <th style="padding:8px 10px;text-align:right;">الفئة</th>
+                                <th style="padding:8px 10px;text-align:center;">القسم</th>
+                                <th style="padding:8px 10px;text-align:center;">المبلغ (د.ك)</th>
+                                <th style="padding:8px 10px;text-align:center;">طريقة الدفع</th>
+                                <th style="padding:8px 10px;text-align:right;">ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int ei = 1; }
+                            @foreach (var exp in Model.Expenses)
+                            {
+                                <tr style="border-bottom:1px solid #f1f5f9;@(ei % 2 == 0 ? "background:#f8fafc;" : "")">
+                                    <td style="padding:7px 10px;color:#64748b;">@(ei++)</td>
+                                    <td style="padding:7px 10px;font-weight:600;">@exp.Description</td>
+                                    <td style="padding:7px 10px;color:#475569;">
+                                        @if (!string.IsNullOrEmpty(exp.Category))
+                                        {
+                                            <span style="background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;">@exp.Category</span>
+                                        }
+                                        else
+                                        {
+                                            <span style="color:#94a3b8;">—</span>
+                                        }
+                                    </td>
+                                    <td style="padding:7px 10px;text-align:center;">
+                                        @if (exp.Department == "حلاقة")
+                                        {
+                                            <span style="background:#1a1a2e;color:#fff;padding:2px 8px;border-radius:8px;font-size:10px;">✂ حلاقة</span>
+                                        }
+                                        else if (exp.Department == "مساج")
+                                        {
+                                            <span style="background:#0891b2;color:#fff;padding:2px 8px;border-radius:8px;font-size:10px;">🌿 مساج</span>
+                                        }
+                                        else
+                                        {
+                                            <span style="background:#e2e8f0;color:#475569;padding:2px 8px;border-radius:8px;font-size:10px;">مشترك</span>
+                                        }
+                                    </td>
+                                    <td style="padding:7px 10px;text-align:center;font-weight:700;color:#dc2626;">@exp.Amount.ToString("N3")</td>
+                                    <td style="padding:7px 10px;text-align:center;color:#475569;font-size:11px;">@exp.PaymentMethod</td>
+                                    <td style="padding:7px 10px;color:#64748b;font-size:11px;">@exp.Notes</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr style="background:#1a1a2e;color:#fff;font-weight:700;">
+                                <td colspan="4" style="padding:8px 10px;text-align:end;">الإجمالي</td>
+                                <td style="padding:8px 10px;text-align:center;color:#fbbf24;font-size:14px;">@Model.TotalExpensesAmount.ToString("N3")</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div style="text-align:center;padding:40px;color:#94a3b8;">
+                    <i class="fas fa-check-circle" style="font-size:36px;color:#16a34a;display:block;margin-bottom:10px;"></i>
+                    لا توجد مصروفات اليوم
+                </div>
+            }
+
+            @if (Model.Advances.Any())
+            {
+                <div style="margin-top:18px;margin-bottom:6px;font-weight:700;font-size:12px;color:#1a1a2e;"><i class="fas fa-hand-holding-usd me-1" style="color:#d97706;"></i> سلف الموظفين</div>
+                <div style="overflow-x:auto;border-radius:8px;border:1px solid #fde68a;">
+                    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                        <thead>
+                            <tr style="background:#d97706;color:#fff;">
+                                <th style="padding:8px 10px;text-align:right;">#</th>
+                                <th style="padding:8px 10px;text-align:right;">الموظف</th>
+                                <th style="padding:8px 10px;text-align:right;">السبب</th>
+                                <th style="padding:8px 10px;text-align:center;">المبلغ (د.ك)</th>
+                                <th style="padding:8px 10px;text-align:center;">طريقة الدفع</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int ai = 1; }
+                            @foreach (var adv in Model.Advances)
+                            {
+                                <tr style="border-bottom:1px solid #fef3c7;@(ai % 2 == 0 ? "background:#fffbeb;" : "")">
+                                    <td style="padding:7px 10px;color:#64748b;">@(ai++)</td>
+                                    <td style="padding:7px 10px;font-weight:600;">@(adv.Employee?.FullName ?? "—")</td>
+                                    <td style="padding:7px 10px;color:#475569;">@(string.IsNullOrEmpty(adv.Reason) ? "—" : adv.Reason)</td>
+                                    <td style="padding:7px 10px;text-align:center;font-weight:700;color:#d97706;">@adv.Amount.ToString("N3")</td>
+                                    <td style="padding:7px 10px;text-align:center;color:#475569;font-size:11px;">@adv.PaymentMethod</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr style="background:#d97706;color:#fff;font-weight:700;">
+                                <td colspan="3" style="padding:8px 10px;text-align:end;">إجمالي السلف</td>
+                                <td style="padding:8px 10px;text-align:center;font-size:14px;">@Model.Advances.Sum(a => a.Amount).ToString("N3")</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
 <!-- ===== Invoice Detail Modal ===== -->
 <div id="invModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);align-items:center;justify-content:center;">
     <div style="background:#fff;border-radius:12px;width:min(860px,96vw);max-height:92vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25);direction:rtl;font-size:13px;" id="invModalBox">
@@ -1357,6 +1507,23 @@
         link.download = 'daily_report_@(selectedDate).csv';
         link.click();
     }
+
+    // ── Expenses Modal ───────────────────────────────────────────────────────
+    var expModal = document.getElementById('expModal');
+
+    function openExpModal() {
+        expModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeExpModal() {
+        expModal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    expModal.addEventListener('click', function(e) {
+        if (e.target === expModal) closeExpModal();
+    });
 
     // ── Invoice Modal ─────────────────────────────────────────────────────────
     var invModal = document.getElementById('invModal');
@@ -1487,6 +1654,6 @@
 
     // أغلق بـ Escape
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeInvModal();
+        if (e.key === 'Escape') { closeInvModal(); closeExpModal(); }
     });
 </script>
