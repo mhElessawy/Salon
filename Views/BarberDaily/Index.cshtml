@@ -938,85 +938,204 @@
         </div>
     }
 
-    <!-- ===== Bottom Row: Invoices | Discounts | Quick Summary ===== -->
-    <div class="row g-2">
-
-        <!-- Invoices Table -->
-        <div class="col-lg-5 col-md-6">
+    <!-- ===== Invoices Full Width ===== -->
+    <div class="row g-2 mb-2">
+        <div class="col-12">
             <div class="dp2-panel">
                 <div class="dp2-panel-hdr">
                     <span><i class="fas fa-file-invoice me-1"></i> فواتير اليوم</span>
                     <span class="badge-count">@Model.Invoices.Count فاتورة</span>
                 </div>
-                <div style="overflow-x:auto;max-height:260px;overflow-y:auto;">
+                <div style="overflow-x:auto;">
                     <table class="dp2-inv-table">
                         <thead>
                             <tr>
-                                <th>#</th>
                                 <th>رقم الفاتورة</th>
                                 <th>الموظف</th>
-                                <th>الوقت</th>
+                                <th>العميل</th>
+                                <th>النوع</th>
+                                <th>الخدمات</th>
+                                <th>الإجمالي<br /><small>د.ك</small></th>
+                                <th>الخصم<br /><small>د.ك</small></th>
+                                <th>الصافي<br /><small>د.ك</small></th>
+                                <th>هدية للموظف<br /><small>د.ك</small></th>
                                 <th>طريقة الدفع</th>
-                                <th>الإجمالي</th>
-                                <th>الحالة</th>
+                                <th>ملاحظات</th>
+                                <th>الوقت</th>
                                 <th class="no-print"></th>
                             </tr>
                         </thead>
                         <tbody>
-                            @if (!Model.Invoices.Any())
+                            @if (!Model.Invoices.Any() && !Model.Advances.Any())
                             {
-                                <tr><td colspan="8" class="text-center text-muted py-3">لا توجد فواتير</td></tr>
+                                <tr><td colspan="13" class="text-center text-muted py-3"><i class="fas fa-inbox me-1"></i>لا توجد فواتير</td></tr>
                             }
-                            @{
-                                int ii = 1;
-                            }
-                            @foreach (var inv in Model.Invoices.Take(20))
+                            @foreach (var inv in Model.Invoices)
                             {
-                                string pmClass = "pmb-cash";
-                                if (inv.PaymentMethod != null && (inv.PaymentMethod.Contains("كي نت") || inv.PaymentMethod.Contains("بطاقة") || inv.PaymentMethod == "K-Net")) pmClass = "pmb-knet";
-                                else if (inv.PaymentMethod != null && inv.PaymentMethod.Contains("دين")) pmClass = "pmb-debt";
-                                else if (inv.PaymentMethod != null && (inv.PaymentMethod.Contains("مناصفة") || inv.PaymentMethod.Contains("و"))) pmClass = "pmb-mix";
-                                <tr>
-                                    <td>@(ii++)</td>
-                                    <td style="font-family:monospace;font-size:10px;">@inv.InvoiceNumber</td>
-                                    <td style="white-space:nowrap;">@(inv.Employee?.FullName ?? "—")</td>
-                                    <td>@inv.SaleDate.ToString("hh:mm tt")</td>
-                                    <td><span class="pmb @pmClass">@inv.PaymentMethod</span></td>
-                                    <td style="font-weight:700;color:#1d4ed8;">@inv.NetAmount.ToString("N3")</td>
-                                    <td>
-                                        @if (inv.Status == "مكتمل")
+                                var isCancelled = inv.Status == "ملغي";
+                                <tr style="@(isCancelled ? "background:#fff5f5;opacity:.85;" : "")">
+                                    <td style="font-family:monospace;font-size:10px;white-space:nowrap;">
+                                        <strong style="@(isCancelled ? "text-decoration:line-through;color:#dc2626;" : "")">@inv.InvoiceNumber</strong>
+                                        @if (isCancelled)
                                         {
-                                            <span class="pmb pmb-cash">مكتملة</span>
+                                            <br /><span class="pmb pmb-debt" style="font-size:9px;"><i class="fas fa-ban me-1"></i>ملغي</span>
+                                        }
+                                    </td>
+                                    <td style="white-space:nowrap;">@(inv.Employee?.FullName ?? "—")</td>
+                                    <td style="white-space:nowrap;">@(inv.Customer?.FullName ?? "زائر")</td>
+                                    <td>
+                                        @if (inv.SaleType == "حلاقة")
+                                        {
+                                            <span class="pmb" style="background:#1a1a2e;color:#fff;"><i class="fas fa-cut me-1"></i>حلاقة</span>
+                                        }
+                                        else if (inv.SaleType == "مساج")
+                                        {
+                                            <span class="pmb" style="background:#0891b2;color:#fff;"><i class="fas fa-spa me-1"></i>مساج</span>
                                         }
                                         else
                                         {
-
-                                            <span class="pmb pmb-debt">@inv.Status</span>
+                                            <span class="pmb" style="background:#64748b;color:#fff;"><i class="fas fa-box me-1"></i>منتجات</span>
                                         }
                                     </td>
+                                    <td style="font-size:10px;max-width:160px;">
+                                        @if (inv.SaleItems != null && inv.SaleItems.Any())
+                                        {
+                                            <ul style="margin:0;padding-right:14px;">
+                                                @foreach (var item in inv.SaleItems)
+                                                {
+                                                    <li>@item.ItemName@(item.Quantity > 1 ? $" ×{item.Quantity}" : "")</li>
+                                                }
+                                            </ul>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td>@inv.TotalAmount.ToString("N3")</td>
+                                    <td style="color:#dc2626;">
+                                        @if (inv.Discount > 0)
+                                        {
+                                            @inv.Discount.ToString("N3")
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td style="font-weight:700;color:@(isCancelled ? "#dc2626" : "#16a34a");">@inv.NetAmount.ToString("N3")</td>
+                                    <td>
+                                        @if (inv.GiftForEmployee.HasValue && inv.GiftForEmployee > 0)
+                                        {
+                                            <span class="pmb" style="background:#c0392b;color:#fff;"><i class="fas fa-gift me-1"></i>@inv.GiftForEmployee.Value.ToString("N3")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td style="white-space:nowrap;">
+                                        @if (inv.PaymentMethod == "كاش")
+                                        {
+                                            <span class="pmb pmb-cash"><i class="fas fa-money-bill-wave me-1"></i>كاش</span>
+                                        }
+                                        else if (inv.PaymentMethod == "كي نت")
+                                        {
+                                            <span class="pmb pmb-knet"><i class="fas fa-credit-card me-1"></i>كي نت</span>
+                                        }
+                                        else if (inv.PaymentMethod == "كي نت و كاش")
+                                        {
+                                            <span class="pmb pmb-mix"><i class="fas fa-exchange-alt me-1"></i>كاش + كي نت</span>
+                                            <div style="font-size:9px;color:#64748b;margin-top:2px;">
+                                                @if (inv.CashAmount.HasValue && inv.CashAmount > 0) { <span>كاش: @inv.CashAmount.Value.ToString("N3")</span> }
+                                                @if (inv.LinkAmount.HasValue && inv.LinkAmount > 0) { <span class="ms-1">كي نت: @inv.LinkAmount.Value.ToString("N3")</span> }
+                                            </div>
+                                        }
+                                        else if (inv.PaymentMethod != null && inv.PaymentMethod.Contains("دين"))
+                                        {
+                                            <span class="pmb pmb-debt"><i class="fas fa-user me-1"></i>@inv.PaymentMethod</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="pmb" style="background:#e2e8f0;color:#1a1a2e;">@inv.PaymentMethod</span>
+                                        }
+                                    </td>
+                                    <td style="font-size:10px;color:#64748b;max-width:120px;white-space:pre-wrap;">@inv.Notes</td>
+                                    <td style="white-space:nowrap;color:#64748b;font-size:10px;">@inv.SaleDate.ToString("hh:mm tt")</td>
                                     <td class="no-print" style="text-align:center;">
-                                        <a href="@Url.Action("Details", "Sales", new { id = inv.Id })" target="_blank"
-                                           title="عرض الفاتورة"
-                                           style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;text-decoration:none;font-size:13px;">
+                                        <a href="@Url.Action("Details","Sales",new{id=inv.Id})" target="_blank"
+                                           style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:5px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;text-decoration:none;font-size:12px;">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                     </td>
                                 </tr>
                             }
+                            @foreach (var adv in Model.Advances)
+                            {
+                                var advTime = adv.AdvanceDate != default ? adv.AdvanceDate.ToString("hh:mm tt") : adv.CreatedAt.ToString("hh:mm tt");
+                                <tr style="background:#fff0f0;">
+                                    <td style="font-family:monospace;font-size:10px;"><strong class="text-danger">سلفة #@adv.Id</strong></td>
+                                    <td style="white-space:nowrap;">@(adv.Employee?.FullName ?? "—")</td>
+                                    <td class="text-muted">—</td>
+                                    <td><span class="pmb" style="background:#9f1239;color:#fff;"><i class="fas fa-hand-holding-usd me-1"></i>سلفة</span></td>
+                                    <td style="font-size:10px;color:#64748b;">@(string.IsNullOrEmpty(adv.Reason) ? "—" : adv.Reason)</td>
+                                    <td style="color:#dc2626;font-weight:700;">@adv.Amount.ToString("N3")</td>
+                                    <td class="text-muted">—</td>
+                                    <td style="color:#dc2626;font-weight:700;">@adv.Amount.ToString("N3")</td>
+                                    <td class="text-muted">—</td>
+                                    <td>
+                                        @if (adv.PaymentMethod == "كاش" || adv.PaymentMethod == "نقدي")
+                                        {
+                                            <span class="pmb pmb-cash"><i class="fas fa-money-bill-wave me-1"></i>@adv.PaymentMethod</span>
+                                        }
+                                        else if (adv.PaymentMethod == "كي نت")
+                                        {
+                                            <span class="pmb pmb-knet"><i class="fas fa-credit-card me-1"></i>كي نت</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="pmb" style="background:#e2e8f0;color:#1a1a2e;">@adv.PaymentMethod</span>
+                                        }
+                                    </td>
+                                    <td></td>
+                                    <td style="white-space:nowrap;color:#64748b;font-size:10px;">@advTime</td>
+                                    <td></td>
+                                </tr>
+                            }
                         </tbody>
+                        @if (Model.Invoices.Any() || Model.Advances.Any())
+                        {
+                            <tfoot>
+                                <tr>
+                                    <td colspan="5" style="text-align:end;">
+                                        فواتير: <span style="background:rgba(255,255,255,.2);padding:1px 6px;border-radius:8px;">@Model.Invoices.Count</span>
+                                        @if (Model.Advances.Any())
+                                        {
+                                            <span style="margin-right:8px;">سلف: <span style="background:#dc2626;padding:1px 6px;border-radius:8px;">@Model.Advances.Count</span></span>
+                                        }
+                                    </td>
+                                    <td>@Model.Invoices.Sum(s => s.TotalAmount).ToString("N3")</td>
+                                    <td style="color:#fbbf24;">@Model.Invoices.Sum(s => s.Discount).ToString("N3")</td>
+                                    <td style="color:#4ade80;">@Model.Invoices.Sum(s => s.NetAmount).ToString("N3")</td>
+                                    <td style="color:#fbbf24;">
+                                        @{var hadiyaSum2 = Model.Invoices.Sum(s => s.GiftForEmployee ?? 0);}
+                                        @(hadiyaSum2 > 0 ? hadiyaSum2.ToString("N3") : "—")
+                                    </td>
+                                    <td colspan="4"></td>
+                                </tr>
+                            </tfoot>
+                        }
                     </table>
                 </div>
-                @if (Model.Invoices.Count > 20)
-                {
-                    <a class="dp2-show-all no-print" href="@Url.Action("Index", "Sales")?date=@selectedDate">
-                        <i class="fas fa-arrow-left"></i> عرض جميع الفواتير (@Model.Invoices.Count)
-                    </a>
-                }
             </div>
         </div>
+    </div>
+
+    <!-- ===== Bottom Row: Discounts | Quick Summary ===== -->
+    <div class="row g-2">
 
         <!-- Discounts Table -->
-        <div id="disc-section" class="col-lg-4 col-md-6">
+        <div id="disc-section" class="col-lg-8 col-md-6">
             <div class="dp2-panel">
                 <div class="dp2-panel-hdr" style="background:#7c3aed;">
                     <span><i class="fas fa-tags me-1"></i> تفاصيل خصومات اليوم</span>
@@ -1066,7 +1185,7 @@
         </div>
 
         <!-- Quick Summary -->
-        <div class="col-lg-3 col-md-12">
+        <div class="col-lg-4 col-md-12">
             <div class="dp2-panel">
                 <div class="dp2-panel-hdr"><i class="fas fa-list-check me-1"></i> ملخص سريع لليوم</div>
                 <div class="dp2-panel-body">
