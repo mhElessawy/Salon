@@ -346,6 +346,16 @@ body.sidebar-collapsed .main-content {
     margin-right: 0;
 }
 
+/* LTR: sidebar on left, collapse slides it left not right */
+html[dir="ltr"] body.sidebar-collapsed .sidebar {
+    transform: translateX(-100%);
+}
+
+html[dir="ltr"] body.sidebar-collapsed .main-content {
+    margin-right: 0;
+    margin-left: 0;
+}
+
 /* Desktop sidebar toggle button */
 .sidebar-toggle-btn {
     background: none;
