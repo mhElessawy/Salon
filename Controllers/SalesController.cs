@@ -362,6 +362,42 @@ namespace Salon.Controllers
             return View(sale);
         }
 
+        public async Task<IActionResult> DetailsJson(int id)
+        {
+            var sale = await _context.Sales
+                .Include(s => s.Customer)
+                .Include(s => s.Employee)
+                .Include(s => s.SaleItems)
+                .FirstOrDefaultAsync(s => s.Id == id);
+            if (sale == null) return NotFound();
+            return Json(new
+            {
+                id = sale.Id,
+                invoiceNumber = sale.InvoiceNumber,
+                saleDate = sale.SaleDate.ToString("yyyy/MM/dd hh:mm tt"),
+                customer = sale.Customer?.FullName ?? "زائر",
+                employee = sale.Employee?.FullName ?? "—",
+                saleType = sale.SaleType,
+                paymentMethod = sale.PaymentMethod,
+                cashAmount = sale.CashAmount,
+                linkAmount = sale.LinkAmount,
+                status = sale.Status,
+                totalAmount = sale.TotalAmount,
+                discount = sale.Discount,
+                netAmount = sale.NetAmount,
+                notes = sale.Notes,
+                employeeGift = sale.EmployeeGift,
+                giftForEmployee = sale.GiftForEmployee,
+                items = sale.SaleItems.Select(i => new
+                {
+                    itemName = i.ItemName,
+                    quantity = i.Quantity,
+                    price = i.Price,
+                    total = i.Total
+                }).ToList()
+            });
+        }
+
         public async Task<IActionResult> PrintInvoice(int id)
         {
             var sale = await _context.Sales
