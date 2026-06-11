@@ -232,15 +232,21 @@ namespace Salon.Controllers
                 filtered = filtered.Where(s => s.EmployeeId == employeeId);
             var filteredList = filtered.ToList();
 
-            var expensesTodayList = await _context.Expenses
-                .Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow)
+            var expensesTodayQuery = _context.Expenses
+                .Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow);
+            if (saleType == "حلاقة" || saleType == "مساج")
+                expensesTodayQuery = expensesTodayQuery.Where(e => e.Department == saleType);
+            var expensesTodayList = await expensesTodayQuery
                 .OrderBy(e => e.ExpenseDate)
                 .ToListAsync();
             var expensesToday = expensesTodayList.Sum(e => e.Amount);
 
-            var salariesTodayList = await _context.Salaries
-                .Include(s => s.Employee)
-                .Where(s => s.PaidDate >= today && s.PaidDate < tomorrow)
+            var salariesTodayQuery = _context.Salaries
+                .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Where(s => s.PaidDate >= today && s.PaidDate < tomorrow);
+            if (saleType == "حلاقة" || saleType == "مساج")
+                salariesTodayQuery = salariesTodayQuery.Where(s => s.Employee!.DepartmentNav!.Name == saleType);
+            var salariesTodayList = await salariesTodayQuery
                 .OrderBy(s => s.Employee!.FullName)
                 .ToListAsync();
             var salariesToday = salariesTodayList.Sum(s => s.NetSalary);
@@ -659,13 +665,15 @@ namespace Salon.Controllers
             bool showCashSales = string.IsNullOrEmpty(type) || type == "كاش";
             bool showKNetSales = string.IsNullOrEmpty(type) || type == "كي نت";
             bool showWithdrawals = string.IsNullOrEmpty(type) || type == "سحب";
-            // فلتر القسم: يطبق على المبيعات فقط
             bool filterDept = !string.IsNullOrEmpty(dept);
 
             if (showExpenses)
             {
-                var expenses = await _context.Expenses
-                    .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo)
+                var expensesQuery = _context.Expenses
+                    .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo);
+                if (filterDept)
+                    expensesQuery = expensesQuery.Where(e => e.Department == dept);
+                var expenses = await expensesQuery
                     .OrderByDescending(e => e.ExpenseDate)
                     .ToListAsync();
 
@@ -679,9 +687,12 @@ namespace Salon.Controllers
                     Notes = e.Notes
                 }));
 
-                var advances = await _context.EmployeeAdvances
-                    .Include(a => a.Employee)
-                    .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo)
+                var advancesQuery = _context.EmployeeAdvances
+                    .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                    .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo);
+                if (filterDept)
+                    advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == dept);
+                var advances = await advancesQuery
                     .OrderByDescending(a => a.AdvanceDate)
                     .ToListAsync();
 
@@ -695,9 +706,12 @@ namespace Salon.Controllers
                     Notes = a.Reason
                 }));
 
-                var salaries = await _context.Salaries
-                    .Include(s => s.Employee)
-                    .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= dateFrom && s.PaidDate.Value < dateTo)
+                var salariesQuery = _context.Salaries
+                    .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
+                    .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= dateFrom && s.PaidDate.Value < dateTo);
+                if (filterDept)
+                    salariesQuery = salariesQuery.Where(s => s.Employee!.DepartmentNav!.Name == dept);
+                var salaries = await salariesQuery
                     .OrderByDescending(s => s.PaidDate)
                     .ToListAsync();
 
