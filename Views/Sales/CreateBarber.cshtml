@@ -216,12 +216,16 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            position: sticky;
+            top: 70px;
+            height: calc(100vh - 90px);
         }
 
         .pos-search {
             padding: 8px 10px;
             border-bottom: 1px solid #f0f0f0;
             position: relative;
+            flex-shrink: 0;
         }
 
         .search-icon {
@@ -253,7 +257,7 @@
         .services-scroll {
             padding: 10px;
             overflow-y: auto;
-            max-height: calc(100vh - 280px);
+            flex: 1;
         }
 
         .cat-label {
