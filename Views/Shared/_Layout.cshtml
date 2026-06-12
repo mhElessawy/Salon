@@ -191,7 +191,15 @@
                     mc.style.marginLeft = (!isCollapsed && window.innerWidth >= 992) ? 'var(--sidebar-width)' : '0';
                 }
                 var sb = document.getElementById('sidebar');
-                if (sb) sb.style.transform = isCollapsed ? 'translateX(-100%)' : 'translateX(0)';
+                if (window.innerWidth >= 992) {
+                    if (sb) sb.style.transform = isCollapsed ? 'translateX(-100%)' : 'translateX(0)';
+                } else {
+                    // على المحمول: أمسح inline style وخلي CSS يتحكم (translateX(-100%) مخفي بالـ CSS)
+                    if (sb) { sb.style.transform = ''; sb.classList.remove('show'); }
+                    if (overlay) overlay.classList.remove('show');
+                    if (closeBtn) closeBtn.removeAttribute('style');
+                    document.body.classList.remove('sidebar-open');
+                }
             } else {
                 html.setAttribute('lang', 'ar');
                 html.setAttribute('dir', 'rtl');
