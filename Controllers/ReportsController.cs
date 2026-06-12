@@ -930,5 +930,91 @@ namespace Salon.Controllers
 
             return View();
         }
+
+        public async Task<IActionResult> Revenue(string? from, string? to, int? employeeId, string? saleType)
+        {
+            DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
+            DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
+            var query = _context.Sales
+                .Include(s => s.Employee)
+                .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
+
+            if (userDept == "مساج")
+                query = query.Where(s => s.SaleType == "مساج");
+            else if (userDept == "حلاقة")
+                query = query.Where(s => s.SaleType == "حلاقة");
+
+            if (!string.IsNullOrEmpty(saleType))
+                query = query.Where(s => s.SaleType == saleType);
+
+            if (employeeId.HasValue)
+                query = query.Where(s => s.EmployeeId == employeeId);
+
+            var allSales = await query.OrderBy(s => s.SaleDate).ToListAsync();
+
+            string[] cashMethods = { "كاش", "نقدي", "Cash" };
+            string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
+            var dailyRows = allSales
+                .GroupBy(s => s.SaleDate.Date)
+                .Select(g => new DailyRevenueRow
+                {
+                    Date = g.Key,
+                    Total = g.Sum(s => s.NetAmount),
+                    Cash = g.Sum(s => cashMethods.Contains(s.PaymentMethod) ? s.NetAmount
+                        : mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0),
+                    Knet = g.Sum(s => knetMethods.Contains(s.PaymentMethod) ? s.NetAmount
+                        : mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0),
+                    EmployeeDebt = g.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount),
+                    OwnerDebt = g.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount),
+                    Count = g.Count()
+                })
+                .OrderBy(r => r.Date)
+                .ToList();
+
+            var employees = await _context.Employees
+                .Where(e => e.IsActive)
+                .OrderBy(e => e.FullName)
+                .ToListAsync();
+
+            decimal totalRevenue = allSales.Sum(s => s.NetAmount);
+            decimal totalCash = allSales.Sum(s => cashMethods.Contains(s.PaymentMethod) ? s.NetAmount
+                : mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+            decimal totalKnet = allSales.Sum(s => knetMethods.Contains(s.PaymentMethod) ? s.NetAmount
+                : mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
+
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
+            ViewBag.TotalRevenue = totalRevenue;
+            ViewBag.TotalCash = totalCash;
+            ViewBag.TotalKnet = totalKnet;
+            ViewBag.TotalEmployeeDebt = allSales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
+            ViewBag.TotalOwnerDebt = allSales.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount);
+            ViewBag.TotalCount = allSales.Count;
+            ViewBag.ReportNumber = "RPT-" + dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.Employees = employees;
+            ViewBag.SelectedEmployeeId = employeeId;
+            ViewBag.SelectedSaleType = saleType;
+            ViewBag.UserDept = userDept;
+
+            if (dailyRows.Any())
+            {
+                var best = dailyRows.OrderByDescending(d => d.Total).First();
+                var worst = dailyRows.OrderBy(d => d.Total).First();
+                ViewBag.BestDayAmount = best.Total;
+                ViewBag.BestDayDate = best.Date.ToString("yyyy/MM/dd");
+                ViewBag.WorstDayAmount = worst.Total;
+                ViewBag.WorstDayDate = worst.Date.ToString("yyyy/MM/dd");
+                ViewBag.AvgDailyRevenue = dailyRows.Average(d => d.Total);
+                ViewBag.AvgDailyCount = dailyRows.Average(d => (double)d.Count);
+            }
+
+            return View(dailyRows);
+        }
     }
 }
