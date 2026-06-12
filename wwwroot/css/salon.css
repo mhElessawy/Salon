@@ -1021,7 +1021,7 @@ body.sidebar-collapsed .main-content {
    SIDEBAR CLOSE BUTTON (Mobile - floating fixed)
    ============================================= */
 .sidebar-close-btn {
-    display: flex;
+    display: none !important;
     position: fixed;
     top: 12px;
     left: 12px;
@@ -1040,9 +1040,20 @@ body.sidebar-collapsed .main-content {
     touch-action: manipulation;
 }
 
-    .sidebar-close-btn.show {
-        display: flex;
+@media (max-width: 991px) {
+    body.sidebar-open .sidebar-close-btn {
+        display: flex !important;
     }
+
+    html[dir="ltr"] body.sidebar-open .sidebar-close-btn {
+        left: auto;
+        right: 12px;
+    }
+}
+
+.sidebar-close-btn.show {
+    display: none !important;
+}
 
 /* Prevent body scroll when sidebar is open on mobile */
 body.sidebar-open {
