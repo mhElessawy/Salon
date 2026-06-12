@@ -243,13 +243,24 @@
         function toggleSidebar() {
             var isOpen = sidebar.classList.toggle('show');
             overlay.classList.toggle('show', isOpen);
-            if (closeBtn) closeBtn.classList.toggle('show', isOpen);
+            if (closeBtn) {
+                if (isOpen) {
+                    var ltr = document.documentElement.getAttribute('dir') === 'ltr';
+                    closeBtn.setAttribute('style',
+                        'display:flex!important;position:fixed!important;z-index:9999!important;' +
+                        'top:12px!important;' +
+                        (ltr ? 'right:12px!important;left:auto!important;' : 'left:12px!important;right:auto!important;')
+                    );
+                } else {
+                    closeBtn.removeAttribute('style');
+                }
+            }
             document.body.classList.toggle('sidebar-open', isOpen);
         }
         function closeSidebar() {
             sidebar.classList.remove('show');
             overlay.classList.remove('show');
-            if (closeBtn) closeBtn.classList.remove('show');
+            if (closeBtn) closeBtn.removeAttribute('style');
             document.body.classList.remove('sidebar-open');
         }
 
