@@ -250,24 +250,28 @@
         function positionCloseBtn() {
             if (!closeBtn) return;
             var isLtr = document.documentElement.getAttribute('dir') === 'ltr';
-            closeBtn.style.top   = '70px';
-            closeBtn.style.left  = isLtr ? 'auto' : '12px';
-            closeBtn.style.right = isLtr ? '12px' : 'auto';
+            closeBtn.style.display  = 'flex';
+            closeBtn.style.position = 'fixed';
+            closeBtn.style.zIndex   = '1061';
+            closeBtn.style.top      = '70px';
+            closeBtn.style.left     = isLtr ? 'auto' : '12px';
+            closeBtn.style.right    = isLtr ? '12px' : 'auto';
         }
 
         function toggleSidebar() {
             var isOpen = sidebar.classList.toggle('show');
             overlay.classList.toggle('show', isOpen);
-            if (closeBtn) {
-                closeBtn.classList.toggle('show', isOpen);
-                if (isOpen) positionCloseBtn();
+            if (isOpen) {
+                positionCloseBtn();
+            } else {
+                if (closeBtn) closeBtn.style.display = 'none';
             }
             document.body.classList.toggle('sidebar-open', isOpen);
         }
         function closeSidebar() {
             sidebar.classList.remove('show');
             overlay.classList.remove('show');
-            if (closeBtn) closeBtn.classList.remove('show');
+            if (closeBtn) closeBtn.style.display = 'none';
             document.body.classList.remove('sidebar-open');
         }
 
