@@ -137,15 +137,12 @@
             }
         </div>
     </div>
-    @if (totalDepositsAmount > 0)
-    {
-        <div class="col-md-3">
-            <div class="stat-card" style="border-right:4px solid #16a34a;">
-                <div class="stat-label">الإيداعات</div>
-                <div class="stat-value" style="color:#16a34a;">@totalDepositsAmount.ToString("N3") د.ك</div>
-            </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="border-right:4px solid #16a34a;">
+            <div class="stat-label">الإيداعات</div>
+            <div class="stat-value" style="color:#16a34a;">@totalDepositsAmount.ToString("N3") د.ك</div>
         </div>
-    }
+    </div>
     <div class="col-md-3">
         <div class="stat-card orange">
             <div class="stat-label">صافي الربح</div>
