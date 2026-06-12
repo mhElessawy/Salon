@@ -433,7 +433,7 @@
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'revenue-@ViewBag.From-@ViewBag.To.csv';
+        a.download = 'revenue-@(ViewBag.From)-@(ViewBag.To).csv';
         a.click();
     }
 </script>
