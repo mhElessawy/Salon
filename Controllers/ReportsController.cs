@@ -131,10 +131,15 @@ namespace Salon.Controllers
 
             var salesSalaries = await salariesQuery.OrderBy(s => s.PaidDate).ToListAsync();
 
-            var salesDeposits = await _context.Deposits
-                .Where(d => d.DepositDate >= dateFrom && d.DepositDate < dateTo)
-                .OrderBy(d => d.DepositDate)
-                .ToListAsync();
+            var depositsQuery = _context.Deposits
+                .Where(d => d.DepositDate >= dateFrom && d.DepositDate < dateTo);
+
+            if (!string.IsNullOrEmpty(saleType))
+                depositsQuery = depositsQuery.Where(d => d.Department == saleType);
+            else if (userDept == "مساج" || userDept == "حلاقة")
+                depositsQuery = depositsQuery.Where(d => d.Department == userDept);
+
+            var salesDeposits = await depositsQuery.OrderBy(d => d.DepositDate).ToListAsync();
 
             ViewBag.ExpensesInRange = salesExpenses;
             ViewBag.TotalExpensesAmount = salesExpenses.Sum(e => e.Amount);
