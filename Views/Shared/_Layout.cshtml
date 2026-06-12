@@ -197,8 +197,7 @@
                 }
                 var sb = document.getElementById('sidebar');
                 if (sb) sb.style.transform = isCollapsed ? 'translateX(-100%)' : 'translateX(0)';
-                var cb = document.getElementById('sidebarCloseBtn');
-                if (cb) { cb.style.left = 'auto'; cb.style.right = '12px'; }
+                if (typeof positionCloseBtn === 'function') positionCloseBtn();
             } else {
                 html.setAttribute('lang', 'ar');
                 html.setAttribute('dir', 'rtl');
@@ -213,8 +212,7 @@
                 }
                 var sb = document.getElementById('sidebar');
                 if (sb) sb.style.transform = '';
-                var cb = document.getElementById('sidebarCloseBtn');
-                if (cb) { cb.style.left = '12px'; cb.style.right = 'auto'; }
+                if (typeof positionCloseBtn === 'function') positionCloseBtn();
             }
 
             localStorage.setItem('lang', lang);
@@ -249,17 +247,20 @@
         var overlay = document.getElementById('sidebarOverlay');
         var closeBtn = document.getElementById('sidebarCloseBtn');
 
+        function positionCloseBtn() {
+            if (!closeBtn) return;
+            var isLtr = document.documentElement.getAttribute('dir') === 'ltr';
+            closeBtn.style.top   = '70px';
+            closeBtn.style.left  = isLtr ? 'auto' : '12px';
+            closeBtn.style.right = isLtr ? '12px' : 'auto';
+        }
+
         function toggleSidebar() {
             var isOpen = sidebar.classList.toggle('show');
             overlay.classList.toggle('show', isOpen);
             if (closeBtn) {
                 closeBtn.classList.toggle('show', isOpen);
-                if (isOpen) {
-                    var isLtr = document.documentElement.getAttribute('dir') === 'ltr';
-                    closeBtn.style.left  = isLtr ? 'auto' : '12px';
-                    closeBtn.style.right = isLtr ? '12px' : 'auto';
-                    closeBtn.style.top   = 'calc(var(--topbar-height, 60px) + 10px)';
-                }
+                if (isOpen) positionCloseBtn();
             }
             document.body.classList.toggle('sidebar-open', isOpen);
         }

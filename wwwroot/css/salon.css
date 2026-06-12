@@ -1023,7 +1023,7 @@ body.sidebar-collapsed .main-content {
 .sidebar-close-btn {
     display: none;
     position: fixed;
-    top: calc(var(--topbar-height) + 10px);
+    top: 12px;
     left: 12px;
     width: 44px;
     height: 44px;
