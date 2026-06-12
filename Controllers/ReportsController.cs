@@ -990,11 +990,12 @@ namespace Salon.Controllers
             decimal totalWithdrawals = withdrawalsList.Sum(w => w.Amount);
 
             // Advances
-            var advancesList = await _context.EmployeeAdvances
-                .Include(a => a.Employee)
-                .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo)
-                .OrderBy(a => a.AdvanceDate)
-                .ToListAsync();
+            var advQuery = _context.EmployeeAdvances
+                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo);
+            if (deptFilter == "مساج") advQuery = advQuery.Where(a => a.Employee!.DepartmentNav!.Name == "مساج");
+            else if (deptFilter == "حلاقة") advQuery = advQuery.Where(a => a.Employee!.DepartmentNav!.Name == "حلاقة");
+            var advancesList = await advQuery.OrderBy(a => a.AdvanceDate).ToListAsync();
             decimal totalAdvances = advancesList.Sum(a => a.Amount);
 
             string[] cashMethods = { "كاش", "نقدي", "Cash" };
