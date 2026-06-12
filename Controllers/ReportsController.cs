@@ -972,23 +972,30 @@ namespace Salon.Controllers
             var expQuery = _context.Expenses.Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo);
             if (deptFilter == "مساج") expQuery = expQuery.Where(e => e.Department == "مساج");
             else if (deptFilter == "حلاقة") expQuery = expQuery.Where(e => e.Department == "حلاقة");
-            decimal totalExpenses = await expQuery.SumAsync(e => (decimal?)e.Amount) ?? 0m;
+            var expensesList = await expQuery.OrderBy(e => e.ExpenseDate).ToListAsync();
+            decimal totalExpenses = expensesList.Sum(e => e.Amount);
 
             // Deposits
             var depQuery = _context.Deposits.Where(d => d.DepositDate >= dateFrom && d.DepositDate < dateTo);
             if (deptFilter == "مساج") depQuery = depQuery.Where(d => d.Department == "مساج");
             else if (deptFilter == "حلاقة") depQuery = depQuery.Where(d => d.Department == "حلاقة");
-            decimal totalDeposits = await depQuery.SumAsync(d => (decimal?)d.Amount) ?? 0m;
+            var depositsList = await depQuery.OrderBy(d => d.DepositDate).ToListAsync();
+            decimal totalDeposits = depositsList.Sum(d => d.Amount);
 
             // Withdrawals (no dept field)
-            decimal totalWithdrawals = await _context.Withdrawals
+            var withdrawalsList = await _context.Withdrawals
                 .Where(w => w.WithdrawalDate >= dateFrom && w.WithdrawalDate < dateTo)
-                .SumAsync(w => (decimal?)w.Amount) ?? 0m;
+                .OrderBy(w => w.WithdrawalDate)
+                .ToListAsync();
+            decimal totalWithdrawals = withdrawalsList.Sum(w => w.Amount);
 
             // Advances
-            decimal totalAdvances = await _context.EmployeeAdvances
+            var advancesList = await _context.EmployeeAdvances
+                .Include(a => a.Employee)
                 .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo)
-                .SumAsync(a => (decimal?)a.Amount) ?? 0m;
+                .OrderBy(a => a.AdvanceDate)
+                .ToListAsync();
+            decimal totalAdvances = advancesList.Sum(a => a.Amount);
 
             string[] cashMethods = { "كاش", "نقدي", "Cash" };
             string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
@@ -1047,6 +1054,10 @@ namespace Salon.Controllers
             ViewBag.TotalDeposits = totalDeposits;
             ViewBag.TotalWithdrawals = totalWithdrawals;
             ViewBag.TotalAdvances = totalAdvances;
+            ViewBag.ExpensesList = expensesList;
+            ViewBag.DepositsList = depositsList;
+            ViewBag.WithdrawalsList = withdrawalsList;
+            ViewBag.AdvancesList = advancesList;
             ViewBag.CancelledCount = cancelledSales.Count;
             ViewBag.CancelledAmount = cancelledSales.Sum(s => s.NetAmount);
             ViewBag.NetProfit = netProfit;

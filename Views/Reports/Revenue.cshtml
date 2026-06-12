@@ -1,4 +1,5 @@
 @model List<Salon.Models.DailyRevenueRow>
+@using Salon.Models
 @{
     ViewData["Title"] = "تقرير الإيرادات حسب الفترة";
     var employees = ViewBag.Employees as IEnumerable<Salon.Models.Employee> ?? Enumerable.Empty<Salon.Models.Employee>();
@@ -6,6 +7,11 @@
     string? selectedSaleType = ViewBag.SelectedSaleType as string;
     string? userDept = ViewBag.UserDept as string;
     bool isDeptUser = userDept == "حلاقة" || userDept == "مساج";
+
+    var expensesList   = ViewBag.ExpensesList   as List<Expense>        ?? new List<Expense>();
+    var depositsList   = ViewBag.DepositsList   as List<Deposit>        ?? new List<Deposit>();
+    var withdrawalsList= ViewBag.WithdrawalsList as List<Withdrawal>    ?? new List<Withdrawal>();
+    var advancesList   = ViewBag.AdvancesList   as List<EmployeeAdvance> ?? new List<EmployeeAdvance>();
 
     decimal totalRevenue = ViewBag.TotalRevenue is decimal tr ? tr : 0m;
     decimal totalCash = ViewBag.TotalCash is decimal tc ? tc : 0m;
@@ -481,6 +487,220 @@
         </div>
     </div>
 }
+
+@* ======= EXPENSES TABLE ======= *@
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center py-2" style="background:#fff5f5;">
+        <h6 class="fw-bold mb-0 text-danger"><i class="fas fa-file-invoice me-2"></i><span data-i18n-en="Expenses">المصروفات</span></h6>
+        <span class="badge bg-danger">@expensesList.Sum(e => e.Amount).ToString("N3") <span data-i18n-en="K.D.">د.ك</span></span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm rev-table mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th data-i18n-en="Date">التاريخ</th>
+                    <th data-i18n-en="Description">البيان</th>
+                    <th data-i18n-en="Category">الفئة</th>
+                    <th data-i18n-en="Department">القسم</th>
+                    <th data-i18n-en="Payment">طريقة الدفع</th>
+                    <th data-i18n-en="Amount (K.D.)">المبلغ (د.ك)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!expensesList.Any())
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-3"><span data-i18n-en="No expenses in this period">لا توجد مصروفات في هذه الفترة</span></td></tr>
+                }
+                @{ int ei = 0; }
+                @foreach (var exp in expensesList)
+                {
+                    ei++;
+                    <tr>
+                        <td class="text-muted">@ei</td>
+                        <td>@exp.ExpenseDate.ToString("yyyy/MM/dd")</td>
+                        <td><strong>@exp.Description</strong></td>
+                        <td><span class="text-muted small">@(exp.Category ?? "-")</span></td>
+                        <td>
+                            @if (exp.Department == "مساج") { <span class="badge" style="background:#16a34a" data-i18n-en="🌿 Massage">🌿 مساج</span> }
+                            else if (exp.Department == "حلاقة") { <span class="badge" style="background:#1a1a2e" data-i18n-en="✂️ Barber">✂️ حلاقة</span> }
+                            else { <span class="badge bg-secondary" data-i18n-en="Shared">مشترك</span> }
+                        </td>
+                        <td><span class="text-muted small">@exp.PaymentMethod</span></td>
+                        <td><strong class="text-danger">@exp.Amount.ToString("N3")</strong></td>
+                    </tr>
+                }
+            </tbody>
+            @if (expensesList.Any())
+            {
+                <tfoot>
+                    <tr>
+                        <td colspan="6" data-i18n-en="Total">الإجمالي</td>
+                        <td class="text-danger fw-bold">@expensesList.Sum(e => e.Amount).ToString("N3")</td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+</div>
+
+@* ======= DEPOSITS TABLE ======= *@
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center py-2" style="background:#f0fdf4;">
+        <h6 class="fw-bold mb-0" style="color:#16a34a;"><i class="fas fa-money-bill-wave me-2"></i><span data-i18n-en="Deposits">الإيداعات</span></h6>
+        <span class="badge" style="background:#16a34a;">@depositsList.Sum(d => d.Amount).ToString("N3") <span data-i18n-en="K.D.">د.ك</span></span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm rev-table mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th data-i18n-en="Date">التاريخ</th>
+                    <th data-i18n-en="Description">البيان</th>
+                    <th data-i18n-en="Source">المصدر</th>
+                    <th data-i18n-en="Department">القسم</th>
+                    <th data-i18n-en="Amount (K.D.)">المبلغ (د.ك)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!depositsList.Any())
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-3"><span data-i18n-en="No deposits in this period">لا توجد إيداعات في هذه الفترة</span></td></tr>
+                }
+                @{ int di = 0; }
+                @foreach (var dep in depositsList)
+                {
+                    di++;
+                    <tr>
+                        <td class="text-muted">@di</td>
+                        <td>@dep.DepositDate.ToString("yyyy/MM/dd")</td>
+                        <td><strong>@dep.Description</strong></td>
+                        <td><span class="text-muted small">@(dep.Source ?? "-")</span></td>
+                        <td>
+                            @if (dep.Department == "مساج") { <span class="badge" style="background:#16a34a" data-i18n-en="🌿 Massage">🌿 مساج</span> }
+                            else if (dep.Department == "حلاقة") { <span class="badge" style="background:#1a1a2e" data-i18n-en="✂️ Barber">✂️ حلاقة</span> }
+                            else { <span class="badge bg-secondary" data-i18n-en="Shared">مشترك</span> }
+                        </td>
+                        <td><strong style="color:#16a34a;">@dep.Amount.ToString("N3")</strong></td>
+                    </tr>
+                }
+            </tbody>
+            @if (depositsList.Any())
+            {
+                <tfoot>
+                    <tr>
+                        <td colspan="5" data-i18n-en="Total">الإجمالي</td>
+                        <td style="color:#16a34a;" class="fw-bold">@depositsList.Sum(d => d.Amount).ToString("N3")</td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+</div>
+
+@* ======= WITHDRAWALS TABLE ======= *@
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center py-2" style="background:#fffbeb;">
+        <h6 class="fw-bold mb-0" style="color:#d97706;"><i class="fas fa-hand-holding-usd me-2"></i><span data-i18n-en="Withdrawals">السحوبات</span></h6>
+        <span class="badge" style="background:#d97706;">@withdrawalsList.Sum(w => w.Amount).ToString("N3") <span data-i18n-en="K.D.">د.ك</span></span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm rev-table mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th data-i18n-en="Date">التاريخ</th>
+                    <th data-i18n-en="Description">البيان</th>
+                    <th data-i18n-en="Reason">السبب</th>
+                    <th data-i18n-en="Amount (K.D.)">المبلغ (د.ك)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!withdrawalsList.Any())
+                {
+                    <tr><td colspan="5" class="text-center text-muted py-3"><span data-i18n-en="No withdrawals in this period">لا توجد سحوبات في هذه الفترة</span></td></tr>
+                }
+                @{ int wi = 0; }
+                @foreach (var wit in withdrawalsList)
+                {
+                    wi++;
+                    <tr>
+                        <td class="text-muted">@wi</td>
+                        <td>@wit.WithdrawalDate.ToString("yyyy/MM/dd")</td>
+                        <td><strong>@wit.Description</strong></td>
+                        <td><span class="text-muted small">@(wit.Reason ?? "-")</span></td>
+                        <td><strong style="color:#d97706;">@wit.Amount.ToString("N3")</strong></td>
+                    </tr>
+                }
+            </tbody>
+            @if (withdrawalsList.Any())
+            {
+                <tfoot>
+                    <tr>
+                        <td colspan="4" data-i18n-en="Total">الإجمالي</td>
+                        <td style="color:#d97706;" class="fw-bold">@withdrawalsList.Sum(w => w.Amount).ToString("N3")</td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+</div>
+
+@* ======= ADVANCES TABLE ======= *@
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center py-2" style="background:#f5f3ff;">
+        <h6 class="fw-bold mb-0" style="color:#7c3aed;"><i class="fas fa-hand-holding-medical me-2"></i><span data-i18n-en="Advances">السلف</span></h6>
+        <span class="badge" style="background:#7c3aed;">@advancesList.Sum(a => a.Amount).ToString("N3") <span data-i18n-en="K.D.">د.ك</span></span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm rev-table mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th data-i18n-en="Date">التاريخ</th>
+                    <th data-i18n-en="Employee">الموظف</th>
+                    <th data-i18n-en="Reason">السبب</th>
+                    <th data-i18n-en="Payment">طريقة الدفع</th>
+                    <th data-i18n-en="Status">الحالة</th>
+                    <th data-i18n-en="Amount (K.D.)">المبلغ (د.ك)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!advancesList.Any())
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-3"><span data-i18n-en="No advances in this period">لا توجد سلف في هذه الفترة</span></td></tr>
+                }
+                @{ int ai = 0; }
+                @foreach (var adv in advancesList)
+                {
+                    ai++;
+                    <tr>
+                        <td class="text-muted">@ai</td>
+                        <td>@adv.AdvanceDate.ToString("yyyy/MM/dd")</td>
+                        <td><strong>@(adv.Employee?.FullName ?? "-")</strong></td>
+                        <td><span class="text-muted small">@(adv.Reason ?? "-")</span></td>
+                        <td><span class="text-muted small">@adv.PaymentMethod</span></td>
+                        <td>
+                            @if (adv.Status == "مسدد") { <span class="badge bg-success" data-i18n-en="Paid">مسدد</span> }
+                            else if (adv.Status == "جزئي") { <span class="badge bg-warning text-dark" data-i18n-en="Partial">جزئي</span> }
+                            else { <span class="badge bg-danger" data-i18n-en="Pending">معلق</span> }
+                        </td>
+                        <td><strong style="color:#7c3aed;">@adv.Amount.ToString("N3")</strong></td>
+                    </tr>
+                }
+            </tbody>
+            @if (advancesList.Any())
+            {
+                <tfoot>
+                    <tr>
+                        <td colspan="6" data-i18n-en="Total">الإجمالي</td>
+                        <td style="color:#7c3aed;" class="fw-bold">@advancesList.Sum(a => a.Amount).ToString("N3")</td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+</div>
 
 @section Scripts {
 <script>
