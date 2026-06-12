@@ -54,6 +54,10 @@
 <body>
     <!-- Overlay for mobile sidebar -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <!-- Close button: outside sidebar to avoid transform stacking context -->
+    <button id="sidebarCloseBtn" onclick="closeSidebar()" style="display:none;position:fixed;z-index:9999;top:12px;width:44px;height:44px;background:#dc3545;border:none;color:#fff;font-size:22px;border-radius:50%;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(220,53,69,.5);cursor:pointer;touch-action:manipulation;">
+        <i class="fas fa-times"></i>
+    </button>
     <div class="app-wrapper">
         @await Html.PartialAsync("_Sidebar")
 
@@ -245,30 +249,29 @@
     <script>
         // Mobile sidebar
         var sidebar = document.getElementById('sidebar');
-        var overlay = document.getElementById('sidebarOverlay');
-        var closeBtn = sidebar ? sidebar.querySelector('.sidebar-close-btn') : null;
+        var overlay  = document.getElementById('sidebarOverlay');
+        var closeBtn = document.getElementById('sidebarCloseBtn');
 
         function toggleSidebar() {
             var isOpen = sidebar.classList.toggle('show');
             overlay.classList.toggle('show', isOpen);
-            if (closeBtn) {
-                if (isOpen) {
-                    var ltr = document.documentElement.getAttribute('dir') === 'ltr';
-                    closeBtn.setAttribute('style',
-                        'display:flex!important;position:fixed!important;z-index:9999!important;' +
-                        'top:12px!important;' +
-                        (ltr ? 'right:12px!important;left:auto!important;' : 'left:12px!important;right:auto!important;')
-                    );
-                } else {
-                    closeBtn.removeAttribute('style');
-                }
+            if (isOpen) {
+                var ltr = document.documentElement.getAttribute('dir') === 'ltr';
+                closeBtn.style.cssText =
+                    'display:flex;position:fixed;z-index:9999;top:12px;' +
+                    'width:44px;height:44px;background:#dc3545;border:none;color:#fff;' +
+                    'font-size:22px;border-radius:50%;align-items:center;justify-content:center;' +
+                    'box-shadow:0 3px 10px rgba(220,53,69,.5);cursor:pointer;touch-action:manipulation;' +
+                    (ltr ? 'right:12px;left:auto;' : 'left:12px;right:auto;');
+            } else {
+                closeBtn.style.cssText = 'display:none;';
             }
             document.body.classList.toggle('sidebar-open', isOpen);
         }
         function closeSidebar() {
             sidebar.classList.remove('show');
             overlay.classList.remove('show');
-            if (closeBtn) closeBtn.removeAttribute('style');
+            closeBtn.style.cssText = 'display:none;';
             document.body.classList.remove('sidebar-open');
         }
 
