@@ -131,10 +131,15 @@ namespace Salon.Controllers
 
             var salesSalaries = await salariesQuery.OrderBy(s => s.PaidDate).ToListAsync();
 
-            var salesDeposits = await _context.Deposits
-                .Where(d => d.DepositDate >= dateFrom && d.DepositDate < dateTo)
-                .OrderBy(d => d.DepositDate)
-                .ToListAsync();
+            var depositsQuery = _context.Deposits
+                .Where(d => d.DepositDate >= dateFrom && d.DepositDate < dateTo);
+
+            if (!string.IsNullOrEmpty(saleType))
+                depositsQuery = depositsQuery.Where(d => d.Department == saleType);
+            else if (userDept == "مساج" || userDept == "حلاقة")
+                depositsQuery = depositsQuery.Where(d => d.Department == userDept);
+
+            var salesDeposits = await depositsQuery.OrderBy(d => d.DepositDate).ToListAsync();
 
             ViewBag.ExpensesInRange = salesExpenses;
             ViewBag.TotalExpensesAmount = salesExpenses.Sum(e => e.Amount);
@@ -924,6 +929,158 @@ namespace Salon.Controllers
             ViewBag.Attendances = attendances;
 
             return View();
+        }
+
+        public async Task<IActionResult> Revenue(string? from, string? to, int? employeeId, string? saleType)
+        {
+            DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
+            DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+            string? deptFilter = !string.IsNullOrEmpty(saleType) ? saleType : userDept;
+
+            // Active sales
+            var query = _context.Sales
+                .Include(s => s.Employee)
+                .Include(s => s.Customer)
+                .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
+
+            if (userDept == "مساج")
+                query = query.Where(s => s.SaleType == "مساج");
+            else if (userDept == "حلاقة")
+                query = query.Where(s => s.SaleType == "حلاقة");
+
+            if (!string.IsNullOrEmpty(saleType))
+                query = query.Where(s => s.SaleType == saleType);
+
+            if (employeeId.HasValue)
+                query = query.Where(s => s.EmployeeId == employeeId);
+
+            var allSales = await query.OrderBy(s => s.SaleDate).ToListAsync();
+
+            // Cancelled sales (same dept/type/employee filters)
+            var cancelledQuery = _context.Sales
+                .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status == "ملغي");
+            if (userDept == "مساج") cancelledQuery = cancelledQuery.Where(s => s.SaleType == "مساج");
+            else if (userDept == "حلاقة") cancelledQuery = cancelledQuery.Where(s => s.SaleType == "حلاقة");
+            if (!string.IsNullOrEmpty(saleType)) cancelledQuery = cancelledQuery.Where(s => s.SaleType == saleType);
+            if (employeeId.HasValue) cancelledQuery = cancelledQuery.Where(s => s.EmployeeId == employeeId);
+            var cancelledSales = await cancelledQuery.ToListAsync();
+
+            // Expenses
+            var expQuery = _context.Expenses.Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo);
+            if (deptFilter == "مساج") expQuery = expQuery.Where(e => e.Department == "مساج");
+            else if (deptFilter == "حلاقة") expQuery = expQuery.Where(e => e.Department == "حلاقة");
+            var expensesList = await expQuery.OrderBy(e => e.ExpenseDate).ToListAsync();
+            decimal totalExpenses = expensesList.Sum(e => e.Amount);
+
+            // Deposits
+            var depQuery = _context.Deposits.Where(d => d.DepositDate >= dateFrom && d.DepositDate < dateTo);
+            if (deptFilter == "مساج") depQuery = depQuery.Where(d => d.Department == "مساج");
+            else if (deptFilter == "حلاقة") depQuery = depQuery.Where(d => d.Department == "حلاقة");
+            var depositsList = await depQuery.OrderBy(d => d.DepositDate).ToListAsync();
+            decimal totalDeposits = depositsList.Sum(d => d.Amount);
+
+            // Withdrawals (no dept field)
+            var withdrawalsList = await _context.Withdrawals
+                .Where(w => w.WithdrawalDate >= dateFrom && w.WithdrawalDate < dateTo)
+                .OrderBy(w => w.WithdrawalDate)
+                .ToListAsync();
+            decimal totalWithdrawals = withdrawalsList.Sum(w => w.Amount);
+
+            // Advances
+            var advQuery = _context.EmployeeAdvances
+                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo);
+            if (deptFilter == "مساج") advQuery = advQuery.Where(a => a.Employee!.DepartmentNav!.Name == "مساج");
+            else if (deptFilter == "حلاقة") advQuery = advQuery.Where(a => a.Employee!.DepartmentNav!.Name == "حلاقة");
+            var advancesList = await advQuery.OrderBy(a => a.AdvanceDate).ToListAsync();
+            decimal totalAdvances = advancesList.Sum(a => a.Amount);
+
+            string[] cashMethods = { "كاش", "نقدي", "Cash" };
+            string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
+            var dailyRows = allSales
+                .GroupBy(s => s.SaleDate.Date)
+                .Select(g => new DailyRevenueRow
+                {
+                    Date = g.Key,
+                    Total = g.Sum(s => s.NetAmount),
+                    Cash = g.Sum(s => cashMethods.Contains(s.PaymentMethod) ? s.NetAmount
+                        : mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0),
+                    Knet = g.Sum(s => knetMethods.Contains(s.PaymentMethod) ? s.NetAmount
+                        : mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0),
+                    EmployeeDebt = g.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount),
+                    OwnerDebt = g.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount),
+                    Count = g.Count()
+                })
+                .OrderBy(r => r.Date)
+                .ToList();
+
+            var employees = await _context.Employees
+                .Where(e => e.IsActive)
+                .OrderBy(e => e.FullName)
+                .ToListAsync();
+
+            decimal totalRevenue = allSales.Sum(s => s.NetAmount);
+            decimal totalCash = allSales.Sum(s => cashMethods.Contains(s.PaymentMethod) ? s.NetAmount
+                : mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+            decimal totalKnet = allSales.Sum(s => knetMethods.Contains(s.PaymentMethod) ? s.NetAmount
+                : mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
+            decimal netProfit = totalRevenue + totalDeposits - totalExpenses - totalAdvances - totalWithdrawals;
+
+            var salesJson = System.Text.Json.JsonSerializer.Serialize(allSales.Select(s => new
+            {
+                date = s.SaleDate.ToString("yyyy-MM-dd"),
+                invoice = s.InvoiceNumber,
+                customer = s.Customer?.FullName ?? "-",
+                employee = s.Employee?.FullName ?? "-",
+                amount = s.NetAmount,
+                payment = s.PaymentMethod,
+                saleType = s.SaleType
+            }));
+            ViewBag.SalesJson = salesJson;
+
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
+            ViewBag.TotalRevenue = totalRevenue;
+            ViewBag.TotalCash = totalCash;
+            ViewBag.TotalKnet = totalKnet;
+            ViewBag.TotalEmployeeDebt = allSales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
+            ViewBag.TotalOwnerDebt = allSales.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount);
+            ViewBag.TotalCount = allSales.Count;
+            ViewBag.TotalExpenses = totalExpenses;
+            ViewBag.TotalDeposits = totalDeposits;
+            ViewBag.TotalWithdrawals = totalWithdrawals;
+            ViewBag.TotalAdvances = totalAdvances;
+            ViewBag.ExpensesList = expensesList;
+            ViewBag.DepositsList = depositsList;
+            ViewBag.WithdrawalsList = withdrawalsList;
+            ViewBag.AdvancesList = advancesList;
+            ViewBag.CancelledCount = cancelledSales.Count;
+            ViewBag.CancelledAmount = cancelledSales.Sum(s => s.NetAmount);
+            ViewBag.NetProfit = netProfit;
+            ViewBag.ReportNumber = "RPT-" + dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.Employees = employees;
+            ViewBag.SelectedEmployeeId = employeeId;
+            ViewBag.SelectedSaleType = saleType;
+            ViewBag.UserDept = userDept;
+
+            if (dailyRows.Any())
+            {
+                var best = dailyRows.OrderByDescending(d => d.Total).First();
+                var worst = dailyRows.OrderBy(d => d.Total).First();
+                ViewBag.BestDayAmount = best.Total;
+                ViewBag.BestDayDate = best.Date.ToString("yyyy/MM/dd");
+                ViewBag.WorstDayAmount = worst.Total;
+                ViewBag.WorstDayDate = worst.Date.ToString("yyyy/MM/dd");
+                ViewBag.AvgDailyRevenue = dailyRows.Average(d => d.Total);
+                ViewBag.AvgDailyCount = dailyRows.Average(d => (double)d.Count);
+            }
+
+            return View(dailyRows);
         }
     }
 }

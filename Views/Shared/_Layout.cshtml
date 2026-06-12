@@ -54,11 +54,6 @@
 <body>
     <!-- Overlay for mobile sidebar -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    <!-- Floating close button (mobile only) -->
-    <button class="sidebar-close-btn d-lg-none" id="sidebarCloseBtn" aria-label="إغلاق القائمة">
-        <i class="fas fa-times"></i>
-    </button>
-
     <div class="app-wrapper">
         @await Html.PartialAsync("_Sidebar")
 
@@ -243,29 +238,44 @@
         // Mobile sidebar
         var sidebar = document.getElementById('sidebar');
         var overlay = document.getElementById('sidebarOverlay');
-        var closeBtn = document.getElementById('sidebarCloseBtn');
+        var closeBtn = sidebar ? sidebar.querySelector('.sidebar-close-btn') : null;
 
-        function toggleSidebar() {
+                function toggleSidebar() {
             var isOpen = sidebar.classList.toggle('show');
             overlay.classList.toggle('show', isOpen);
-            if (closeBtn) closeBtn.classList.toggle('show', isOpen);
+
+            var isLtr = document.documentElement.getAttribute('dir') === 'ltr';
+
+            if (isOpen) {
+                sidebar.style.transform = 'translateX(0)';
+
+                if (closeBtn) {
+                    closeBtn.setAttribute('style',
+                        'display:flex!important;position:fixed!important;z-index:9999!important;' +
+                        'top:12px!important;' +
+                        (isLtr ? 'right:12px!important;left:auto!important;' : 'left:12px!important;right:auto!important;')
+                    );
+                }
+            } else {
+                sidebar.style.transform = isLtr ? 'translateX(-100%)' : 'translateX(100%)';
+                if (closeBtn) closeBtn.removeAttribute('style');
+            }
+
             document.body.classList.toggle('sidebar-open', isOpen);
         }
+
         function closeSidebar() {
             sidebar.classList.remove('show');
             overlay.classList.remove('show');
-            if (closeBtn) closeBtn.classList.remove('show');
+
+            var isLtr = document.documentElement.getAttribute('dir') === 'ltr';
+            sidebar.style.transform = isLtr ? 'translateX(-100%)' : 'translateX(100%)';
+
+            if (closeBtn) closeBtn.removeAttribute('style');
             document.body.classList.remove('sidebar-open');
         }
 
         if (overlay) overlay.addEventListener('click', closeSidebar);
-        if (closeBtn) {
-            closeBtn.addEventListener('click', closeSidebar);
-            closeBtn.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                closeSidebar();
-            });
-        }
 
         // Close sidebar when tapping a real nav link on mobile (not submenu toggles)
         document.querySelectorAll('.sidebar-menu a[href]:not(.submenu-toggle)').forEach(function(link) {

@@ -1021,7 +1021,7 @@ body.sidebar-collapsed .main-content {
    SIDEBAR CLOSE BUTTON (Mobile - floating fixed)
    ============================================= */
 .sidebar-close-btn {
-    display: none;
+    display: flex;
     position: fixed;
     top: 12px;
     left: 12px;
