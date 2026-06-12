@@ -190,11 +190,13 @@
                 document.querySelectorAll('.sidebar-menu .arrow-icon').forEach(function (i) {
                     i.classList.replace('fa-chevron-left', 'fa-chevron-right');
                 });
+                var isCollapsed = document.body.classList.contains('sidebar-collapsed');
                 if (mc) {
-                    var isCollapsed = document.body.classList.contains('sidebar-collapsed');
                     mc.style.marginRight = '0';
                     mc.style.marginLeft = (!isCollapsed && window.innerWidth >= 992) ? 'var(--sidebar-width)' : '0';
                 }
+                var sb = document.getElementById('sidebar');
+                if (sb) sb.style.transform = isCollapsed ? 'translateX(-100%)' : 'translateX(0)';
             } else {
                 html.setAttribute('lang', 'ar');
                 html.setAttribute('dir', 'rtl');
@@ -207,6 +209,8 @@
                     mc.style.marginRight = '';
                     mc.style.marginLeft = '';
                 }
+                var sb = document.getElementById('sidebar');
+                if (sb) sb.style.transform = '';
             }
 
             localStorage.setItem('lang', lang);
@@ -289,9 +293,11 @@
         function toggleSidebarDesktop() {
             var collapsed = document.body.classList.toggle('sidebar-collapsed');
             var mc = document.querySelector('.main-content');
+            var sb = document.getElementById('sidebar');
             var lang = localStorage.getItem('lang') || 'ar';
-            if (lang === 'en' && mc) {
-                mc.style.marginLeft = collapsed ? '0' : (window.innerWidth >= 992 ? 'var(--sidebar-width)' : '0');
+            if (lang === 'en') {
+                if (mc) mc.style.marginLeft = collapsed ? '0' : (window.innerWidth >= 992 ? 'var(--sidebar-width)' : '0');
+                if (sb) sb.style.transform = collapsed ? 'translateX(-100%)' : 'translateX(0)';
             }
             localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
             updateToggleIcon(collapsed);
@@ -303,9 +309,11 @@
                 document.body.classList.add('sidebar-collapsed');
                 updateToggleIcon(true);
                 var mc = document.querySelector('.main-content');
+                var sb = document.getElementById('sidebar');
                 var lang = localStorage.getItem('lang') || 'ar';
-                if (lang === 'en' && mc) {
-                    mc.style.marginLeft = '0';
+                if (lang === 'en') {
+                    if (mc) mc.style.marginLeft = '0';
+                    if (sb) sb.style.transform = 'translateX(-100%)';
                 }
             }
         })();
