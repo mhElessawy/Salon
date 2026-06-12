@@ -938,7 +938,9 @@ namespace Salon.Controllers
 
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
+            string? deptFilter = !string.IsNullOrEmpty(saleType) ? saleType : userDept;
 
+            // Active sales
             var query = _context.Sales
                 .Include(s => s.Employee)
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
@@ -955,6 +957,37 @@ namespace Salon.Controllers
                 query = query.Where(s => s.EmployeeId == employeeId);
 
             var allSales = await query.OrderBy(s => s.SaleDate).ToListAsync();
+
+            // Cancelled sales (same dept/type/employee filters)
+            var cancelledQuery = _context.Sales
+                .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status == "ملغي");
+            if (userDept == "مساج") cancelledQuery = cancelledQuery.Where(s => s.SaleType == "مساج");
+            else if (userDept == "حلاقة") cancelledQuery = cancelledQuery.Where(s => s.SaleType == "حلاقة");
+            if (!string.IsNullOrEmpty(saleType)) cancelledQuery = cancelledQuery.Where(s => s.SaleType == saleType);
+            if (employeeId.HasValue) cancelledQuery = cancelledQuery.Where(s => s.EmployeeId == employeeId);
+            var cancelledSales = await cancelledQuery.ToListAsync();
+
+            // Expenses
+            var expQuery = _context.Expenses.Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo);
+            if (deptFilter == "مساج") expQuery = expQuery.Where(e => e.Department == "مساج");
+            else if (deptFilter == "حلاقة") expQuery = expQuery.Where(e => e.Department == "حلاقة");
+            decimal totalExpenses = await expQuery.SumAsync(e => (decimal?)e.Amount) ?? 0m;
+
+            // Deposits
+            var depQuery = _context.Deposits.Where(d => d.DepositDate >= dateFrom && d.DepositDate < dateTo);
+            if (deptFilter == "مساج") depQuery = depQuery.Where(d => d.Department == "مساج");
+            else if (deptFilter == "حلاقة") depQuery = depQuery.Where(d => d.Department == "حلاقة");
+            decimal totalDeposits = await depQuery.SumAsync(d => (decimal?)d.Amount) ?? 0m;
+
+            // Withdrawals (no dept field)
+            decimal totalWithdrawals = await _context.Withdrawals
+                .Where(w => w.WithdrawalDate >= dateFrom && w.WithdrawalDate < dateTo)
+                .SumAsync(w => (decimal?)w.Amount) ?? 0m;
+
+            // Advances
+            decimal totalAdvances = await _context.EmployeeAdvances
+                .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo)
+                .SumAsync(a => (decimal?)a.Amount) ?? 0m;
 
             string[] cashMethods = { "كاش", "نقدي", "Cash" };
             string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
@@ -987,6 +1020,7 @@ namespace Salon.Controllers
                 : mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
             decimal totalKnet = allSales.Sum(s => knetMethods.Contains(s.PaymentMethod) ? s.NetAmount
                 : mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
+            decimal netProfit = totalRevenue + totalDeposits - totalExpenses - totalAdvances - totalWithdrawals;
 
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
@@ -996,6 +1030,13 @@ namespace Salon.Controllers
             ViewBag.TotalEmployeeDebt = allSales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
             ViewBag.TotalOwnerDebt = allSales.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount);
             ViewBag.TotalCount = allSales.Count;
+            ViewBag.TotalExpenses = totalExpenses;
+            ViewBag.TotalDeposits = totalDeposits;
+            ViewBag.TotalWithdrawals = totalWithdrawals;
+            ViewBag.TotalAdvances = totalAdvances;
+            ViewBag.CancelledCount = cancelledSales.Count;
+            ViewBag.CancelledAmount = cancelledSales.Sum(s => s.NetAmount);
+            ViewBag.NetProfit = netProfit;
             ViewBag.ReportNumber = "RPT-" + dateFrom.ToString("yyyy-MM-dd");
             ViewBag.Employees = employees;
             ViewBag.SelectedEmployeeId = employeeId;

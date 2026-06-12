@@ -13,6 +13,13 @@
     decimal totalEmployeeDebt = ViewBag.TotalEmployeeDebt is decimal ted ? ted : 0m;
     decimal totalOwnerDebt = ViewBag.TotalOwnerDebt is decimal tod ? tod : 0m;
     int totalCount = ViewBag.TotalCount is int tct ? tct : 0;
+    decimal totalExpenses = ViewBag.TotalExpenses is decimal texp ? texp : 0m;
+    decimal totalDeposits = ViewBag.TotalDeposits is decimal tdep ? tdep : 0m;
+    decimal totalWithdrawals = ViewBag.TotalWithdrawals is decimal twit ? twit : 0m;
+    decimal totalAdvances = ViewBag.TotalAdvances is decimal tadv ? tadv : 0m;
+    int cancelledCount = ViewBag.CancelledCount is int cc ? cc : 0;
+    decimal cancelledAmount = ViewBag.CancelledAmount is decimal ca ? ca : 0m;
+    decimal netProfit = ViewBag.NetProfit is decimal np ? np : 0m;
 
     decimal bestDayAmount = ViewBag.BestDayAmount is decimal bda ? bda : 0m;
     string bestDayDate = ViewBag.BestDayDate as string ?? "-";
@@ -35,22 +42,22 @@
     .rev-stat {
         background: #fff;
         border-radius: 14px;
-        padding: 18px 20px;
+        padding: 14px 16px;
         box-shadow: 0 2px 10px rgba(0,0,0,.07);
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 12px;
         height: 100%;
     }
     .rev-stat-icon {
-        width: 52px; height: 52px;
-        border-radius: 12px;
+        width: 44px; height: 44px;
+        border-radius: 10px;
         display: flex; align-items: center; justify-content: center;
-        font-size: 22px;
+        font-size: 18px;
         flex-shrink: 0;
     }
-    .rev-stat-label { font-size: .78rem; color: #6b7280; margin-bottom: 2px; }
-    .rev-stat-value { font-size: 1.35rem; font-weight: 700; line-height: 1.1; }
+    .rev-stat-label { font-size: .74rem; color: #6b7280; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rev-stat-value { font-size: 1.05rem; font-weight: 700; line-height: 1.2; word-break: break-all; }
 
     .bottom-stat {
         background: #fff;
@@ -238,6 +245,82 @@
                 <div class="rev-stat-label">عدد الفواتير</div>
                 <div class="rev-stat-value" style="color:#059669;">@totalCount</div>
                 <div class="rev-stat-label">فاتورة</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ======= SECOND ROW CARDS ======= *@
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-2">
+        <div class="rev-stat">
+            <div class="rev-stat-icon" style="background:#fee2e2;color:#dc2626;">
+                <i class="fas fa-file-invoice"></i>
+            </div>
+            <div>
+                <div class="rev-stat-label">المصروفات</div>
+                <div class="rev-stat-value" style="color:#dc2626;">@totalExpenses.ToString("N3")</div>
+                <div class="rev-stat-label">د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="rev-stat">
+            <div class="rev-stat-icon" style="background:#dcfce7;color:#16a34a;">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div>
+                <div class="rev-stat-label">الإيداعات</div>
+                <div class="rev-stat-value" style="color:#16a34a;">@totalDeposits.ToString("N3")</div>
+                <div class="rev-stat-label">د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="rev-stat">
+            <div class="rev-stat-icon" style="background:#fef3c7;color:#d97706;">
+                <i class="fas fa-hand-holding-usd"></i>
+            </div>
+            <div>
+                <div class="rev-stat-label">السحوبات</div>
+                <div class="rev-stat-value" style="color:#d97706;">@totalWithdrawals.ToString("N3")</div>
+                <div class="rev-stat-label">د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="rev-stat">
+            <div class="rev-stat-icon" style="background:#ede9fe;color:#7c3aed;">
+                <i class="fas fa-hand-holding-medical"></i>
+            </div>
+            <div>
+                <div class="rev-stat-label">السلف</div>
+                <div class="rev-stat-value" style="color:#7c3aed;">@totalAdvances.ToString("N3")</div>
+                <div class="rev-stat-label">د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="rev-stat">
+            <div class="rev-stat-icon" style="background:#f1f5f9;color:#64748b;">
+                <i class="fas fa-ban"></i>
+            </div>
+            <div>
+                <div class="rev-stat-label">فواتير ملغاة</div>
+                <div class="rev-stat-value" style="color:#64748b;">@cancelledCount <small style="font-size:.7rem;">(@cancelledAmount.ToString("N3"))</small></div>
+                <div class="rev-stat-label">فاتورة</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="rev-stat" style="border: 2px solid @(netProfit >= 0 ? "#16a34a" : "#dc2626");">
+            <div class="rev-stat-icon" style="background:@(netProfit >= 0 ? "#dcfce7" : "#fee2e2");color:@(netProfit >= 0 ? "#16a34a" : "#dc2626");">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+            <div>
+                <div class="rev-stat-label">صافي الربح</div>
+                <div class="rev-stat-value" style="color:@(netProfit >= 0 ? "#16a34a" : "#dc2626");">@netProfit.ToString("N3")</div>
+                <div class="rev-stat-label">د.ك</div>
             </div>
         </div>
     </div>
