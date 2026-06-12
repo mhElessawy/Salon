@@ -344,9 +344,10 @@
                         <th>دين موظفين (د.ك)</th>
                         <th>على حساب الإدارة (د.ك)</th>
                         <th>عدد الفواتير</th>
+                        <th class="no-print"></th>
                     </tr>
                 </thead>
-                <tbody id="tableBody">
+                <tbody>
                     @{ int rowNum = 0; }
                     @foreach (var row in Model)
                     {
@@ -360,6 +361,13 @@
                             <td style="color:#ea580c;">@(row.EmployeeDebt > 0 ? row.EmployeeDebt.ToString("N3") : "-")</td>
                             <td style="color:#db2777;">@(row.OwnerDebt > 0 ? row.OwnerDebt.ToString("N3") : "-")</td>
                             <td><span class="badge bg-secondary">@row.Count</span></td>
+                            <td class="no-print">
+                                <button class="btn btn-sm btn-outline-primary py-0 px-2"
+                                        onclick="showDayInvoices('@row.Date.ToString("yyyy-MM-dd")', '@row.Date.ToString("yyyy/MM/dd")')"
+                                        title="عرض الفواتير">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -372,25 +380,50 @@
                         <td style="color:#ea580c;">@(totalEmployeeDebt > 0 ? totalEmployeeDebt.ToString("N3") : "-")</td>
                         <td style="color:#db2777;">@(totalOwnerDebt > 0 ? totalOwnerDebt.ToString("N3") : "-")</td>
                         <td>@totalCount</td>
+                        <td class="no-print"></td>
                     </tr>
                 </tfoot>
             </table>
         </div>
-        @* Pagination *@
-        <div class="d-flex justify-content-between align-items-center px-3 py-2 no-print border-top" id="paginationBar">
-            <div class="d-flex align-items-center gap-2 pagination-info">
-                <span>عرض</span>
-                <select class="form-select form-select-sm page-size-select" id="pageSizeSelect" onchange="changePage(1)">
-                    <option value="30">30</option>
-                    <option value="50">50</option>
-                    <option value="100" selected>100</option>
-                    <option value="9999">الكل</option>
-                </select>
-                <span id="paginationText"></span>
+    </div>
+</div>
+
+@* ======= MODAL ======= *@
+<div class="modal fade" id="dayInvoicesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#f8fafc;">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-file-invoice me-2 text-primary"></i>
+                    فواتير يوم <span id="modalDate"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <nav>
-                <ul class="pagination pagination-sm mb-0" id="paginationLinks"></ul>
-            </nav>
+            <div class="modal-body p-0">
+                <div class="px-3 pt-2 pb-1 border-bottom d-flex gap-3 flex-wrap" id="modalSummaryBar">
+                    <span class="badge bg-success fs-6" id="modalTotal"></span>
+                    <span class="badge bg-primary fs-6" id="modalCount"></span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead style="background:#f1f5f9;">
+                            <tr>
+                                <th>#</th>
+                                <th>رقم الفاتورة</th>
+                                <th>العميل</th>
+                                <th>الموظف</th>
+                                <th>النوع</th>
+                                <th>طريقة الدفع</th>
+                                <th>المبلغ (د.ك)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">إغلاق</button>
+            </div>
         </div>
     </div>
 </div>
@@ -451,67 +484,60 @@
 
 @section Scripts {
 <script>
-    // ======= PAGINATION =======
-    const allRows = Array.from(document.querySelectorAll('#tableBody tr'));
-    let currentPage = 1;
+    const allSalesData = @Html.Raw(ViewBag.SalesJson ?? "[]");
 
-    function getPageSize() {
-        return parseInt(document.getElementById('pageSizeSelect').value);
-    }
+    function showDayInvoices(dateKey, dateLabel) {
+        const daySales = allSalesData.filter(s => s.date === dateKey);
 
-    function renderTable() {
-        const pageSize = getPageSize();
-        const total = allRows.length;
-        const totalPages = pageSize >= 9999 ? 1 : Math.ceil(total / pageSize);
-        if (currentPage > totalPages) currentPage = totalPages || 1;
+        document.getElementById('modalDate').textContent = dateLabel;
 
-        const start = (currentPage - 1) * pageSize;
-        const end = Math.min(start + pageSize, total);
+        const total = daySales.reduce((s, x) => s + x.amount, 0);
+        document.getElementById('modalTotal').textContent = 'الإجمالي: ' + total.toFixed(3) + ' د.ك';
+        document.getElementById('modalCount').textContent = 'عدد الفواتير: ' + daySales.length;
 
-        allRows.forEach((r, i) => {
-            r.style.display = (pageSize >= 9999 || (i >= start && i < end)) ? '' : 'none';
-        });
-
-        document.getElementById('paginationText').textContent =
-            total === 0 ? 'لا توجد بيانات' : `${start + 1} - ${end} من ${total}`;
-
-        // build page links
-        const ul = document.getElementById('paginationLinks');
-        ul.innerHTML = '';
-        if (totalPages <= 1) return;
-
-        const addLi = (label, page, disabled, active) => {
-            const li = document.createElement('li');
-            li.className = 'page-item' + (disabled ? ' disabled' : '') + (active ? ' active' : '');
-            const a = document.createElement('a');
-            a.className = 'page-link';
-            a.href = '#';
-            a.innerHTML = label;
-            a.onclick = e => { e.preventDefault(); if (!disabled) changePage(page); };
-            li.appendChild(a);
-            ul.appendChild(li);
+        const payBadge = p => {
+            const map = {
+                'كاش': 'success', 'نقدي': 'success', 'Cash': 'success',
+                'كي نت': 'primary', 'بطاقة': 'primary', 'K-Net': 'primary',
+                'دين على الموظف': 'warning',
+                'دين على صاحب المكان': 'danger'
+            };
+            const cls = map[p] || 'secondary';
+            return `<span class="badge bg-${cls}">${p}</span>`;
         };
 
-        addLi('<i class="fas fa-chevron-right"></i>', currentPage - 1, currentPage === 1, false);
+        const typeBadge = t => {
+            if (t === 'حلاقة') return `<span class="badge" style="background:#1a1a2e">✂️ حلاقة</span>`;
+            if (t === 'مساج') return `<span class="badge" style="background:#16a34a">🌿 مساج</span>`;
+            return `<span class="badge bg-secondary">📦 ${t}</span>`;
+        };
 
-        let lo = Math.max(1, currentPage - 2), hi = Math.min(totalPages, currentPage + 2);
-        if (lo > 1) { addLi('1', 1, false, false); if (lo > 2) addLi('...', null, true, false); }
-        for (let p = lo; p <= hi; p++) addLi(p, p, false, p === currentPage);
-        if (hi < totalPages) { if (hi < totalPages - 1) addLi('...', null, true, false); addLi(totalPages, totalPages, false, false); }
+        let html = '';
+        daySales.forEach((s, i) => {
+            html += `<tr>
+                <td class="text-muted">${i + 1}</td>
+                <td><strong>${s.invoice}</strong></td>
+                <td>${s.customer}</td>
+                <td>${s.employee}</td>
+                <td>${typeBadge(s.saleType)}</td>
+                <td>${payBadge(s.payment)}</td>
+                <td><strong style="color:#16a34a;">${s.amount.toFixed(3)}</strong></td>
+            </tr>`;
+        });
 
-        addLi('<i class="fas fa-chevron-left"></i>', currentPage + 1, currentPage === totalPages, false);
+        if (!html) html = '<tr><td colspan="7" class="text-center text-muted py-3">لا توجد فواتير</td></tr>';
+        document.getElementById('modalTableBody').innerHTML = html;
+
+        new bootstrap.Modal(document.getElementById('dayInvoicesModal')).show();
     }
-
-    function changePage(p) { currentPage = p; renderTable(); }
-
-    document.addEventListener('DOMContentLoaded', renderTable);
 
     // ======= EXCEL EXPORT =======
     function exportToExcel() {
+        const rows = document.querySelectorAll('#revenueTable tbody tr');
         let csv = '﻿#,التاريخ,إجمالي الإيرادات,كاش,كي نت,دين موظفين,على حساب الإدارة,عدد الفواتير\n';
-        allRows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            csv += Array.from(cells).map(c => '"' + c.textContent.trim().replace(/"/g, '""') + '"').join(',') + '\n';
+        rows.forEach(row => {
+            const cells = Array.from(row.querySelectorAll('td')).slice(0, 8);
+            csv += cells.map(c => '"' + c.textContent.trim().replace(/"/g, '""') + '"').join(',') + '\n';
         });
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const a = document.createElement('a');

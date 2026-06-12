@@ -943,6 +943,7 @@ namespace Salon.Controllers
             // Active sales
             var query = _context.Sales
                 .Include(s => s.Employee)
+                .Include(s => s.Customer)
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
 
             if (userDept == "مساج")
@@ -1021,6 +1022,18 @@ namespace Salon.Controllers
             decimal totalKnet = allSales.Sum(s => knetMethods.Contains(s.PaymentMethod) ? s.NetAmount
                 : mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
             decimal netProfit = totalRevenue + totalDeposits - totalExpenses - totalAdvances - totalWithdrawals;
+
+            var salesJson = System.Text.Json.JsonSerializer.Serialize(allSales.Select(s => new
+            {
+                date = s.SaleDate.ToString("yyyy-MM-dd"),
+                invoice = s.InvoiceNumber,
+                customer = s.Customer?.FullName ?? "-",
+                employee = s.Employee?.FullName ?? "-",
+                amount = s.NetAmount,
+                payment = s.PaymentMethod,
+                saleType = s.SaleType
+            }));
+            ViewBag.SalesJson = salesJson;
 
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
