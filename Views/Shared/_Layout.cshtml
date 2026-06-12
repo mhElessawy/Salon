@@ -197,7 +197,7 @@
                 }
                 var sb = document.getElementById('sidebar');
                 if (sb) sb.style.transform = isCollapsed ? 'translateX(-100%)' : 'translateX(0)';
-                if (typeof positionCloseBtn === 'function') positionCloseBtn();
+                if (typeof positionCloseBtn === 'function' && sidebar && sidebar.classList.contains('show')) positionCloseBtn();
             } else {
                 html.setAttribute('lang', 'ar');
                 html.setAttribute('dir', 'rtl');
@@ -212,7 +212,7 @@
                 }
                 var sb = document.getElementById('sidebar');
                 if (sb) sb.style.transform = '';
-                if (typeof positionCloseBtn === 'function') positionCloseBtn();
+                if (typeof positionCloseBtn === 'function' && sidebar && sidebar.classList.contains('show')) positionCloseBtn();
             }
 
             localStorage.setItem('lang', lang);
@@ -250,7 +250,6 @@
         function positionCloseBtn() {
             if (!closeBtn) return;
             var isLtr = document.documentElement.getAttribute('dir') === 'ltr';
-            closeBtn.style.display  = 'flex';
             closeBtn.style.position = 'fixed';
             closeBtn.style.zIndex   = '1061';
             closeBtn.style.top      = '70px';
@@ -258,20 +257,27 @@
             closeBtn.style.right    = isLtr ? '12px' : 'auto';
         }
 
+        function showCloseBtn() {
+            if (!closeBtn) return;
+            positionCloseBtn();
+            closeBtn.style.display = 'flex';
+        }
+
+        function hideCloseBtn() {
+            if (!closeBtn) return;
+            closeBtn.style.display = 'none';
+        }
+
         function toggleSidebar() {
             var isOpen = sidebar.classList.toggle('show');
             overlay.classList.toggle('show', isOpen);
-            if (isOpen) {
-                positionCloseBtn();
-            } else {
-                if (closeBtn) closeBtn.style.display = 'none';
-            }
+            if (isOpen) { showCloseBtn(); } else { hideCloseBtn(); }
             document.body.classList.toggle('sidebar-open', isOpen);
         }
         function closeSidebar() {
             sidebar.classList.remove('show');
             overlay.classList.remove('show');
-            if (closeBtn) closeBtn.style.display = 'none';
+            hideCloseBtn();
             document.body.classList.remove('sidebar-open');
         }
 
