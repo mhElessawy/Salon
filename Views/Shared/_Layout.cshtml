@@ -54,6 +54,10 @@
 <body>
     <!-- Overlay for mobile sidebar -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <!-- Close button: outside sidebar to avoid transform stacking context -->
+    <button id="sidebarCloseBtn" onclick="closeSidebar()" style="display:none;position:fixed;z-index:9999;top:12px;width:44px;height:44px;background:#dc3545;border:none;color:#fff;font-size:22px;border-radius:50%;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(220,53,69,.5);cursor:pointer;touch-action:manipulation;">
+        <i class="fas fa-times"></i>
+    </button>
     <div class="app-wrapper">
         @await Html.PartialAsync("_Sidebar")
 
@@ -191,7 +195,15 @@
                     mc.style.marginLeft = (!isCollapsed && window.innerWidth >= 992) ? 'var(--sidebar-width)' : '0';
                 }
                 var sb = document.getElementById('sidebar');
-                if (sb) sb.style.transform = isCollapsed ? 'translateX(-100%)' : 'translateX(0)';
+                if (window.innerWidth >= 992) {
+                    if (sb) sb.style.transform = isCollapsed ? 'translateX(-100%)' : 'translateX(0)';
+                } else {
+                    // على المحمول: أمسح inline style وخلي CSS يتحكم (translateX(-100%) مخفي بالـ CSS)
+                    if (sb) { sb.style.transform = ''; sb.classList.remove('show'); }
+                    if (overlay) overlay.classList.remove('show');
+                    if (closeBtn) closeBtn.removeAttribute('style');
+                    document.body.classList.remove('sidebar-open');
+                }
             } else {
                 html.setAttribute('lang', 'ar');
                 html.setAttribute('dir', 'rtl');
@@ -237,60 +249,29 @@
     <script>
         // Mobile sidebar
         var sidebar = document.getElementById('sidebar');
-        var overlay = document.getElementById('sidebarOverlay');
-        var closeBtn = sidebar ? sidebar.querySelector('.sidebar-close-btn') : null;
-
-         function isMobileDeviceSidebar() {
-            return window.matchMedia('(max-width: 991px)').matches;
-            }
-
+        var overlay  = document.getElementById('sidebarOverlay');
+        var closeBtn = document.getElementById('sidebarCloseBtn');
 
         function toggleSidebar() {
             var isOpen = sidebar.classList.toggle('show');
-            var isMobile = isMobileDeviceSidebar();
-            if (!isMobile && closeBtn) {
-                closeBtn.removeAttribute('style');
-                closeBtn.classList.remove('show');
-            }
-            var isLtr = document.documentElement.getAttribute('dir') === 'ltr';
-
-            overlay.classList.toggle('show', isOpen && isMobile);
-
+            overlay.classList.toggle('show', isOpen);
             if (isOpen) {
-                if (isMobile) {
-                    sidebar.style.transform = 'translateX(0)';
-
-                    if (closeBtn) {
-                        closeBtn.setAttribute('style',
-                            'display:flex!important;position:fixed!important;z-index:9999!important;' +
-                            'top:12px!important;' +
-                            (isLtr ? 'right:12px!important;left:auto!important;' : 'left:12px!important;right:auto!important;')
-                        );
-                    }
-                }
+                var ltr = document.documentElement.getAttribute('dir') === 'ltr';
+                closeBtn.style.cssText =
+                    'display:flex;position:fixed;z-index:9999;top:12px;' +
+                    'width:44px;height:44px;background:#dc3545;border:none;color:#fff;' +
+                    'font-size:22px;border-radius:50%;align-items:center;justify-content:center;' +
+                    'box-shadow:0 3px 10px rgba(220,53,69,.5);cursor:pointer;touch-action:manipulation;' +
+                    (ltr ? 'right:12px;left:auto;' : 'left:12px;right:auto;');
             } else {
-                if (isMobile) {
-                    sidebar.style.transform = isLtr ? 'translateX(-100%)' : 'translateX(100%)';
-                }
-
-                if (closeBtn) closeBtn.removeAttribute('style');
+                closeBtn.style.cssText = 'display:none;';
             }
-
-            document.body.classList.toggle('sidebar-open', isOpen && isMobile);
+            document.body.classList.toggle('sidebar-open', isOpen);
         }
-
-         function closeSidebar() {
+        function closeSidebar() {
             sidebar.classList.remove('show');
             overlay.classList.remove('show');
-
-            var isLtr = document.documentElement.getAttribute('dir') === 'ltr';
-            if (isLtr && window.innerWidth < 992) {
-                sidebar.style.transform = 'translateX(-100%)';
-            } else if (!isLtr) {
-                sidebar.style.transform = '';
-            }
-
-            if (closeBtn) closeBtn.removeAttribute('style');
+            closeBtn.style.cssText = 'display:none;';
             document.body.classList.remove('sidebar-open');
         }
 
