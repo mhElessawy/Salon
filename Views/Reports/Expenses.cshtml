@@ -4,151 +4,483 @@
 @{
     ViewData["Title"] = "تقرير المصاريف";
 
-    var salaries = ViewBag.Salaries as List<Salary> ?? new List<Salary>();
-    decimal totalExp = ViewBag.TotalExpenses is decimal te ? te : 0m;
-    decimal totalSal = ViewBag.TotalSalaries is decimal ts ? ts : 0m;
-    decimal totalComb = ViewBag.TotalCombined is decimal tc ? tc : 0m;
+    var salaries     = ViewBag.Salaries as List<Salary> ?? new List<Salary>();
+    decimal totalExp  = ViewBag.TotalExpenses is decimal te  ? te  : 0m;
+    decimal totalSal  = ViewBag.TotalSalaries is decimal ts  ? ts  : 0m;
+    decimal totalComb = ViewBag.TotalCombined is decimal tc  ? tc  : 0m;
 
-    var barberExpenses = ViewBag.BarberExpenses as List<Expense> ?? new List<Expense>();
-    var barberSalaries = ViewBag.BarberSalaries as List<Salary> ?? new List<Salary>();
-    decimal barberExp = ViewBag.TotalBarberExpenses is decimal be ? be : 0m;
-    decimal barberSal = ViewBag.TotalBarberSalaries is decimal bs ? bs : 0m;
-    decimal barberComb = ViewBag.TotalBarberCombined is decimal bc ? bc : 0m;
+    var barberExpenses  = ViewBag.BarberExpenses  as List<Expense> ?? new List<Expense>();
+    var barberSalaries  = ViewBag.BarberSalaries  as List<Salary>  ?? new List<Salary>();
+    decimal barberExp   = ViewBag.TotalBarberExpenses  is decimal be ? be : 0m;
+    decimal barberSal   = ViewBag.TotalBarberSalaries  is decimal bs ? bs : 0m;
+    decimal barberComb  = ViewBag.TotalBarberCombined  is decimal bc ? bc : 0m;
 
     var massageExpenses = ViewBag.MassageExpenses as List<Expense> ?? new List<Expense>();
-    var massageSalaries = ViewBag.MassageSalaries as List<Salary> ?? new List<Salary>();
-    decimal massageExp = ViewBag.TotalMassageExpenses is decimal me2 ? me2 : 0m;
-    decimal massageSal = ViewBag.TotalMassageSalaries is decimal ms ? ms : 0m;
-    decimal massageComb = ViewBag.TotalMassageCombined is decimal mcc ? mcc : 0m;
+    var massageSalaries = ViewBag.MassageSalaries as List<Salary>  ?? new List<Salary>();
+    decimal massageExp  = ViewBag.TotalMassageExpenses  is decimal me2 ? me2 : 0m;
+    decimal massageSal  = ViewBag.TotalMassageSalaries  is decimal ms  ? ms  : 0m;
+    decimal massageComb = ViewBag.TotalMassageCombined  is decimal mcc ? mcc : 0m;
+
+    decimal sharedComb  = totalComb - barberComb - massageComb;
+
+    // Stats
+    int totalItems = Model.Count() + salaries.Count;
+    decimal maxExpense = Model.Any() ? Model.Max(e => e.Amount) : 0m;
+    string topCategory = Model.Any()
+        ? Model.Where(e => !string.IsNullOrEmpty(e.Category))
+               .GroupBy(e => e.Category!)
+               .OrderByDescending(g => g.Sum(x => x.Amount))
+               .Select(g => g.Key).FirstOrDefault() ?? "-"
+        : "-";
+    int expenseCount  = Model.Count();
+    int salaryCount   = salaries.Count;
 }
 
-<div class="page-header">
-    <h1><i class="fas fa-file-invoice-dollar me-2"></i>تقرير المصاريف</h1>
+@* ======= STYLES ======= *@
+<style>
+    @@media print {
+        .no-print { display: none !important; }
+        body { direction: rtl; }
+    }
+
+    .rev-stat {
+        background: #fff;
+        border-radius: 14px;
+        padding: 14px 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,.07);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 100%;
+    }
+
+    .rev-stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .rev-stat-label {
+        font-size: .74rem;
+        color: #6b7280;
+        margin-bottom: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .rev-stat-value {
+        font-size: 1.05rem;
+        font-weight: 700;
+        line-height: 1.2;
+        word-break: break-all;
+    }
+
+    .bottom-stat {
+        background: #fff;
+        border-radius: 14px;
+        padding: 18px 22px;
+        box-shadow: 0 2px 10px rgba(0,0,0,.07);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .bottom-stat-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .bottom-stat-label { font-size: .78rem; color: #6b7280; }
+    .bottom-stat-value { font-size: 1.2rem; font-weight: 700; }
+    .bottom-stat-sub   { font-size: .78rem; color: #6b7280; }
+
+    .rev-table thead th {
+        background: #f8fafc;
+        font-size: .82rem;
+        font-weight: 600;
+        color: #374151;
+        border-bottom: 2px solid #e5e7eb;
+        white-space: nowrap;
+        padding: 10px 14px;
+    }
+
+    .rev-table tbody td {
+        padding: 9px 14px;
+        font-size: .88rem;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+
+    .rev-table tbody tr:hover { background: #f8fafc; }
+
+    .rev-table tfoot td {
+        padding: 10px 14px;
+        font-weight: 700;
+        font-size: .9rem;
+        background: #fff5f5;
+        border-top: 2px solid #fecaca;
+    }
+
+    .exp-dept-badge {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 10px;
+        display: inline-block;
+    }
+</style>
+
+@* ======= HEADER ======= *@
+<div class="d-flex justify-content-between align-items-start mb-3 no-print flex-wrap gap-2">
+    <div>
+        <h1 class="h4 mb-0 fw-bold">
+            <i class="fas fa-file-invoice-dollar me-2" style="color:#dc2626;"></i>
+            <span data-i18n-en="Expenses Report">تقرير المصاريف</span>
+        </h1>
+        <p class="text-muted small mb-0">
+            <span data-i18n-en="Detailed expenses and salaries for the selected period">تفصيل المصروفات والمرتبات خلال الفترة المحددة</span>
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <button onclick="window.print()" class="btn btn-dark btn-sm">
+            <i class="fas fa-print me-1"></i><span data-i18n-en="Print">طباعة</span>
+        </button>
+        <button onclick="exportExpensesCSV()" class="btn btn-success btn-sm">
+            <i class="fas fa-file-excel me-1"></i>Excel
+        </button>
+    </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-body">
-        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
-            <label class="form-label mb-0">من:</label>
-            <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:170px;" />
-            <label class="form-label mb-0">إلى:</label>
-            <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:170px;" />
-            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
+@* ======= FILTERS ======= *@
+<div class="card mb-3 no-print">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label mb-1 small" data-i18n-en="From Date">من تاريخ</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                    <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:160px;" />
+                </div>
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1 small" data-i18n-en="To Date">إلى تاريخ</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                    <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:160px;" />
+                </div>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-search me-1"></i><span data-i18n-en="Search">بحث</span>
+                </button>
+            </div>
         </form>
     </div>
 </div>
 
-<ul class="nav nav-tabs mb-3" id="expensesTabs" role="tablist">
+@* ======= SUMMARY CARDS ROW 1 ======= *@
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-2">
+        <div class="rev-stat" style="border:2px solid #dc2626;">
+            <div class="rev-stat-icon" style="background:#fee2e2;color:#dc2626;">
+                <i class="fas fa-file-invoice-dollar"></i>
+            </div>
+            <div>
+                <div class="rev-stat-label" data-i18n-en="Total (Exp+Sal)">الإجمالي (مصروفات+مرتبات)</div>
+                <div class="rev-stat-value" style="color:#dc2626;">@totalComb.ToString("N3")</div>
+                <div class="rev-stat-label" data-i18n-en="K.D.">د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="rev-stat">
+            <div class="rev-stat-icon" style="background:#ffedd5;color:#ea580c;">
+                <i class="fas fa-receipt"></i>
+            </div>
+            <div>
+                <div class="rev-stat-label" data-i18n-en="Expenses Only">مصروفات فقط</div>
+                <div class="rev-stat-value" style="color:#ea580c;">@totalExp.ToString("N3")</div>
+                <div class="rev-stat-label" data-i18n-en="K.D.">د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="rev-stat">
+            <div class="rev-stat-icon" style="background:#ede9fe;color:#7c3aed;">
+                <i class="fas fa-money-check-alt"></i>
+            </div>
+            <div>
+                <div class="rev-stat-label" data-i18n-en="Salaries Paid">مرتبات مصروفة</div>
+                <div class="rev-stat-value" style="color:#7c3aed;">@totalSal.ToString("N3")</div>
+                <div class="rev-stat-label" data-i18n-en="K.D.">د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="rev-stat">
+            <div class="rev-stat-icon" style="background:#e0e7ff;color:#1a1a2e;">
+                <i class="fas fa-cut"></i>
+            </div>
+            <div>
+                <div class="rev-stat-label" data-i18n-en="Barber Total">حلاقة (إجمالي)</div>
+                <div class="rev-stat-value" style="color:#1a1a2e;">@barberComb.ToString("N3")</div>
+                <div class="rev-stat-label" data-i18n-en="K.D.">د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="rev-stat">
+            <div class="rev-stat-icon" style="background:#cffafe;color:#0891b2;">
+                <i class="fas fa-spa"></i>
+            </div>
+            <div>
+                <div class="rev-stat-label" data-i18n-en="Massage Total">مساج (إجمالي)</div>
+                <div class="rev-stat-value" style="color:#0891b2;">@massageComb.ToString("N3")</div>
+                <div class="rev-stat-label" data-i18n-en="K.D.">د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="rev-stat">
+            <div class="rev-stat-icon" style="background:#f1f5f9;color:#64748b;">
+                <i class="fas fa-share-alt"></i>
+            </div>
+            <div>
+                <div class="rev-stat-label" data-i18n-en="Shared">مشترك</div>
+                <div class="rev-stat-value" style="color:#64748b;">@sharedComb.ToString("N3")</div>
+                <div class="rev-stat-label" data-i18n-en="K.D.">د.ك</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ======= BOTTOM STATS ======= *@
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="bottom-stat">
+            <div class="bottom-stat-icon" style="background:#fee2e2;color:#dc2626;">
+                <i class="fas fa-list"></i>
+            </div>
+            <div>
+                <div class="bottom-stat-label" data-i18n-en="Total Items">إجمالي البنود</div>
+                <div class="bottom-stat-value" style="color:#dc2626;">@totalItems</div>
+                <div class="bottom-stat-sub">
+                    <span data-i18n-en="expenses">مصروفات</span>: @expenseCount |
+                    <span data-i18n-en="salaries">مرتبات</span>: @salaryCount
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="bottom-stat">
+            <div class="bottom-stat-icon" style="background:#ffedd5;color:#ea580c;">
+                <i class="fas fa-arrow-trend-up"></i>
+            </div>
+            <div>
+                <div class="bottom-stat-label" data-i18n-en="Highest Single Expense">أعلى مصروف واحد</div>
+                <div class="bottom-stat-value" style="color:#ea580c;">@maxExpense.ToString("N3") <small style="font-size:.7rem;" data-i18n-en="K.D.">د.ك</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="bottom-stat">
+            <div class="bottom-stat-icon" style="background:#ede9fe;color:#7c3aed;">
+                <i class="fas fa-tag"></i>
+            </div>
+            <div>
+                <div class="bottom-stat-label" data-i18n-en="Top Category">أعلى فئة مصاريف</div>
+                <div class="bottom-stat-value" style="color:#7c3aed;font-size:1rem;">@topCategory</div>
+                <div class="bottom-stat-sub" data-i18n-en="by amount">بالمبلغ</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="bottom-stat">
+            <div class="bottom-stat-icon" style="background:#dcfce7;color:#16a34a;">
+                <i class="fas fa-calculator"></i>
+            </div>
+            <div>
+                <div class="bottom-stat-label" data-i18n-en="Avg. Expense/Item">متوسط المصروف/بند</div>
+                <div class="bottom-stat-value" style="color:#16a34a;">
+                    @(expenseCount > 0 ? (totalExp / expenseCount).ToString("N3") : "0.000")
+                    <small style="font-size:.7rem;" data-i18n-en="K.D.">د.ك</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ======= TABS ======= *@
+<ul class="nav nav-tabs mb-3 no-print" id="expensesTabs" role="tablist">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-pane" type="button" role="tab">
-            <i class="fas fa-layer-group me-1"></i>الكل
+        <button class="nav-link active fw-semibold" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-pane" type="button" role="tab">
+            <i class="fas fa-layer-group me-1"></i><span data-i18n-en="All">الكل</span>
+            <span class="badge bg-danger ms-1">@totalComb.ToString("N3")</span>
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="barber-tab" data-bs-toggle="tab" data-bs-target="#barber-pane" type="button" role="tab">
-            <i class="fas fa-cut me-1"></i>حلاقة
+        <button class="nav-link fw-semibold" id="barber-tab" data-bs-toggle="tab" data-bs-target="#barber-pane" type="button" role="tab">
+            <i class="fas fa-cut me-1"></i><span data-i18n-en="Barber">حلاقة</span>
+            <span class="badge" style="background:#1a1a2e;" class="ms-1">@barberComb.ToString("N3")</span>
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="massage-tab" data-bs-toggle="tab" data-bs-target="#massage-pane" type="button" role="tab">
-            <i class="fas fa-spa me-1"></i>مساج
+        <button class="nav-link fw-semibold" id="massage-tab" data-bs-toggle="tab" data-bs-target="#massage-pane" type="button" role="tab">
+            <i class="fas fa-spa me-1"></i><span data-i18n-en="Massage">مساج</span>
+            <span class="badge bg-info ms-1">@massageComb.ToString("N3")</span>
         </button>
     </li>
 </ul>
 
 <div class="tab-content" id="expensesTabContent">
 
-    @* ======== تبويب الكل ======== *@
+    @* ── الكل ── *@
     <div class="tab-pane fade show active" id="all-pane" role="tabpanel">
-        <div class="row g-3 mb-3">
-            <div class="col-md-4">
-                <div class="stat-card red">
-                    <div class="stat-label">إجمالي المصاريف (مصروفات + مرتبات)</div>
-                    <div class="stat-value">@totalComb.ToString("N3") د.ك</div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stat-card" style="border-right:4px solid #fd7e14;">
-                    <div class="stat-label">المصروفات فقط</div>
-                    <div class="stat-value" style="color:#fd7e14;">@totalExp.ToString("N3") د.ك</div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stat-card" style="border-right:4px solid #7c3aed;">
-                    <div class="stat-label">المرتبات المصروفة</div>
-                    <div class="stat-value" style="color:#7c3aed;">@totalSal.ToString("N3") د.ك</div>
-                </div>
-            </div>
-        </div>
-        @await Html.PartialAsync("_ExpensesTable", new Salon.ViewModels.ExpensesTableViewModel
-        {
-            Expenses = Model.ToList(),
-                Salaries = salaries,
-                Total = totalComb,
-                ShowDept = true
-                })
+        @{ await RenderExpTable(Model.ToList(), salaries, true); }
     </div>
 
-    @* ======== تبويب حلاقة ======== *@
+    @* ── حلاقة ── *@
     <div class="tab-pane fade" id="barber-pane" role="tabpanel">
-        <div class="row g-3 mb-3">
-            <div class="col-md-4">
-                <div class="stat-card red">
-                    <div class="stat-label">إجمالي مصاريف الحلاقة (مصروفات + مرتبات)</div>
-                    <div class="stat-value">@barberComb.ToString("N3") د.ك</div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stat-card" style="border-right:4px solid #fd7e14;">
-                    <div class="stat-label">مصروفات الحلاقة فقط</div>
-                    <div class="stat-value" style="color:#fd7e14;">@barberExp.ToString("N3") د.ك</div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stat-card" style="border-right:4px solid #7c3aed;">
-                    <div class="stat-label">مرتبات موظفي الحلاقة</div>
-                    <div class="stat-value" style="color:#7c3aed;">@barberSal.ToString("N3") د.ك</div>
-                </div>
-            </div>
-        </div>
-        @await Html.PartialAsync("_ExpensesTable", new Salon.ViewModels.ExpensesTableViewModel
-                {
-            Expenses = barberExpenses,
-                Salaries = barberSalaries,
-                Total = barberComb,
-                ShowDept = false
-                })
+        @{ await RenderExpTable(barberExpenses, barberSalaries, false); }
     </div>
 
-    @* ======== تبويب مساج ======== *@
+    @* ── مساج ── *@
     <div class="tab-pane fade" id="massage-pane" role="tabpanel">
-        <div class="row g-3 mb-3">
-            <div class="col-md-4">
-                <div class="stat-card red">
-                    <div class="stat-label">إجمالي مصاريف المساج (مصروفات + مرتبات)</div>
-                    <div class="stat-value">@massageComb.ToString("N3") د.ك</div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stat-card" style="border-right:4px solid #fd7e14;">
-                    <div class="stat-label">مصروفات المساج فقط</div>
-                    <div class="stat-value" style="color:#fd7e14;">@massageExp.ToString("N3") د.ك</div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stat-card" style="border-right:4px solid #7c3aed;">
-                    <div class="stat-label">مرتبات موظفي المساج</div>
-                    <div class="stat-value" style="color:#7c3aed;">@massageSal.ToString("N3") د.ك</div>
-                </div>
-            </div>
-        </div>
-        @await Html.PartialAsync("_ExpensesTable", new Salon.ViewModels.ExpensesTableViewModel
-                {
-            Expenses = massageExpenses,
-                Salaries = massageSalaries,
-                Total = massageComb,
-                ShowDept = false
-                })
+        @{ await RenderExpTable(massageExpenses, massageSalaries, false); }
     </div>
 
 </div>
+
+@* ── Inline helper ── *@
+@functions {
+    async Task RenderExpTable(List<Salon.Models.Expense> exp, List<Salon.Models.Salary> sal, bool showDept)
+    {
+        decimal total = exp.Sum(e => e.Amount) + sal.Sum(s => s.NetSalary);
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center py-2" style="background:#fff5f5;">
+                <h6 class="fw-bold mb-0 text-danger">
+                    <i class="fas fa-receipt me-2"></i>
+                    <span data-i18n-en="Expense Details">تفاصيل المصاريف</span>
+                </h6>
+                <span class="badge bg-danger">@total.ToString("N3") <span data-i18n-en="K.D.">د.ك</span></span>
+            </div>
+            <div class="table-responsive">
+                <table class="table rev-table mb-0" id="expTable">
+                    <thead>
+                        <tr>
+                            <th data-i18n-en="#">#</th>
+                            <th data-i18n-en="Date">التاريخ</th>
+                            <th data-i18n-en="Type">النوع</th>
+                            <th data-i18n-en="Description">البيان</th>
+                            <th data-i18n-en="Category / Employee">الفئة / الموظف</th>
+                            @if (showDept) { <th data-i18n-en="Department">القسم</th> }
+                            <th data-i18n-en="Payment">طريقة الدفع</th>
+                            <th data-i18n-en="Amount (K.D.)">المبلغ (د.ك)</th>
+                            <th data-i18n-en="Notes">ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!exp.Any() && !sal.Any())
+                        {
+                            <tr><td colspan="@(showDept ? 9 : 8)" class="text-center text-muted py-4">
+                                <span data-i18n-en="No expenses in this period">لا توجد مصاريف في هذه الفترة</span>
+                            </td></tr>
+                        }
+                        @{ int ri = 0; }
+                        @foreach (var e in exp)
+                        {
+                            ri++;
+                            <tr>
+                                <td class="text-muted">@ri</td>
+                                <td>@e.ExpenseDate.ToString("yyyy/MM/dd")</td>
+                                <td><span class="exp-dept-badge" style="background:#fef3c7;color:#92400e;"><i class="fas fa-receipt me-1"></i><span data-i18n-en="Expense">مصروف</span></span></td>
+                                <td><strong>@e.Description</strong></td>
+                                <td><span class="text-muted small">@(e.Category ?? "-")</span></td>
+                                @if (showDept)
+                                {
+                                    <td>
+                                        @if (e.Department == "حلاقة")
+                                        { <span class="exp-dept-badge" style="background:#1a1a2e;color:#fff;">✂ <span data-i18n-en="Barber">حلاقة</span></span> }
+                                        else if (e.Department == "مساج")
+                                        { <span class="exp-dept-badge" style="background:#0891b2;color:#fff;">🌿 <span data-i18n-en="Massage">مساج</span></span> }
+                                        else
+                                        { <span class="exp-dept-badge" style="background:#e2e8f0;color:#475569;"><span data-i18n-en="Shared">مشترك</span></span> }
+                                    </td>
+                                }
+                                <td><span class="text-muted small">@e.PaymentMethod</span></td>
+                                <td><strong class="text-danger">@e.Amount.ToString("N3")</strong></td>
+                                <td class="text-muted small">@e.Notes</td>
+                            </tr>
+                        }
+                        @foreach (var s in sal)
+                        {
+                            ri++;
+                            <tr style="background:#faf5ff;">
+                                <td class="text-muted">@ri</td>
+                                <td>@s.PaidDate?.ToString("yyyy/MM/dd")</td>
+                                <td><span class="exp-dept-badge" style="background:#ede9fe;color:#7c3aed;"><i class="fas fa-money-check-alt me-1"></i><span data-i18n-en="Salary">مرتب</span></span></td>
+                                <td><strong data-i18n-en="Salary">مرتب</strong> @s.Month/@s.Year</td>
+                                <td><strong>@(s.Employee?.FullName ?? "-")</strong></td>
+                                @if (showDept)
+                                {
+                                    <td>
+                                        @{ var dept = s.Employee?.Department; }
+                                        @if (dept == "حلاقة")
+                                        { <span class="exp-dept-badge" style="background:#1a1a2e;color:#fff;">✂ <span data-i18n-en="Barber">حلاقة</span></span> }
+                                        else if (dept == "مساج")
+                                        { <span class="exp-dept-badge" style="background:#0891b2;color:#fff;">🌿 <span data-i18n-en="Massage">مساج</span></span> }
+                                        else
+                                        { <span class="exp-dept-badge" style="background:#e2e8f0;color:#475569;">@(dept ?? "-")</span> }
+                                    </td>
+                                }
+                                <td><span class="text-muted small">@(s.PaymentMethod ?? "نقدي")</span></td>
+                                <td><strong style="color:#7c3aed;">@s.NetSalary.ToString("N3")</strong></td>
+                                <td class="text-muted small">@s.Notes</td>
+                            </tr>
+                        }
+                    </tbody>
+                    @if (exp.Any() || sal.Any())
+                    {
+                        <tfoot>
+                            <tr>
+                                <td colspan="@(showDept ? 7 : 6)" data-i18n-en="Total">الإجمالي</td>
+                                <td class="text-danger">@total.ToString("N3")</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    }
+                </table>
+            </div>
+        </div>
+    }
+}
+
+@section Scripts {
+    <script>
+        function exportExpensesCSV() {
+            const rows = document.querySelectorAll('#expTable tbody tr, #expTable thead tr');
+            let csv = '﻿';
+            rows.forEach(row => {
+                const cells = Array.from(row.querySelectorAll('td,th'));
+                csv += cells.map(c => '"' + c.innerText.trim().replace(/"/g, '""') + '"').join(',') + '\n';
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'expenses-@(ViewBag.From)-@(ViewBag.To).csv';
+            a.click();
+        }
+    </script>
+}
