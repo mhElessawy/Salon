@@ -669,6 +669,13 @@ namespace Salon.Controllers
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
 
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
+            // Force department filter based on user's own department
+            if ((userDept == "مساج" || userDept == "حلاقة") && string.IsNullOrEmpty(dept))
+                dept = userDept;
+
             var items = new List<CashMovementReportItem>();
 
             bool showExpenses = string.IsNullOrEmpty(type) || type == "مصروف";
@@ -739,8 +746,11 @@ namespace Salon.Controllers
 
             if (showDeposits)
             {
-                var deposits = await _context.Deposits
-                    .Where(d => d.DepositDate >= dateFrom && d.DepositDate < dateTo)
+                var depositsQuery = _context.Deposits
+                    .Where(d => d.DepositDate >= dateFrom && d.DepositDate < dateTo);
+                if (filterDept)
+                    depositsQuery = depositsQuery.Where(d => d.Department == dept);
+                var deposits = await depositsQuery
                     .OrderByDescending(d => d.DepositDate)
                     .ToListAsync();
 
