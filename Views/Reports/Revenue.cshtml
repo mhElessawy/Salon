@@ -39,22 +39,10 @@
 @* ======= PRINT STYLES ======= *@
 <style>
     @@media print {
-        .no-print {
-            display: none !important;
-        }
+        .no-print { display: none !important; }
         body { direction: rtl; }
         .print-header { display: block !important; }
-
-        /* Override global card-hiding rule — tables live inside cards */
-        .card, .card-header, .card-body {
-            display: block !important;
-            box-shadow: none !important;
-            border: 1px solid #dee2e6 !important;
-        }
-        .table-responsive { overflow: visible !important; }
-        .page-content { padding: 8px !important; }
         .rev-stat { box-shadow: none !important; border: 1px solid #e5e7eb; break-inside: avoid; }
-        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
 
     .print-header {

@@ -1288,9 +1288,9 @@ html[dir="ltr"] .password-toggle {
     }
 
 
-/* ===== ����� ������� ������ ===== */
+/* ===== Print Styles ===== */
 @media print {
-    /* ����� ����� ������� */
+    /* Hide navigation and UI chrome */
     .sidebar-overlay,
     .sidebar-close-btn,
     .sidebar,
@@ -1298,46 +1298,58 @@ html[dir="ltr"] .password-toggle {
     .topbar,
     .page-header,
     .stat-cards,
-    .no-print,
-    .card:not(.print-area) {
+    .no-print {
         display: none !important;
     }
 
-    /* ����� �������� �� ��� layout */
+    /* Full-width layout */
     body,
     .app-wrapper,
-    .main-content {
+    .main-content,
+    .page-content {
         margin: 0 !important;
         padding: 0 !important;
         background: #fff !important;
+        width: 100% !important;
     }
 
-    /* ����� ������ ���� ������ */
+    /* Cards are visible by default — pages use .no-print to hide what they don't want */
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6 !important;
+        break-inside: avoid;
+    }
+    .card-header, .card-body, .card-footer {
+        display: block !important;
+    }
+    .table-responsive {
+        overflow: visible !important;
+    }
+
+    /* print-area: legacy explicit-print-region marker */
     .print-area {
+        display: block !important;
         width: 100% !important;
         margin: 0 !important;
         padding: 8px !important;
         border: none !important;
         box-shadow: none !important;
     }
+    .print-area .table { font-size: 11px; width: 100%; }
+    .print-area .badge {
+        border: 1px solid #999;
+        color: #000 !important;
+        background: none !important;
+        -webkit-print-color-adjust: exact;
+    }
 
-        /* ��� �� ������ */
-        .print-area .table {
-            font-size: 11px;
-            width: 100%;
-        }
-
-        /* ������� �� ������� */
-        .print-area .badge {
-            border: 1px solid #999;
-            color: #000 !important;
-            background: none !important;
-            -webkit-print-color-adjust: exact;
-        }
-
-    /* ����� �������� �� ������� */
     tfoot.table-dark {
         background: #333 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    * {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }

@@ -45,19 +45,8 @@
         .no-print { display: none !important; }
         body { direction: rtl; }
         .print-header { display: block !important; }
-
-        /* Override global card-hiding rule */
-        .card, .card-header, .card-body {
-            display: block !important;
-            box-shadow: none !important;
-            border: 1px solid #dee2e6 !important;
-        }
-        .table-responsive { overflow: visible !important; }
-        .page-content { padding: 8px !important; }
-        .rev-stat { box-shadow: none !important; border: 1px solid #e5e7eb; break-inside: avoid; }
-        .bottom-stat { box-shadow: none !important; border: 1px solid #e5e7eb; break-inside: avoid; }
-        /* Active tab pane already has display:block — inactive ones stay hidden (print what's on screen) */
-        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .rev-stat, .bottom-stat { box-shadow: none !important; border: 1px solid #e5e7eb; break-inside: avoid; }
+        /* Active tab pane prints; inactive stay hidden (prints what's on screen) */
     }
     .print-header { display: none; }
 
