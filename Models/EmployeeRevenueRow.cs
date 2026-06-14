@@ -7,6 +7,7 @@ namespace Salon.Models
         public decimal TotalRevenue { get; set; }
         public decimal Cash { get; set; }
         public decimal Knet { get; set; }
+        public decimal EmployeeDebt { get; set; }
         public decimal BasicSalary { get; set; }
         public decimal CommissionRate { get; set; }
         public decimal SalesTarget { get; set; }

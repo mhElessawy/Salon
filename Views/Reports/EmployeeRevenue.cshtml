@@ -9,6 +9,7 @@
     decimal grandTotal = Model.Sum(r => r.TotalRevenue);
     decimal grandCash = Model.Sum(r => r.Cash);
     decimal grandKnet = Model.Sum(r => r.Knet);
+    decimal grandEmployeeDebt = Model.Sum(r => r.EmployeeDebt);
     decimal grandSalary = Model.Sum(r => r.BasicSalary);
     decimal grandCommBefore = Model.Sum(r => r.CommissionBeforeTarget);
     decimal grandCommAfter = Model.Sum(r => r.CommissionAfterTarget);
@@ -219,6 +220,7 @@
                         <th rowspan="2" style="vertical-align:middle;">الإجمالي<br/><small class="fw-normal text-muted">(د.ك)</small></th>
                         <th rowspan="2" style="vertical-align:middle;">كاش<br/><small class="fw-normal text-muted">(د.ك)</small></th>
                         <th rowspan="2" style="vertical-align:middle;">كي نت<br/><small class="fw-normal text-muted">(د.ك)</small></th>
+                        <th rowspan="2" style="vertical-align:middle;">دين موظف<br/><small class="fw-normal text-muted">(د.ك)</small></th>
                         <th rowspan="2" style="vertical-align:middle;">الراتب<br/><small class="fw-normal text-muted">(د.ك)</small></th>
                         <th colspan="2" style="border-bottom:1px solid #e5e7eb;">العمولة</th>
                         <th rowspan="2" style="vertical-align:middle;">صافي للموظف<br/><small class="fw-normal text-muted">(د.ك)</small></th>
@@ -255,6 +257,7 @@
                             <td><strong style="color:#16a34a;">@row.TotalRevenue.ToString("N3")</strong></td>
                             <td style="color:#2563eb;">@row.Cash.ToString("N3")</td>
                             <td style="color:#0284c7;">@row.Knet.ToString("N3")</td>
+                            <td style="color:#ea580c;">@(row.EmployeeDebt > 0 ? row.EmployeeDebt.ToString("N3") : "-")</td>
                             <td style="color:#374151;">@row.BasicSalary.ToString("N3")</td>
                             <td style="color:#d97706;">
                                 @row.CommissionBeforeTarget.ToString("N3")
@@ -295,6 +298,7 @@
                         <td style="color:#16a34a;">@grandTotal.ToString("N3")</td>
                         <td style="color:#2563eb;">@grandCash.ToString("N3")</td>
                         <td style="color:#0284c7;">@grandKnet.ToString("N3")</td>
+                        <td style="color:#ea580c;">@(grandEmployeeDebt > 0 ? grandEmployeeDebt.ToString("N3") : "-")</td>
                         <td>@grandSalary.ToString("N3")</td>
                         <td style="color:#d97706;">@grandCommBefore.ToString("N3")</td>
                         <td style="color:#ea580c;">@(grandCommAfter > 0 ? grandCommAfter.ToString("N3") : "-")</td>
