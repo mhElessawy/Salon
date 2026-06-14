@@ -1,0 +1,189 @@
+@model List<Salon.Models.InventoryReportRow>
+@{
+    ViewData["Title"] = "تقرير المخزون";
+}
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1><i class="fas fa-boxes me-2"></i><span data-i18n-en="Inventory Report">تقرير المخزون</span></h1>
+        <p data-i18n-en="Sales and consumption summary for products">ملخص مبيعات واستهلاك المنتجات</p>
+    </div>
+    <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-right me-1"></i><span data-i18n-en="Back">رجوع</span>
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small fw-bold" data-i18n-en="From">من</label>
+                <input type="date" name="from" class="form-control" value="@ViewBag.From" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold" data-i18n-en="To">إلى</label>
+                <input type="date" name="to" class="form-control" value="@ViewBag.To" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold" data-i18n-en="Category">الفئة</label>
+                <select name="category" class="form-select">
+                    <option value="" data-i18n-en="All Categories">جميع الفئات</option>
+                    @foreach (var cat in (List<string>)ViewBag.Categories)
+                    {
+                        <option value="@cat" selected="@(ViewBag.SelectedCategory == cat ? "selected" : null)">@cat</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold" data-i18n-en="Movement Type">نوع الحركة</label>
+                <select name="movementType" class="form-select">
+                    <option value="" data-i18n-en="All">الكل</option>
+                    <option value="بيع" selected="@(ViewBag.SelectedMovementType == "بيع" ? "selected" : null)" data-i18n-en="Sales">بيع</option>
+                    <option value="استهلاك" selected="@(ViewBag.SelectedMovementType == "استهلاك" ? "selected" : null)" data-i18n-en="Consumption">استهلاك</option>
+                    <option value="استلام" selected="@(ViewBag.SelectedMovementType == "استلام" ? "selected" : null)" data-i18n-en="Received">استلام</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-1"></i><span data-i18n-en="Search">بحث</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-center border-0" style="background:linear-gradient(135deg,#16a34a,#15803d);">
+            <div class="card-body text-white py-3">
+                <div class="fs-5 fw-bold">@ViewBag.TotalSoldRevenue.ToString("N2") <small>د.ك</small></div>
+                <div class="small" data-i18n-en="Sales Revenue">إيراد المبيعات</div>
+                <div class="small opacity-75">@ViewBag.TotalSoldQty <span data-i18n-en="pcs">قطعة</span></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-0" style="background:linear-gradient(135deg,#dc3545,#b02a37);">
+            <div class="card-body text-white py-3">
+                <div class="fs-5 fw-bold">@ViewBag.TotalConsumedCost.ToString("N2") <small>د.ك</small></div>
+                <div class="small" data-i18n-en="Consumption Cost">تكلفة الاستهلاك</div>
+                <div class="small opacity-75">@ViewBag.TotalConsumedQty <span data-i18n-en="pcs">قطعة</span></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-0" style="background:linear-gradient(135deg,#0284c7,#0369a1);">
+            <div class="card-body text-white py-3">
+                <div class="fs-5 fw-bold">@(ViewBag.TotalSoldQty + ViewBag.TotalConsumedQty) <small data-i18n-en="pcs">قطعة</small></div>
+                <div class="small" data-i18n-en="Total Outgoing">إجمالي الصادر</div>
+                <div class="small opacity-75">(<span data-i18n-en="sales + consumption">مبيعات + استهلاك</span>)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-0" style="background:linear-gradient(135deg,#6f42c1,#5a32a3);">
+            <div class="card-body text-white py-3">
+                <div class="fs-5 fw-bold">@Model.Count</div>
+                <div class="small" data-i18n-en="Active Products">منتج نشط</div>
+                <div class="small opacity-75">@ViewBag.From – @ViewBag.To</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="fas fa-table me-2"></i><span data-i18n-en="Product Movement Details">تفاصيل حركة المنتجات</span></h6>
+        <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+            <i class="fas fa-print me-1"></i><span data-i18n-en="Print">طباعة</span>
+        </button>
+    </div>
+    <div class="card-body p-0">
+        @if (!Model.Any())
+        {
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-inbox fa-3x mb-3 d-block opacity-50"></i>
+                <span data-i18n-en="No data for the selected period">لا توجد بيانات في الفترة المحددة</span>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-sm align-middle mb-0" id="inventoryTable">
+                    <thead class="table-dark">
+                        <tr class="text-center">
+                            <th data-i18n-en="#">#</th>
+                            <th class="text-start" data-i18n-en="Product">المنتج</th>
+                            <th data-i18n-en="Category">الفئة</th>
+                            <th data-i18n-en="Purchase Price">سعر الشراء</th>
+                            <th data-i18n-en="Sale Price">سعر البيع</th>
+                            <th colspan="2" class="table-success" data-i18n-en="Sales">المبيعات</th>
+                            <th colspan="2" class="table-danger" data-i18n-en="Consumption">الاستهلاك</th>
+                            <th data-i18n-en="Received Qty">كمية واردة</th>
+                            <th data-i18n-en="Current Stock">المخزون الحالي</th>
+                        </tr>
+                        <tr class="text-center" style="font-size:0.78rem;">
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th class="table-success" data-i18n-en="Qty">كمية</th>
+                            <th class="table-success" data-i18n-en="Revenue">إيراد</th>
+                            <th class="table-danger" data-i18n-en="Qty">كمية</th>
+                            <th class="table-danger" data-i18n-en="Cost">تكلفة</th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ int rowNum = 0; }
+                        @foreach (var r in Model)
+                        {
+                            rowNum++;
+                            <tr class="text-center @(r.CurrentStock <= 5 && r.CurrentStock > 0 ? "table-warning" : r.CurrentStock == 0 ? "table-danger" : "")">
+                                <td>@rowNum</td>
+                                <td class="text-start fw-semibold">@r.ProductName</td>
+                                <td><span class="badge bg-secondary">@(r.Category ?? "-")</span></td>
+                                <td>@r.PurchasePrice.ToString("N3")</td>
+                                <td>@r.SalePrice.ToString("N3")</td>
+                                <td class="fw-bold text-success">@r.SoldQty</td>
+                                <td class="fw-bold text-success">@r.SoldRevenue.ToString("N3")</td>
+                                <td class="fw-bold text-danger">@r.ConsumedQty</td>
+                                <td class="fw-bold text-danger">@r.ConsumedCost.ToString("N3")</td>
+                                <td class="text-primary">@r.ReceivedQty</td>
+                                <td>
+                                    <span class="badge @(r.CurrentStock == 0 ? "bg-danger" : r.CurrentStock <= 5 ? "bg-warning text-dark" : "bg-success")">
+                                        @r.CurrentStock
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-secondary fw-bold text-center">
+                        <tr>
+                            <td colspan="5" data-i18n-en="Total">الإجمالي</td>
+                            <td class="text-success">@ViewBag.TotalSoldQty</td>
+                            <td class="text-success">@ViewBag.TotalSoldRevenue.ToString("N3")</td>
+                            <td class="text-danger">@ViewBag.TotalConsumedQty</td>
+                            <td class="text-danger">@ViewBag.TotalConsumedCost.ToString("N3")</td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    @@media print {
+        .page-header a, form, .btn { display: none !important; }
+        .card { border: 1px solid #ccc !important; break-inside: avoid; }
+        body { font-size: 12px; }
+    }
+</style>
