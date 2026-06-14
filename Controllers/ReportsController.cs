@@ -1160,8 +1160,8 @@ namespace Salon.Controllers
                 }
 
                 decimal totalComm = commBeforeTarget + commAfterTarget;
-                decimal netForEmployee = emp.BasicSalary + totalComm + gifts - advances - deductions;
-                decimal netForShop = totalRevenue - totalComm - emp.BasicSalary;
+                decimal netForEmployee = emp.BasicSalary + totalComm + gifts - advances - deductions - employeeDebt;
+                decimal netForShop = totalRevenue - totalComm - emp.BasicSalary + employeeDebt;
 
                 return new EmployeeRevenueRow
                 {

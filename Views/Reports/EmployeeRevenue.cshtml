@@ -223,11 +223,11 @@
                         <th rowspan="2" style="vertical-align:middle;">دين موظف<br/><small class="fw-normal text-muted">(د.ك)</small></th>
                         <th rowspan="2" style="vertical-align:middle;">الراتب<br/><small class="fw-normal text-muted">(د.ك)</small></th>
                         <th colspan="2" style="border-bottom:1px solid #e5e7eb;">العمولة</th>
-                        <th rowspan="2" style="vertical-align:middle;">صافي للموظف<br/><small class="fw-normal text-muted">(د.ك)</small></th>
-                        <th rowspan="2" style="vertical-align:middle;">صافي للمحل<br/><small class="fw-normal text-muted">(د.ك)</small></th>
                         <th rowspan="2" style="vertical-align:middle;">السلف<br/><small class="fw-normal text-muted">(د.ك)</small></th>
                         <th rowspan="2" style="vertical-align:middle;">الخصومات<br/><small class="fw-normal text-muted">(د.ك)</small></th>
                         <th rowspan="2" style="vertical-align:middle;">الهدايا<br/><small class="fw-normal text-muted">(د.ك)</small></th>
+                        <th rowspan="2" style="vertical-align:middle;">صافي للموظف<br/><small class="fw-normal text-muted">(د.ك)</small></th>
+                        <th rowspan="2" style="vertical-align:middle;">صافي للمحل<br/><small class="fw-normal text-muted">(د.ك)</small></th>
                         <th rowspan="2" style="vertical-align:middle;" class="no-print">ف.</th>
                     </tr>
                     <tr>
@@ -265,6 +265,9 @@
                             <td style="color:#ea580c;">
                                 @(row.CommissionAfterTarget > 0 ? row.CommissionAfterTarget.ToString("N3") : "-")
                             </td>
+                            <td style="color:#7c3aed;">@(row.Advances > 0 ? row.Advances.ToString("N3") : "-")</td>
+                            <td style="color:#dc2626;">@(row.Deductions > 0 ? row.Deductions.ToString("N3") : "-")</td>
+                            <td style="color:#db2777;">@(row.Gifts > 0 ? row.Gifts.ToString("N3") : "-")</td>
                             <td>
                                 <strong style="color:@(row.NetForEmployee >= 0 ? "#16a34a" : "#dc2626");">
                                     @row.NetForEmployee.ToString("N3")
@@ -275,9 +278,6 @@
                                     @row.NetForShop.ToString("N3")
                                 </strong>
                             </td>
-                            <td style="color:#7c3aed;">@(row.Advances > 0 ? row.Advances.ToString("N3") : "-")</td>
-                            <td style="color:#dc2626;">@(row.Deductions > 0 ? row.Deductions.ToString("N3") : "-")</td>
-                            <td style="color:#db2777;">@(row.Gifts > 0 ? row.Gifts.ToString("N3") : "-")</td>
                             <td class="no-print">
                                 <span class="badge bg-secondary">@row.Count</span>
                             </td>
@@ -302,11 +302,11 @@
                         <td>@grandSalary.ToString("N3")</td>
                         <td style="color:#d97706;">@grandCommBefore.ToString("N3")</td>
                         <td style="color:#ea580c;">@(grandCommAfter > 0 ? grandCommAfter.ToString("N3") : "-")</td>
-                        <td style="color:#16a34a;">@grandNetEmp.ToString("N3")</td>
-                        <td style="color:@(grandNetShop >= 0 ? "#16a34a" : "#dc2626");">@grandNetShop.ToString("N3")</td>
                         <td style="color:#7c3aed;">@(grandAdvances > 0 ? grandAdvances.ToString("N3") : "-")</td>
                         <td style="color:#dc2626;">@(grandDeductions > 0 ? grandDeductions.ToString("N3") : "-")</td>
                         <td style="color:#db2777;">@(grandGifts > 0 ? grandGifts.ToString("N3") : "-")</td>
+                        <td style="color:#16a34a;">@grandNetEmp.ToString("N3")</td>
+                        <td style="color:@(grandNetShop >= 0 ? "#16a34a" : "#dc2626");">@grandNetShop.ToString("N3")</td>
                         <td class="no-print">@grandCount</td>
                     </tr>
                 </tfoot>
@@ -320,8 +320,8 @@
     <div class="card-body py-2">
         <small class="text-muted">
             <strong>ملاحظات الحساب:</strong>
-            صافي الموظف = الراتب + عمولة التارجت + عمولة بعد التارجت + الهدايا − السلف − الخصومات &nbsp;|&nbsp;
-            صافي المحل = الإجمالي − الراتب − إجمالي العمولات
+            صافي الموظف = الراتب + عمولة التارجت + عمولة بعد التارجت + الهدايا − السلف − الخصومات − دين الموظف &nbsp;|&nbsp;
+            صافي المحل = الإجمالي − الراتب − إجمالي العمولات + دين الموظف
         </small>
     </div>
 </div>
