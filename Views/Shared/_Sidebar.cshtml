@@ -24,7 +24,6 @@
     bool hrOpen = IsGroupOpen("employees", "salaries", "advances", "attendance");
     bool cashOpen = IsGroupOpen("expenses", "deposits", "withdrawals") ||
                     (ctrl == "reports" && act == "cashmovement");
-    bool financeOpen = IsGroupOpen("reports");
     bool settingsOpen = IsGroupOpen("settings", "users");
     bool barberDailyOpen = IsGroupOpen("barberdaily");
 }
@@ -389,42 +388,14 @@
             </li>
         }
 
-        @* المالية *@
-        @{
-            bool hasFinanceGroup = canSee("Reports");
-        }
-        @if (hasFinanceGroup)
+        @* التقارير *@
+        @if (canSee("Reports"))
         {
-            <li class="has-submenu @(financeOpen ? "open" : "")">
-                <a href="#" class="submenu-toggle @(financeOpen ? "active-parent" : "")"
-                   onclick="toggleMenu(this); return false;">
+            <li>
+                <a href="@Url.Action("Index", "Reports")" class="@IsActive("Reports")">
                     <i class="fas fa-chart-line"></i>
-                    <span data-i18n-en="Finance &amp; Reports">المالية والتقارير</span>
-                    <i class="fas fa-chevron-left arrow-icon"></i>
+                    <span data-i18n-en="Reports">التقارير</span>
                 </a>
-                <ul class="submenu @(financeOpen ? "show" : "")">
-                    @if (canSee("Reports"))
-                    {
-                        <li>
-                            <a href="@Url.Action("Index", "Reports")" class="@IsActive("Reports", "Index")">
-                                <i class="fas fa-chart-bar"></i>
-                                <span data-i18n-en="Reports">التقارير</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="@Url.Action("MyReport", "Reports")" class="@IsActive("Reports", "MyReport")">
-                                <i class="fas fa-file-invoice"></i>
-                                <span data-i18n-en="My Daily Report">تقريري اليومي</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="@Url.Action("EmployeeEvaluation", "Reports")" class="@IsActive("Reports", "EmployeeEvaluation")">
-                                <i class="fas fa-user-check"></i>
-                                <span data-i18n-en="Employee Evaluation">تقييم الموظف</span>
-                            </a>
-                        </li>
-                    }
-                </ul>
             </li>
         }
 
