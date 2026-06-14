@@ -1062,6 +1062,27 @@ window.PAGE_TRANSLATIONS = {
     'وصف اختياري للباقة...': 'Optional package description...',
     'وصف اختياري للفئة': 'Optional category description',
 
+    // ── Inventory Report ─────────────────────────────────
+    'تقرير المخزون': 'Inventory Report',
+    'ملخص مبيعات واستهلاك المنتجات': 'Sales and consumption summary for products',
+    'تفاصيل حركة المنتجات': 'Product Movement Details',
+    'إيراد المبيعات': 'Sales Revenue',
+    'تكلفة الاستهلاك': 'Consumption Cost',
+    'إجمالي الصادر': 'Total Outgoing',
+    'مبيعات واستهلاك المنتجات مع الكميات والإيرادات خلال فترة': 'Product sales and consumption with quantities and revenue over a period',
+    'جميع الفئات': 'All Categories',
+    'نوع الحركة': 'Movement Type',
+    'سعر الشراء': 'Purchase Price',
+    'سعر البيع': 'Sale Price',
+    'كمية واردة': 'Received Qty',
+    'المخزون الحالي': 'Current Stock',
+    'لا توجد بيانات في الفترة المحددة': 'No data for the selected period',
+    'منتج نشط': 'active products',
+    'مبيعات + استهلاك': 'sales + consumption',
+    'قطعة': 'pcs',
+    'إيراد': 'Revenue',
+    'تكلفة': 'Cost',
+
 };
 
 // ── Translation engine ───────────────────────────────────────────────────────

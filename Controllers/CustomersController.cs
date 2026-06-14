@@ -44,7 +44,7 @@ namespace Salon.Controllers
                     (c.Phone != null && c.Phone.Contains(search)));
 
             var customers = await query
-                .Include(c => c.Sales)
+                .Include(c => c.Sales).ThenInclude(s => s.Employee)
                 .OrderByDescending(c => c.CreatedAt).ToListAsync();
             ViewBag.Search = search;
             ViewBag.Dept = dept;

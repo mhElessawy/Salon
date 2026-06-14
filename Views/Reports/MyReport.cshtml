@@ -17,502 +17,1042 @@
     var expensesTodayList = ViewBag.ExpensesTodayList as List<Expense> ?? new List<Expense>();
     var salariesTodayList = ViewBag.SalariesTodayList as List<Salary> ?? new List<Salary>();
     var depositsTodayList = ViewBag.DepositsTodayList as List<Deposit> ?? new List<Deposit>();
+    // Expenses/deposits/advances come from ViewBag (not affected by sale-type filter)
     decimal totalExpensesWithSalaries = ViewBag.TotalExpensesWithSalaries is decimal tews ? tews : 0m;
     decimal depositsToday = ViewBag.DepositsToday is decimal dt ? dt : 0m;
-    decimal totalGiftsToday = ViewBag.TotalGiftsToday is decimal tgt ? tgt : 0m;
-    decimal totalHadiyaToday = ViewBag.TotalHadiyaToday is decimal tht ? tht : 0m;
-}
+    decimal advancesToday = ViewBag.AdvancesToday is decimal at ? at : 0m;
 
-<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <div>
-        <h1><i class="fas fa-file-invoice me-2"></i>تقريري اليومي</h1>
-        <p class="mb-0"><span data-i18n-en="Summary of">ملخص يوم</span> @ViewBag.Date</p>
-    </div>
-    <button onclick="window.print()" class="btn btn-dark btn-sm no-print">
-        <i class="fas fa-print me-1"></i> طباعة
-    </button>
-</div>
+    DateTime reportDate = DateTime.TryParse(selectedDate, out var pd) ? pd : DateTime.Today;
+    var prevDate = reportDate.AddDays(-1);
+    var nextDate = reportDate.AddDays(1);
 
-<div class="stat-cards mb-4">
-    <div class="stat-card green">
-        <div class="stat-card-header">
-            <span class="stat-label">مبيعات اليوم</span>
-            <div class="stat-icon green"><i class="fas fa-dollar-sign"></i></div>
-        </div>
-        <div class="stat-value">@ViewBag.SalesToday?.ToString("N3") د.ك</div>
-    </div>
-    <div class="stat-card red">
-        <div class="stat-card-header">
-            <span class="stat-label">مصاريف اليوم</span>
-            <div class="stat-icon red"><i class="fas fa-shopping-bag"></i></div>
-        </div>
-        <div class="stat-value">@totalExpensesWithSalaries.ToString("N3") د.ك</div>
-        @if ((decimal)(ViewBag.SalariesToday ?? 0m) > 0)
-        {
-            <div class="small text-muted mt-1">
-                مصروفات: @ViewBag.ExpensesToday?.ToString("N3") | مرتبات: @ViewBag.SalariesToday?.ToString("N3")
-            </div>
-        }
-    </div>
-    <div class="stat-card" style="border-right:4px solid #9f1239;">
-        <div class="stat-card-header">
-            <span class="stat-label">سلف اليوم</span>
-            <div class="stat-icon" style="background:#9f1239;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-hand-holding-usd"></i></div>
-        </div>
-        <div class="stat-value" style="color:#9f1239;">@ViewBag.AdvancesToday?.ToString("N3") د.ك</div>
-    </div>
-    <div class="stat-card" style="border-right:4px solid #16a34a;">
-        <div class="stat-card-header">
-            <span class="stat-label">إيداعات اليوم</span>
-            <div class="stat-icon" style="background:#16a34a;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-money-bill-wave"></i></div>
-        </div>
-        <div class="stat-value" style="color:#16a34a;">@depositsToday.ToString("N3") د.ك</div>
-    </div>
-    @if (totalGiftsToday > 0)
+    // ── All sale-based totals computed from Model (respects all filters) ──
+    var activeModel = Model.Where(s => s.Status != "ملغي").ToList();
+    string[] cashMethodsV = { "كاش", "نقدي", "Cash" };
+    string[] knetMethodsV = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+    string[] mixedMethodsV = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
+    decimal salesToday = activeModel.Sum(s => s.NetAmount);
+    decimal barberSales = activeModel.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount);
+    decimal massageSales = activeModel.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount);
+    decimal productsSales = activeModel.Where(s => s.SaleType == "منتجات").Sum(s => s.NetAmount);
+    decimal cashTotal = activeModel.Sum(s =>
+        cashMethodsV.Contains(s.PaymentMethod) ? s.NetAmount :
+        mixedMethodsV.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+    decimal knetTotal = activeModel.Sum(s =>
+        knetMethodsV.Contains(s.PaymentMethod) ? s.NetAmount :
+        mixedMethodsV.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
+    decimal empDebtTotal = activeModel.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
+    decimal ownerDebtTotal = activeModel.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount);
+    decimal debtTotal = empDebtTotal + ownerDebtTotal;
+    decimal totalGiftsToday = activeModel.Sum(s => s.EmployeeGift ?? 0);
+    decimal totalHadiyaToday = activeModel.Sum(s => s.GiftForEmployee ?? 0);
+    decimal cancelledTotal = Model.Where(s => s.Status == "ملغي").Sum(s => s.NetAmount);
+    int cancelledCount = Model.Count(s => s.Status == "ملغي");
+    decimal netProfit = salesToday + depositsToday - totalExpensesWithSalaries - advancesToday;
+    decimal avgInv = activeModel.Any() ? salesToday / activeModel.Count : 0;
+
+    // Is this admin view (both depts visible) with no type filter?
+    bool isAdminView = showBarber && showMassage && string.IsNullOrEmpty(selectedSaleType);
+
+    string deptLabel = userDept == "حلاقة" ? "مبيعات الحلاقة"
+                     : userDept == "مساج" ? "مبيعات المساج"
+                     : !string.IsNullOrEmpty(selectedSaleType) ? $"مبيعات {selectedSaleType}"
+                     : "مبيعات اليوم";
+    string deptLabelEn = userDept == "حلاقة" ? "Barber Sales"
+                       : userDept == "مساج" ? "Massage Sales"
+                       : !string.IsNullOrEmpty(selectedSaleType) ? $"{selectedSaleType} Sales"
+                       : "Today's Sales";
+
+    // Cat colors for expenses donut
+    var catColors = new[] { "#ef4444", "#f97316", "#3b82f6", "#10b981", "#8b5cf6", "#06b6d4", "#ec4899" };
+    var allExpenses = expensesTodayList.Cast<object>()
+        .Concat(salariesTodayList.Select(s => (object)s))
+        .ToList();
+    var expCats = expensesTodayList
+        .GroupBy(e => string.IsNullOrEmpty(e.Category) ? "أخرى" : e.Category)
+        .Select(g => new { Key = g.Key, Value = g.Sum(e => e.Amount) })
+        .OrderByDescending(x => x.Value)
+        .ToList();
+    if (salariesTodayList.Any())
+        expCats = expCats.Append(new { Key = "مرتبات", Value = salariesTodayList.Sum(s => s.NetSalary) }).OrderByDescending(x => x.Value).ToList();
+    decimal totalExpCat = expCats.Sum(x => x.Value);
+    string grad = "";
+    decimal cum = 0m;
+    for (int ci = 0; ci < expCats.Count; ci++)
     {
-        <div class="stat-card" style="border-right:4px solid #e67e22;">
-            <div class="stat-card-header">
-                <span class="stat-label">عمولات الموظفين</span>
-                <div class="stat-icon" style="background:#e67e22;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-hand-holding-usd"></i></div>
-            </div>
-            <div class="stat-value" style="color:#e67e22;">@totalGiftsToday.ToString("N3") د.ك</div>
-        </div>
+        var p = totalExpCat > 0 ? expCats[ci].Value / totalExpCat * 100 : 0;
+        if (ci > 0) grad += ",";
+        grad += $"{catColors[ci % catColors.Length]} {cum:F1}% {(cum + p):F1}%";
+        cum += p;
     }
-    @if (totalHadiyaToday > 0)
-    {
-        <div class="stat-card" style="border-right:4px solid #c0392b;">
-            <div class="stat-card-header">
-                <span class="stat-label">هدايا للموظفين</span>
-                <div class="stat-icon" style="background:#c0392b;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-gift"></i></div>
-            </div>
-            <div class="stat-value" style="color:#c0392b;">@totalHadiyaToday.ToString("N3") د.ك</div>
-        </div>
+    if (!expCats.Any()) grad = "#e5e7eb 0% 100%";
+}
+
+<style>
+    .dp2-page {
+        font-family: 'Segoe UI',Tahoma,Arial,sans-serif;
+        direction: rtl;
+        background: #f1f5f9;
+        color: #111;
+        font-size: 13px;
     }
-    <div class="stat-card orange">
-        <div class="stat-card-header">
-            <span class="stat-label">صافي الربح</span>
-            <div class="stat-icon orange"><i class="fas fa-chart-line"></i></div>
-        </div>
-        <div class="stat-value">@ViewBag.NetProfit?.ToString("N3") د.ك</div>
-    </div>
+
+    .dp2-titlebar {
+        background: #fff;
+        border-radius: 10px;
+        padding: 14px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+
+        .dp2-titlebar h4 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+
+        .dp2-titlebar .sub {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+    .dp2-btn-row {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .dp2-btn {
+        padding: 5px 12px;
+        border-radius: 6px;
+        border: 1px solid #ddd;
+        background: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: background .15s;
+        text-decoration: none;
+        color: inherit;
+    }
+
+        .dp2-btn:hover {
+            background: #f1f5f9;
+        }
+
+        .dp2-btn.print-btn {
+            background: #1a1a2e;
+            color: #fff;
+            border-color: #1a1a2e;
+        }
+
+        .dp2-btn.back-btn {
+            background: #475569;
+            color: #fff;
+            border-color: #475569;
+        }
+
+    .dp2-datebar {
+        background: #fff;
+        border-radius: 8px;
+        padding: 8px 14px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+
+    .dp2-filterbar {
+        background: #fff;
+        border-radius: 8px;
+        padding: 8px 14px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.06);
+        border-right: 3px solid #1a1a2e;
+    }
+
+    .dp2-cards {
+        display: grid;
+        grid-template-columns: repeat(6,1fr);
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    @@media (max-width: 992px) {
+        .dp2-cards {
+            grid-template-columns: repeat(3,1fr);
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .dp2-cards {
+            grid-template-columns: repeat(2,1fr);
+        }
+    }
+
+    .dp2-card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 12px 10px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.07);
+        position: relative;
+        overflow: hidden;
+    }
+
+        .dp2-card .c-icon {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .dp2-card .c-lbl {
+            font-size: 10px;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 3px;
+        }
+
+        .dp2-card .c-val {
+            font-size: 18px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .dp2-card .c-cur {
+            font-size: 9px;
+            color: #888;
+        }
+
+        .dp2-card .c-sub {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+
+        .dp2-card .c-pct {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+    .dp2-panel {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.07);
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .dp2-panel-hdr {
+        background: #1a1a2e;
+        color: #fff;
+        font-weight: 700;
+        font-size: 12px;
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        justify-content: space-between;
+    }
+
+        .dp2-panel-hdr .badge-count {
+            background: rgba(255,255,255,.2);
+            font-size: 10px;
+            padding: 1px 7px;
+            border-radius: 10px;
+        }
+
+    .dp2-panel-body {
+        padding: 10px 12px;
+    }
+
+    .dp2-donut-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+        padding: 8px 0;
+    }
+
+    .dp2-donut {
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        background: conic-gradient( @grad );
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    .dp2-donut-inner {
+        position: absolute;
+        top: 17px;
+        left: 17px;
+        width: 76px;
+        height: 76px;
+        background: #fff;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .dp2-legend {
+        font-size: 10px;
+    }
+
+    .dp2-legend-row {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 4px;
+    }
+
+    .dp2-legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .dp2-cash-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px dashed #e2e8f0;
+        font-size: 12px;
+    }
+
+        .dp2-cash-row:last-child {
+            border-bottom: none;
+        }
+
+    .dp2-cash-lbl {
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .dp2-cash-val {
+        font-weight: 700;
+    }
+
+    .dp2-cash-total {
+        background: #1a1a2e;
+        color: #fff;
+        margin: 8px -12px -10px;
+        padding: 10px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+        .dp2-cash-total span {
+            color: #fbbf24;
+            font-size: 15px;
+        }
+
+    .dp2-qs-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 7px 0;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 12px;
+    }
+
+        .dp2-qs-row:last-child {
+            border-bottom: none;
+        }
+
+    .dp2-qs-lbl {
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .dp2-qs-val {
+        font-weight: 700;
+        color: #1a1a2e;
+    }
+
+    .dp2-inv-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+    }
+
+        .dp2-inv-table thead th {
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 700;
+            padding: 5px 6px;
+            text-align: center;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .dp2-inv-table tbody td {
+            padding: 5px 6px;
+            text-align: center;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .dp2-inv-table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .dp2-inv-table tfoot td {
+            background: #1a1a2e;
+            color: #fff;
+            font-weight: 700;
+            padding: 6px 6px;
+            text-align: center;
+        }
+
+    .pmb {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 10px;
+        display: inline-block;
+    }
+
+    .pmb-cash {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .pmb-knet {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .pmb-debt {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .pmb-mix {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    @@media print {
+        .no-print {
+            display: none !important;
+        }
+
+        .dp2-page {
+            background: #fff;
+        }
+
+        .dp2-panel, .dp2-card {
+            box-shadow: none;
+            border: 1px solid #e2e8f0;
+        }
+    }
+</style>
+
+<div class="dp2-page">
+
+    <!-- Title bar -->
+    <div class="dp2-titlebar no-print">
+        <div>
+            <h4><i class="fas fa-file-invoice me-2" style="color:#28a745;"></i><span data-i18n-en="My Daily Report">تقريري اليومي</span></h4>
+            <div class="sub"><span data-i18n-en="Summary of">ملخص يوم</span> @ViewBag.Date @if (isFiltered){
+            <span class="badge" style="background:#fbbf24;color:#1a1a2e;font-size:10px;margin-right:6px;"><i class="fas fa-filter me-1"></i>مفلتر</span>
+                        }
 </div>
-
-@if (showBarber || showMassage)
-{
-    <div class="stat-cards mb-4">
-        @if (showBarber)
-        {
-            <div class="stat-card blue">
-                <div class="stat-card-header">
-                    <span class="stat-label">مبيعات الحلاقة</span>
-                    <div class="stat-icon blue"><i class="fas fa-cut"></i></div>
-                </div>
-                <div class="stat-value">@ViewBag.BarberSales?.ToString("N3") د.ك</div>
-            </div>
-        }
-        @if (showMassage)
-        {
-            <div class="stat-card purple" style="--card-color:#7c3aed;">
-                <div class="stat-card-header">
-                    <span class="stat-label">مبيعات المساج</span>
-                    <div class="stat-icon" style="background:#7c3aed;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-spa"></i></div>
-                </div>
-                <div class="stat-value">@ViewBag.MassageSales?.ToString("N3") د.ك</div>
-            </div>
-        }
-        <div class="stat-card" style="border-right:4px solid #0891b2;">
-            <div class="stat-card-header">
-                <span class="stat-label">كاش اليوم</span>
-                <div class="stat-icon" style="background:#0891b2;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-money-bill-wave"></i></div>
-            </div>
-            <div class="stat-value">@ViewBag.CashTotal?.ToString("N3") د.ك</div>
         </div>
-        <div class="stat-card" style="border-right:4px solid #059669;">
-            <div class="stat-card-header">
-                <span class="stat-label">كي نت اليوم</span>
-                <div class="stat-icon" style="background:#059669;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-credit-card"></i></div>
-            </div>
-            <div class="stat-value">@ViewBag.KnetTotal?.ToString("N3") د.ك</div>
+        <div class="dp2-btn-row">
+            <button class="dp2-btn print-btn" onclick="window.print()"><i class="fas fa-print"></i> <span data-i18n-en="Print">طباعة</span></button>
+            <a href="@Url.Action("Index")" class="dp2-btn back-btn"><i class="fas fa-arrow-right"></i> <span data-i18n-en="Back">رجوع</span></a>
         </div>
-        <div class="stat-card" style="border-right:4px solid #fd7e14;">
-            <div class="stat-card-header">
-                <span class="stat-label">دين على الموظف</span>
-                <div class="stat-icon" style="background:#fd7e14;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-user-tag"></i></div>
-            </div>
-            <div class="stat-value" style="color:#fd7e14;">@ViewBag.EmployeeDebtTotal?.ToString("N3") د.ك</div>
-        </div>
-        <div class="stat-card" style="border-right:4px solid #7c3aed;">
-            <div class="stat-card-header">
-                <span class="stat-label">دين على صاحب المكان</span>
-                <div class="stat-icon" style="background:#7c3aed;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-building"></i></div>
-            </div>
-            <div class="stat-value" style="color:#7c3aed;">@ViewBag.OwnerDebtTotal?.ToString("N3") د.ك</div>
-        </div>
-        @if ((decimal)(ViewBag.CancelledTotal ?? 0m) > 0)
-        {
-            <div class="stat-card" style="border-right:4px solid #dc2626;">
-                <div class="stat-card-header">
-                    <span class="stat-label">إجمالي الملغاة (@ViewBag.CancelledCount فاتورة)</span>
-                    <div class="stat-icon" style="background:#dc2626;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-ban"></i></div>
-                </div>
-                <div class="stat-value" style="color:#dc2626;">@ViewBag.CancelledTotal?.ToString("N3") د.ك</div>
-            </div>
-        }
     </div>
-}
 
-@{
-    var breakdown = ViewBag.PaymentBreakdown as IEnumerable<dynamic>;
-    var salesTotalForCheck = (decimal)(ViewBag.SalesToday ?? 0m);
-    var cashK = (decimal)(ViewBag.CashTotal ?? 0m);
-    var knetK = (decimal)(ViewBag.KnetTotal ?? 0m);
-    var debtK = (decimal)(ViewBag.DebtTotal ?? 0m);
-    var otherK = salesTotalForCheck - cashK - knetK - debtK;
-    bool hasUnclassified = otherK > 0.001m;
-}
-
-<div class="card mb-3">
-    <div class="card-body">
-        <form method="get" action="@Url.Action("MyReport")" class="row g-2 align-items-end">
-            <div class="col-auto">
-                <label class="form-label small fw-semibold mb-1">التاريخ</label>
-                <div class="input-group input-group-sm">
-                    <input type="date" id="dateInput" name="date" value="@selectedDate" class="form-control" style="max-width:160px;" />
-                    <button type="button" class="btn btn-outline-secondary" id="todayBtn" title="اليوم">
-                        <i class="fas fa-calendar-day"></i>
-                    </button>
-                </div>
-            </div>
-            @if (showBarber || showMassage)
+    <!-- Date navigation bar -->
+    <div class="dp2-datebar no-print">
+        <a href="?date=@prevDate.ToString("yyyy-MM-dd")@(isFiltered ? $"&saleType={selectedSaleType}&paymentMethod={selectedPayment}&employeeId={selectedEmpId}" : "")" class="btn btn-outline-secondary btn-sm"><i class="fas fa-chevron-right"></i></a>
+        <form method="get" action="@Url.Action("MyReport")" class="d-flex align-items-center gap-2" id="dateForm">
+            <input type="hidden" name="saleType" value="@selectedSaleType" />
+            <input type="hidden" name="paymentMethod" value="@selectedPayment" />
+            @if (selectedEmpId.HasValue)
             {
-                <div class="col-auto">
-                    <label class="form-label small fw-semibold mb-1">النوع</label>
-                    <select name="saleType" class="form-select form-select-sm" style="min-width:130px;">
-                        <option value="" selected="@(string.IsNullOrEmpty(selectedSaleType))">-- الكل --</option>
-                        @if (showBarber)
-                        {
-                            <option value="حلاقة" selected="@(selectedSaleType == "حلاقة")">✂ حلاقة</option>
-                        }
-                        @if (showMassage)
-                        {
-                            <option value="مساج" selected="@(selectedSaleType == "مساج")">🌿 مساج</option>
-                        }
-                    </select>
-                </div>
+                <input type="hidden" name="employeeId" value="@selectedEmpId" />
             }
+            <input type="date" id="dateInput" name="date" value="@selectedDate" class="form-control form-control-sm" style="width:150px;" />
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="todayBtn" title="اليوم"><i class="fas fa-calendar-day"></i></button>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i><span data-i18n-en="View">عرض</span></button>
+        </form>
+        <a href="?date=@nextDate.ToString("yyyy-MM-dd")@(isFiltered ? $"&saleType={selectedSaleType}&paymentMethod={selectedPayment}&employeeId={selectedEmpId}" : "")"
+           class="btn btn-outline-secondary btn-sm"
+           @(nextDate > DateTime.Today ? "style=opacity:.4;pointer-events:none;" : "")>
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        <span class="fw-bold text-secondary small">@reportDate.ToString("yyyy/MM/dd")</span>
+    </div>
 
-            <div class="col-auto">
-                <label class="form-label small fw-semibold mb-1">طريقة الدفع</label>
-                <select name="paymentMethod" class="form-select form-select-sm" style="min-width:180px;">
-                    <option value="" selected="@(string.IsNullOrEmpty(selectedPayment))">-- الكل --</option>
-                    <option value="كاش" selected="@(selectedPayment == "كاش")">💵 كاش</option>
-                    <option value="كي نت" selected="@(selectedPayment == "كي نت")">💳 كي نت</option>
-                    <option value="كي نت و كاش" selected="@(selectedPayment == "كي نت و كاش")">↔ كاش + كي نت</option>
-                    <option value="دين على العميل" selected="@(selectedPayment == "دين على العميل")">👤 دين على العميل</option>
-                    <option value="دين على الموظف" selected="@(selectedPayment == "دين على الموظف")">👷 دين على الموظف</option>
-                    <option value="دين على صاحب المكان" selected="@(selectedPayment == "دين على صاحب المكان")">🏠 دين على صاحب المكان</option>
-                </select>
-            </div>
-
-            @if (employees.Any())
-            {
-                <div class="col-auto">
-                    <label class="form-label small fw-semibold mb-1">الموظف</label>
-                    <select name="employeeId" class="form-select form-select-sm" style="min-width:170px;">
-                        <option value="" selected="@(!selectedEmpId.HasValue)">-- كل الموظفين --</option>
-                        @foreach (var emp in employees)
-                        {
-                            <option value="@emp.Id" selected="@(selectedEmpId == emp.Id)">@emp.FullName</option>
-                        }
-                    </select>
-                </div>
-            }
-
-            <div class="col-auto d-flex gap-2">
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="fas fa-filter me-1"></i>تصفية
-                </button>
-                @if (isFiltered)
+    <!-- Filters bar -->
+    <form method="get" action="@Url.Action("MyReport")" class="dp2-filterbar no-print">
+        <input type="hidden" name="date" value="@selectedDate" />
+        <i class="fas fa-filter" style="color:#64748b;font-size:12px;"></i>
+        @if (showBarber || showMassage)
+        {
+            <select name="saleType" class="form-select form-select-sm" style="width:130px;">
+                <option value="" selected="@(string.IsNullOrEmpty(selectedSaleType))">كل الأنواع</option>
+                @if (showBarber)
                 {
-                    <a href="@Url.Action("MyReport", new { date = selectedDate })" class="btn btn-outline-secondary btn-sm">
-                        <i class="fas fa-times me-1"></i>إلغاء
-                    </a>
+                    <option value="حلاقة" selected="@(selectedSaleType == "حلاقة")">✂ حلاقة</option>
+                }
+                @if (showMassage)
+                {
+                    <option value="مساج" selected="@(selectedSaleType == "مساج")">🌿 مساج</option>
+                }
+            </select>
+        }
+        <select name="paymentMethod" class="form-select form-select-sm" style="width:160px;">
+            <option value="" selected="@(string.IsNullOrEmpty(selectedPayment))">كل طرق الدفع</option>
+            <option value="كاش" selected="@(selectedPayment == "كاش")">💵 كاش</option>
+            <option value="كي نت" selected="@(selectedPayment == "كي نت")">💳 كي نت</option>
+            <option value="كي نت و كاش" selected="@(selectedPayment == "كي نت و كاش")">↔ كاش + كي نت</option>
+            <option value="دين على العميل" selected="@(selectedPayment == "دين على العميل")">👤 دين / عميل</option>
+            <option value="دين على الموظف" selected="@(selectedPayment == "دين على الموظف")">👷 دين / موظف</option>
+            <option value="دين على صاحب المكان" selected="@(selectedPayment == "دين على صاحب المكان")">🏠 دين / صاحب المكان</option>
+        </select>
+        @if (employees.Any())
+        {
+            <select name="employeeId" class="form-select form-select-sm" style="width:160px;">
+                <option value="" selected="@(!selectedEmpId.HasValue)">كل الموظفين</option>
+                @foreach (var emp in employees)
+                {
+                    <option value="@emp.Id" selected="@(selectedEmpId == emp.Id)">@emp.FullName</option>
+                }
+            </select>
+        }
+        <button type="submit" class="btn btn-dark btn-sm"><i class="fas fa-filter me-1"></i><span data-i18n-en="Filter">تصفية</span></button>
+        @if (isFiltered)
+        {
+            <a href="@Url.Action("MyReport", new { date = selectedDate })" class="btn btn-outline-secondary btn-sm"><i class="fas fa-times me-1"></i><span data-i18n-en="Clear">إلغاء</span></a>
+        }
+    </form>
+
+    <!-- ===== Summary Cards ===== -->
+    @{
+        decimal cashPct = salesToday > 0 ? Math.Round(cashTotal / salesToday * 100, 1) : 0;
+        decimal knetPct = salesToday > 0 ? Math.Round(knetTotal / salesToday * 100, 1) : 0;
+    }
+
+    @if (isAdminView)
+    {
+        <!-- Admin: حلاقة + مساج + كاش + كي نت + مصاريف + صافي -->
+        <div class="dp2-cards mb-2">
+            <div class="dp2-card" style="border-top:3px solid #1a1a2e;">
+                <div class="c-icon" style="color:#1a1a2e;"><i class="fas fa-cut"></i></div>
+                <div class="c-lbl" data-i18n-en="Barber Sales">مبيعات الحلاقة</div>
+                <div class="c-val" style="color:#1a1a2e;">@barberSales.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub">@activeModel.Count(s => s.SaleType == "حلاقة") <span data-i18n-en="invoices">فاتورة</span></div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #0891b2;">
+                <div class="c-icon" style="color:#0891b2;"><i class="fas fa-spa"></i></div>
+                <div class="c-lbl" data-i18n-en="Massage Sales">مبيعات المساج</div>
+                <div class="c-val" style="color:#0891b2;">@massageSales.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub">@activeModel.Count(s => s.SaleType == "مساج") <span data-i18n-en="invoices">فاتورة</span></div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #16a34a;">
+                <div class="c-icon" style="color:#16a34a;"><i class="fas fa-cash-register"></i></div>
+                <div class="c-lbl" data-i18n-en="Total Sales">إجمالي المبيعات</div>
+                <div class="c-val" style="color:#16a34a;">@salesToday.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub"><span data-i18n-en="invoices">فواتير</span>: <strong>@activeModel.Count</strong></div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #1d4ed8;">
+                <div class="c-pct" style="background:#dbeafe;color:#1e40af;">@cashPct.ToString("N1")%</div>
+                <div class="c-icon" style="color:#1d4ed8;"><i class="fas fa-money-bill-wave"></i></div>
+                <div class="c-lbl" data-i18n-en="Cash">كاش اليوم</div>
+                <div class="c-val" style="color:#1d4ed8;">@cashTotal.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub">@cashPct.ToString("N1")%</div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #dc2626;">
+                <div class="c-icon" style="color:#dc2626;"><i class="fas fa-receipt"></i></div>
+                <div class="c-lbl" data-i18n-en="Expenses">مصاريف اليوم</div>
+                <div class="c-val" style="color:#dc2626;">@totalExpensesWithSalaries.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub"><span data-i18n-en="Advances">سلف</span>: @advancesToday.ToString("N3")</div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #059669;background:#f0fdf4;">
+                <div class="c-icon" style="color:#059669;"><i class="fas fa-chart-line"></i></div>
+                <div class="c-lbl" data-i18n-en="Net Profit">صافي الربح</div>
+                <div class="c-val" style="color:#059669;">@netProfit.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub"><span data-i18n-en="Avg/Invoice">متوسط</span>: @avgInv.ToString("N3")</div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Dept user or filtered: one sales card showing dept/filtered total -->
+        <div class="dp2-cards mb-2">
+            <div class="dp2-card" style="border-top:3px solid #16a34a;">
+                <div class="c-icon" style="color:#16a34a;"><i class="fas fa-cash-register"></i></div>
+                <div class="c-lbl" data-i18n-en="@deptLabelEn">@deptLabel</div>
+                <div class="c-val" style="color:#16a34a;">@salesToday.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub"><span data-i18n-en="Invoices">فواتير</span>: <strong>@activeModel.Count</strong></div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #1d4ed8;">
+                <div class="c-pct" style="background:#dbeafe;color:#1e40af;">@cashPct.ToString("N1")%</div>
+                <div class="c-icon" style="color:#1d4ed8;"><i class="fas fa-money-bill-wave"></i></div>
+                <div class="c-lbl" data-i18n-en="Cash">كاش اليوم</div>
+                <div class="c-val" style="color:#1d4ed8;">@cashTotal.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub">@cashPct.ToString("N1")%</div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #0891b2;">
+                <div class="c-pct" style="background:#cffafe;color:#0e7490;">@knetPct.ToString("N1")%</div>
+                <div class="c-icon" style="color:#0891b2;"><i class="fas fa-credit-card"></i></div>
+                <div class="c-lbl" data-i18n-en="K-Net">كي نت اليوم</div>
+                <div class="c-val" style="color:#0891b2;">@knetTotal.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub">@knetPct.ToString("N1")%</div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #dc2626;">
+                <div class="c-icon" style="color:#dc2626;"><i class="fas fa-receipt"></i></div>
+                <div class="c-lbl" data-i18n-en="Expenses">مصاريف اليوم</div>
+                <div class="c-val" style="color:#dc2626;">@totalExpensesWithSalaries.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                @if (salariesTodayList.Any())
+                {
+                    <div class="c-sub">مرتبات: @salariesTodayList.Sum(s => s.NetSalary).ToString("N3")</div>
                 }
             </div>
-        </form>
-    </div>
-</div>
+            <div class="dp2-card" style="border-top:3px solid #d97706;">
+                <div class="c-icon" style="color:#d97706;"><i class="fas fa-hand-holding-usd"></i></div>
+                <div class="c-lbl" data-i18n-en="Advances">سلف اليوم</div>
+                <div class="c-val" style="color:#d97706;">@advancesToday.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub">@advancesList.Count <span data-i18n-en="advance(s)">سلفة</span></div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #059669;background:#f0fdf4;">
+                <div class="c-icon" style="color:#059669;"><i class="fas fa-chart-line"></i></div>
+                <div class="c-lbl" data-i18n-en="Net Profit">صافي الربح</div>
+                <div class="c-val" style="color:#059669;">@netProfit.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub"><span data-i18n-en="Avg/Invoice">متوسط/فاتورة</span>: @avgInv.ToString("N3")</div>
+            </div>
+        </div>
+    }
 
-<div class="card print-area">
-    <div class="card-body">
-        <h5 class="card-title mb-3">
-            <i class="fas fa-list me-2"></i><span data-i18n-en="Today's Invoices">فواتير اليوم</span> (@Model.Count())
-            @if (isFiltered)
-            {
-                <span class="badge bg-warning text-dark ms-2 fs-6"><i class="fas fa-filter me-1"></i>مفلتر</span>
-            }
-        </h5>
-        <div class="table-responsive">
-            <table id="invoiceTable" class="table table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>رقم الفاتورة</th>
-                        <th>الموظف</th>
-                        <th>العميل</th>
-                        <th>النوع</th>
-                        <th>الخدمات</th>
-                        <th>الإجمالي</th>
-                        <th>الخصم</th>
-                        <th>الصافي</th>
-                        <th>هدية للموظف</th>
-                        <th>طريقة الدفع</th>
-                        <th>ملاحظات</th>
-                        <th>الوقت</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var s in Model)
-                    {
-                        var isCancelled = s.Status == "ملغي";
-                        <tr style="@(isCancelled ? "background:#fff5f5;opacity:.8;" : "")">
-                            <td>
-                                <strong style="@(isCancelled ? "text-decoration:line-through;color:#dc2626;" : "")">@s.InvoiceNumber</strong>
-                                @if (isCancelled)
-                                {
-                                    <br />
+    <!-- ===== Middle Row: Invoices (right) | Summary + Cash Flow (left) ===== -->
+    <div class="row g-2 mb-2" style="align-items:stretch;">
 
-                                    <span class="badge bg-danger mt-1"><i class="fas fa-ban me-1"></i>ملغي</span>
-                                }
-                            </td>
-                            <td>@(s.Employee?.FullName ?? "-")</td>
-                            <td>@(s.Customer?.FullName ?? "زائر")</td>
-                            <td>
-                                @if (s.SaleType == "حلاقة")
-                                {
-                                    <span class="badge bg-primary"><i class="fas fa-cut me-1"></i>حلاقة</span>
-                                }
-                                else if (s.SaleType == "مساج")
-                                {
-                                    <span class="badge" style="background:#7c3aed;"><i class="fas fa-spa me-1"></i>مساج</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary"><i class="fas fa-box me-1"></i>منتجات</span>
-                                }
-                            </td>
-                            <td class="small">
-                                @if (s.SaleItems != null && s.SaleItems.Any())
-                                {
-                                    <ul class="mb-0 ps-3">
-                                        @foreach (var item in s.SaleItems)
+        <!-- Invoices Table -->
+        <div class="col-lg-8 col-md-12">
+            <div class="dp2-panel">
+                <div class="dp2-panel-hdr">
+                    <span><i class="fas fa-file-invoice me-1"></i> <span data-i18n-en="Today's Invoices">فواتير اليوم</span></span>
+                    <span class="badge-count">@Model.Count() <span data-i18n-en="invoice">فاتورة</span></span>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="dp2-inv-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n-en="Invoice #">رقم الفاتورة</th>
+                                <th data-i18n-en="Employee">الموظف</th>
+                                <th data-i18n-en="Customer">العميل</th>
+                                <th data-i18n-en="Type">النوع</th>
+                                <th data-i18n-en="Services">الخدمات</th>
+                                <th data-i18n-en="Total">الإجمالي<br /><small>د.ك</small></th>
+                                <th data-i18n-en="Disc.">الخصم<br /><small>د.ك</small></th>
+                                <th data-i18n-en="Net">الصافي<br /><small>د.ك</small></th>
+                                <th data-i18n-en="Gift">هدية<br /><small>د.ك</small></th>
+                                <th data-i18n-en="Payment">طريقة الدفع</th>
+                                <th data-i18n-en="Time">الوقت</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.Any() && !advancesList.Any())
+                            {
+                                <tr><td colspan="11" style="text-align:center;color:#94a3b8;padding:20px;"><i class="fas fa-inbox me-1"></i> <span data-i18n-en="No invoices today">لا توجد فواتير اليوم</span></td></tr>
+                            }
+                            @foreach (var s in Model)
+                            {
+                                var isCancelled = s.Status == "ملغي";
+                                <tr style="@(isCancelled ? "background:#fff5f5;opacity:.85;" : "")">
+                                    <td style="font-family:monospace;font-size:10px;white-space:nowrap;">
+                                        <strong style="@(isCancelled ? "text-decoration:line-through;color:#dc2626;" : "")">@s.InvoiceNumber</strong>
+                                        @if (isCancelled)
                                         {
-                                            <li>@item.ItemName@(item.Quantity > 1 ? $" ×{item.Quantity}" : "")</li>
+                                            <br />
+                                            <span class="pmb pmb-debt" style="font-size:9px;"><i class="fas fa-ban me-1"></i>ملغي</span>
+     }
+                                    </td>
+                                    <td style="white-space:nowrap;">@(s.Employee?.FullName ?? "—")</td>
+                                    <td style="white-space:nowrap;">@(s.Customer?.FullName ?? "زائر")</td>
+                                    <td>
+                                        @if (s.SaleType == "حلاقة")
+                                        {
+                                            <span class="pmb" style="background:#1a1a2e;color:#fff;"><i class="fas fa-cut me-1"></i>حلاقة</span>
                                         }
-                                    </ul>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">-</span>
-                                }
-                            </td>
-                            <td>@s.TotalAmount.ToString("N3") د.ك</td>
-                            <td class="text-danger">
-                                @if (s.Discount > 0)
-                                {
-                                    <span>@s.Discount.ToString("N3") د.ك</span>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">-</span>
-                                }
-                            </td>
-                            <td><strong class="@(isCancelled ? "text-danger" : "text-success")">@s.NetAmount.ToString("N3") د.ك</strong></td>
-                            <td>
-                                @if (s.GiftForEmployee.HasValue && s.GiftForEmployee > 0)
-                                {
-                                    <span class="badge" style="background:#c0392b;" title="تُصرف مع الراتب"><i class="fas fa-gift me-1"></i>@s.GiftForEmployee.Value.ToString("N3") د.ك</span>
-                                }
-                                else
-                                {
-                                    <span class="text-muted small">-</span>
-                                }
-                            </td>
-                            <td>
-                                @if (s.PaymentMethod == "كاش")
-                                {
-                                    <span class="badge bg-success"><i class="fas fa-money-bill-wave me-1"></i>كاش</span>
-                                }
-                                else if (s.PaymentMethod == "كي نت")
-                                {
-                                    <span class="badge bg-info text-dark"><i class="fas fa-credit-card me-1"></i>كي نت</span>
-                                }
-                                else if (s.PaymentMethod == "كي نت و كاش")
-                                {
-                                    <span class="badge bg-warning text-dark"><i class="fas fa-exchange-alt me-1"></i>كاش + كي نت</span>
-                                    <div class="small text-muted mt-1">
-                                        @if (s.CashAmount.HasValue && s.CashAmount > 0)
+                                        else if (s.SaleType == "مساج")
                                         {
-                                            <span>كاش: @s.CashAmount.Value.ToString("N3")</span>
+
+                                            <span class="pmb" style="background:#0891b2;color:#fff;"><i class="fas fa-spa me-1"></i>مساج</span>
                                         }
-                                        @if (s.LinkAmount.HasValue && s.LinkAmount > 0)
+                                        else
                                         {
-                                            <span class="ms-1">كي نت: @s.LinkAmount.Value.ToString("N3")</span>
+
+                                            <span class="pmb" style="background:#64748b;color:#fff;"><i class="fas fa-box me-1"></i>منتجات</span>
+                                        }
+                                    </td>
+                                    <td style="font-size:10px;max-width:140px;text-align:right;">
+                                        @if (s.SaleItems != null && s.SaleItems.Any())
+                                        {
+                                            <ul style="margin:0;padding-right:14px;">
+                                                @foreach (var item in s.SaleItems)
+                                                {
+                                                    <li>@item.ItemName@(item.Quantity > 1 ? $" ×{item.Quantity}" : "")</li>
+                                                }
+                                            </ul>
+                                        }
+                                        else
+                                        {
+
+                                            <span style="color:#94a3b8;">—</span>
+                                        }
+                                    </td>
+                                    <td>@s.TotalAmount.ToString("N3")</td>
+                                    <td style="color:#dc2626;">@(s.Discount > 0 ? s.Discount.ToString("N3") : "—")</td>
+                                    <td style="font-weight:700;color:@(isCancelled ? "#dc2626" : "#16a34a");">@s.NetAmount.ToString("N3")</td>
+                                    <td>
+                                        @if (s.GiftForEmployee.HasValue && s.GiftForEmployee > 0)
+                                        {
+                                            <span class="pmb" style="background:#c0392b;color:#fff;"><i class="fas fa-gift me-1"></i>@s.GiftForEmployee.Value.ToString("N3")</span>
+                                        }
+                                        else
+                                        {
+
+                                            <span style="color:#94a3b8;">—</span>
+                                        }
+                                    </td>
+                                    <td style="white-space:nowrap;">
+                                        @if (s.PaymentMethod == "كاش")
+                                        {
+                                            <span class="pmb pmb-cash"><i class="fas fa-money-bill-wave me-1"></i>كاش</span>
+                                        }
+                                        else if (s.PaymentMethod == "كي نت")
+                                        {
+
+                                            <span class="pmb pmb-knet"><i class="fas fa-credit-card me-1"></i>كي نت</span>
+                                        }
+                                        else if (s.PaymentMethod == "كي نت و كاش")
+                                        {
+                                            <span class="pmb pmb-mix"><i class="fas fa-exchange-alt me-1"></i>كاش + كي نت</span>
+                                            <div style="font-size:9px;color:#64748b;margin-top:2px;">
+                                                @if (s.CashAmount.HasValue && s.CashAmount > 0)
+                                                {
+                                                    <span>كاش: @s.CashAmount.Value.ToString("N3")</span>
+                                                }
+                                                @if (s.LinkAmount.HasValue && s.LinkAmount > 0)
+                                                {
+                                                    <span class="ms-1">كي نت: @s.LinkAmount.Value.ToString("N3")</span>
+                                                }
+                                            </div>
+                                        }
+                                        else if (s.PaymentMethod != null && s.PaymentMethod.Contains("دين"))
+                                        {
+
+                                            <span class="pmb pmb-debt"><i class="fas fa-user me-1"></i>@s.PaymentMethod</span>
+                                        }
+                                        else
+                                        {
+
+                                            <span class="pmb" style="background:#e2e8f0;color:#1a1a2e;">@s.PaymentMethod</span>
+                                        }
+                                    </td>
+                                    <td style="color:#64748b;font-size:10px;white-space:nowrap;">@s.SaleDate.ToString("hh:mm tt")</td>
+                                </tr>
+                            }
+                            @foreach (var adv in advancesList)
+                            {
+                                var advTime = adv.AdvanceDate != default ? adv.AdvanceDate.ToString("hh:mm tt") : adv.CreatedAt.ToString("hh:mm tt");
+                                <tr style="background:#fff0f0;">
+                                    <td style="font-family:monospace;font-size:10px;"><strong class="text-danger">سلفة #@adv.Id</strong></td>
+                                    <td style="white-space:nowrap;">@(adv.Employee?.FullName ?? "—")</td>
+                                    <td style="color:#94a3b8;">—</td>
+                                    <td><span class="pmb" style="background:#9f1239;color:#fff;"><i class="fas fa-hand-holding-usd me-1"></i>سلفة</span></td>
+                                    <td style="font-size:10px;color:#64748b;text-align:right;">@(string.IsNullOrEmpty(adv.Reason) ? "—" : adv.Reason)</td>
+                                    <td style="color:#dc2626;font-weight:700;">@adv.Amount.ToString("N3")</td>
+                                    <td style="color:#94a3b8;">—</td>
+                                    <td style="color:#dc2626;font-weight:700;">@adv.Amount.ToString("N3")</td>
+                                    <td style="color:#94a3b8;">—</td>
+                                    <td>
+                                        @if (adv.PaymentMethod == "كاش" || adv.PaymentMethod == "نقدي")
+                                        {
+                                            <span class="pmb pmb-cash"><i class="fas fa-money-bill-wave me-1"></i>@adv.PaymentMethod</span>
+                                        }
+                                        else if (adv.PaymentMethod == "كي نت")
+                                        {
+
+                                            <span class="pmb pmb-knet"><i class="fas fa-credit-card me-1"></i>كي نت</span>
+                                        }
+                                        else
+                                        {
+
+                                            <span class="pmb" style="background:#e2e8f0;color:#1a1a2e;">@adv.PaymentMethod</span>
+                                        }
+                                    </td>
+                                    <td style="color:#64748b;font-size:10px;white-space:nowrap;">@advTime</td>
+                                </tr>
+                            }
+                        </tbody>
+                        @if (Model.Any() || advancesList.Any())
+                        {
+                            <tfoot>
+                                <tr>
+                                    <td colspan="4" style="text-align:end;">
+                                        فواتير: <span style="background:rgba(255,255,255,.2);padding:1px 6px;border-radius:8px;">@Model.Count()</span>
+                                        @if (advancesList.Any())
+                                        {
+                                            <span style="margin-right:8px;">سلف: <span style="background:#dc2626;padding:1px 6px;border-radius:8px;">@advancesList.Count</span></span>
+                                        }
+                                    </td>
+                                    <td></td>
+                                    <td>@Model.Sum(s => s.TotalAmount).ToString("N3")</td>
+                                    <td style="color:#fbbf24;">@Model.Sum(s => s.Discount).ToString("N3")</td>
+                                    <td style="color:#4ade80;">@Model.Sum(s => s.NetAmount).ToString("N3")</td>
+                                    <td style="color:#fbbf24;">
+                                        @{
+                                            var hs2 = Model.Sum(s => s.GiftForEmployee ?? 0);
+                                        }
+                                        @(hs2 > 0 ? hs2.ToString("N3") : "—")
+                                    </td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            </tfoot>
+                        }
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right column: Quick Summary + Cash Flow -->
+        <div class="col-lg-4 col-md-12">
+            <div class="row g-2">
+
+                <!-- Quick Summary -->
+                <div class="col-12">
+                    <div class="dp2-panel">
+                        <div class="dp2-panel-hdr"><i class="fas fa-list-check me-1"></i> <span data-i18n-en="Quick Summary">ملخص سريع لليوم</span></div>
+                        <div class="dp2-panel-body">
+                            <div class="dp2-qs-row">
+                                <span class="dp2-qs-lbl"><i class="fas fa-file-invoice" style="color:#64748b;"></i> <span data-i18n-en="Invoice Count">عدد الفواتير</span></span>
+                                <span class="dp2-qs-val">@activeModel.Count</span>
+                            </div>
+                            <div class="dp2-qs-row">
+                                <span class="dp2-qs-lbl"><i class="fas fa-shopping-cart" style="color:#16a34a;"></i> <span data-i18n-en="Total Sales">إجمالي المبيعات</span></span>
+                                <span class="dp2-qs-val" style="color:#16a34a;">@salesToday.ToString("N3") <small style="font-weight:400;color:#888;">د.ك</small></span>
+                            </div>
+                            @if (barberSales > 0 && (isAdminView || userDept == "حلاقة"))
+                            {
+                                <div class="dp2-qs-row">
+                                    <span class="dp2-qs-lbl"><i class="fas fa-cut" style="color:#1a1a2e;"></i> <span data-i18n-en="Barber Sales">مبيعات الحلاقة</span></span>
+                                    <span class="dp2-qs-val">@barberSales.ToString("N3") <small style="font-weight:400;color:#888;">د.ك</small></span>
+                                </div>
+                            }
+                            @if (massageSales > 0 && (isAdminView || userDept == "مساج"))
+                            {
+                                <div class="dp2-qs-row">
+                                    <span class="dp2-qs-lbl"><i class="fas fa-spa" style="color:#0891b2;"></i> <span data-i18n-en="Massage Sales">مبيعات المساج</span></span>
+                                    <span class="dp2-qs-val" style="color:#0891b2;">@massageSales.ToString("N3") <small style="font-weight:400;color:#888;">د.ك</small></span>
+                                </div>
+                            }
+                            @if (productsSales > 0)
+                            {
+                                <div class="dp2-qs-row">
+                                    <span class="dp2-qs-lbl"><i class="fas fa-box" style="color:#64748b;"></i> <span data-i18n-en="Products Sales">مبيعات منتجات</span></span>
+                                    <span class="dp2-qs-val" style="color:#64748b;">@productsSales.ToString("N3") <small style="font-weight:400;color:#888;">د.ك</small></span>
+                                </div>
+                            }
+                            @if (debtTotal > 0)
+                            {
+                                <div class="dp2-qs-row">
+                                    <span class="dp2-qs-lbl"><i class="fas fa-user-minus" style="color:#d97706;"></i> <span data-i18n-en="Debts">الديون</span></span>
+                                    <span class="dp2-qs-val" style="color:#d97706;">@debtTotal.ToString("N3") <small style="font-weight:400;color:#888;">د.ك</small></span>
+                                </div>
+                            }
+                            @if (totalGiftsToday > 0)
+                            {
+                                <div class="dp2-qs-row">
+                                    <span class="dp2-qs-lbl"><i class="fas fa-hand-holding-usd" style="color:#e67e22;"></i> <span data-i18n-en="Employee Commissions">عمولات الموظفين</span></span>
+                                    <span class="dp2-qs-val" style="color:#e67e22;">@totalGiftsToday.ToString("N3") <small style="font-weight:400;color:#888;">د.ك</small></span>
+                                </div>
+                            }
+                            @if (totalHadiyaToday > 0)
+                            {
+                                <div class="dp2-qs-row">
+                                    <span class="dp2-qs-lbl"><i class="fas fa-gift" style="color:#c0392b;"></i> <span data-i18n-en="Gifts for Employees">هدايا للموظفين</span></span>
+                                    <span class="dp2-qs-val" style="color:#c0392b;">@totalHadiyaToday.ToString("N3") <small style="font-weight:400;color:#888;">د.ك</small></span>
+                                </div>
+                            }
+                            @if (cancelledTotal > 0)
+                            {
+                                <div class="dp2-qs-row">
+                                    <span class="dp2-qs-lbl"><i class="fas fa-ban" style="color:#dc2626;"></i> <span data-i18n-en="Cancelled">ملغاة (@cancelledCount)</span></span>
+                                    <span class="dp2-qs-val" style="color:#dc2626;">@cancelledTotal.ToString("N3") <small style="font-weight:400;color:#888;">د.ك</small></span>
+                                </div>
+                            }
+                            <div class="dp2-qs-row">
+                                <span class="dp2-qs-lbl"><i class="fas fa-receipt" style="color:#dc2626;"></i> <span data-i18n-en="Total Expenses">إجمالي المصاريف</span></span>
+                                <span class="dp2-qs-val" style="color:#dc2626;">@totalExpensesWithSalaries.ToString("N3") <small style="font-weight:400;color:#888;">د.ك</small></span>
+                            </div>
+                            @if (depositsToday > 0)
+                            {
+                                <div class="dp2-qs-row">
+                                    <span class="dp2-qs-lbl"><i class="fas fa-money-bill-wave" style="color:#16a34a;"></i> <span data-i18n-en="Deposits">إيداعات</span></span>
+                                    <span class="dp2-qs-val" style="color:#16a34a;">@depositsToday.ToString("N3") <small style="font-weight:400;color:#888;">د.ك</small></span>
+                                </div>
+                            }
+                            <div class="dp2-qs-row" style="border-top:2px solid #e2e8f0;padding-top:10px;margin-top:4px;">
+                                <span class="dp2-qs-lbl" style="font-weight:700;"><i class="fas fa-chart-line" style="color:#059669;"></i> <span data-i18n-en="Net Profit">صافي الربح</span></span>
+                                <span class="dp2-qs-val" style="font-size:15px;color:#059669;">@netProfit.ToString("N3") <small style="font-weight:400;color:#888;">د.ك</small></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expenses mini chart -->
+                <div class="col-12">
+                    <div class="dp2-panel">
+                        <div class="dp2-panel-hdr" style="background:#dc2626;">
+                            <span><i class="fas fa-receipt me-1"></i> <span data-i18n-en="Expenses">مصروفات اليوم</span></span>
+                            <span class="badge-count">@totalExpensesWithSalaries.ToString("N3") د.ك</span>
+                        </div>
+                        <div class="dp2-panel-body">
+                            @if (expCats.Any())
+                            {
+                                <div class="dp2-donut-wrap">
+                                    <div class="dp2-donut">
+                                        <div class="dp2-donut-inner">
+                                            <span style="font-size:11px;font-weight:800;color:#1a1a2e;">@(expensesTodayList.Count + salariesTodayList.Count)</span>
+                                            <span style="font-size:9px;color:#64748b;">بند</span>
+                                        </div>
+                                    </div>
+                                    <div class="dp2-legend">
+                                        @for (int ci = 0; ci < expCats.Count; ci++)
+                                        {
+                                            var pct = totalExpCat > 0 ? Math.Round(expCats[ci].Value / totalExpCat * 100, 0) : 0;
+                                            <div class="dp2-legend-row">
+                                                <div class="dp2-legend-dot" style="background:@catColors[ci % catColors.Length];"></div>
+                                                <span>@expCats[ci].Key</span>
+                                                <span style="font-weight:700;margin-right:auto;">@pct%</span>
+                                            </div>
                                         }
                                     </div>
-                                }
-                                else if (s.PaymentMethod == "دين على العميل")
-                                {
-                                    <span class="badge bg-danger"><i class="fas fa-user me-1"></i>دين / عميل</span>
-                                }
-                                else if (s.PaymentMethod == "دين على الموظف")
-                                {
-                                    <span class="badge bg-danger"><i class="fas fa-hard-hat me-1"></i>دين / موظف</span>
-                                }
-                                else if (s.PaymentMethod == "دين على صاحب المكان")
-                                {
-                                    <span class="badge bg-danger"><i class="fas fa-building me-1"></i>دين / صاحب المكان</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary">@s.PaymentMethod</span>
-                                }
-                            </td>
-                            <td class="small text-muted" style="max-width:140px;white-space:pre-wrap;">@s.Notes</td>
-                            <td class="text-muted small">@s.SaleDate.ToString("hh:mm tt")</td>
-                        </tr>
-                    }
-                    @foreach (var adv in advancesList)
-                    {
-                        var advTime = adv.AdvanceDate != default ? adv.AdvanceDate.ToString("hh:mm tt") : adv.CreatedAt.ToString("hh:mm tt");
-                        <tr style="background:#fff0f0;">
-                            <td><strong class="text-danger">سلفة #@adv.Id</strong></td>
-                            <td>@(adv.Employee?.FullName ?? "-")</td>
-                            <td class="text-muted">-</td>
-                            <td><span class="badge" style="background:#9f1239;"><i class="fas fa-hand-holding-usd me-1"></i>سلفة</span></td>
-                            <td class="small text-muted">@(string.IsNullOrEmpty(adv.Reason) ? "-" : adv.Reason)</td>
-                            <td class="text-danger fw-bold">@adv.Amount.ToString("N3") د.ك</td>
-                            <td class="text-muted">-</td>
-                            <td class="text-danger fw-bold">@adv.Amount.ToString("N3") د.ك</td>
-                            <td>
-                                @if (adv.PaymentMethod == "كاش" || adv.PaymentMethod == "نقدي")
-                                {
-                                    <span class="badge bg-success"><i class="fas fa-money-bill-wave me-1"></i>@adv.PaymentMethod</span>
-                                }
-                                else if (adv.PaymentMethod == "كي نت")
-                                {
-                                    <span class="badge bg-info text-dark"><i class="fas fa-credit-card me-1"></i>كي نت</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary">@adv.PaymentMethod</span>
-                                }
-                            </td>
-                            <td></td>
-                            <td class="text-muted small">@advTime</td>
-                        </tr>
-                    }
-                    @if (!Model.Any() && !advancesList.Any())
-                    {
-                        <tr>
-                            <td colspan="12" class="text-center text-muted py-5">
-                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
-                                لا توجد فواتير اليوم
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-                @if (Model.Any() || advancesList.Any())
-                {
-                    <tfoot class="table-dark fw-bold">
-                        <tr>
-                            <td colspan="5" class="text-end fs-6">
-                                <i class="fas fa-receipt me-1"></i>
-                                فواتير: <span class="badge bg-light text-dark fs-6 ms-1">@Model.Count()</span>
-                                @if (advancesList.Any())
-                                {
-                                    <span class="ms-2">سلف: <span class="badge bg-danger fs-6">@advancesList.Count</span></span>
-                                }
-                            </td>
-                            <td class="fs-6">@Model.Sum(s => s.TotalAmount).ToString("N3") <small>د.ك</small></td>
-                            <td class="text-warning fs-6">@Model.Sum(s => s.Discount).ToString("N3") <small>د.ك</small></td>
-                            <td class="text-success fs-6">@Model.Sum(s => s.NetAmount).ToString("N3") <small>د.ك</small></td>
-                            <td style="color:#c0392b;" class="fs-6">
-                                @{
-                                    var hadiyaSum = Model.Sum(s => s.GiftForEmployee ?? 0);
-                                }
-                                @(hadiyaSum > 0 ? hadiyaSum.ToString("N3") + " د.ك" : "-")
-                            </td>
-                            <td colspan="3"></td>
-                        </tr>
-                    </tfoot>
-                }
-            </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div style="text-align:center;color:#94a3b8;padding:16px 0;font-size:12px;">
+                                    <i class="fas fa-check-circle" style="font-size:24px;color:#16a34a;display:block;margin-bottom:6px;"></i>
+                                    <span data-i18n-en="No expenses today">لا توجد مصروفات اليوم</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </div>
     </div>
-</div>
 
-@if (expensesTodayList.Any() || salariesTodayList.Any() || depositsTodayList.Any())
-{
-    <div class="card mb-3">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h6 class="mb-0"><i class="fas fa-file-invoice-dollar me-2 text-danger"></i>تفاصيل المصاريف والإيداعات اليوم</h6>
-            <span class="badge bg-danger">@totalExpensesWithSalaries.ToString("N3") د.ك</span>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-sm mb-0">
-                    <thead class="table-light">
+    <!-- ===== Expenses / Salaries / Deposits Detail ===== -->
+    @if (expensesTodayList.Any() || salariesTodayList.Any() || depositsTodayList.Any())
+    {
+        <div class="dp2-panel mb-2">
+            <div class="dp2-panel-hdr" style="background:#475569;">
+                <span><i class="fas fa-file-invoice-dollar me-1"></i> <span data-i18n-en="Expenses & Deposits Detail">تفاصيل المصاريف والإيداعات اليوم</span></span>
+                <span class="badge-count">@totalExpensesWithSalaries.ToString("N3") د.ك</span>
+            </div>
+            <div style="overflow-x:auto;">
+                <table class="dp2-inv-table">
+                    <thead>
                         <tr>
-                            <th>النوع</th>
-                            <th>البيان</th>
-                            <th>المبلغ</th>
-                            <th>طريقة الدفع</th>
-                            <th>ملاحظات</th>
+                            <th data-i18n-en="Type">النوع</th>
+                            <th data-i18n-en="Description">البيان</th>
+                            <th data-i18n-en="Amount">المبلغ<br /><small>د.ك</small></th>
+                            <th data-i18n-en="Payment">طريقة الدفع</th>
+                            <th data-i18n-en="Notes">ملاحظات</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var exp in expensesTodayList)
                         {
                             <tr>
-                                <td><span class="badge bg-warning text-dark"><i class="fas fa-receipt me-1"></i>مصروف</span></td>
-                                <td>@exp.Description @(!string.IsNullOrEmpty(exp.Category) ? $"({exp.Category})" : "")</td>
-                                <td><strong class="text-danger">@exp.Amount.ToString("N3") د.ك</strong></td>
+                                <td><span class="pmb pmb-mix"><i class="fas fa-receipt me-1"></i>مصروف</span></td>
+                                <td style="text-align:right;">@exp.Description @(!string.IsNullOrEmpty(exp.Category) ? $"({exp.Category})" : "")</td>
+                                <td style="color:#dc2626;font-weight:700;">@exp.Amount.ToString("N3")</td>
                                 <td>@exp.PaymentMethod</td>
-                                <td class="text-muted small">@exp.Notes</td>
+                                <td style="font-size:10px;color:#64748b;text-align:right;">@exp.Notes</td>
                             </tr>
                         }
                         @foreach (var sal in salariesTodayList)
                         {
                             <tr style="background:#fff5f5;">
-                                <td><span class="badge bg-danger"><i class="fas fa-money-check-alt me-1"></i>مرتب</span></td>
-                                <td>@sal.Employee?.FullName — @sal.Month/@sal.Year</td>
-                                <td><strong class="text-danger">@sal.NetSalary.ToString("N3") د.ك</strong></td>
+                                <td><span class="pmb pmb-debt"><i class="fas fa-money-check-alt me-1"></i>مرتب</span></td>
+                                <td style="text-align:right;">@sal.Employee?.FullName — @sal.Month/@sal.Year</td>
+                                <td style="color:#dc2626;font-weight:700;">@sal.NetSalary.ToString("N3")</td>
                                 <td>نقدي</td>
-                                <td class="text-muted small">@sal.Notes</td>
+                                <td style="font-size:10px;color:#64748b;text-align:right;">@sal.Notes</td>
                             </tr>
                         }
                         @foreach (var dep in depositsTodayList)
                         {
                             <tr style="background:#f0fdf4;">
-                                <td><span class="badge" style="background:#16a34a;"><i class="fas fa-money-bill-wave me-1"></i>إيداع</span></td>
-                                <td>@dep.Description @(!string.IsNullOrEmpty(dep.Source) ? $"({dep.Source})" : "")</td>
-                                <td><strong class="text-success">@dep.Amount.ToString("N3") د.ك</strong></td>
-                                <td>-</td>
-                                <td class="text-muted small">@dep.Notes</td>
+                                <td><span class="pmb pmb-cash"><i class="fas fa-money-bill-wave me-1"></i>إيداع</span></td>
+                                <td style="text-align:right;">@dep.Description @(!string.IsNullOrEmpty(dep.Source) ? $"({dep.Source})" : "")</td>
+                                <td style="color:#16a34a;font-weight:700;">@dep.Amount.ToString("N3")</td>
+                                <td>—</td>
+                                <td style="font-size:10px;color:#64748b;text-align:right;">@dep.Notes</td>
                             </tr>
                         }
                     </tbody>
-                    <tfoot class="table-dark fw-bold">
+                    <tfoot>
                         <tr>
-                            <td colspan="2" class="text-end">الإجمالي المصاريف</td>
-                            <td class="text-danger">@totalExpensesWithSalaries.ToString("N3") د.ك</td>
+                            <td colspan="2" style="text-align:end;" data-i18n-en="Total Expenses">إجمالي المصاريف</td>
+                            <td style="color:#fbbf24;">@totalExpensesWithSalaries.ToString("N3")</td>
                             <td colspan="2"></td>
                         </tr>
                         @if (depositsToday > 0)
                         {
-                            <tr style="background:#166534;color:#fff;">
-                                <td colspan="2" class="text-end">إجمالي الإيداعات</td>
-                                <td>@depositsToday.ToString("N3") د.ك</td>
+                            <tr style="background:#166534;">
+                                <td colspan="2" style="text-align:end;" data-i18n-en="Total Deposits">إجمالي الإيداعات</td>
+                                <td style="color:#4ade80;">@depositsToday.ToString("N3")</td>
                                 <td colspan="2"></td>
                             </tr>
                         }
@@ -520,8 +1060,13 @@
                 </table>
             </div>
         </div>
+    }
+
+    <div style="text-align:center;color:#94a3b8;font-size:10px;margin-top:12px;padding-top:8px;border-top:1px solid #e2e8f0;">
+        جميع المبالغ بالدينار الكويتي (د.ك) — @reportDate.ToString("yyyy/MM/dd")
     </div>
-}
+
+</div>
 
 @section Scripts {
     <script>
@@ -530,6 +1075,5 @@
             document.getElementById('dateInput').value = today;
             document.getElementById('dateInput').form.submit();
         });
-
     </script>
 }

@@ -157,28 +157,46 @@ namespace Salon.Controllers
             DateTime dateFrom = string.IsNullOrEmpty(from) ? DateTime.Today.AddDays(-30) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
 
-            var expenses = await _context.Expenses
-                .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo)
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+            bool isDeptUser = userDept == "مساج" || userDept == "حلاقة";
+
+            var expQuery = _context.Expenses
+                .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo);
+            if (userDept == "مساج")
+                expQuery = expQuery.Where(e => e.Department == "مساج");
+            else if (userDept == "حلاقة")
+                expQuery = expQuery.Where(e => e.Department == "حلاقة");
+
+            var expenses = await expQuery
                 .OrderByDescending(e => e.ExpenseDate)
                 .ToListAsync();
 
-            var salaries = await _context.Salaries
+            var salariesQuery = _context.Salaries
                 .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
-                .Where(s => s.PaidDate >= dateFrom && s.PaidDate < dateTo)
+                .Where(s => s.PaidDate >= dateFrom && s.PaidDate < dateTo);
+            if (userDept == "مساج")
+                salariesQuery = salariesQuery.Where(s => s.Employee!.DepartmentNav!.Name == "مساج");
+            else if (userDept == "حلاقة")
+                salariesQuery = salariesQuery.Where(s => s.Employee!.DepartmentNav!.Name == "حلاقة");
+
+            var salaries = await salariesQuery
                 .OrderBy(s => s.PaidDate)
                 .ToListAsync();
 
-            // الكل
+            // الكل (already dept-filtered if isDeptUser)
             decimal totalExp = expenses.Sum(e => e.Amount);
             decimal totalSal = salaries.Sum(s => s.NetSalary);
             ViewBag.TotalExpenses = totalExp;
             ViewBag.TotalSalaries = totalSal;
             ViewBag.TotalCombined = totalExp + totalSal;
             ViewBag.Salaries = salaries;
+            ViewBag.UserDept = userDept;
+            ViewBag.IsDeptUser = isDeptUser;
 
-            // حلاقة
-            var barberExpenses = expenses.Where(e => e.Department == "حلاقة").ToList();
-            var barberSalaries = salaries.Where(s => s.Employee?.Department == "حلاقة").ToList();
+            // Sub-groups — only meaningful for admin
+            var barberExpenses = isDeptUser ? new List<Expense>() : expenses.Where(e => e.Department == "حلاقة").ToList();
+            var barberSalaries = isDeptUser ? new List<Salary>() : salaries.Where(s => s.Employee?.Department == "حلاقة").ToList();
             decimal barberExp = barberExpenses.Sum(e => e.Amount);
             decimal barberSal = barberSalaries.Sum(s => s.NetSalary);
             ViewBag.BarberExpenses = barberExpenses;
@@ -187,9 +205,8 @@ namespace Salon.Controllers
             ViewBag.TotalBarberSalaries = barberSal;
             ViewBag.TotalBarberCombined = barberExp + barberSal;
 
-            // مساج
-            var massageExpenses = expenses.Where(e => e.Department == "مساج").ToList();
-            var massageSalaries = salaries.Where(s => s.Employee?.Department == "مساج").ToList();
+            var massageExpenses = isDeptUser ? new List<Expense>() : expenses.Where(e => e.Department == "مساج").ToList();
+            var massageSalaries = isDeptUser ? new List<Salary>() : salaries.Where(s => s.Employee?.Department == "مساج").ToList();
             decimal massageExp = massageExpenses.Sum(e => e.Amount);
             decimal massageSal = massageSalaries.Sum(s => s.NetSalary);
             ViewBag.MassageExpenses = massageExpenses;
@@ -1210,6 +1227,114 @@ namespace Salon.Controllers
             ViewBag.UserDept = userDept;
             ViewBag.IsDeptUser = isDeptUser;
             ViewBag.ReportNumber = "EMP-" + dateFrom.ToString("yyyy-MM-dd");
+
+            return View(rows);
+        }
+
+        public async Task<IActionResult> InventoryReport(string? from, string? to, string? category, string? movementType)
+        {
+            DateTime dateFrom = string.IsNullOrEmpty(from)
+                ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)
+                : DateTime.Parse(from);
+            DateTime dateTo = string.IsNullOrEmpty(to)
+                ? DateTime.Today.AddDays(1)
+                : DateTime.Parse(to).AddDays(1);
+
+            // Load all active products
+            var products = await _context.Products
+                .Where(p => p.IsActive)
+                .OrderBy(p => p.Category).ThenBy(p => p.Name)
+                .ToListAsync();
+
+            // Load SaleItems for product sales in the period
+            var saleItemsQuery = _context.SaleItems
+                .Include(si => si.Sale)
+                .Where(si => si.ProductId.HasValue
+                          && si.Sale != null
+                          && si.Sale.SaleDate >= dateFrom
+                          && si.Sale.SaleDate < dateTo
+                          && si.Sale.Status != "ملغي"
+                          && si.Sale.SaleType == "منتجات");
+
+            var saleItems = await saleItemsQuery.ToListAsync();
+
+            // Load StockMovements in the period
+            var movementsQuery = _context.StockMovements
+                .Where(m => m.MovementDate >= dateFrom && m.MovementDate < dateTo);
+
+            if (!string.IsNullOrEmpty(movementType))
+                movementsQuery = movementsQuery.Where(m => m.MovementType == movementType);
+
+            var movements = await movementsQuery.ToListAsync();
+
+            // Group by product
+            var soldByProduct = saleItems
+                .GroupBy(si => si.ProductId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var consumedByProduct = movements
+                .Where(m => m.MovementType == "استهلاك")
+                .GroupBy(m => m.ProductId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var receivedByProduct = movements
+                .Where(m => m.MovementType == "استلام")
+                .GroupBy(m => m.ProductId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            // Filter by category if selected
+            if (!string.IsNullOrEmpty(category))
+                products = products.Where(p => p.Category == category).ToList();
+
+            var rows = products.Select(p =>
+            {
+                soldByProduct.TryGetValue(p.Id, out var sold);
+                consumedByProduct.TryGetValue(p.Id, out var consumed);
+                receivedByProduct.TryGetValue(p.Id, out var received);
+
+                int soldQty = sold?.Sum(si => si.Quantity) ?? 0;
+                decimal soldRev = sold?.Sum(si => si.Total) ?? 0;
+                int consumedQty = consumed?.Sum(m => m.Quantity) ?? 0;
+                decimal consumedCost = consumed?.Sum(m => m.Quantity * m.UnitPrice) ?? 0;
+                int receivedQty = received?.Sum(m => m.Quantity) ?? 0;
+
+                return new InventoryReportRow
+                {
+                    ProductId = p.Id,
+                    ProductName = p.Name,
+                    Category = p.Category,
+                    PurchasePrice = p.PurchasePrice,
+                    SalePrice = p.SalePrice,
+                    CurrentStock = p.StockQuantity,
+                    SoldQty = soldQty,
+                    SoldRevenue = soldRev,
+                    ConsumedQty = consumedQty,
+                    ConsumedCost = consumedCost,
+                    ReceivedQty = receivedQty
+                };
+            }).ToList();
+
+            // Only show rows with activity when a filter is active
+            bool hasFilter = !string.IsNullOrEmpty(movementType) || !string.IsNullOrEmpty(category);
+            if (!hasFilter)
+                rows = rows.Where(r => r.SoldQty > 0 || r.ConsumedQty > 0 || r.ReceivedQty > 0).ToList();
+
+            var allCategories = await _context.Products
+                .Where(p => p.IsActive && p.Category != null)
+                .Select(p => p.Category!)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToListAsync();
+
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
+            ViewBag.SelectedCategory = category;
+            ViewBag.SelectedMovementType = movementType;
+            ViewBag.Categories = allCategories;
+            ViewBag.TotalSoldQty = rows.Sum(r => r.SoldQty);
+            ViewBag.TotalSoldRevenue = rows.Sum(r => r.SoldRevenue);
+            ViewBag.TotalConsumedQty = rows.Sum(r => r.ConsumedQty);
+            ViewBag.TotalConsumedCost = rows.Sum(r => r.ConsumedCost);
 
             return View(rows);
         }

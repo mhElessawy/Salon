@@ -1,4 +1,4 @@
-﻿@model List<Salon.Models.DailyRevenueRow>
+﻿@model  List<Salon.Models.DailyRevenueRow>
 @using Salon.Models
 @{
     ViewData["Title"] = "تقرير الإيرادات حسب الفترة";
@@ -39,17 +39,30 @@
 @* ======= PRINT STYLES ======= *@
 <style>
     @@media print {
-        .no-print {
-            display: none !important;
-        }
+        .no-print { display: none !important; }
+        body { direction: rtl; }
+        .print-header { display: block !important; }
 
-        body {
-            direction: rtl;
-        }
-
-        .print-header {
+        /* Reset flex layout so content isn't clipped to one viewport height */
+        .app-wrapper, .main-content, .page-content {
             display: block !important;
+            min-height: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
+            margin: 0 !important;
         }
+
+        /* Override salon.css card-hiding rule (.card:not(.print-area) specificity=0-2-0).
+           Using :not(.no-exist) gives same specificity but this <style> comes later → wins. */
+        .card:not(.no-exist) {
+            display: block !important;
+            box-shadow: none !important;
+            border: 1px solid #dee2e6 !important;
+        }
+        .card-header, .card-body { display: block !important; }
+        .table-responsive { overflow: visible !important; }
+        .rev-stat { box-shadow: none !important; border: 1px solid #e5e7eb; }
+        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
 
     .print-header {
@@ -169,6 +182,16 @@
         color: #6b7280;
     }
 </style>
+
+@* ======= PRINT HEADER ======= *@
+<div class="print-header text-center mb-3">
+    <h4 class="fw-bold" data-i18n-en="Revenue Report by Period">تقرير الإيرادات حسب الفترة</h4>
+    <p class="mb-0">
+        <span data-i18n-en="Period:">الفترة:</span> @ViewBag.From <span data-i18n-en="to">إلى</span> @ViewBag.To
+        &nbsp;|&nbsp;
+        <span data-i18n-en="Report No.:">رقم التقرير:</span> @reportNumber
+    </p>
+</div>
 
 @* ======= HEADER ======= *@
 <div class="d-flex justify-content-between align-items-start mb-3 no-print flex-wrap gap-2">

@@ -23,6 +23,11 @@
 
 <style>
     @@media print {
+        @@page {
+            size: landscape;
+            margin: 1cm;
+        }
+
         .no-print {
             display: none !important;
         }
@@ -35,14 +40,41 @@
             display: block !important;
         }
 
-        .card {
-            border: none !important;
+        .app-wrapper, .main-content, .page-content {
+            display: block !important;
+            min-height: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
+            margin: 0 !important;
+        }
+
+        .card:not(.no-exist) {
+            display: block !important;
             box-shadow: none !important;
+            border: 1px solid #dee2e6 !important;
+        }
+
+        .card-header, .card-body {
+            display: block !important;
+        }
+
+        .table-responsive {
+            overflow: visible !important;
+        }
+
+        .emp-stat {
+            box-shadow: none !important;
+            border: 1px solid #e5e7eb;
         }
 
         .emp-table th, .emp-table td {
-            font-size: 0.75rem !important;
-            padding: 5px 6px !important;
+            font-size: 0.72rem !important;
+            padding: 4px 5px !important;
+        }
+
+        * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
     }
 
