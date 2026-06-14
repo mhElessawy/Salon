@@ -55,6 +55,15 @@
     // Is this admin view (both depts visible) with no type filter?
     bool isAdminView = showBarber && showMassage && string.IsNullOrEmpty(selectedSaleType);
 
+    string deptLabel = userDept == "حلاقة" ? "مبيعات الحلاقة"
+                     : userDept == "مساج"  ? "مبيعات المساج"
+                     : !string.IsNullOrEmpty(selectedSaleType) ? $"مبيعات {selectedSaleType}"
+                     : "مبيعات اليوم";
+    string deptLabelEn = userDept == "حلاقة" ? "Barber Sales"
+                       : userDept == "مساج"  ? "Massage Sales"
+                       : !string.IsNullOrEmpty(selectedSaleType) ? $"{selectedSaleType} Sales"
+                       : "Today's Sales";
+
     // Cat colors for expenses donut
     var catColors = new[] { "#ef4444", "#f97316", "#3b82f6", "#10b981", "#8b5cf6", "#06b6d4", "#ec4899" };
     var allExpenses = expensesTodayList.Cast<object>()
@@ -487,14 +496,6 @@
     else
     {
         <!-- Dept user or filtered: one sales card showing dept/filtered total -->
-        @{ string deptLabel = userDept == "حلاقة" ? "مبيعات الحلاقة"
-                            : userDept == "مساج"  ? "مبيعات المساج"
-                            : !string.IsNullOrEmpty(selectedSaleType) ? $"مبيعات {selectedSaleType}"
-                            : "مبيعات اليوم";
-           string deptLabelEn = userDept == "حلاقة" ? "Barber Sales"
-                              : userDept == "مساج"  ? "Massage Sales"
-                              : !string.IsNullOrEmpty(selectedSaleType) ? $"{selectedSaleType} Sales"
-                              : "Today's Sales"; }
         <div class="dp2-cards mb-2">
             <div class="dp2-card" style="border-top:3px solid #16a34a;">
                 <div class="c-icon" style="color:#16a34a;"><i class="fas fa-cash-register"></i></div>
