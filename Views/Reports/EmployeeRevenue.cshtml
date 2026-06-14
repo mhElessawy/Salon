@@ -1,0 +1,478 @@
+﻿@model List<Salon.Models.EmployeeRevenueRow>
+@{
+    ViewData["Title"] = "تقرير الإيراد حسب الموظف";
+    string? userDept = ViewBag.UserDept as string;
+    bool isDeptUser = ViewBag.IsDeptUser is bool b && b;
+    string? selectedSaleType = ViewBag.SelectedSaleType as string;
+    string reportNumber = ViewBag.ReportNumber as string ?? "EMP-";
+
+    decimal grandTotal = Model.Sum(r => r.TotalRevenue);
+    decimal grandCash = Model.Sum(r => r.Cash);
+    decimal grandKnet = Model.Sum(r => r.Knet);
+    decimal grandEmployeeDebt = Model.Sum(r => r.EmployeeDebt);
+    decimal grandSalary = Model.Sum(r => r.BasicSalary);
+    decimal grandCommBefore = Model.Sum(r => r.CommissionBeforeTarget);
+    decimal grandCommAfter = Model.Sum(r => r.CommissionAfterTarget);
+    decimal grandGifts = Model.Sum(r => r.Gifts);
+    decimal grandAdvances = Model.Sum(r => r.Advances);
+    decimal grandDeductions = Model.Sum(r => r.Deductions);
+    decimal grandNetEmp = Model.Sum(r => r.NetForEmployee);
+    decimal grandNetShop = Model.Sum(r => r.NetForShop);
+    int grandCount = Model.Sum(r => r.Count);
+}
+
+<style>
+    @@media print {
+        .no-print {
+            display: none !important;
+        }
+
+        body {
+            direction: rtl;
+        }
+
+        .print-header {
+            display: block !important;
+        }
+
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .emp-table th, .emp-table td {
+            font-size: 0.75rem !important;
+            padding: 5px 6px !important;
+        }
+    }
+
+    .print-header {
+        display: none;
+    }
+
+    .emp-stat {
+        background: #fff;
+        border-radius: 14px;
+        padding: 14px 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,.07);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 100%;
+    }
+
+    .emp-stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .emp-stat-label {
+        font-size: .74rem;
+        color: #6b7280;
+        margin-bottom: 2px;
+    }
+
+    .emp-stat-value {
+        font-size: 1.05rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .emp-table thead th {
+        background: #f8fafc;
+        font-size: .80rem;
+        font-weight: 600;
+        color: #374151;
+        border-bottom: 2px solid #e5e7eb;
+        white-space: nowrap;
+        padding: 9px 10px;
+        text-align: center;
+    }
+
+    .emp-table tbody td {
+        padding: 9px 10px;
+        font-size: .85rem;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+        text-align: center;
+    }
+
+    .emp-table tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    .emp-table tfoot td {
+        padding: 9px 10px;
+        font-weight: 700;
+        font-size: .88rem;
+        background: #f0f9ff;
+        border-top: 2px solid #bae6fd;
+        text-align: center;
+    }
+
+    .emp-table tbody td:nth-child(2) {
+        text-align: right;
+        font-weight: 600;
+    }
+
+    .target-badge {
+        font-size: .7rem;
+        color: #6b7280;
+        display: block;
+    }
+</style>
+
+@* ===== PRINT HEADER ===== *@
+<div class="print-header text-center mb-3">
+    <h4 class="fw-bold"><span data-i18n-en="Employee Revenue Report">تقرير الإيراد حسب الموظف</span></h4>
+    <p class="mb-0">
+        <span data-i18n-en="Period:">الفترة:</span> @ViewBag.From <span data-i18n-en="to">إلى</span> @ViewBag.To
+        &nbsp;|&nbsp;
+        <span data-i18n-en="Report No.:">رقم التقرير:</span> @reportNumber
+    </p>
+</div>
+
+@* ===== PAGE HEADER ===== *@
+<div class="d-flex justify-content-between align-items-start mb-3 no-print flex-wrap gap-2">
+    <div>
+        <h1 class="h4 mb-0 fw-bold">
+            <i class="fas fa-users me-2" style="color:var(--primary)"></i>
+            <span data-i18n-en="Employee Revenue Report">تقرير الإيراد حسب الموظف</span>
+        </h1>
+        <p class="text-muted small mb-0">
+            <span data-i18n-en="Summary of each employee's revenue and commissions for the selected period">ملخص إيرادات وعمولات كل موظف خلال الفترة المحددة</span>
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-right me-1"></i><span data-i18n-en="Reports">التقارير</span>
+        </a>
+        <button onclick="window.print()" class="btn btn-dark btn-sm">
+            <i class="fas fa-print me-1"></i><span data-i18n-en="Print">طباعة</span>
+        </button>
+        <button onclick="exportToExcel()" class="btn btn-success btn-sm">
+            <i class="fas fa-file-excel me-1"></i>Excel
+        </button>
+    </div>
+</div>
+
+@* ===== FILTERS ===== *@
+<div class="card mb-3 no-print">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label mb-1 small" data-i18n-en="From Date">من تاريخ</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                    <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:160px;" />
+                </div>
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1 small" data-i18n-en="To Date">إلى تاريخ</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                    <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:160px;" />
+                </div>
+            </div>
+            @if (!isDeptUser)
+            {
+                <div class="col-auto">
+                    <label class="form-label mb-1 small" data-i18n-en="Department">القسم</label>
+                    <select name="saleType" class="form-select form-select-sm" style="max-width:140px;">
+                        <option value="" data-i18n-en="All">الكل</option>
+                        <option value="حلاقة" selected="@(selectedSaleType == "حلاقة")" data-i18n-en="✂️ Barber">✂️ حلاقة</option>
+                        <option value="مساج" selected="@(selectedSaleType == "مساج")" data-i18n-en="🌿 Massage">🌿 مساج</option>
+                    </select>
+                </div>
+            }
+            <div class="col-auto">
+                <label class="form-label mb-1 small" data-i18n-en="Report No.">رقم التقرير</label>
+                <input type="text" value="@reportNumber" class="form-control form-control-sm" readonly
+                       style="max-width:160px;background:#f8fafc;" />
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-search me-1"></i><span data-i18n-en="Search">بحث</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* ===== SUMMARY CARDS ===== *@
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-2">
+        <div class="emp-stat">
+            <div class="emp-stat-icon" style="background:#dcfce7;color:#16a34a;"><i class="fas fa-chart-bar"></i></div>
+            <div>
+                <div class="emp-stat-label" data-i18n-en="Total Revenue">إجمالي الإيراد</div>
+                <div class="emp-stat-value" style="color:#16a34a;">@grandTotal.ToString("N3")</div>
+                <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="emp-stat">
+            <div class="emp-stat-icon" style="background:#dbeafe;color:#2563eb;"><i class="fas fa-money-bill-wave"></i></div>
+            <div>
+                <div class="emp-stat-label" data-i18n-en="Cash">كاش</div>
+                <div class="emp-stat-value" style="color:#2563eb;">@grandCash.ToString("N3")</div>
+                <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="emp-stat">
+            <div class="emp-stat-icon" style="background:#e0f2fe;color:#0284c7;"><i class="fas fa-credit-card"></i></div>
+            <div>
+                <div class="emp-stat-label" data-i18n-en="K-Net">كي نت</div>
+                <div class="emp-stat-value" style="color:#0284c7;">@grandKnet.ToString("N3")</div>
+                <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="emp-stat">
+            <div class="emp-stat-icon" style="background:#fef3c7;color:#d97706;"><i class="fas fa-percentage"></i></div>
+            <div>
+                <div class="emp-stat-label" data-i18n-en="Total Commissions">إجمالي العمولات</div>
+                <div class="emp-stat-value" style="color:#d97706;">@((grandCommBefore + grandCommAfter).ToString("N3"))</div>
+                <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="emp-stat">
+            <div class="emp-stat-icon" style="background:#f0fdf4;color:#16a34a;"><i class="fas fa-user-check"></i></div>
+            <div>
+                <div class="emp-stat-label" data-i18n-en="Net for Employees">صافي للموظفين</div>
+                <div class="emp-stat-value" style="color:#16a34a;">@grandNetEmp.ToString("N3")</div>
+                <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="emp-stat" style="border:2px solid @(grandNetShop >= 0 ? "#16a34a" : "#dc2626");">
+            <div class="emp-stat-icon" style="background:@(grandNetShop >= 0 ? "#dcfce7" : "#fee2e2");color:@(grandNetShop >= 0 ? "#16a34a" : "#dc2626");"><i class="fas fa-store"></i></div>
+            <div>
+                <div class="emp-stat-label" data-i18n-en="Net for Shop">صافي للمحل</div>
+                <div class="emp-stat-value" style="color:@(grandNetShop >= 0 ? "#16a34a" : "#dc2626");">@grandNetShop.ToString("N3")</div>
+                <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ===== TABLE ===== *@
+<div class="card mb-3">
+    <div class="card-body p-0">
+        <div class="d-flex justify-content-between align-items-center px-3 pt-3 pb-2 no-print">
+            <h6 class="fw-bold mb-0">
+                <i class="fas fa-table me-2 text-primary"></i>
+                <span data-i18n-en="Employee Revenue Details">تفصيل الإيراد حسب الموظف</span>
+            </h6>
+            <small class="text-muted">
+                @grandCount <span data-i18n-en="invoices">فاتورة</span> | @Model.Count <span data-i18n-en="employees">موظف</span>
+            </small>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table emp-table mb-0" id="empRevenueTable">
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="vertical-align:middle;">#</th>
+                        <th rowspan="2" style="vertical-align:middle;text-align:right;" data-i18n-en="Name">الاسم</th>
+                        <th rowspan="2" style="vertical-align:middle;">
+                            <span data-i18n-en="Total">الإجمالي</span><br />
+                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
+                        </th>
+                        <th rowspan="2" style="vertical-align:middle;">
+                            <span data-i18n-en="Cash">كاش</span><br />
+                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
+                        </th>
+                        <th rowspan="2" style="vertical-align:middle;">
+                            <span data-i18n-en="K-Net">كي نت</span><br />
+                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
+                        </th>
+                        <th rowspan="2" style="vertical-align:middle;">
+                            <span data-i18n-en="Emp. Debt">دين موظف</span><br />
+                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
+                        </th>
+                        <th rowspan="2" style="vertical-align:middle;">
+                            <span data-i18n-en="Salary">الراتب</span><br />
+                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
+                        </th>
+                        <th colspan="2" style="border-bottom:1px solid #e5e7eb;">
+                            <span data-i18n-en="Commission">العمولة</span>
+                        </th>
+                        <th rowspan="2" style="vertical-align:middle;">
+                            <span data-i18n-en="Advances">السلف</span><br />
+                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
+                        </th>
+                        <th rowspan="2" style="vertical-align:middle;">
+                            <span data-i18n-en="Deductions">الخصومات</span><br />
+                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
+                        </th>
+                        <th rowspan="2" style="vertical-align:middle;">
+                            <span data-i18n-en="Gifts">الهدايا</span><br />
+                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
+                        </th>
+                        <th rowspan="2" style="vertical-align:middle;">
+                            <span data-i18n-en="Net / Employee">صافي للموظف</span><br />
+                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
+                        </th>
+                        <th rowspan="2" style="vertical-align:middle;">
+                            <span data-i18n-en="Net / Shop">صافي للمحل</span><br />
+                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
+                        </th>
+                        <th rowspan="2" style="vertical-align:middle;" class="no-print">
+                            <span data-i18n-en="Inv.">ف.</span>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th>
+                            <span data-i18n-en="Target">التارجت</span><br />
+                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
+                        </th>
+                        <th>
+                            <span data-i18n-en="After Target">بعد التارجت</span><br />
+                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        int rowNum = 0;
+                    }
+                    @foreach (var row in Model)
+                    {
+                        rowNum++;
+                        bool hasTarget = row.SalesTarget > 0;
+                        <tr>
+                            <td class="text-muted">@rowNum</td>
+                            <td style="text-align:right;">
+                                <strong>@row.EmployeeName</strong>
+                                @if (hasTarget)
+                                {
+                                    <small class="target-badge">
+                                        <span data-i18n-en="Target:">تارجت:</span> @row.SalesTarget.ToString("N3") | @row.CommissionRate.ToString("N1")% / @row.CommissionAfterTargetRate.ToString("N1")%
+                                    </small>
+                                }
+                                else if (row.CommissionRate > 0)
+                                {
+                                    <small class="target-badge">
+                                        <span data-i18n-en="Commission:">عمولة:</span> @row.CommissionRate.ToString("N1")%
+                                    </small>
+                                }
+                            </td>
+                            <td><strong style="color:#16a34a;">@row.TotalRevenue.ToString("N3")</strong></td>
+                            <td style="color:#2563eb;">@row.Cash.ToString("N3")</td>
+                            <td style="color:#0284c7;">@row.Knet.ToString("N3")</td>
+                            <td style="color:#ea580c;">@(row.EmployeeDebt > 0 ? row.EmployeeDebt.ToString("N3") : "-")</td>
+                            <td style="color:#374151;">@row.BasicSalary.ToString("N3")</td>
+                            <td style="color:#d97706;">
+                                @row.CommissionBeforeTarget.ToString("N3")
+                                <small class="target-badge">@row.CommissionRate.ToString("N1")%</small>
+                            </td>
+                            <td>
+                                @if (row.CommissionAfterTarget > 0)
+                                {
+                                    <strong style="color:#16a34a;">@row.CommissionAfterTarget.ToString("N3")</strong>
+                                    <small class="target-badge" style="color:#16a34a;">@row.CommissionAfterTargetRate.ToString("N1")% ✓</small>
+                                }
+                                else if (row.SalesTarget > 0)
+                                {
+                                    <span class="text-muted">-</span>
+                                    <small class="target-badge">@row.CommissionAfterTargetRate.ToString("N1")% (<span data-i18n-en="Not Achieved">لم يحقق</span>)</small>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td style="color:#7c3aed;">@(row.Advances > 0 ? row.Advances.ToString("N3") : "-")</td>
+                            <td style="color:#dc2626;">@(row.Deductions > 0 ? row.Deductions.ToString("N3") : "-")</td>
+                            <td style="color:#db2777;">@(row.Gifts > 0 ? row.Gifts.ToString("N3") : "-")</td>
+                            <td>
+                                <strong style="color:@(row.NetForEmployee >= 0 ? "#16a34a" : "#dc2626");">
+                                    @row.NetForEmployee.ToString("N3")
+                                </strong>
+                            </td>
+                            <td>
+                                <strong style="color:@(row.NetForShop >= 0 ? "#16a34a" : "#dc2626");">
+                                    @row.NetForShop.ToString("N3")
+                                </strong>
+                            </td>
+                            <td class="no-print">
+                                <span class="badge bg-secondary">@row.Count</span>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="15" class="text-center py-4 text-muted">
+                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                <span data-i18n-en="No data for the selected period">لا توجد بيانات للفترة المحددة</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="2" data-i18n-en="Total">الإجمالي</td>
+                        <td style="color:#16a34a;">@grandTotal.ToString("N3")</td>
+                        <td style="color:#2563eb;">@grandCash.ToString("N3")</td>
+                        <td style="color:#0284c7;">@grandKnet.ToString("N3")</td>
+                        <td style="color:#ea580c;">@(grandEmployeeDebt > 0 ? grandEmployeeDebt.ToString("N3") : "-")</td>
+                        <td>@grandSalary.ToString("N3")</td>
+                        <td style="color:#d97706;">@grandCommBefore.ToString("N3")</td>
+                        <td style="color:#ea580c;">@(grandCommAfter > 0 ? grandCommAfter.ToString("N3") : "-")</td>
+                        <td style="color:#7c3aed;">@(grandAdvances > 0 ? grandAdvances.ToString("N3") : "-")</td>
+                        <td style="color:#dc2626;">@(grandDeductions > 0 ? grandDeductions.ToString("N3") : "-")</td>
+                        <td style="color:#db2777;">@(grandGifts > 0 ? grandGifts.ToString("N3") : "-")</td>
+                        <td style="color:#16a34a;">@grandNetEmp.ToString("N3")</td>
+                        <td style="color:@(grandNetShop >= 0 ? "#16a34a" : "#dc2626");">@grandNetShop.ToString("N3")</td>
+                        <td class="no-print">@grandCount</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+@* ===== NOTES LEGEND ===== *@
+<div class="card no-print mb-3">
+    <div class="card-body py-2">
+        <small class="text-muted">
+            <strong><span data-i18n-en="Calculation Notes:">ملاحظات الحساب:</span></strong>
+            <span data-i18n-en="Commission: If the employee achieves their target, the full revenue is calculated at the higher rate (e.g. 60%) instead of the base rate (e.g. 50%)">
+                العمولة: إذا حقق الموظف التارجت تُحتسب كل مبيعاته بنسبة التارجت الأعلى (مثلاً 60%) بدلاً من النسبة الأساسية (50%)
+            </span>
+            &nbsp;|&nbsp;
+            <span data-i18n-en="Net Employee = Salary + Actual Commission + Gifts − Advances − Deductions − Emp. Debt">
+                صافي الموظف = الراتب + العمولة الفعلية + الهدايا − السلف − الخصومات − دين الموظف
+            </span>
+            &nbsp;|&nbsp;
+            <span data-i18n-en="Net Shop = Total − Salary − Actual Commission + Emp. Debt + Advances">
+                صافي المحل = الإجمالي − الراتب − العمولة الفعلية + دين الموظف + السلف
+            </span>
+        </small>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function exportToExcel() {
+            var table = document.getElementById('empRevenueTable');
+            var wb = XLSX.utils.table_to_book(table, { sheet: "Employee Revenue", raw: true });
+            XLSX.writeFile(wb, 'employee_revenue_@(ViewBag.From)_@(ViewBag.To).xlsx');
+        }
+    </script>
+}

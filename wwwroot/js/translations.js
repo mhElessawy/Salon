@@ -324,7 +324,38 @@ window.PAGE_TRANSLATIONS = {
     'التاريخ والوقت': 'Date & Time',
     'لا توجد مواعيد في هذا اليوم': 'No Appointments Today',
 
-    // ── Reports ──────────────────────────────────────────
+    // ── Employee Revenue Report ───────────────────────────
+    'تقرير الإيراد حسب الموظف': 'Employee Revenue Report',
+    'ملخص إيرادات وعمولات كل موظف خلال الفترة المحددة': 'Summary of each employee\'s revenue and commissions for the selected period',
+    'إجمالي الإيراد': 'Total Revenue',
+    'إجمالي العمولات': 'Total Commissions',
+    'صافي للموظفين': 'Net for Employees',
+    'صافي للموظف': 'Net for Employee',
+    'صافي للمحل': 'Net for Shop',
+    'تفصيل الإيراد حسب الموظف': 'Employee Revenue Details',
+    'دين موظف': 'Employee Debt',
+    'التارجت': 'Target',
+    'بعد التارجت': 'After Target',
+    'الهدايا': 'Gifts',
+    'هدايا': 'Gifts',
+    'تارجت:': 'Target:',
+    'عمولة:': 'Commission:',
+    'لم يحقق': 'Not Achieved',
+    'لا توجد بيانات للفترة المحددة': 'No data for the selected period',
+    'ملاحظات الحساب:': 'Calculation Notes:',
+    'رقم التقرير': 'Report No.',
+    'الفترة:': 'Period:',
+    'رقم التقرير:': 'Report No.:',
+    'إلى': 'to',
+    'موظف': 'Employee',
+    'ف.': 'Inv.',
+    'إيرادات وعمولات وصافي كل موظف مع السلف والخصومات والهدايا': 'Revenue, commissions and net for each employee with advances, deductions and gifts',
+
+    // ── Reports Index ─────────────────────────────────────
+    'تقرير الإيرادات حسب الفترة': 'Revenue Report by Period',
+    'ملخص الإيرادات اليومية مع تفصيل طرق الدفع': 'Daily revenue summary with payment method breakdown',
+
+
     // BarberDailyReport model-computed titles (Arabic DB values)
     'تقرير يومي للإيرادات (الحلاقة والمساج)': 'Daily Revenue Report (Barber & Massage)',
     'تقرير يومي للإيرادات والحلاقين': 'Daily Revenue Report (Barbers)',
