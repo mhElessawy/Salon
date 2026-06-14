@@ -129,11 +129,24 @@
         border-radius: 8px;
         padding: 8px 14px;
         display: flex;
-        gap: 10px;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+
+    .dp2-filterbar {
+        background: #fff;
+        border-radius: 8px;
+        padding: 8px 14px;
+        display: flex;
+        gap: 8px;
         align-items: center;
         flex-wrap: wrap;
         margin-bottom: 12px;
         box-shadow: 0 1px 3px rgba(0,0,0,.06);
+        border-right: 3px solid #1a1a2e;
     }
 
     .dp2-cards {
@@ -346,52 +359,62 @@
         </div>
     </div>
 
-    <!-- Date + Filters bar -->
+    <!-- Date navigation bar -->
     <div class="dp2-datebar no-print">
-        <a href="?date=@prevDate.ToString("yyyy-MM-dd")" class="btn btn-outline-secondary btn-sm"><i class="fas fa-chevron-right"></i></a>
-        <form method="get" action="@Url.Action("MyReport")" class="d-flex align-items-center gap-2 flex-wrap">
+        <a href="?date=@prevDate.ToString("yyyy-MM-dd")@(isFiltered ? $"&saleType={selectedSaleType}&paymentMethod={selectedPayment}&employeeId={selectedEmpId}" : "")" class="btn btn-outline-secondary btn-sm"><i class="fas fa-chevron-right"></i></a>
+        <form method="get" action="@Url.Action("MyReport")" class="d-flex align-items-center gap-2" id="dateForm">
+            <input type="hidden" name="saleType" value="@selectedSaleType" />
+            <input type="hidden" name="paymentMethod" value="@selectedPayment" />
+            @if (selectedEmpId.HasValue) { <input type="hidden" name="employeeId" value="@selectedEmpId" /> }
             <input type="date" id="dateInput" name="date" value="@selectedDate" class="form-control form-control-sm" style="width:150px;" />
             <button type="button" class="btn btn-outline-secondary btn-sm" id="todayBtn" title="اليوم"><i class="fas fa-calendar-day"></i></button>
-            @if (showBarber || showMassage)
-            {
-                <select name="saleType" class="form-select form-select-sm" style="min-width:120px;">
-                    <option value="" selected="@(string.IsNullOrEmpty(selectedSaleType))">-- الكل --</option>
-                    @if (showBarber) { <option value="حلاقة" selected="@(selectedSaleType == "حلاقة")">✂ حلاقة</option> }
-                    @if (showMassage) { <option value="مساج" selected="@(selectedSaleType == "مساج")">🌿 مساج</option> }
-                </select>
-            }
-            <select name="paymentMethod" class="form-select form-select-sm" style="min-width:155px;">
-                <option value="" selected="@(string.IsNullOrEmpty(selectedPayment))">-- طريقة الدفع --</option>
-                <option value="كاش" selected="@(selectedPayment == "كاش")">💵 كاش</option>
-                <option value="كي نت" selected="@(selectedPayment == "كي نت")">💳 كي نت</option>
-                <option value="كي نت و كاش" selected="@(selectedPayment == "كي نت و كاش")">↔ كاش + كي نت</option>
-                <option value="دين على العميل" selected="@(selectedPayment == "دين على العميل")">👤 دين / عميل</option>
-                <option value="دين على الموظف" selected="@(selectedPayment == "دين على الموظف")">👷 دين / موظف</option>
-                <option value="دين على صاحب المكان" selected="@(selectedPayment == "دين على صاحب المكان")">🏠 دين / صاحب المكان</option>
-            </select>
-            @if (employees.Any())
-            {
-                <select name="employeeId" class="form-select form-select-sm" style="min-width:150px;">
-                    <option value="" selected="@(!selectedEmpId.HasValue)">-- كل الموظفين --</option>
-                    @foreach (var emp in employees)
-                    {
-                        <option value="@emp.Id" selected="@(selectedEmpId == emp.Id)">@emp.FullName</option>
-                    }
-                </select>
-            }
-            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i><span data-i18n-en="Search">بحث</span></button>
-            @if (isFiltered)
-            {
-                <a href="@Url.Action("MyReport", new { date = selectedDate })" class="btn btn-outline-secondary btn-sm"><i class="fas fa-times me-1"></i><span data-i18n-en="Clear">إلغاء</span></a>
-            }
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i><span data-i18n-en="View">عرض</span></button>
         </form>
-        <a href="?date=@nextDate.ToString("yyyy-MM-dd")"
-           class="btn btn-outline-secondary btn-sm @(nextDate > DateTime.Today ? "disabled" : "")"
+        <a href="?date=@nextDate.ToString("yyyy-MM-dd")@(isFiltered ? $"&saleType={selectedSaleType}&paymentMethod={selectedPayment}&employeeId={selectedEmpId}" : "")"
+           class="btn btn-outline-secondary btn-sm"
            @(nextDate > DateTime.Today ? "style=opacity:.4;pointer-events:none;" : "")>
             <i class="fas fa-chevron-left"></i>
         </a>
-        <span class="fw-bold text-secondary small ms-1">@reportDate.ToString("yyyy/MM/dd")</span>
+        <span class="fw-bold text-secondary small">@reportDate.ToString("yyyy/MM/dd")</span>
     </div>
+
+    <!-- Filters bar -->
+    <form method="get" action="@Url.Action("MyReport")" class="dp2-filterbar no-print">
+        <input type="hidden" name="date" value="@selectedDate" />
+        <i class="fas fa-filter" style="color:#64748b;font-size:12px;"></i>
+        @if (showBarber || showMassage)
+        {
+            <select name="saleType" class="form-select form-select-sm" style="width:130px;">
+                <option value="" selected="@(string.IsNullOrEmpty(selectedSaleType))">كل الأنواع</option>
+                @if (showBarber) { <option value="حلاقة" selected="@(selectedSaleType == "حلاقة")">✂ حلاقة</option> }
+                @if (showMassage) { <option value="مساج" selected="@(selectedSaleType == "مساج")">🌿 مساج</option> }
+            </select>
+        }
+        <select name="paymentMethod" class="form-select form-select-sm" style="width:160px;">
+            <option value="" selected="@(string.IsNullOrEmpty(selectedPayment))">كل طرق الدفع</option>
+            <option value="كاش" selected="@(selectedPayment == "كاش")">💵 كاش</option>
+            <option value="كي نت" selected="@(selectedPayment == "كي نت")">💳 كي نت</option>
+            <option value="كي نت و كاش" selected="@(selectedPayment == "كي نت و كاش")">↔ كاش + كي نت</option>
+            <option value="دين على العميل" selected="@(selectedPayment == "دين على العميل")">👤 دين / عميل</option>
+            <option value="دين على الموظف" selected="@(selectedPayment == "دين على الموظف")">👷 دين / موظف</option>
+            <option value="دين على صاحب المكان" selected="@(selectedPayment == "دين على صاحب المكان")">🏠 دين / صاحب المكان</option>
+        </select>
+        @if (employees.Any())
+        {
+            <select name="employeeId" class="form-select form-select-sm" style="width:160px;">
+                <option value="" selected="@(!selectedEmpId.HasValue)">كل الموظفين</option>
+                @foreach (var emp in employees)
+                {
+                    <option value="@emp.Id" selected="@(selectedEmpId == emp.Id)">@emp.FullName</option>
+                }
+            </select>
+        }
+        <button type="submit" class="btn btn-dark btn-sm"><i class="fas fa-filter me-1"></i><span data-i18n-en="Filter">تصفية</span></button>
+        @if (isFiltered)
+        {
+            <a href="@Url.Action("MyReport", new { date = selectedDate })" class="btn btn-outline-secondary btn-sm"><i class="fas fa-times me-1"></i><span data-i18n-en="Clear">إلغاء</span></a>
+        }
+    </form>
 
     <!-- ===== 6 Summary Cards ===== -->
     <div class="dp2-cards mb-2">
