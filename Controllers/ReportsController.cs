@@ -1020,7 +1020,11 @@ namespace Salon.Controllers
                 .ToList();
 
             var employees = await _context.Employees
+                .Include(e => e.DepartmentNav)
                 .Where(e => e.IsActive)
+                .Where(e => userDept == "مساج" ? e.DepartmentNav!.Name == "مساج"
+                          : userDept == "حلاقة" ? e.DepartmentNav!.Name == "حلاقة"
+                          : true)
                 .OrderBy(e => e.FullName)
                 .ToListAsync();
 
