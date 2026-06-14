@@ -1147,21 +1147,23 @@ namespace Salon.Controllers
                 decimal commRate = emp.Commission;
                 decimal commAfterRate = emp.CommissionAfterTarget ?? 0;
 
-                decimal commBeforeTarget, commAfterTarget;
-                if (target > 0)
+                decimal commBeforeTarget = totalRevenue * commRate / 100;
+                decimal commAfterTarget = 0;
+                decimal effectiveComm;
+
+                if (target > 0 && totalRevenue >= target && commAfterRate > 0)
                 {
-                    commBeforeTarget = Math.Min(totalRevenue, target) * commRate / 100;
-                    commAfterTarget = Math.Max(0, totalRevenue - target) * commAfterRate / 100;
+                    commAfterTarget = totalRevenue * commAfterRate / 100;
+                    effectiveComm = commAfterTarget;
                 }
                 else
                 {
-                    commBeforeTarget = totalRevenue * commRate / 100;
-                    commAfterTarget = 0;
+                    effectiveComm = commBeforeTarget;
                 }
 
-                decimal totalComm = commBeforeTarget + commAfterTarget;
-                decimal netForEmployee = emp.BasicSalary + totalComm + gifts - advances - deductions - employeeDebt;
-                decimal netForShop = totalRevenue - totalComm - emp.BasicSalary + employeeDebt;
+                decimal totalComm = effectiveComm;
+                decimal netForEmployee = emp.BasicSalary + effectiveComm + gifts - advances - deductions - employeeDebt;
+                decimal netForShop = totalRevenue - effectiveComm - emp.BasicSalary + employeeDebt;
 
                 return new EmployeeRevenueRow
                 {
@@ -1177,7 +1179,7 @@ namespace Salon.Controllers
                     CommissionAfterTargetRate = commAfterRate,
                     CommissionBeforeTarget = commBeforeTarget,
                     CommissionAfterTarget = commAfterTarget,
-                    TotalCommission = totalComm,
+                    TotalCommission = effectiveComm,
                     Gifts = gifts,
                     Advances = advances,
                     Deductions = deductions,

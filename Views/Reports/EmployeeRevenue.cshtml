@@ -261,9 +261,23 @@
                             <td style="color:#374151;">@row.BasicSalary.ToString("N3")</td>
                             <td style="color:#d97706;">
                                 @row.CommissionBeforeTarget.ToString("N3")
+                                <small class="target-badge">@row.CommissionRate.ToString("N1")%</small>
                             </td>
-                            <td style="color:#ea580c;">
-                                @(row.CommissionAfterTarget > 0 ? row.CommissionAfterTarget.ToString("N3") : "-")
+                            <td>
+                                @if (row.CommissionAfterTarget > 0)
+                                {
+                                    <strong style="color:#16a34a;">@row.CommissionAfterTarget.ToString("N3")</strong>
+                                    <small class="target-badge" style="color:#16a34a;">@row.CommissionAfterTargetRate.ToString("N1")% ✓</small>
+                                }
+                                else if (row.SalesTarget > 0)
+                                {
+                                    <span class="text-muted">-</span>
+                                    <small class="target-badge">@row.CommissionAfterTargetRate.ToString("N1")% (لم يحقق)</small>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
                             </td>
                             <td style="color:#7c3aed;">@(row.Advances > 0 ? row.Advances.ToString("N3") : "-")</td>
                             <td style="color:#dc2626;">@(row.Deductions > 0 ? row.Deductions.ToString("N3") : "-")</td>
@@ -320,8 +334,9 @@
     <div class="card-body py-2">
         <small class="text-muted">
             <strong>ملاحظات الحساب:</strong>
-            صافي الموظف = الراتب + عمولة التارجت + عمولة بعد التارجت + الهدايا − السلف − الخصومات − دين الموظف &nbsp;|&nbsp;
-            صافي المحل = الإجمالي − الراتب − إجمالي العمولات + دين الموظف
+            العمولة: إذا حقق الموظف التارجت تُحتسب كل مبيعاته بنسبة التارجت الأعلى (مثلاً 60%) بدلاً من النسبة الأساسية (50%) &nbsp;|&nbsp;
+            صافي الموظف = الراتب + العمولة الفعلية + الهدايا − السلف − الخصومات − دين الموظف &nbsp;|&nbsp;
+            صافي المحل = الإجمالي − الراتب − العمولة الفعلية + دين الموظف
         </small>
     </div>
 </div>
