@@ -1302,13 +1302,17 @@ html[dir="ltr"] .password-toggle {
         display: none !important;
     }
 
-    /* Full-width layout */
+    /* Full-width layout — reset flex containers so all content flows and prints */
     body,
     .app-wrapper,
     .main-content,
     .page-content {
+        display: block !important;
         margin: 0 !important;
         padding: 0 !important;
+        min-height: 0 !important;
+        height: auto !important;
+        overflow: visible !important;
         background: #fff !important;
         width: 100% !important;
     }
