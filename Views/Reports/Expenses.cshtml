@@ -374,8 +374,7 @@ else
 @* ======= TABS (admin only) / Direct table (dept user) ======= *@
 @if (isDeptUser)
 {
-    @* Dept user: no tabs, render filtered data directly *@
-    @{ await RenderExpTable(Model.ToList(), salaries, false); }
+    await RenderExpTable(Model.ToList(), salaries, false);
 }
 else
 {
