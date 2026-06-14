@@ -1082,5 +1082,118 @@ namespace Salon.Controllers
 
             return View(dailyRows);
         }
+
+        public async Task<IActionResult> EmployeeRevenue(string? from, string? to, string? saleType)
+        {
+            DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
+            DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+            string? deptFilter = !string.IsNullOrEmpty(saleType) ? saleType : userDept;
+
+            var salesQuery = _context.Sales
+                .Include(s => s.Employee)
+                .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
+
+            if (userDept == "مساج") salesQuery = salesQuery.Where(s => s.SaleType == "مساج");
+            else if (userDept == "حلاقة") salesQuery = salesQuery.Where(s => s.SaleType == "حلاقة");
+            if (!string.IsNullOrEmpty(saleType)) salesQuery = salesQuery.Where(s => s.SaleType == saleType);
+
+            var allSales = await salesQuery.ToListAsync();
+
+            var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+            if (deptFilter == "مساج") empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "مساج");
+            else if (deptFilter == "حلاقة") empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "حلاقة");
+            var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+
+            var advancesByEmp = (await _context.EmployeeAdvances
+                .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo)
+                .ToListAsync())
+                .GroupBy(a => a.EmployeeId)
+                .ToDictionary(g => g.Key, g => g.Sum(a => a.Amount));
+
+            var deductionsByEmp = (await _context.Salaries
+                .Where(s => (s.Year > dateFrom.Year || (s.Year == dateFrom.Year && s.Month >= dateFrom.Month))
+                         && (s.Year < dateTo.Year || (s.Year == dateTo.Year && s.Month <= dateTo.Month)))
+                .ToListAsync())
+                .GroupBy(s => s.EmployeeId)
+                .ToDictionary(g => g.Key, g => g.Sum(s => s.Deductions));
+
+            string[] cashMethods = { "كاش", "نقدي", "Cash" };
+            string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
+            var salesByEmp = allSales
+                .Where(s => s.EmployeeId.HasValue)
+                .GroupBy(s => s.EmployeeId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var rows = employees.Select(emp =>
+            {
+                var empSales = salesByEmp.ContainsKey(emp.Id) ? salesByEmp[emp.Id] : new List<Sale>();
+
+                decimal totalRevenue = empSales.Sum(s => s.NetAmount);
+                decimal cash = empSales.Sum(s => cashMethods.Contains(s.PaymentMethod) ? s.NetAmount
+                    : mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+                decimal knet = empSales.Sum(s => knetMethods.Contains(s.PaymentMethod) ? s.NetAmount
+                    : mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
+                decimal gifts = empSales.Sum(s => s.GiftForEmployee ?? 0);
+                decimal advances = advancesByEmp.ContainsKey(emp.Id) ? advancesByEmp[emp.Id] : 0;
+                decimal deductions = deductionsByEmp.ContainsKey(emp.Id) ? deductionsByEmp[emp.Id] : 0;
+
+                decimal target = emp.SalesTarget ?? 0;
+                decimal commRate = emp.Commission;
+                decimal commAfterRate = emp.CommissionAfterTarget ?? 0;
+
+                decimal commBeforeTarget, commAfterTarget;
+                if (target > 0)
+                {
+                    commBeforeTarget = Math.Min(totalRevenue, target) * commRate / 100;
+                    commAfterTarget = Math.Max(0, totalRevenue - target) * commAfterRate / 100;
+                }
+                else
+                {
+                    commBeforeTarget = totalRevenue * commRate / 100;
+                    commAfterTarget = 0;
+                }
+
+                decimal totalComm = commBeforeTarget + commAfterTarget;
+                decimal netForEmployee = emp.BasicSalary + totalComm + gifts - advances - deductions;
+                decimal netForShop = totalRevenue - totalComm - emp.BasicSalary;
+
+                return new EmployeeRevenueRow
+                {
+                    EmployeeId = emp.Id,
+                    EmployeeName = emp.FullName,
+                    TotalRevenue = totalRevenue,
+                    Cash = cash,
+                    Knet = knet,
+                    BasicSalary = emp.BasicSalary,
+                    CommissionRate = commRate,
+                    SalesTarget = target,
+                    CommissionAfterTargetRate = commAfterRate,
+                    CommissionBeforeTarget = commBeforeTarget,
+                    CommissionAfterTarget = commAfterTarget,
+                    TotalCommission = totalComm,
+                    Gifts = gifts,
+                    Advances = advances,
+                    Deductions = deductions,
+                    NetForEmployee = netForEmployee,
+                    NetForShop = netForShop,
+                    Count = empSales.Count
+                };
+            }).ToList();
+
+            bool isDeptUser = userDept == "حلاقة" || userDept == "مساج";
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
+            ViewBag.SelectedSaleType = saleType;
+            ViewBag.UserDept = userDept;
+            ViewBag.IsDeptUser = isDeptUser;
+            ViewBag.ReportNumber = "EMP-" + dateFrom.ToString("yyyy-MM-dd");
+
+            return View(rows);
+        }
     }
 }
