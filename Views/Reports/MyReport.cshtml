@@ -17,28 +17,43 @@
     var expensesTodayList = ViewBag.ExpensesTodayList as List<Expense> ?? new List<Expense>();
     var salariesTodayList = ViewBag.SalariesTodayList as List<Salary> ?? new List<Salary>();
     var depositsTodayList = ViewBag.DepositsTodayList as List<Deposit> ?? new List<Deposit>();
+    // Expenses/deposits/advances come from ViewBag (not affected by sale-type filter)
     decimal totalExpensesWithSalaries = ViewBag.TotalExpensesWithSalaries is decimal tews ? tews : 0m;
     decimal depositsToday = ViewBag.DepositsToday is decimal dt ? dt : 0m;
-    decimal totalGiftsToday = ViewBag.TotalGiftsToday is decimal tgt ? tgt : 0m;
-    decimal totalHadiyaToday = ViewBag.TotalHadiyaToday is decimal tht ? tht : 0m;
-    decimal salesToday = ViewBag.SalesToday is decimal st ? st : 0m;
-    decimal cashTotal = ViewBag.CashTotal is decimal ct ? ct : 0m;
-    decimal knetTotal = ViewBag.KnetTotal is decimal kt ? kt : 0m;
     decimal advancesToday = ViewBag.AdvancesToday is decimal at ? at : 0m;
-    decimal netProfit = ViewBag.NetProfit is decimal np ? np : 0m;
-    decimal empDebtTotal = ViewBag.EmployeeDebtTotal is decimal edt ? edt : 0m;
-    decimal ownerDebtTotal = ViewBag.OwnerDebtTotal is decimal odt ? odt : 0m;
-    decimal cancelledTotal = ViewBag.CancelledTotal is decimal cant ? cant : 0m;
-    int cancelledCount = ViewBag.CancelledCount is int canc ? canc : 0;
-    decimal debtTotal = empDebtTotal + ownerDebtTotal;
 
     DateTime reportDate = DateTime.TryParse(selectedDate, out var pd) ? pd : DateTime.Today;
     var prevDate = reportDate.AddDays(-1);
     var nextDate = reportDate.AddDays(1);
 
-    // Avg invoice
+    // ── All sale-based totals computed from Model (respects all filters) ──
     var activeModel = Model.Where(s => s.Status != "ملغي").ToList();
-    decimal avgInv = activeModel.Any() ? salesToday / activeModel.Count : 0;
+    string[] cashMethodsV  = { "كاش", "نقدي", "Cash" };
+    string[] knetMethodsV  = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+    string[] mixedMethodsV = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
+    decimal salesToday      = activeModel.Sum(s => s.NetAmount);
+    decimal barberSales     = activeModel.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount);
+    decimal massageSales    = activeModel.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount);
+    decimal productsSales   = activeModel.Where(s => s.SaleType == "منتجات").Sum(s => s.NetAmount);
+    decimal cashTotal       = activeModel.Sum(s =>
+        cashMethodsV.Contains(s.PaymentMethod)  ? s.NetAmount :
+        mixedMethodsV.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+    decimal knetTotal       = activeModel.Sum(s =>
+        knetMethodsV.Contains(s.PaymentMethod)  ? s.NetAmount :
+        mixedMethodsV.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
+    decimal empDebtTotal    = activeModel.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
+    decimal ownerDebtTotal  = activeModel.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount);
+    decimal debtTotal       = empDebtTotal + ownerDebtTotal;
+    decimal totalGiftsToday = activeModel.Sum(s => s.EmployeeGift ?? 0);
+    decimal totalHadiyaToday= activeModel.Sum(s => s.GiftForEmployee ?? 0);
+    decimal cancelledTotal  = Model.Where(s => s.Status == "ملغي").Sum(s => s.NetAmount);
+    int cancelledCount      = Model.Count(s => s.Status == "ملغي");
+    decimal netProfit       = salesToday + depositsToday - totalExpensesWithSalaries - advancesToday;
+    decimal avgInv          = activeModel.Any() ? salesToday / activeModel.Count : 0;
+
+    // Is this admin view (both depts visible) with no type filter?
+    bool isAdminView = showBarber && showMassage && string.IsNullOrEmpty(selectedSaleType);
 
     // Cat colors for expenses donut
     var catColors = new[] { "#ef4444", "#f97316", "#3b82f6", "#10b981", "#8b5cf6", "#06b6d4", "#ec4899" };
@@ -416,65 +431,117 @@
         }
     </form>
 
-    <!-- ===== 6 Summary Cards ===== -->
-    <div class="dp2-cards mb-2">
+    <!-- ===== Summary Cards ===== -->
+    @{ decimal cashPct = salesToday > 0 ? Math.Round(cashTotal / salesToday * 100, 1) : 0;
+       decimal knetPct = salesToday > 0 ? Math.Round(knetTotal / salesToday * 100, 1) : 0; }
 
-        <div class="dp2-card" style="border-top:3px solid #16a34a;">
-            <div class="c-icon" style="color:#16a34a;"><i class="fas fa-cash-register"></i></div>
-            <div class="c-lbl" data-i18n-en="Today's Sales">مبيعات اليوم</div>
-            <div class="c-val" style="color:#16a34a;">@salesToday.ToString("N3")</div>
-            <div class="c-cur">د.ك</div>
-            <div class="c-sub"><span data-i18n-en="Invoices">فواتير</span>: <strong>@activeModel.Count</strong></div>
+    @if (isAdminView)
+    {
+        <!-- Admin: حلاقة + مساج + كاش + كي نت + مصاريف + صافي -->
+        <div class="dp2-cards mb-2">
+            <div class="dp2-card" style="border-top:3px solid #1a1a2e;">
+                <div class="c-icon" style="color:#1a1a2e;"><i class="fas fa-cut"></i></div>
+                <div class="c-lbl" data-i18n-en="Barber Sales">مبيعات الحلاقة</div>
+                <div class="c-val" style="color:#1a1a2e;">@barberSales.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub">@activeModel.Count(s => s.SaleType == "حلاقة") <span data-i18n-en="invoices">فاتورة</span></div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #0891b2;">
+                <div class="c-icon" style="color:#0891b2;"><i class="fas fa-spa"></i></div>
+                <div class="c-lbl" data-i18n-en="Massage Sales">مبيعات المساج</div>
+                <div class="c-val" style="color:#0891b2;">@massageSales.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub">@activeModel.Count(s => s.SaleType == "مساج") <span data-i18n-en="invoices">فاتورة</span></div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #16a34a;">
+                <div class="c-icon" style="color:#16a34a;"><i class="fas fa-cash-register"></i></div>
+                <div class="c-lbl" data-i18n-en="Total Sales">إجمالي المبيعات</div>
+                <div class="c-val" style="color:#16a34a;">@salesToday.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub"><span data-i18n-en="invoices">فواتير</span>: <strong>@activeModel.Count</strong></div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #1d4ed8;">
+                <div class="c-pct" style="background:#dbeafe;color:#1e40af;">@cashPct.ToString("N1")%</div>
+                <div class="c-icon" style="color:#1d4ed8;"><i class="fas fa-money-bill-wave"></i></div>
+                <div class="c-lbl" data-i18n-en="Cash">كاش اليوم</div>
+                <div class="c-val" style="color:#1d4ed8;">@cashTotal.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub">@cashPct.ToString("N1")%</div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #dc2626;">
+                <div class="c-icon" style="color:#dc2626;"><i class="fas fa-receipt"></i></div>
+                <div class="c-lbl" data-i18n-en="Expenses">مصاريف اليوم</div>
+                <div class="c-val" style="color:#dc2626;">@totalExpensesWithSalaries.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub"><span data-i18n-en="Advances">سلف</span>: @advancesToday.ToString("N3")</div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #059669;background:#f0fdf4;">
+                <div class="c-icon" style="color:#059669;"><i class="fas fa-chart-line"></i></div>
+                <div class="c-lbl" data-i18n-en="Net Profit">صافي الربح</div>
+                <div class="c-val" style="color:#059669;">@netProfit.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub"><span data-i18n-en="Avg/Invoice">متوسط</span>: @avgInv.ToString("N3")</div>
+            </div>
         </div>
-
-        <div class="dp2-card" style="border-top:3px solid #1d4ed8;">
-            @{ decimal cashPct = salesToday > 0 ? Math.Round(cashTotal / salesToday * 100, 1) : 0; }
-            <div class="c-pct" style="background:#dbeafe;color:#1e40af;">@cashPct.ToString("N1")%</div>
-            <div class="c-icon" style="color:#1d4ed8;"><i class="fas fa-money-bill-wave"></i></div>
-            <div class="c-lbl" data-i18n-en="Cash">كاش اليوم</div>
-            <div class="c-val" style="color:#1d4ed8;">@cashTotal.ToString("N3")</div>
-            <div class="c-cur">د.ك</div>
-            <div class="c-sub">@cashPct.ToString("N1")%</div>
+    }
+    else
+    {
+        <!-- Dept user or filtered: one sales card showing dept/filtered total -->
+        @{ string deptLabel = userDept == "حلاقة" ? "مبيعات الحلاقة"
+                            : userDept == "مساج"  ? "مبيعات المساج"
+                            : !string.IsNullOrEmpty(selectedSaleType) ? $"مبيعات {selectedSaleType}"
+                            : "مبيعات اليوم";
+           string deptLabelEn = userDept == "حلاقة" ? "Barber Sales"
+                              : userDept == "مساج"  ? "Massage Sales"
+                              : !string.IsNullOrEmpty(selectedSaleType) ? $"{selectedSaleType} Sales"
+                              : "Today's Sales"; }
+        <div class="dp2-cards mb-2">
+            <div class="dp2-card" style="border-top:3px solid #16a34a;">
+                <div class="c-icon" style="color:#16a34a;"><i class="fas fa-cash-register"></i></div>
+                <div class="c-lbl" data-i18n-en="@deptLabelEn">@deptLabel</div>
+                <div class="c-val" style="color:#16a34a;">@salesToday.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub"><span data-i18n-en="Invoices">فواتير</span>: <strong>@activeModel.Count</strong></div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #1d4ed8;">
+                <div class="c-pct" style="background:#dbeafe;color:#1e40af;">@cashPct.ToString("N1")%</div>
+                <div class="c-icon" style="color:#1d4ed8;"><i class="fas fa-money-bill-wave"></i></div>
+                <div class="c-lbl" data-i18n-en="Cash">كاش اليوم</div>
+                <div class="c-val" style="color:#1d4ed8;">@cashTotal.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub">@cashPct.ToString("N1")%</div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #0891b2;">
+                <div class="c-pct" style="background:#cffafe;color:#0e7490;">@knetPct.ToString("N1")%</div>
+                <div class="c-icon" style="color:#0891b2;"><i class="fas fa-credit-card"></i></div>
+                <div class="c-lbl" data-i18n-en="K-Net">كي نت اليوم</div>
+                <div class="c-val" style="color:#0891b2;">@knetTotal.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub">@knetPct.ToString("N1")%</div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #dc2626;">
+                <div class="c-icon" style="color:#dc2626;"><i class="fas fa-receipt"></i></div>
+                <div class="c-lbl" data-i18n-en="Expenses">مصاريف اليوم</div>
+                <div class="c-val" style="color:#dc2626;">@totalExpensesWithSalaries.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                @if (salariesTodayList.Any()) { <div class="c-sub">مرتبات: @salariesTodayList.Sum(s => s.NetSalary).ToString("N3")</div> }
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #d97706;">
+                <div class="c-icon" style="color:#d97706;"><i class="fas fa-hand-holding-usd"></i></div>
+                <div class="c-lbl" data-i18n-en="Advances">سلف اليوم</div>
+                <div class="c-val" style="color:#d97706;">@advancesToday.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub">@advancesList.Count <span data-i18n-en="advance(s)">سلفة</span></div>
+            </div>
+            <div class="dp2-card" style="border-top:3px solid #059669;background:#f0fdf4;">
+                <div class="c-icon" style="color:#059669;"><i class="fas fa-chart-line"></i></div>
+                <div class="c-lbl" data-i18n-en="Net Profit">صافي الربح</div>
+                <div class="c-val" style="color:#059669;">@netProfit.ToString("N3")</div>
+                <div class="c-cur">د.ك</div>
+                <div class="c-sub"><span data-i18n-en="Avg/Invoice">متوسط/فاتورة</span>: @avgInv.ToString("N3")</div>
+            </div>
         </div>
-
-        <div class="dp2-card" style="border-top:3px solid #0891b2;">
-            @{ decimal knetPct = salesToday > 0 ? Math.Round(knetTotal / salesToday * 100, 1) : 0; }
-            <div class="c-pct" style="background:#cffafe;color:#0e7490;">@knetPct.ToString("N1")%</div>
-            <div class="c-icon" style="color:#0891b2;"><i class="fas fa-credit-card"></i></div>
-            <div class="c-lbl" data-i18n-en="K-Net">كي نت اليوم</div>
-            <div class="c-val" style="color:#0891b2;">@knetTotal.ToString("N3")</div>
-            <div class="c-cur">د.ك</div>
-            <div class="c-sub">@knetPct.ToString("N1")%</div>
-        </div>
-
-        <div class="dp2-card" style="border-top:3px solid #dc2626;">
-            <div class="c-icon" style="color:#dc2626;"><i class="fas fa-receipt"></i></div>
-            <div class="c-lbl" data-i18n-en="Expenses">مصاريف اليوم</div>
-            <div class="c-val" style="color:#dc2626;">@totalExpensesWithSalaries.ToString("N3")</div>
-            <div class="c-cur">د.ك</div>
-            @if ((decimal)(ViewBag.SalariesToday ?? 0m) > 0)
-            {
-                <div class="c-sub">مرتبات: @ViewBag.SalariesToday?.ToString("N3")</div>
-            }
-        </div>
-
-        <div class="dp2-card" style="border-top:3px solid #d97706;">
-            <div class="c-icon" style="color:#d97706;"><i class="fas fa-hand-holding-usd"></i></div>
-            <div class="c-lbl" data-i18n-en="Advances">سلف اليوم</div>
-            <div class="c-val" style="color:#d97706;">@advancesToday.ToString("N3")</div>
-            <div class="c-cur">د.ك</div>
-            <div class="c-sub">@advancesList.Count <span data-i18n-en="advance(s)">سلفة</span></div>
-        </div>
-
-        <div class="dp2-card" style="border-top:3px solid #059669;background:#f0fdf4;">
-            <div class="c-icon" style="color:#059669;"><i class="fas fa-chart-line"></i></div>
-            <div class="c-lbl" data-i18n-en="Net Profit">صافي الربح</div>
-            <div class="c-val" style="color:#059669;">@netProfit.ToString("N3")</div>
-            <div class="c-cur">د.ك</div>
-            <div class="c-sub"><span data-i18n-en="Avg/Invoice">متوسط/فاتورة</span>: @avgInv.ToString("N3")</div>
-        </div>
-
-    </div>
+    }
 
     <!-- ===== Middle Row: Invoices (right) | Summary + Cash Flow (left) ===== -->
     <div class="row g-2 mb-2" style="align-items:stretch;">
@@ -626,18 +693,25 @@
                                 <span class="dp2-qs-lbl"><i class="fas fa-shopping-cart" style="color:#16a34a;"></i> <span data-i18n-en="Total Sales">إجمالي المبيعات</span></span>
                                 <span class="dp2-qs-val" style="color:#16a34a;">@salesToday.ToString("N3") <small style="font-weight:400;color:#888;">د.ك</small></span>
                             </div>
-                            @if (showBarber && (decimal)(ViewBag.BarberSales ?? 0m) > 0)
+                            @if (barberSales > 0 && (isAdminView || userDept == "حلاقة"))
                             {
                                 <div class="dp2-qs-row">
                                     <span class="dp2-qs-lbl"><i class="fas fa-cut" style="color:#1a1a2e;"></i> <span data-i18n-en="Barber Sales">مبيعات الحلاقة</span></span>
-                                    <span class="dp2-qs-val">@ViewBag.BarberSales?.ToString("N3") <small style="font-weight:400;color:#888;">د.ك</small></span>
+                                    <span class="dp2-qs-val">@barberSales.ToString("N3") <small style="font-weight:400;color:#888;">د.ك</small></span>
                                 </div>
                             }
-                            @if (showMassage && (decimal)(ViewBag.MassageSales ?? 0m) > 0)
+                            @if (massageSales > 0 && (isAdminView || userDept == "مساج"))
                             {
                                 <div class="dp2-qs-row">
                                     <span class="dp2-qs-lbl"><i class="fas fa-spa" style="color:#0891b2;"></i> <span data-i18n-en="Massage Sales">مبيعات المساج</span></span>
-                                    <span class="dp2-qs-val" style="color:#0891b2;">@ViewBag.MassageSales?.ToString("N3") <small style="font-weight:400;color:#888;">د.ك</small></span>
+                                    <span class="dp2-qs-val" style="color:#0891b2;">@massageSales.ToString("N3") <small style="font-weight:400;color:#888;">د.ك</small></span>
+                                </div>
+                            }
+                            @if (productsSales > 0)
+                            {
+                                <div class="dp2-qs-row">
+                                    <span class="dp2-qs-lbl"><i class="fas fa-box" style="color:#64748b;"></i> <span data-i18n-en="Products Sales">مبيعات منتجات</span></span>
+                                    <span class="dp2-qs-val" style="color:#64748b;">@productsSales.ToString("N3") <small style="font-weight:400;color:#888;">د.ك</small></span>
                                 </div>
                             }
                             @if (debtTotal > 0)
