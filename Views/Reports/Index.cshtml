@@ -11,6 +11,7 @@
 </div>
 
 <div class="row g-3">
+    @* ── الصف الأول ── *@
     @if (canSee("BarberDaily"))
     {
         <div class="col-md-4">
@@ -47,13 +48,26 @@
             </div>
         </a>
     </div>
+
+    @* ── الصف الثاني ── *@
     <div class="col-md-4">
-        <a href="@Url.Action("Sales")" class="text-decoration-none">
+        <a href="@Url.Action("CashMovement")" class="text-decoration-none">
             <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
                 <div class="card-body text-center p-4">
-                    <div class="mb-3" style="font-size:48px; color:var(--primary);"><i class="fas fa-shopping-cart"></i></div>
-                    <h5>تقرير المبيعات</h5>
-                    <p class="text-muted small">تقرير تفصيلي لجميع المبيعات خلال فترة محددة</p>
+                    <div class="mb-3" style="font-size:48px; color:#6f42c1;"><i class="fas fa-cash-register"></i></div>
+                    <h5>تقرير حركة الصندوق</h5>
+                    <p class="text-muted small">جميع المصروفات والإيداعات مجمعة مع فلتر النوع والتاريخ</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="@Url.Action("InventoryReport")" class="text-decoration-none">
+            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3" style="font-size:48px; color:#0891b2;"><i class="fas fa-boxes"></i></div>
+                    <h5>تقرير المخزون</h5>
+                    <p class="text-muted small">مبيعات واستهلاك المنتجات مع الكميات والإيرادات خلال فترة</p>
                 </div>
             </div>
         </a>
@@ -69,17 +83,8 @@
             </div>
         </a>
     </div>
-    <div class="col-md-4">
-        <a href="@Url.Action("CashMovement")" class="text-decoration-none">
-            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3" style="font-size:48px; color:#6f42c1;"><i class="fas fa-cash-register"></i></div>
-                    <h5>تقرير حركة الصندوق</h5>
-                    <p class="text-muted small">جميع المصروفات والإيداعات مجمعة مع فلتر النوع والتاريخ</p>
-                </div>
-            </div>
-        </a>
-    </div>
+
+    @* ── باقي التقارير ── *@
     <div class="col-md-4">
         <a href="@Url.Action("MyReport")" class="text-decoration-none">
             <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
@@ -131,17 +136,6 @@
                     <div class="mb-3" style="font-size:48px; color:#6f42c1;"><i class="fas fa-user-check"></i></div>
                     <h5>تقييم موظف واحد</h5>
                     <p class="text-muted small">تقرير تفصيلي لحضور ومبيعات موظف بعينه</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-4">
-        <a href="@Url.Action("InventoryReport")" class="text-decoration-none">
-            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3" style="font-size:48px; color:#0891b2;"><i class="fas fa-boxes"></i></div>
-                    <h5>تقرير المخزون</h5>
-                    <p class="text-muted small">مبيعات واستهلاك المنتجات مع الكميات والإيرادات خلال فترة</p>
                 </div>
             </div>
         </a>
