@@ -1290,7 +1290,6 @@ html[dir="ltr"] .password-toggle {
 
 /* ===== Print Styles ===== */
 @media print {
-    /* Hide navigation and UI chrome */
     .sidebar-overlay,
     .sidebar-close-btn,
     .sidebar,
@@ -1298,48 +1297,29 @@ html[dir="ltr"] .password-toggle {
     .topbar,
     .page-header,
     .stat-cards,
-    .no-print {
+    .no-print,
+    .card:not(.print-area) {
         display: none !important;
     }
 
-    /* Full-width layout — reset flex containers so all content flows and prints */
     body,
     .app-wrapper,
-    .main-content,
-    .page-content {
-        display: block !important;
+    .main-content {
         margin: 0 !important;
         padding: 0 !important;
-        min-height: 0 !important;
-        height: auto !important;
-        overflow: visible !important;
         background: #fff !important;
-        width: 100% !important;
     }
 
-    /* Cards are visible by default — pages use .no-print to hide what they don't want */
-    .card {
-        box-shadow: none !important;
-        border: 1px solid #dee2e6 !important;
-        break-inside: avoid;
-    }
-    .card-header, .card-body, .card-footer {
-        display: block !important;
-    }
-    .table-responsive {
-        overflow: visible !important;
-    }
-
-    /* print-area: legacy explicit-print-region marker */
     .print-area {
-        display: block !important;
         width: 100% !important;
         margin: 0 !important;
         padding: 8px !important;
         border: none !important;
         box-shadow: none !important;
     }
+
     .print-area .table { font-size: 11px; width: 100%; }
+
     .print-area .badge {
         border: 1px solid #999;
         color: #000 !important;
@@ -1349,11 +1329,6 @@ html[dir="ltr"] .password-toggle {
 
     tfoot.table-dark {
         background: #333 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-
-    * {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
