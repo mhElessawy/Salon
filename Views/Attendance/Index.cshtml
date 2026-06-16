@@ -482,14 +482,10 @@
                                 <td style="text-align:left">
                                     @if (isToday)
                                     {
-                                        <form method="post" action="@Url.Action("QuickCheckIn")" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="employeeId" value="@emp.Id" />
-                                            <input type="hidden" name="date" value="@ViewBag.FilterDate" />
-                                            <button type="submit" class="btn-checkin">
-                                                <i class="fas fa-user-check me-1"></i>@(isEmployee ? "تسجيل حضوري" : "حضور")
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn-checkin"
+                                                onclick="confirmCheckIn(@emp.Id, '@ViewBag.FilterDate', '@Html.Raw(emp.FullName.Replace("'", "\\'"))', false)">
+                                            <i class="fas fa-user-check me-1"></i>@(isEmployee ? "تسجيل حضوري" : "حضور")
+                                        </button>
                                     }
                                 </td>
                             </tr>
@@ -630,12 +626,10 @@
                                             @* موظف حاضر: أزرار الاستئذان والانصراف *@
                                             @if (openPerm == null)
                                             {
-                                                <form method="post" action="@Url.Action("RequestPermission", new { id = a.Id })" class="d-inline">
-                                                    @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn-perm">
-                                                        <i class="fas fa-coffee me-1"></i>استئذان
-                                                    </button>
-                                                </form>
+                                                <button type="button" class="btn-perm"
+                                                        onclick="confirmPermission(@a.Id, '@Html.Raw(emp.FullName.Replace("'", "\\'"))')">
+                                                    <i class="fas fa-coffee me-1"></i>استئذان
+                                                </button>
                                             }
                                             else
                                             {
@@ -654,14 +648,10 @@
                                         else if (a.CheckOut.HasValue && isToday && !isEmployee)
                                         {
                                             @* موظف انصرف — اعرض زرار وردية جديدة (للورديات الليلية التي تعود بالليل) *@
-                                            <form method="post" action="@Url.Action("QuickCheckIn")" class="d-inline">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="employeeId" value="@emp.Id" />
-                                                <input type="hidden" name="date" value="@ViewBag.FilterDate" />
-                                                <button type="submit" class="btn-checkin" style="background:#6f42c1" title="وردية جديدة لنفس اليوم">
-                                                    <i class="fas fa-redo me-1"></i>وردية جديدة
-                                                </button>
-                                            </form>
+                                            <button type="button" class="btn-checkin" style="background:#6f42c1" title="وردية جديدة لنفس اليوم"
+                                                    onclick="confirmCheckIn(@emp.Id, '@ViewBag.FilterDate', '@Html.Raw(emp.FullName.Replace("'", "\\'"))', true)">
+                                                <i class="fas fa-redo me-1"></i>وردية جديدة
+                                            </button>
                                         }
                                         @if (!isEmployee)
                                         {
@@ -677,6 +667,80 @@
                     }
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- ===== CheckIn Modal ===== -->
+<div class="modal fade" id="checkInModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:440px">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header py-3 border-0" style="background:linear-gradient(135deg,#198754 0%,#20c997 100%)">
+                <div class="d-flex align-items-center gap-2">
+                    <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.22);display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-user-check text-white" style="font-size:1.15rem;"></i>
+                    </div>
+                    <h6 class="modal-title fw-bold text-white mb-0" id="checkInModalTitle">تسجيل الحضور</h6>
+                </div>
+                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div style="width:76px;height:76px;border-radius:50%;background:#e8f8f0;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;border:3px solid #c3e6cb;">
+                    <i class="fas fa-user-check" style="color:#198754;font-size:2rem;"></i>
+                </div>
+                <h5 class="fw-bold mb-1" id="checkInEmployeeName" style="color:#1a1a2e;"></h5>
+                <div class="mb-3 text-muted" style="font-size:.88rem;">
+                    <i class="fas fa-clock me-1 text-success"></i>
+                    وقت الحضور: <span id="checkInTimeDisplay" class="fw-bold" style="color:#198754;font-size:1.05rem;"></span>
+                </div>
+                <form id="checkInForm" method="post" action="@Url.Action("QuickCheckIn")">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="checkInEmpId" name="employeeId" />
+                    <input type="hidden" id="checkInDateVal" name="date" />
+                    <div class="d-flex gap-2 justify-content-center mt-3">
+                        <button type="submit" class="btn fw-bold px-4 py-2" style="background:#198754;color:#fff;border-radius:8px;min-width:130px;font-size:.9rem;">
+                            <i class="fas fa-check me-1"></i>تأكيد الحضور
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary fw-bold px-4 py-2" style="border-radius:8px;" data-bs-dismiss="modal">إلغاء</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Permission Modal ===== -->
+<div class="modal fade" id="permissionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:440px">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header py-3 border-0" style="background:linear-gradient(135deg,#fd7e14 0%,#ffc107 100%)">
+                <div class="d-flex align-items-center gap-2">
+                    <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.22);display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-coffee text-white" style="font-size:1.15rem;"></i>
+                    </div>
+                    <h6 class="modal-title fw-bold text-white mb-0">تسجيل الاستئذان</h6>
+                </div>
+                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div style="width:76px;height:76px;border-radius:50%;background:#fff3e6;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;border:3px solid #ffe5c8;">
+                    <i class="fas fa-door-open" style="color:#fd7e14;font-size:2rem;"></i>
+                </div>
+                <h5 class="fw-bold mb-1" id="permissionEmployeeName" style="color:#1a1a2e;"></h5>
+                <div class="mb-3 text-muted" style="font-size:.88rem;">
+                    <i class="fas fa-clock me-1" style="color:#fd7e14;"></i>
+                    وقت الاستئذان: <span id="permissionTimeDisplay" class="fw-bold" style="color:#fd7e14;font-size:1.05rem;"></span>
+                </div>
+                <form id="permissionForm" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="d-flex gap-2 justify-content-center mt-3">
+                        <button type="submit" class="btn fw-bold px-4 py-2" style="background:#fd7e14;color:#fff;border-radius:8px;min-width:130px;font-size:.9rem;">
+                            <i class="fas fa-check me-1"></i>تأكيد الاستئذان
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary fw-bold px-4 py-2" style="border-radius:8px;" data-bs-dismiss="modal">إلغاء</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -761,6 +825,48 @@
                 const name = tr.dataset.name || '';
                 tr.style.display = (!q || name.includes(q)) ? '' : 'none';
             });
+        });
+
+        // تسجيل الحضور
+        let ciInterval = null;
+        function updateCiTime() {
+            const d = new Date();
+            const val = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+            const disp = document.getElementById('checkInTimeDisplay');
+            if (disp) disp.textContent = val;
+        }
+        function confirmCheckIn(empId, date, name, isNewShift) {
+            document.getElementById('checkInEmployeeName').textContent = name;
+            document.getElementById('checkInEmpId').value = empId;
+            document.getElementById('checkInDateVal').value = date;
+            document.getElementById('checkInModalTitle').textContent = isNewShift ? 'وردية جديدة' : 'تسجيل الحضور';
+            updateCiTime();
+            if (ciInterval) clearInterval(ciInterval);
+            ciInterval = setInterval(updateCiTime, 1000);
+            new bootstrap.Modal(document.getElementById('checkInModal')).show();
+        }
+        document.getElementById('checkInModal').addEventListener('hidden.bs.modal', function() {
+            if (ciInterval) { clearInterval(ciInterval); ciInterval = null; }
+        });
+
+        // تسجيل الاستئذان
+        let pmInterval = null;
+        function updatePmTime() {
+            const d = new Date();
+            const val = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+            const disp = document.getElementById('permissionTimeDisplay');
+            if (disp) disp.textContent = val;
+        }
+        function confirmPermission(id, name) {
+            document.getElementById('permissionEmployeeName').textContent = name;
+            document.getElementById('permissionForm').action = '@Url.Action("RequestPermission")/' + id;
+            updatePmTime();
+            if (pmInterval) clearInterval(pmInterval);
+            pmInterval = setInterval(updatePmTime, 1000);
+            new bootstrap.Modal(document.getElementById('permissionModal')).show();
+        }
+        document.getElementById('permissionModal').addEventListener('hidden.bs.modal', function() {
+            if (pmInterval) { clearInterval(pmInterval); pmInterval = null; }
         });
 
         // حذف
