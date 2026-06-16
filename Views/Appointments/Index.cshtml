@@ -1,79 +1,238 @@
 @model IEnumerable<Salon.Models.Appointment>
 @{
     ViewData["Title"] = "المواعيد";
+    var fromVal = ViewBag.From as string ?? "";
+    var toVal = ViewBag.To as string ?? "";
+    var isFiltered = !string.IsNullOrEmpty(fromVal) || !string.IsNullOrEmpty(toVal);
+    var total = Model.Count();
+    var scheduled = Model.Count(a => a.Status == "مجدول");
+    var completed = Model.Count(a => a.Status == "مكتمل");
+    var cancelled = Model.Count(a => a.Status == "ملغي");
 }
 
-<div class="page-header d-flex justify-content-between align-items-center">
+@section Styles {
+    <style>
+        .appt-filter-bar {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.07);
+            padding: 14px 18px;
+            margin-bottom: 14px;
+        }
+
+        .shortcut-btn {
+            border: 1.5px solid #dee2e6;
+            border-radius: 7px;
+            background: #fff;
+            color: #555;
+            padding: 5px 13px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .15s;
+            white-space: nowrap;
+        }
+
+            .shortcut-btn:hover {
+                border-color: #1a6fc4;
+                color: #1a6fc4;
+                background: #e8f4fd;
+            }
+
+        .stat-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border-radius: 8px;
+            padding: 5px 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .appt-table th {
+            background: #f8f9fa;
+            font-size: 12px;
+            color: #6c757d;
+            white-space: nowrap;
+        }
+
+        .appt-table td {
+            vertical-align: middle;
+            font-size: 13px;
+        }
+
+        .status-badge {
+            border-radius: 20px;
+            padding: 3px 12px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+    </style>
+}
+
+<div class="page-header d-flex justify-content-between align-items-center mb-3">
     <div>
         <h1><i class="fas fa-calendar-check me-2"></i>المواعيد</h1>
-        <p>إدارة مواعيد العملاء</p>
+        <p class="mb-0">إدارة مواعيد العملاء</p>
     </div>
     <a href="@Url.Action("Create")" class="btn btn-primary">
         <i class="fas fa-plus me-1"></i> إضافة موعد
     </a>
 </div>
 
-<div class="card mb-3">
-    <div class="card-body">
-        <form method="get" class="d-flex gap-2 align-items-center">
-            <label class="form-label mb-0">التاريخ:</label>
-            <input type="date" name="date" value="@ViewBag.FilterDate" class="form-control" style="max-width:200px;" />
-            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
-        </form>
-    </div>
+<!-- Filter Bar -->
+<div class="appt-filter-bar">
+    <form method="get" id="filterForm">
+        <div class="d-flex flex-wrap gap-3 align-items-end">
+            <div>
+                <label class="form-label mb-1" style="font-size:12px;font-weight:600;color:#555;">من تاريخ</label>
+                <input type="date" name="from" id="fromInput" value="@fromVal"
+                       class="form-control form-control-sm" style="width:160px;" />
+            </div>
+            <div>
+                <label class="form-label mb-1" style="font-size:12px;font-weight:600;color:#555;">إلى تاريخ</label>
+                <input type="date" name="to" id="toInput" value="@toVal"
+                       class="form-control form-control-sm" style="width:160px;" />
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                <button type="submit" class="btn btn-primary btn-sm px-3">
+                    <i class="fas fa-search me-1"></i>بحث
+                </button>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm px-3">
+                    <i class="fas fa-times me-1"></i>الكل
+                </a>
+            </div>
+            <div class="d-flex gap-1 flex-wrap">
+                <button type="button" class="shortcut-btn" onclick="setRange(0,0)">اليوم</button>
+                <button type="button" class="shortcut-btn" onclick="setRange(0,6)">هذا الأسبوع</button>
+                <button type="button" class="shortcut-btn" onclick="setRange(0,29)">30 يوم</button>
+                <button type="button" class="shortcut-btn" onclick="setRange(-7,0)">الأسبوع الماضي</button>
+            </div>
+        </div>
+    </form>
 </div>
 
-<div class="card">
-    <div class="card-body">
+<!-- Stats Row -->
+<div class="d-flex gap-2 flex-wrap mb-3">
+    <span class="stat-chip" style="background:#e8f4fd;color:#1a6fc4;">
+        <i class="fas fa-calendar-alt"></i> الكل: @total
+    </span>
+    <span class="stat-chip" style="background:#fff8e1;color:#856404;">
+        <i class="fas fa-clock"></i> مجدول: @scheduled
+    </span>
+    <span class="stat-chip" style="background:#d1f3e8;color:#0a6640;">
+        <i class="fas fa-check-circle"></i> مكتمل: @completed
+    </span>
+    @if (cancelled > 0)
+    {
+        <span class="stat-chip" style="background:#fce4e4;color:#c0392b;">
+            <i class="fas fa-times-circle"></i> ملغي: @cancelled
+        </span>
+    }
+    @if (isFiltered)
+    {
+        <span class="stat-chip" style="background:#f0f0f0;color:#888;font-size:11px;">
+            <i class="fas fa-filter"></i>
+            @if (!string.IsNullOrEmpty(fromVal))
+            {
+                <text>من @fromVal </text>
+            }
+            @if (!string.IsNullOrEmpty(toVal))
+            {
+                <text>إلى @toVal</text>
+            }
+        </span>
+    }
+</div>
+
+<!-- Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table">
+            <table class="table table-hover mb-0 appt-table">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>العميل</th>
-                        <th>الموظف</th>
-                        <th>التاريخ والوقت</th>
-                        <th>الخدمات</th>
-                        <th>الحالة</th>
-                        <th>الإجراءات</th>
+                        <th style="padding:10px 14px;">#</th>
+                        <th style="padding:10px 14px;">العميل</th>
+                        <th style="padding:10px 14px;">الموظف</th>
+                        <th style="padding:10px 14px;">التاريخ والوقت</th>
+                        <th style="padding:10px 14px;">الخدمات</th>
+                        <th style="padding:10px 14px;">الحالة</th>
+                        <th style="padding:10px 14px;">ملاحظات</th>
+                        <th style="padding:10px 14px;"></th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="7" class="text-center text-muted py-4">لا توجد مواعيد في هذا اليوم</td></tr>
-                    }
-                    @foreach (var a in Model)
-                    {
                         <tr>
-                            <td>@a.Id</td>
-                            <td><strong>@(a.Customer?.FullName ?? "-")</strong></td>
-                            <td>@(a.Employee?.FullName ?? "-")</td>
-                            <td>@a.AppointmentDate.ToString("yyyy/MM/dd hh:mm tt")</td>
-                            <td>
-                                @string.Join(", ", a.AppointmentServices.Select(s => s.Service?.Name ?? ""))
-                            </td>
-                            <td>
-                                <span class="badge @(a.Status == "مكتمل" ? "bg-success" : a.Status == "ملغي" ? "bg-danger" : "bg-warning text-dark")">
-                                    @a.Status
-                                </span>
-                            </td>
-                            <td>
-                                <a href="@Url.Action("Edit", new { id = a.Id })" class="btn btn-sm btn-outline-warning me-1">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form asp-action="Delete" asp-route-id="@a.Id" method="post" style="display:inline"
-                                      onsubmit="return confirm('هل تريد حذف هذا الموعد؟')">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
+                            <td colspan="8" class="text-center text-muted py-5">
+                                <i class="fas fa-calendar-times fa-2x mb-2 d-block opacity-25"></i>
+                                @(isFiltered ? "لا توجد مواعيد في هذه الفترة" : "لا توجد مواعيد مسجلة")
                             </td>
                         </tr>
                     }
+                    @foreach (var a in Model)
+                    {
+                        var statusClass = a.Status == "مكتمل" ? "bg-success"
+                        : a.Status == "ملغي" ? "bg-danger"
+                        : "bg-warning text-dark";
+                        <tr>
+                            <td style="padding:10px 14px;color:#aaa;font-size:12px;">@a.Id</td>
+                            <td style="padding:10px 14px;">
+                                <strong>@(a.Customer?.FullName ?? "—")</strong>
+                            </td>
+                            <td style="padding:10px 14px;">@(a.Employee?.FullName ?? "—")</td>
+                            <td style="padding:10px 14px;white-space:nowrap;">
+                                <div style="font-weight:600;">@a.AppointmentDate.ToString("yyyy/MM/dd")</div>
+                                <div style="font-size:11px;color:#888;">@a.AppointmentDate.ToString("hh:mm tt")</div>
+                            </td>
+                            <td style="padding:10px 14px;font-size:12px;color:#555;">
+                                @(a.AppointmentServices.Any()
+                                                            ? string.Join("، ", a.AppointmentServices.Select(s => s.Service?.Name ?? ""))
+                                                            : "—")
+                        </td>
+                        <td style="padding:10px 14px;">
+                            <span class="status-badge @statusClass">@a.Status</span>
+                        </td>
+                        <td style="padding:10px 14px;font-size:12px;color:#888;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            @(a.Notes ?? "—")
+                        </td>
+                        <td style="padding:10px 14px;white-space:nowrap;">
+                            <a href="@Url.Action("Edit", new { id = a.Id })"
+                               class="btn btn-sm btn-outline-warning me-1" title="تعديل">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form asp-action="Delete" asp-route-id="@a.Id" method="post" style="display:inline"
+                                  onsubmit="return confirm('هل تريد حذف هذا الموعد؟')">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                                        }
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function setRange(fromOffset, toOffset) {
+            var today = new Date();
+            var fmt = function(d) {
+                var mm = String(d.getMonth() + 1).padStart(2, '0');
+                var dd = String(d.getDate()).padStart(2, '0');
+                return d.getFullYear() + '-' + mm + '-' + dd;
+            };
+            var f = new Date(today); f.setDate(f.getDate() + fromOffset);
+            var t = new Date(today); t.setDate(t.getDate() + toOffset);
+            document.getElementById('fromInput').value = fmt(f);
+            document.getElementById('toInput').value   = fmt(t);
+            document.getElementById('filterForm').submit();
+        }
+    </script>
+}
