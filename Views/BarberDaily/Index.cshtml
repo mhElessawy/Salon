@@ -1,4 +1,4 @@
-﻿@model  Salon.Models.DailyPerformanceViewModel
+﻿@model   Salon.Models.DailyPerformanceViewModel
 @{
     ViewData["Title"] = "تقرير الأداء اليومي";
     var selectedDate = Model.ReportDate.ToString("yyyy-MM-dd");
@@ -565,14 +565,14 @@
     <!-- Title bar -->
     <div class="dp2-titlebar no-print">
         <div>
-            <h4><i class="fas fa-chart-line me-2" style="color:#1a1a2e;"></i>تقرير الأداء اليومي</h4>
-            <div class="sub">ملخص شامل لأداء الصالون والمبيعات والمصروفات وحركة الصندوق</div>
+            <h4><i class="fas fa-chart-line me-2" style="color:#1a1a2e;"></i><span data-i18n-en="Daily Performance Report">تقرير الأداء اليومي</span></h4>
+            <div class="sub" data-i18n-en="Comprehensive daily summary of salon performance and cash flow">ملخص شامل لأداء الصالون والمبيعات والمصروفات وحركة الصندوق</div>
         </div>
         <div class="dp2-btn-row">
-            <button class="dp2-btn print-btn" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
+            <button class="dp2-btn print-btn" onclick="window.print()"><i class="fas fa-print"></i> <span data-i18n-en="Print">طباعة</span></button>
             <button class="dp2-btn excel-btn" onclick="exportTableToCSV()"><i class="fas fa-file-excel"></i> Excel</button>
             <button class="dp2-btn pdf-btn" onclick="window.print()"><i class="fas fa-file-pdf"></i> PDF</button>
-            <button class="dp2-btn" onclick="navigator.share&&navigator.share({title:'تقرير الأداء',url:window.location.href})"><i class="fas fa-share-alt"></i> مشاركة</button>
+            <button class="dp2-btn" onclick="navigator.share&&navigator.share({title:'تقرير الأداء',url:window.location.href})"><i class="fas fa-share-alt"></i> <span data-i18n-en="Share">مشاركة</span></button>
         </div>
     </div>
 
@@ -596,8 +596,8 @@
             {
                 <input type="hidden" name="dept" value="@Model.SelectedDept" />
             }
-            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i>عرض</button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="this.previousElementSibling.previousElementSibling.value=new Date().toISOString().slice(0,10);this.form.submit();">اليوم</button>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i><span data-i18n-en="View">عرض</span></button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="this.previousElementSibling.previousElementSibling.value=new Date().toISOString().slice(0,10);this.form.submit();"><span data-i18n-en="Today">اليوم</span></button>
         </form>
         <a href="?date=@Model.NextDate.ToString("yyyy-MM-dd")@deptSuffix" class="btn btn-outline-secondary btn-sm"
            @(Model.NextDate > DateTime.Today ? "style=opacity:.4;pointer-events:none;" : "")>
@@ -612,7 +612,7 @@
         <!-- 1. إجمالي المبيعات -->
         <div class="dp2-card" style="border-top:3px solid #16a34a;">
             <div class="c-icon" style="color:#16a34a;"><i class="fas fa-shopping-cart"></i></div>
-            <div class="c-lbl">إجمالي المبيعات</div>
+            <div class="c-lbl" data-i18n-en="Total Sales">إجمالي المبيعات</div>
             <div class="c-val" style="color:#16a34a;">@Model.TotalSales.ToString("N3")</div>
             <div class="c-cur">د.ك</div>
             <div class="c-sub">عدد الفواتير: <strong>@Model.InvoiceCount</strong></div>
@@ -622,7 +622,7 @@
         <div class="dp2-card" style="border-top:3px solid #1d4ed8;">
             <div class="c-pct" style="background:#dbeafe;color:#1e40af;">@Model.CashPercent.ToString("N1")%</div>
             <div class="c-icon" style="color:#1d4ed8;"><i class="fas fa-money-bill-wave"></i></div>
-            <div class="c-lbl">الكاش</div>
+            <div class="c-lbl" data-i18n-en="Cash">الكاش</div>
             <div class="c-val" style="color:#1d4ed8;">@Model.CashTotal.ToString("N3")</div>
             <div class="c-cur">د.ك</div>
             <div class="c-sub">نسبة الكاش: @Model.CashPercent.ToString("N1")%</div>
@@ -632,7 +632,7 @@
         <div class="dp2-card" style="border-top:3px solid #0891b2;">
             <div class="c-pct" style="background:#cffafe;color:#0e7490;">@Model.KNetPercent.ToString("N1")%</div>
             <div class="c-icon" style="color:#0891b2;"><i class="fas fa-credit-card"></i></div>
-            <div class="c-lbl">كي نت</div>
+            <div class="c-lbl" data-i18n-en="K-Net">كي نت</div>
             <div class="c-val" style="color:#0891b2;">@Model.KNetTotal.ToString("N3")</div>
             <div class="c-cur">د.ك</div>
             <div class="c-sub">نسبة كي نت: @Model.KNetPercent.ToString("N1")%</div>
@@ -642,7 +642,7 @@
         <div class="dp2-card" style="border-top:3px solid #d97706;">
             <div class="c-pct" style="background:#fef3c7;color:#92400e;">@Model.DebtPercent.ToString("N1")%</div>
             <div class="c-icon" style="color:#d97706;"><i class="fas fa-user-minus"></i></div>
-            <div class="c-lbl">دين (إدارة/موظف)</div>
+            <div class="c-lbl" data-i18n-en="Debts (Admin/Employee)">دين (إدارة/موظف)</div>
             <div class="c-val" style="color:#d97706;">@Model.DebtTotal.ToString("N3")</div>
             <div class="c-cur">د.ك</div>
             <div class="c-sub">نسبة الديون: @Model.DebtPercent.ToString("N1")%</div>
@@ -651,7 +651,7 @@
         <!-- 5. إكراميات -->
         <div class="dp2-card" style="border-top:3px solid #f59e0b;background:#fffbeb;">
             <div class="c-icon" style="color:#f59e0b;"><i class="fas fa-gift"></i></div>
-            <div class="c-lbl">إكراميات (كي نت)</div>
+            <div class="c-lbl" data-i18n-en="Tips (K-Net)">إكراميات (كي نت)</div>
             <div class="c-val" style="color:#d97706;">@Model.TipsTotal.ToString("N3")</div>
             <div class="c-cur">د.ك</div>
             <div class="c-sub">عدد العمليات: <strong>@Model.TipInvoices.Count</strong></div>
@@ -661,7 +661,7 @@
         <!-- 6. خصومات -->
         <div class="dp2-card" style="border-top:3px solid #7c3aed;background:#faf5ff;">
             <div class="c-icon" style="color:#7c3aed;"><i class="fas fa-percent"></i></div>
-            <div class="c-lbl">خصومات اليوم</div>
+            <div class="c-lbl" data-i18n-en="Today's Discounts">خصومات اليوم</div>
             <div class="c-val" style="color:#7c3aed;">@Model.TotalDiscount.ToString("N3")</div>
             <div class="c-cur">د.ك</div>
             <div class="c-sub">عدد الفواتير: <strong>@discountInvoices.Count</strong></div>
@@ -684,7 +684,7 @@
                 </div>
                 <!-- Dept filter -->
                 <div class="dept-filter-bar no-print">
-                    <span style="font-size:11px;color:#64748b;font-weight:700;">القسم:</span>
+                    <span style="font-size:11px;color:#64748b;font-weight:700;" data-i18n-en="Department:">القسم:</span>
                     <a href="?date=@selectedDate" class="dept-btn @(Model.SelectedDept == null ? "active" : "")" data-dept="all">الكل (@allRows.Count)</a>
                     <a href="?date=@selectedDate&dept=حلاقة" class="dept-btn @(Model.SelectedDept == "حلاقة" ? "active" : "")" data-dept="حلاقة">✂ حلاقة (@Model.BarberRows.Count)</a>
                     <a href="?date=@selectedDate&dept=مساج" class="dept-btn @(Model.SelectedDept == "مساج" ? "active" : "")" data-dept="مساج">🌿 مساج (@Model.MassageRows.Count)</a>
@@ -699,16 +699,16 @@
                                     <th>القسم</th>
                                 }
                                 <th>الموظف</th>
-                                <th>الفواتير</th>
-                                <th>الشغل<br /><small>د.ك</small></th>
-                                <th>كاش<br /><small>د.ك</small></th>
-                                <th>كي نت<br /><small>د.ك</small></th>
-                                <th>الديون<br /><small>د.ك</small></th>
-                                <th>السلف<br /><small>د.ك</small></th>
-                                <th>النسبة</th>
-                                <th>المستحق<br /><small>د.ك</small></th>
-                                <th>إكرامية<br /><small>د.ك</small></th>
-                                <th>للمحل<br /><small>د.ك</small></th>
+                                <th data-i18n-en="Invoices">الفواتير</th>
+                                <th data-i18n-en="Work (KD)">الشغل<br /><small>د.ك</small></th>
+                                <th data-i18n-en="Cash (KD)">كاش<br /><small>د.ك</small></th>
+                                <th data-i18n-en="K-Net (KD)">كي نت<br /><small>د.ك</small></th>
+                                <th data-i18n-en="Debts (KD)">الديون<br /><small>د.ك</small></th>
+                                <th data-i18n-en="Advances (KD)">السلف<br /><small>د.ك</small></th>
+                                <th data-i18n-en="Rate">النسبة</th>
+                                <th data-i18n-en="Due (KD)">المستحق<br /><small>د.ك</small></th>
+                                <th data-i18n-en="Tip (KD)">إكرامية<br /><small>د.ك</small></th>
+                                <th data-i18n-en="Store Net (KD)">للمحل<br /><small>د.ك</small></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -958,7 +958,7 @@
                                 <th>الإجمالي<br /><small>د.ك</small></th>
                                 <th>الخصم<br /><small>د.ك</small></th>
                                 <th>الصافي<br /><small>د.ك</small></th>
-                                <th>هدية للموظف<br /><small>د.ك</small></th>
+                                <th data-i18n-en="Gift for Employee (KD)">هدية للموظف<br /><small>د.ك</small></th>
                                 <th>طريقة الدفع</th>
                                 <th>ملاحظات</th>
                                 <th>الوقت</th>

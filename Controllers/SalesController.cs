@@ -414,7 +414,11 @@ namespace Salon.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-            var sale = await _context.Sales.Include(s => s.SaleItems).FirstOrDefaultAsync(s => s.Id == id);
+            var sale = await _context.Sales
+                .Include(s => s.SaleItems)
+                .Include(s => s.Employee)
+                .Include(s => s.Customer)
+                .FirstOrDefaultAsync(s => s.Id == id);
             if (sale != null)
             {
                 // فحص صلاحية الحذف حسب نوع الفاتورة
@@ -439,6 +443,10 @@ namespace Salon.Controllers
                     $"إلغاء الفاتورة رقم {sale.InvoiceNumber}",
                     sale.Id);
                 TempData["Success"] = "Invoice cancelled";
+
+                var cancelUser = await _userManager.GetUserAsync(User);
+                var cancellerName = cancelUser?.FullName ?? User.Identity?.Name ?? "—";
+                _ = Task.Run(() => _emailService.SendInvoiceCancellationAsync(sale, cancellerName));
             }
             return RedirectToAction(nameof(Index));
         }
@@ -751,6 +759,7 @@ namespace Salon.Controllers
                 }
 
                 // ── خصم جلسة of باقة العميل ──
+                int remainingSessionsAfter = 0;
                 if (customerPackageId.HasValue && customerPackageId.Value > 0)
                 {
                     var cp = await _context.CustomerPackages
@@ -760,6 +769,7 @@ namespace Salon.Controllers
                     {
                         cp.RemainingSessions--;
                         if (cp.RemainingSessions == 0) cp.IsActive = false;
+                        remainingSessionsAfter = cp.RemainingSessions;
 
                         _context.CustomerPackageTransactions.Add(new CustomerPackageTransaction
                         {
@@ -786,7 +796,7 @@ namespace Salon.Controllers
                     .FirstAsync(s => s.Id == model.Id);
                 _ = Task.Run(() => _emailService.SendInvoiceNotificationAsync(saleWithItems, cashierName));
 
-                return Json(new { success = true, invoiceId = model.Id });
+                return Json(new { success = true, invoiceId = model.Id, remainingSessions = remainingSessionsAfter, customerId = model.CustomerId ?? 0 });
             }
             catch (Exception ex)
             {
