@@ -522,30 +522,30 @@
         @if (showBarber || showMassage)
         {
             <select name="saleType" class="form-select form-select-sm" style="width:130px;">
-                <option value="" selected="@(string.IsNullOrEmpty(selectedSaleType))">كل الأنواع</option>
+                <option value="" selected="@(string.IsNullOrEmpty(selectedSaleType))" data-i18n-en="All Types">كل الأنواع</option>
                 @if (showBarber)
                 {
-                    <option value="حلاقة" selected="@(selectedSaleType == "حلاقة")">✂ حلاقة</option>
+                    <option value="حلاقة" selected="@(selectedSaleType == "حلاقة")" data-i18n-en="✂ Barber">✂ حلاقة</option>
                 }
                 @if (showMassage)
                 {
-                    <option value="مساج" selected="@(selectedSaleType == "مساج")">🌿 مساج</option>
+                    <option value="مساج" selected="@(selectedSaleType == "مساج")" data-i18n-en="🌿 Massage">🌿 مساج</option>
                 }
             </select>
         }
         <select name="paymentMethod" class="form-select form-select-sm" style="width:160px;">
-            <option value="" selected="@(string.IsNullOrEmpty(selectedPayment))">كل طرق الدفع</option>
-            <option value="كاش" selected="@(selectedPayment == "كاش")">💵 كاش</option>
-            <option value="كي نت" selected="@(selectedPayment == "كي نت")">💳 كي نت</option>
-            <option value="كي نت و كاش" selected="@(selectedPayment == "كي نت و كاش")">↔ كاش + كي نت</option>
-            <option value="دين على العميل" selected="@(selectedPayment == "دين على العميل")">👤 دين / عميل</option>
-            <option value="دين على الموظف" selected="@(selectedPayment == "دين على الموظف")">👷 دين / موظف</option>
-            <option value="دين على صاحب المكان" selected="@(selectedPayment == "دين على صاحب المكان")">🏠 دين / صاحب المكان</option>
+            <option value="" selected="@(string.IsNullOrEmpty(selectedPayment))" data-i18n-en="All Payment Methods">كل طرق الدفع</option>
+            <option value="كاش" selected="@(selectedPayment == "كاش")" data-i18n-en="💵 Cash">💵 كاش</option>
+            <option value="كي نت" selected="@(selectedPayment == "كي نت")" data-i18n-en="💳 K-Net">💳 كي نت</option>
+            <option value="كي نت و كاش" selected="@(selectedPayment == "كي نت و كاش")" data-i18n-en="↔ Cash + K-Net">↔ كاش + كي نت</option>
+            <option value="دين على العميل" selected="@(selectedPayment == "دين على العميل")" data-i18n-en="👤 Customer Debt">👤 دين / عميل</option>
+            <option value="دين على الموظف" selected="@(selectedPayment == "دين على الموظف")" data-i18n-en="👷 Employee Debt">👷 دين / موظف</option>
+            <option value="دين على صاحب المكان" selected="@(selectedPayment == "دين على صاحب المكان")" data-i18n-en="🏠 Owner Debt">🏠 دين / صاحب المكان</option>
         </select>
         @if (employees.Any())
         {
             <select name="employeeId" class="form-select form-select-sm" style="width:160px;">
-                <option value="" selected="@(!selectedEmpId.HasValue)">كل الموظفين</option>
+                <option value="" selected="@(!selectedEmpId.HasValue)" data-i18n-en="All Employees">كل الموظفين</option>
                 @foreach (var emp in employees)
                 {
                     <option value="@emp.Id" selected="@(selectedEmpId == emp.Id)">@emp.FullName</option>
