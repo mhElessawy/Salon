@@ -136,6 +136,18 @@ window.PAGE_TRANSLATIONS = {
     'لا توجد بيانات': 'No Data Found',
     'ذكر': 'Male',
     'أنثى': 'Female',
+    'تصنيف العميل': 'Customer Tier',
+    'حالة العميل': 'Customer Status',
+    'مسجل': 'Registered',
+    'الموظف المفضل': 'Preferred Employee',
+    'طريقة التعامل': 'Interaction Style',
+    'ذهبي': 'Gold',
+    'عادي': 'Regular',
+    'ثابت مع موظف واحد': 'Fixed with one employee',
+    'متعدد الموظفين': 'Multiple employees',
+    'آخر زيارة': 'Last Visit',
+    'عدد الزيارات': 'Visit Count',
+    'إجمالي المدفوع': 'Total Paid',
 
     // ── Employees ────────────────────────────────────────
     'إدارة بيانات الموظفين': 'Manage Employee Data',
