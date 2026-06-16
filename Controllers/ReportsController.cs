@@ -892,6 +892,7 @@ namespace Salon.Controllers
             ViewBag.TotalRatib = totalRatib;
             ViewBag.TotalExpenses = totalExp;
             ViewBag.TotalCashExpenses = totalCashExp;
+            ViewBag.TotalNonCashExpenses = totalExp - totalCashExp;
             ViewBag.TotalDeposits = totalDep;
             ViewBag.TotalCashSales = totalCashSales;
             ViewBag.TotalKNet = totalKNet;

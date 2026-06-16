@@ -7,6 +7,7 @@
     decimal totalRatib = ViewBag.TotalRatib is decimal tr ? tr : 0m;
     decimal totalExpenses = ViewBag.TotalExpenses is decimal te ? te : 0m;
     decimal totalCashExpenses = ViewBag.TotalCashExpenses is decimal tce ? tce : 0m;
+    decimal totalNonCashExpenses = ViewBag.TotalNonCashExpenses is decimal tnce ? tnce : 0m;
     decimal totalDeposits = ViewBag.TotalDeposits is decimal td ? td : 0m;
     decimal totalCashSales = ViewBag.TotalCashSales is decimal tcs ? tcs : 0m;
     decimal totalKNet = ViewBag.TotalKNet is decimal tkn ? tkn : 0m;
@@ -133,10 +134,24 @@
     </div>
 </div>
 
-@* خط فاصل وإجمالي المصروفات *@
-<div class="alert alert-danger py-2 px-3 mb-3 d-flex justify-content-between align-items-center">
+@* خط فاصل وإجمالي المصروفات مع تفصيل نقدي/غير نقدي *@
+<div class="alert alert-danger py-2 px-3 mb-1 d-flex justify-content-between align-items-center">
     <span><i class="fas fa-equals me-1"></i> إجمالي المصروفات (مصروفات + سلف + مرتبات)</span>
     <strong>@totalExpenses.ToString("N3") د.ك</strong>
+</div>
+<div class="row g-2 mb-3">
+    <div class="col-6">
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 rounded" style="background:#fff0f0; border:1px solid #fca5a5;">
+            <span class="small"><i class="fas fa-money-bill-wave me-1 text-danger"></i> نقدي <span class="text-muted">(يؤثر على الرصيد)</span></span>
+            <strong class="text-danger">@totalCashExpenses.ToString("N3") د.ك</strong>
+        </div>
+    </div>
+    <div class="col-6">
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 rounded" style="background:#f9fafb; border:1px solid #d1d5db;">
+            <span class="small"><i class="fas fa-university me-1 text-muted"></i> بطاقة / تحويل <span class="text-muted">(خارج الرصيد)</span></span>
+            <strong class="text-muted">@totalNonCashExpenses.ToString("N3") د.ك</strong>
+        </div>
+    </div>
 </div>
 
 @* صف الدخل *@
