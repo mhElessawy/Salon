@@ -40,5 +40,6 @@ namespace Salon.Models
 
         public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
         public ICollection<Sale> Sales { get; set; } = new List<Sale>();
+        public ICollection<CustomerPackage> CustomerPackages { get; set; } = new List<CustomerPackage>();
     }
 }
