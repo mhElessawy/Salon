@@ -304,7 +304,8 @@ namespace Salon.Controllers
             _context.Attendances.Add(attendance);
             await _context.SaveChangesAsync();
             await _audit.LogAsync("Check-In", "Attendance", $"Quick check-in: {employee?.FullName} — Position: {queuePosition}", attendance.Id);
-            TempData["Success"] = $"Check-in recorded for {employee?.FullName} — Position: {queuePosition}";
+            TempData["SuccessTitle"] = "تم تسجيل الحضور";
+            TempData["SuccessDetail"] = $"تم تسجيل حضور {employee?.FullName} — الدور: {queuePosition}";
 
             _ = Task.Run(() => _emailService.SendAttendanceNotificationAsync(
                 employee?.FullName ?? "-", dept ?? "-", "Check-In",
@@ -331,7 +332,8 @@ namespace Salon.Controllers
             await _context.SaveChangesAsync();
             var empForAudit = await _context.Employees.FindAsync(record.EmployeeId);
             await _audit.LogAsync("Check-Out", "Attendance", $"Check-out: {empForAudit?.FullName}", record.Id);
-            TempData["Success"] = "Check-out recorded created successfully";
+            TempData["SuccessTitle"] = "تم تسجيل الانصراف";
+            TempData["SuccessDetail"] = $"تم تسجيل انصراف {empForAudit?.FullName} بنجاح";
 
             var empForMail = await _context.Employees.Include(e => e.DepartmentNav)
                 .FirstOrDefaultAsync(e => e.Id == record.EmployeeId);
@@ -376,7 +378,8 @@ namespace Salon.Controllers
             await _context.SaveChangesAsync();
             var empPermAudit = await _context.Employees.FindAsync(record.EmployeeId);
             await _audit.LogAsync("Permission", "Attendance", $"Permission leave: {empPermAudit?.FullName}", id);
-            TempData["Success"] = "Permission leave recorded created successfully";
+            TempData["SuccessTitle"] = "تم تسجيل الاستئذان";
+            TempData["SuccessDetail"] = $"تم تسجيل استئذان {empPermAudit?.FullName} بنجاح";
 
             var empPerm = await _context.Employees.Include(e => e.DepartmentNav)
                 .FirstOrDefaultAsync(e => e.Id == record.EmployeeId);
@@ -429,7 +432,8 @@ namespace Salon.Controllers
             await _context.SaveChangesAsync();
             var empRetAudit = await _context.Employees.FindAsync(perm.Attendance!.EmployeeId);
             await _audit.LogAsync("Return", "Attendance", $"Return from leave: {empRetAudit?.FullName}", id);
-            TempData["Success"] = "Return from leave recorded created successfully";
+            TempData["SuccessTitle"] = "عودة من الاستئذان";
+            TempData["SuccessDetail"] = $"تم تسجيل عودة {empRetAudit?.FullName} من الاستئذان";
 
             var empRet = await _context.Employees.Include(e => e.DepartmentNav)
                 .FirstOrDefaultAsync(e => e.Id == perm.Attendance!.EmployeeId);
