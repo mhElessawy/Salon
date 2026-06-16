@@ -414,7 +414,11 @@ namespace Salon.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-            var sale = await _context.Sales.Include(s => s.SaleItems).FirstOrDefaultAsync(s => s.Id == id);
+            var sale = await _context.Sales
+                .Include(s => s.SaleItems)
+                .Include(s => s.Employee)
+                .Include(s => s.Customer)
+                .FirstOrDefaultAsync(s => s.Id == id);
             if (sale != null)
             {
                 // فحص صلاحية الحذف حسب نوع الفاتورة
@@ -439,6 +443,10 @@ namespace Salon.Controllers
                     $"إلغاء الفاتورة رقم {sale.InvoiceNumber}",
                     sale.Id);
                 TempData["Success"] = "Invoice cancelled";
+
+                var cancelUser = await _userManager.GetUserAsync(User);
+                var cancellerName = cancelUser?.FullName ?? User.Identity?.Name ?? "—";
+                _ = Task.Run(() => _emailService.SendInvoiceCancellationAsync(sale, cancellerName));
             }
             return RedirectToAction(nameof(Index));
         }

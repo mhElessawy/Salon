@@ -20,6 +20,7 @@ public interface IEmailService
 {
     Task SendInvoiceNotificationAsync(Sale sale, string cashierName);
     Task SendAttendanceNotificationAsync(string employeeName, string department, string action, TimeSpan actionTime, DateTime date, string? extra = null);
+    Task SendInvoiceCancellationAsync(Sale sale, string cancelledBy);
 }
 
 public class EmailService : IEmailService
@@ -176,6 +177,138 @@ public class EmailService : IEmailService
     <td style='background:#f7f8fa;padding:12px 28px;border-top:1px solid #eee;
                font-size:12px;color:#aaa;text-align:center;'>
       نظام معهد موس &nbsp;|&nbsp; {DateTime.Now:HH:mm  dd/MM/yyyy}
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>";
+    }
+
+    public async Task SendInvoiceCancellationAsync(Sale sale, string cancelledBy)
+    {
+        if (string.IsNullOrWhiteSpace(_settings.SenderEmail) ||
+            _settings.SenderEmail.StartsWith("YOUR_"))
+        {
+            _logger.LogWarning("Email not configured — skipping cancellation notification.");
+            return;
+        }
+        try
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(_settings.SenderName, _settings.SenderEmail));
+            message.To.Add(MailboxAddress.Parse(_settings.NotificationEmail));
+            message.Subject = $"❌ إلغاء فاتورة — {sale.InvoiceNumber}";
+            message.Body = new TextPart("html") { Text = BuildCancellationEmailBody(sale, cancelledBy) };
+
+            using var smtp = new MailKit.Net.Smtp.SmtpClient();
+            await smtp.ConnectAsync(_settings.SmtpHost, _settings.SmtpPort, SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_settings.SenderEmail, _settings.SenderPassword);
+            await smtp.SendAsync(message);
+            await smtp.DisconnectAsync(true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send cancellation email for {InvoiceNumber}", sale.InvoiceNumber);
+        }
+    }
+
+    private static string BuildCancellationEmailBody(Sale sale, string cancelledBy)
+    {
+        var itemsHtml = new System.Text.StringBuilder();
+        var employeeName = sale.Employee?.FullName ?? "—";
+        var customerName = sale.Customer?.FullName ?? "زائر";
+
+        foreach (var item in sale.SaleItems)
+        {
+            itemsHtml.Append($@"
+            <div style='padding:8px 0;border-bottom:1px solid #fce4e4;'>
+                <div style='font-weight:600;font-size:14px;color:#1a1a2e;'>{item.ItemName}</div>
+                <div style='font-size:12px;color:#888;margin-top:2px;'>{item.Quantity} × {item.Price:N3} د.ك</div>
+            </div>");
+        }
+
+        var dateStr = sale.SaleDate.ToString("MMM yyyy, HH:mm dd");
+        var nowStr = DateTime.Now.ToString("HH:mm  dd/MM/yyyy");
+
+        return $@"<!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head><meta charset='utf-8'/></head>
+<body style='margin:0;padding:0;background:#f0f2f5;font-family:Segoe UI,Tahoma,Arial,sans-serif;direction:rtl;'>
+<table width='100%' cellpadding='0' cellspacing='0' style='background:#f0f2f5;padding:30px 0;'>
+<tr><td align='center'>
+<table width='540' cellpadding='0' cellspacing='0'
+       style='background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.12);'>
+
+  <tr>
+    <td style='background:linear-gradient(135deg,#c0392b,#8e1a10);padding:24px 28px;'>
+      <h2 style='margin:0;color:#fff;font-size:22px;'>❌ تم إلغاء فاتورة</h2>
+      <p style='margin:5px 0 0;color:rgba(255,255,255,0.7);font-size:13px;'>معهد وصالون موس للرجال</p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style='padding:20px 28px 12px;'>
+      <table width='100%' cellpadding='0' cellspacing='0'>
+        <tr>
+          <td style='padding:5px 0;font-size:14px;color:#555;'>رقم الفاتورة:</td>
+          <td style='padding:5px 0;font-size:15px;font-weight:700;color:#c0392b;text-align:left;'>{sale.InvoiceNumber}</td>
+        </tr>
+        <tr>
+          <td style='padding:5px 0;font-size:14px;color:#555;'>القسم:</td>
+          <td style='padding:5px 0;font-size:14px;color:#1a1a2e;text-align:left;'>{sale.SaleType}</td>
+        </tr>
+        <tr>
+          <td style='padding:5px 0;font-size:14px;color:#555;'>تاريخ الفاتورة:</td>
+          <td style='padding:5px 0;font-size:14px;color:#555;text-align:left;'>{dateStr}</td>
+        </tr>
+        <tr>
+          <td style='padding:5px 0;font-size:14px;color:#555;'>العميل:</td>
+          <td style='padding:5px 0;font-size:14px;color:#1a1a2e;text-align:left;'>{customerName}</td>
+        </tr>
+        <tr>
+          <td style='padding:5px 0;font-size:14px;color:#555;'>الموظف:</td>
+          <td style='padding:5px 0;font-size:14px;color:#1a1a2e;text-align:left;'>{employeeName}</td>
+        </tr>
+        <tr>
+          <td style='padding:5px 0;font-size:14px;color:#c0392b;font-weight:700;'>ألغيت بواسطة:</td>
+          <td style='padding:5px 0;font-size:14px;color:#c0392b;font-weight:700;text-align:left;'>{cancelledBy}</td>
+        </tr>
+        <tr>
+          <td style='padding:5px 0;font-size:14px;color:#c0392b;font-weight:700;'>وقت الإلغاء:</td>
+          <td style='padding:5px 0;font-size:14px;color:#c0392b;font-weight:700;text-align:left;'>{nowStr}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <tr><td style='padding:0 28px;'><hr style='border:none;border-top:2px dashed #fce4e4;margin:0;'/></td></tr>
+
+  <tr>
+    <td style='padding:14px 28px 8px;'>
+      <p style='margin:0 0 8px;font-weight:700;font-size:14px;color:#555;'>بنود الفاتورة الملغاة:</p>
+      {itemsHtml}
+    </td>
+  </tr>
+
+  <tr>
+    <td style='padding:12px 28px 20px;'>
+      <table width='100%' cellpadding='0' cellspacing='0'
+             style='background:#fff5f5;border-radius:10px;padding:14px 18px;border:1px solid #fce4e4;'>
+        <tr>
+          <td style='font-size:16px;font-weight:700;color:#c0392b;'>إجمالي الفاتورة الملغاة:</td>
+          <td style='font-size:18px;font-weight:800;color:#c0392b;text-align:left;'>{sale.NetAmount:N3} د.ك</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <tr>
+    <td style='background:#fff5f5;padding:12px 28px;border-top:1px solid #fce4e4;
+               font-size:12px;color:#aaa;text-align:center;'>
+      نظام معهد موس &nbsp;|&nbsp; {nowStr}
     </td>
   </tr>
 
