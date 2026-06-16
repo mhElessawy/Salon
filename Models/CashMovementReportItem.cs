@@ -8,5 +8,6 @@
         public decimal Amount { get; set; }
         public string? Category { get; set; }        // فئة المصروف أو مصدر الإيداع
         public string? Notes { get; set; }
+        public string PaymentMethod { get; set; } = "نقدي";  // "نقدي" | "بطاقة" | "تحويل بنكي"
     }
 }

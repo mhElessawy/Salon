@@ -719,7 +719,8 @@ namespace Salon.Controllers
                     Description = e.Description,
                     Amount = e.Amount,
                     Category = e.Category,
-                    Notes = e.Notes
+                    Notes = e.Notes,
+                    PaymentMethod = e.PaymentMethod
                 }));
 
                 var advancesQuery = _context.EmployeeAdvances
@@ -738,7 +739,8 @@ namespace Salon.Controllers
                     Description = $"سلفة - {a.Employee?.FullName ?? ""}".Trim(' ', '-'),
                     Amount = a.Amount,
                     Category = "سلف الموظفين",
-                    Notes = a.Reason
+                    Notes = a.Reason,
+                    PaymentMethod = a.PaymentMethod
                 }));
 
                 var salariesQuery = _context.Salaries
@@ -757,7 +759,8 @@ namespace Salon.Controllers
                     Description = $"راتب - {s.Employee?.FullName ?? ""}".Trim(' ', '-'),
                     Amount = s.NetSalary,
                     Category = "رواتب الموظفين",
-                    Notes = s.Notes
+                    Notes = s.Notes,
+                    PaymentMethod = s.PaymentMethod
                 }));
             }
 
@@ -871,6 +874,10 @@ namespace Salon.Controllers
             decimal totalSulfa = items.Where(i => i.Type == "سلفة").Sum(i => i.Amount);
             decimal totalRatib = items.Where(i => i.Type == "راتب").Sum(i => i.Amount);
             decimal totalExp = totalMasrouf + totalSulfa + totalRatib;
+            // المصروفات النقدية فقط (لحساب رصيد الكاش)
+            decimal totalCashExp = items.Where(i =>
+                (i.Type == "مصروف" || i.Type == "سلفة" || i.Type == "راتب")
+                && i.PaymentMethod == "نقدي").Sum(i => i.Amount);
             decimal totalDep = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount);
             decimal totalCashSales = items.Where(i => i.Type == "مبيعات كاش").Sum(i => i.Amount);
             decimal totalKNet = items.Where(i => i.Type == "كي نت").Sum(i => i.Amount);
@@ -884,13 +891,14 @@ namespace Salon.Controllers
             ViewBag.TotalSulfa = totalSulfa;
             ViewBag.TotalRatib = totalRatib;
             ViewBag.TotalExpenses = totalExp;
+            ViewBag.TotalCashExpenses = totalCashExp;
             ViewBag.TotalDeposits = totalDep;
             ViewBag.TotalCashSales = totalCashSales;
             ViewBag.TotalKNet = totalKNet;
             ViewBag.TotalSales = totalCashSales + totalKNet;
             ViewBag.TotalWithdrawals = totalWithdrawals;
-            // رصيد الكاش = مبيعات كاش + إيداعات - مصروفات - سلف - مرتبات - سحوبات (الكي نت خارج الحساب)
-            ViewBag.CashBalance = totalCashSales + totalDep - totalExp - totalWithdrawals;
+            // رصيد الكاش = مبيعات كاش + إيداعات - مصروفات نقدية - سحوبات (الكي نت + المصروفات غير النقدية خارج الحساب)
+            ViewBag.CashBalance = totalCashSales + totalDep - totalCashExp - totalWithdrawals;
             ViewBag.NetBalance = ViewBag.CashBalance;
 
             return View(items);
