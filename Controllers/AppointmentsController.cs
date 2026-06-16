@@ -153,5 +153,42 @@ namespace Salon.Controllers
                 svcQuery = svcQuery.Where(s => s.ServiceCategory!.Department == userDept);
             ViewBag.Services = await svcQuery.ToListAsync();
         }
+
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> BulkCreate([FromBody] List<BulkAppointmentItem> items)
+        {
+            if (items == null || !items.Any())
+                return Json(new { success = false, message = "لا توجد مواعيد" });
+
+            int savedCount = 0;
+            foreach (var item in items)
+            {
+                if (item.CustomerId <= 0) continue;
+                _context.Appointments.Add(new Appointment
+                {
+                    CustomerId = item.CustomerId,
+                    EmployeeId = item.EmployeeId.HasValue && item.EmployeeId.Value > 0 ? item.EmployeeId : null,
+                    AppointmentDate = item.AppointmentDate,
+                    Status = "مجدول",
+                    Notes = item.Notes
+                });
+                savedCount++;
+            }
+            if (savedCount > 0)
+            {
+                await _context.SaveChangesAsync();
+                await _audit.LogAsync("Add", "Appointments", $"تحديد {savedCount} مواعيد دفعة واحدة", 0);
+            }
+            return Json(new { success = true, count = savedCount });
+        }
+    }
+
+    public class BulkAppointmentItem
+    {
+        public int CustomerId { get; set; }
+        public int? EmployeeId { get; set; }
+        public DateTime AppointmentDate { get; set; }
+        public string? Notes { get; set; }
     }
 }

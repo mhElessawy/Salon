@@ -751,6 +751,7 @@ namespace Salon.Controllers
                 }
 
                 // ── خصم جلسة of باقة العميل ──
+                int remainingSessionsAfter = 0;
                 if (customerPackageId.HasValue && customerPackageId.Value > 0)
                 {
                     var cp = await _context.CustomerPackages
@@ -760,6 +761,7 @@ namespace Salon.Controllers
                     {
                         cp.RemainingSessions--;
                         if (cp.RemainingSessions == 0) cp.IsActive = false;
+                        remainingSessionsAfter = cp.RemainingSessions;
 
                         _context.CustomerPackageTransactions.Add(new CustomerPackageTransaction
                         {
@@ -786,7 +788,7 @@ namespace Salon.Controllers
                     .FirstAsync(s => s.Id == model.Id);
                 _ = Task.Run(() => _emailService.SendInvoiceNotificationAsync(saleWithItems, cashierName));
 
-                return Json(new { success = true, invoiceId = model.Id });
+                return Json(new { success = true, invoiceId = model.Id, remainingSessions = remainingSessionsAfter, customerId = model.CustomerId ?? 0 });
             }
             catch (Exception ex)
             {
