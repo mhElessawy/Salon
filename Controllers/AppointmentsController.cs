@@ -23,11 +23,8 @@ namespace Salon.Controllers
             _audit = audit;
         }
 
-        public async Task<IActionResult> Index(string? date)
+        public async Task<IActionResult> Index(string? from, string? to)
         {
-            DateTime filterDate = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
-            var nextDay = filterDate.AddDays(1);
-
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
 
@@ -35,14 +32,27 @@ namespace Salon.Controllers
                 .Include(a => a.Customer)
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Include(a => a.AppointmentServices).ThenInclude(s => s.Service)
-                .Where(a => a.AppointmentDate >= filterDate && a.AppointmentDate < nextDay);
+                .AsQueryable();
+
+            DateTime? dateFrom = null, dateTo = null;
+            if (!string.IsNullOrEmpty(from) && DateTime.TryParse(from, out var df))
+            {
+                dateFrom = df.Date;
+                query = query.Where(a => a.AppointmentDate >= dateFrom);
+            }
+            if (!string.IsNullOrEmpty(to) && DateTime.TryParse(to, out var dt))
+            {
+                dateTo = dt.Date;
+                query = query.Where(a => a.AppointmentDate < dateTo.Value.AddDays(1));
+            }
 
             if (userDept == "حلاقة" || userDept == "مساج")
                 query = query.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
 
             var appointments = await query.OrderBy(a => a.AppointmentDate).ToListAsync();
 
-            ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
+            ViewBag.From = dateFrom?.ToString("yyyy-MM-dd") ?? "";
+            ViewBag.To   = dateTo?.ToString("yyyy-MM-dd") ?? "";
             return View(appointments);
         }
 
