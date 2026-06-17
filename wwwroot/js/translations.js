@@ -336,7 +336,20 @@ window.PAGE_TRANSLATIONS = {
     'التاريخ والوقت': 'Date & Time',
     'لا توجد مواعيد في هذا اليوم': 'No Appointments Today',
 
-    // ── Appointments Create page ──────────────────────────
+    // ── Appointments Index page ───────────────────────────
+    'هذا الأسبوع': 'This Week',
+    '30 يوم': '30 Days',
+    'الأسبوع الماضي': 'Last Week',
+    'الخدمات': 'Services',
+    'لا توجد مواعيد في هذه الفترة': 'No Appointments in This Period',
+    'لا توجد مواعيد مسجلة': 'No Appointments Registered',
+    'الكل:': 'All:',
+    'مجدول:': 'Scheduled:',
+    'مكتمل:': 'Completed:',
+    'ملغي:': 'Cancelled:',
+    'من': 'from',
+
+    // ── Appointments - Create page ──────────────────────────
     'العميل *': 'Customer *',
     'الموظف *': 'Employee *',
     'التاريخ *': 'Date *',
