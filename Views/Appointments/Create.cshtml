@@ -477,7 +477,7 @@
                 <div class="slots-body" id="slotsBody">
                     <div class="empty-slots">
                         <i class="fas fa-calendar-alt"></i>
-                        اختر التاريخ والموظف لعرض الأوقات المتاحة
+                        <span>اختر التاريخ والموظف لعرض الأوقات المتاحة</span>
                     </div>
                 </div>
 
@@ -519,6 +519,10 @@
     let bookingType = 'new';
     let loadedSlots = [];
 
+    function t(ar, en) {
+        return localStorage.getItem('lang') === 'en' ? en : ar;
+    }
+
     // ── Department buttons ───────────────────────────────
     document.querySelectorAll('.dept-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -537,7 +541,7 @@
         const res = await fetch('/Appointments/GetCustomersByDepartment?dept=' + encodeURIComponent(currentDept));
         const customers = await res.json();
         const sel = document.getElementById('customerSelect');
-        sel.innerHTML = '<option value="">-- اختر العميل --</option>';
+        sel.innerHTML = '<option value="">' + t('-- اختر العميل --', '-- Select Customer --') + '</option>';
         customers.forEach(function (c) {
             const opt = document.createElement('option');
             opt.value = c.id;
@@ -552,7 +556,7 @@
         const res = await fetch('/Appointments/GetEmployeesByDepartment?dept=' + encodeURIComponent(currentDept));
         const employees = await res.json();
         const sel = document.getElementById('empSelect');
-        sel.innerHTML = '<option value="">-- اختر الموظف --</option>';
+        sel.innerHTML = '<option value="">' + t('-- اختر الموظف --', '-- Select Employee --') + '</option>';
         employees.forEach(function (e) {
             const opt = document.createElement('option');
             opt.value = e.id;
@@ -567,7 +571,7 @@
         const services = await res.json();
         let html = '';
         if (!services.length) {
-            html = '<div class="text-muted small p-2">لا توجد خدمات في هذا القسم</div>';
+            html = '<div class="text-muted small p-2">' + t('لا توجد خدمات في هذا القسم', 'No services in this department') + '</div>';
         } else {
             services.forEach(function (s) {
                 html += '<div class="service-item"><input type="checkbox" name="serviceIds" value="' + s.id + '" class="form-check-input" id="svc' + s.id + '" />' +
@@ -627,7 +631,7 @@
                 '<div style="flex:1;">' +
                 '<div class="pkg-name">' + escHtml(p.name) + '</div>' +
                 '<div class="pkg-meta">' +
-                '<span class="pkg-sessions"><i class="fas fa-calendar-check me-1"></i>' + p.remainingSessions + ' / ' + p.totalSessions + ' جلسة</span>' +
+                '<span class="pkg-sessions"><i class="fas fa-calendar-check me-1"></i>' + p.remainingSessions + ' / ' + p.totalSessions + ' ' + t('جلسة', 'session') + '</span>' +
                 (p.expiry ? '<span class="pkg-expiry"><i class="fas fa-hourglass-end me-1"></i>' + p.expiry + '</span>' : '') +
                 '</div></div></div>';
         });
@@ -705,7 +709,7 @@
     function renderTimeSlots() {
         const container = document.getElementById('slotsBody');
         if (!loadedSlots.length) {
-            container.innerHTML = '<div class="empty-slots"><i class="fas fa-calendar-alt"></i>لا توجد بيانات متاحة</div>';
+            container.innerHTML = '<div class="empty-slots"><i class="fas fa-calendar-alt"></i>' + t('لا توجد بيانات متاحة', 'No data available') + '</div>';
             return;
         }
 
@@ -723,29 +727,29 @@
                     canSelect = true;
                     if (isSelected) {
                         rowClass += ' slot-selected';
-                        personHtml = '<div class="slot-select-label"><input type="checkbox" checked class="form-check-input" style="width:18px;height:18px;pointer-events:none;" /><span>اختر هذا الوقت</span></div>';
+                        personHtml = '<div class="slot-select-label"><input type="checkbox" checked class="form-check-input" style="width:18px;height:18px;pointer-events:none;" /><span>' + t('اختر هذا الوقت', 'Select This Time') + '</span></div>';
                     }
-                    badgeHtml = '<span class="slot-badge badge-available">متاح</span>';
+                    badgeHtml = '<span class="slot-badge badge-available">' + t('متاح', 'Available') + '</span>';
                     break;
                 case 'محجوز':
                     rowClass += ' slot-booked';
-                    badgeHtml = '<span class="slot-badge badge-booked"><i class="fas fa-circle me-1" style="font-size:8px;"></i>محجوز</span>';
+                    badgeHtml = '<span class="slot-badge badge-booked"><i class="fas fa-circle me-1" style="font-size:8px;"></i>' + t('محجوز', 'Booked') + '</span>';
                     if (slot.personName) {
                         personHtml = '<div class="slot-person"><i class="fas fa-user text-danger"></i>' + escHtml(slot.personName) + '</div>';
                     }
                     break;
                 case 'استراحة':
                     rowClass += ' slot-break';
-                    badgeHtml = '<span class="slot-badge badge-break">استراحة الموظف</span>';
-                    personHtml = '<div class="slot-person text-warning"><i class="fas fa-coffee"></i> استراحة</div>';
+                    badgeHtml = '<span class="slot-badge badge-break">' + t('استراحة الموظف', 'Employee Break') + '</span>';
+                    personHtml = '<div class="slot-person text-warning"><i class="fas fa-coffee"></i> ' + t('استراحة', 'Break') + '</div>';
                     break;
                 case 'غير متاح':
                     rowClass += ' slot-unavailable';
-                    badgeHtml = '<span class="slot-badge badge-unavailable">غير متاح</span>';
+                    badgeHtml = '<span class="slot-badge badge-unavailable">' + t('غير متاح', 'Unavailable') + '</span>';
                     break;
                 case 'خارج الدوام':
                     rowClass += ' slot-unavailable';
-                    badgeHtml = '<span class="slot-badge badge-outside">خارج الدوام</span>';
+                    badgeHtml = '<span class="slot-badge badge-outside">' + t('خارج الدوام', 'Off Shift') + '</span>';
                     break;
                 default:
                     badgeHtml = '<span class="slot-badge badge-unavailable">' + escHtml(slot.status) + '</span>';
@@ -782,7 +786,7 @@
 
         let serviceHtml = '<span class="text-muted">—</span>';
         if (bookingType === 'package' && selectedPackageName) {
-            serviceHtml = '<span>' + escHtml(selectedPackageName) + '</span> <small class="text-success">(' + selectedPackageRemaining + ' جلسة متبقية)</small>';
+            serviceHtml = '<span>' + escHtml(selectedPackageName) + '</span> <small class="text-success">(' + selectedPackageRemaining + ' ' + t('جلسة متبقية', 'sessions remaining') + ')</small>';
         } else if (bookingType === 'new') {
             const checked = document.querySelectorAll('input[name="serviceIds"]:checked');
             if (checked.length > 0) {
@@ -833,7 +837,10 @@
         document.getElementById('servicesSection').style.display = 'none';
         document.getElementById('packageNote').style.display = 'none';
         loadedSlots = [];
-        renderTimeSlots();
+        document.getElementById('slotsBody').innerHTML =
+            '<div class="empty-slots"><i class="fas fa-calendar-alt"></i><span>' +
+            t('اختر التاريخ والموظف لعرض الأوقات المتاحة', 'Select date and employee to view available slots') +
+            '</span></div>';
         updateSummary();
     }
 
