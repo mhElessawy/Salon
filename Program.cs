@@ -192,6 +192,8 @@ using (var scope = app.Services.CreateScope())
                 Department TEXT NOT NULL DEFAULT 'حلاقة',
                 CreatedAt TEXT NOT NULL DEFAULT (datetime('now')))");
             TryExec("ALTER TABLE Deposits ADD COLUMN Department TEXT NOT NULL DEFAULT 'حلاقة'");
+            TryExec("ALTER TABLE Appointments ADD COLUMN EndTime TEXT NULL");
+            TryExec("ALTER TABLE Appointments ADD COLUMN CustomerPackageId INTEGER NULL");
             TryExec(@"CREATE TABLE IF NOT EXISTS Withdrawals (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 Amount REAL NOT NULL DEFAULT 0,
@@ -261,6 +263,8 @@ using (var scope = app.Services.CreateScope())
                 Department NVARCHAR(MAX) NOT NULL DEFAULT N'حلاقة',
                 CreatedAt DATETIME NOT NULL DEFAULT GETDATE())");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Deposits' AND COLUMN_NAME='Department') ALTER TABLE Deposits ADD Department NVARCHAR(MAX) NOT NULL DEFAULT N'حلاقة'");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Appointments' AND COLUMN_NAME='EndTime') ALTER TABLE Appointments ADD EndTime TIME NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Appointments' AND COLUMN_NAME='CustomerPackageId') ALTER TABLE Appointments ADD CustomerPackageId INT NULL");
             TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='Withdrawals')
                 CREATE TABLE Withdrawals (Id INT IDENTITY PRIMARY KEY,
                 Amount DECIMAL(18,3) NOT NULL DEFAULT 0,
