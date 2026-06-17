@@ -110,6 +110,7 @@ namespace Salon.Controllers
                 invoicesWithNotes = await _context.Sales
                     .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow
                                 && s.EmployeeId == currentUser.LinkedEmployeeId!.Value
+                                && s.Status != "ملغي"
                                 && s.Notes != null && s.Notes != "")
                     .OrderBy(s => s.SaleDate)
                     .ToListAsync();
