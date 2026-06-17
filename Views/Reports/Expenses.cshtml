@@ -25,6 +25,7 @@
 
     string? userDept = ViewBag.UserDept as string;
     bool isDeptUser = ViewBag.IsDeptUser is bool b && b;
+    string? selectedDept = ViewBag.SelectedDept as string;
 
     // Stats
     int totalItems = Model.Count() + salaries.Count;
@@ -211,7 +212,7 @@
         @if (isDeptUser)
         {
             <span>&nbsp;|&nbsp;</span>
-        
+
             <span>@userDept</span>
         }
     </p>
@@ -256,6 +257,17 @@
                     <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:160px;" />
                 </div>
             </div>
+            @if (!isDeptUser)
+            {
+                <div class="col-auto">
+                    <label class="form-label mb-1 small" data-i18n-en="Department">القسم</label>
+                    <select name="dept" class="form-select form-select-sm" style="min-width:130px;">
+                        <option value="" selected="@(string.IsNullOrEmpty(selectedDept))">الكل</option>
+                        <option value="حلاقة" selected="@(selectedDept == "حلاقة")">✂ حلاقة</option>
+                        <option value="مساج" selected="@(selectedDept == "مساج")">🌿 مساج</option>
+                    </select>
+                </div>
+            }
             <div class="col-auto">
                 <button type="submit" class="btn btn-primary btn-sm">
                     <i class="fas fa-search me-1"></i><span data-i18n-en="Search">بحث</span>
@@ -443,14 +455,15 @@ else
     </div>
 </div>
 
-@* ======= TABS (admin only) / Direct table (dept user) ======= *@
-@if (isDeptUser)
+@* ======= TABS (admin no filter) / Direct table (dept user or filtered) ======= *@
+@if (isDeptUser || !string.IsNullOrEmpty(selectedDept))
 {
+    @* مستخدم قسم أو أدمن اختار قسم معين: جدول مباشر *@
     await RenderExpTable(Model.ToList(), salaries, false);
 }
 else
 {
-    @* Admin: full tabs *@
+    @* أدمن بدون فلتر قسم: tabs كاملة *@
     <ul class="nav nav-tabs mb-3 no-print" id="expensesTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active fw-semibold" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-pane" type="button" role="tab">

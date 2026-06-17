@@ -152,20 +152,23 @@ namespace Salon.Controllers
             return View(sales);
         }
 
-        public async Task<IActionResult> Expenses(string? from, string? to)
+        public async Task<IActionResult> Expenses(string? from, string? to, string? dept)
         {
-            DateTime dateFrom = string.IsNullOrEmpty(from) ? DateTime.Today.AddDays(-30) : DateTime.Parse(from);
+            DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
 
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
             bool isDeptUser = userDept == "مساج" || userDept == "حلاقة";
 
+            // للأدمن: القسم يأتي من الفلتر؛ لمستخدم القسم: يأتي من حساب المستخدم
+            var effectiveDept = isDeptUser ? userDept : dept;
+
             var expQuery = _context.Expenses
                 .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo);
-            if (userDept == "مساج")
+            if (effectiveDept == "مساج")
                 expQuery = expQuery.Where(e => e.Department == "مساج");
-            else if (userDept == "حلاقة")
+            else if (effectiveDept == "حلاقة")
                 expQuery = expQuery.Where(e => e.Department == "حلاقة");
 
             var expenses = await expQuery
@@ -175,16 +178,15 @@ namespace Salon.Controllers
             var salariesQuery = _context.Salaries
                 .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Where(s => s.PaidDate >= dateFrom && s.PaidDate < dateTo);
-            if (userDept == "مساج")
+            if (effectiveDept == "مساج")
                 salariesQuery = salariesQuery.Where(s => s.Employee!.DepartmentNav!.Name == "مساج");
-            else if (userDept == "حلاقة")
+            else if (effectiveDept == "حلاقة")
                 salariesQuery = salariesQuery.Where(s => s.Employee!.DepartmentNav!.Name == "حلاقة");
 
             var salaries = await salariesQuery
                 .OrderBy(s => s.PaidDate)
                 .ToListAsync();
 
-            // الكل (already dept-filtered if isDeptUser)
             decimal totalExp = expenses.Sum(e => e.Amount);
             decimal totalSal = salaries.Sum(s => s.NetSalary);
             ViewBag.TotalExpenses = totalExp;
@@ -193,10 +195,12 @@ namespace Salon.Controllers
             ViewBag.Salaries = salaries;
             ViewBag.UserDept = userDept;
             ViewBag.IsDeptUser = isDeptUser;
+            ViewBag.SelectedDept = effectiveDept;
 
-            // Sub-groups — only meaningful for admin
-            var barberExpenses = isDeptUser ? new List<Expense>() : expenses.Where(e => e.Department == "حلاقة").ToList();
-            var barberSalaries = isDeptUser ? new List<Salary>() : salaries.Where(s => s.Employee?.Department == "حلاقة").ToList();
+            // Sub-groups — only for admin with no specific dept filter
+            bool showSubGroups = !isDeptUser && string.IsNullOrEmpty(effectiveDept);
+            var barberExpenses = showSubGroups ? expenses.Where(e => e.Department == "حلاقة").ToList() : new List<Expense>();
+            var barberSalaries = showSubGroups ? salaries.Where(s => s.Employee?.Department == "حلاقة").ToList() : new List<Salary>();
             decimal barberExp = barberExpenses.Sum(e => e.Amount);
             decimal barberSal = barberSalaries.Sum(s => s.NetSalary);
             ViewBag.BarberExpenses = barberExpenses;
@@ -205,8 +209,8 @@ namespace Salon.Controllers
             ViewBag.TotalBarberSalaries = barberSal;
             ViewBag.TotalBarberCombined = barberExp + barberSal;
 
-            var massageExpenses = isDeptUser ? new List<Expense>() : expenses.Where(e => e.Department == "مساج").ToList();
-            var massageSalaries = isDeptUser ? new List<Salary>() : salaries.Where(s => s.Employee?.Department == "مساج").ToList();
+            var massageExpenses = showSubGroups ? expenses.Where(e => e.Department == "مساج").ToList() : new List<Expense>();
+            var massageSalaries = showSubGroups ? salaries.Where(s => s.Employee?.Department == "مساج").ToList() : new List<Salary>();
             decimal massageExp = massageExpenses.Sum(e => e.Amount);
             decimal massageSal = massageSalaries.Sum(s => s.NetSalary);
             ViewBag.MassageExpenses = massageExpenses;

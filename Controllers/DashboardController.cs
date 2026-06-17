@@ -103,6 +103,19 @@ namespace Salon.Controllers
                 .Take(10)
                 .ToListAsync();
 
+            // فواتير اليوم التي بها ملاحظات للموظف المرتبط بالمستخدم
+            var invoicesWithNotes = new List<Sale>();
+            if ((userDept == "حلاقة" || userDept == "مساج") && currentUser?.LinkedEmployeeId.HasValue == true)
+            {
+                invoicesWithNotes = await _context.Sales
+                    .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow
+                                && s.EmployeeId == currentUser.LinkedEmployeeId!.Value
+                                && s.Status != "ملغي"
+                                && s.Notes != null && s.Notes != "")
+                    .OrderBy(s => s.SaleDate)
+                    .ToListAsync();
+            }
+
             var vm = new DashboardViewModel
             {
                 SalesToday = salesToday,
@@ -113,7 +126,8 @@ namespace Salon.Controllers
                 NewCustomersToday = newCustomersToday,
                 UpcomingBirthdays = birthdayList,
                 ExpiringProducts = expiringProducts,
-                UserDepartment = userDept
+                UserDepartment = userDept,
+                InvoicesWithNotes = invoicesWithNotes
             };
 
             return View(vm);

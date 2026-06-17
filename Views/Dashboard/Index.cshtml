@@ -3,6 +3,87 @@
     ViewData["Title"] = "لوحة التحكم";
 }
 
+@if (Model.InvoicesWithNotes.Any())
+{
+    <!-- Modal تنبيه الفواتير التي بها ملاحظات -->
+    <div class="modal fade" id="invoiceNotesModal" tabindex="-1" aria-labelledby="invoiceNotesModalLabel" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:420px;">
+            <div class="modal-content" style="border-radius:16px; overflow:hidden; border:none;">
+                <!-- Header -->
+                <div class="modal-header" style="background:#fff3cd; border-bottom:1px solid #ffc107; padding:14px 18px;">
+                    <div style="display:flex;align-items:center;gap:10px;flex:1;">
+                        <span style="background:#ff4444;color:#fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">
+                            <i class="fas fa-bell"></i>
+                        </span>
+                        <div>
+                            <div style="font-weight:700;font-size:15px;color:#333;">تنبيه مهم</div>
+                            <div style="font-size:12px;color:#666;">
+                                لديك <strong>@Model.InvoicesWithNotes.Count فاتورة</strong> عليها ملاحظات يجب الاطلاع عليها
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+
+                <!-- Warning Banner -->
+                <div style="background:#fff8e1;padding:10px 16px;border-bottom:1px solid #ffe082;font-size:12px;color:#7a5c00;display:flex;align-items:flex-start;gap:8px;">
+                    <i class="fas fa-exclamation-triangle" style="color:#f59e0b;margin-top:2px;flex-shrink:0;"></i>
+                    <span>يرجى مراجعة الملاحظات التالية والضغط على (تم الاطلاع) لضمان تكرار الأخطاء وتحسين جودة العمل.</span>
+                </div>
+
+                <!-- Body: قائمة الفواتير -->
+                <div class="modal-body" style="padding:12px 14px;background:#f8f9fa;max-height:420px;overflow-y:auto;">
+                    @foreach (var inv in Model.InvoicesWithNotes)
+                    {
+                        <div class="invoice-note-card" style="background:#fff;border-radius:10px;border:1px solid #e0e0e0;margin-bottom:10px;padding:12px 14px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                                <span style="font-weight:700;color:#333;font-size:14px;">
+                                    <i class="fas fa-file-invoice" style="color:#6c757d;margin-left:4px;"></i>
+                                    @inv.InvoiceNumber
+                                </span>
+                                <div style="display:flex;gap:12px;font-size:12px;color:#555;">
+                                    <span><i class="fas fa-calendar-alt" style="margin-left:3px;color:#6c757d;"></i>@inv.SaleDate.ToString("dd/MM/yyyy")</span>
+                                    <span><i class="fas fa-money-bill-wave" style="margin-left:3px;color:#6c757d;"></i>@inv.NetAmount.ToString("N3") د.ك</span>
+                                </div>
+                            </div>
+                            <div style="background:#fff8e1;border-right:3px solid #f59e0b;padding:8px 10px;border-radius:6px;font-size:13px;color:#555;margin-bottom:10px;">
+                                <div style="font-weight:600;font-size:11px;color:#888;margin-bottom:3px;">الملاحظة:</div>
+                                @inv.Notes
+                            </div>
+                            <a href="/Sales/Details/@inv.Id" class="btn btn-sm w-100" style="background:#198754;color:#fff;border-radius:8px;font-size:13px;padding:6px;">
+                                <i class="fas fa-check-circle me-1"></i> تم الاطلاع
+                            </a>
+                        </div>
+                    }
+                </div>
+
+                <!-- Footer -->
+                <div class="modal-footer" style="background:#fff;border-top:1px solid #eee;padding:10px 14px;justify-content:space-between;align-items:center;">
+                    <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:8px 12px;font-size:11px;color:#7a5c00;flex:1;margin-left:10px;">
+                        <i class="fas fa-shield-alt" style="margin-left:4px;color:#f59e0b;"></i>
+                        <strong>التزامنا بالجودة:</strong> مراجعة الفواتير في وقت المناسب يكفل احترامياتك وتضمن حقوقك وحقوق المنشأة. شكراً للحرص على الجودة والالتزام.
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+                        <a href="/Sales/Index" class="btn btn-sm" style="background:#0d6efd;color:#fff;border-radius:8px;font-size:12px;white-space:nowrap;">
+                            <i class="fas fa-list me-1"></i> عرض جميع فواتيري
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal" style="border-radius:8px;font-size:12px;">
+                            <i class="fas fa-clock me-1"></i> تذكيري لاحقاً
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var modal = new bootstrap.Modal(document.getElementById('invoiceNotesModal'), { backdrop: 'static', keyboard: false });
+            modal.show();
+        });
+    </script>
+}
+
 <div class="page-header">
     <h1>
         <span data-i18n-en="Dashboard">لوحة التحكم</span>
