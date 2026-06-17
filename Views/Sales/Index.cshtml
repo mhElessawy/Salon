@@ -209,14 +209,26 @@
                 <h4 class="fw-bold mb-2 text-white">تأكيد الإلغاء</h4>
                 <p class="text-white-50 mb-1">هل أنت متأكد من إلغاء الفاتورة:</p>
                 <p class="fw-bold fs-5 mb-2 text-white" id="deleteItemName"></p>
-                <p class="text-white-50 small mb-4">
+                <p class="text-white-50 small mb-3">
                     <i class="fas fa-exclamation-triangle me-1"></i>
                     لا يمكن التراجع عن هذا الإجراء
                 </p>
+                <div class="mb-4 text-start">
+                    <label class="form-label text-white fw-semibold mb-1" style="font-size:14px;">
+                        <i class="fas fa-pen me-1"></i> سبب الإلغاء <span class="text-warning">*</span>
+                    </label>
+                    <textarea id="deleteReason" rows="3" class="form-control"
+                              placeholder="اكتب سبب إلغاء الفاتورة..."
+                              style="border-radius:8px;resize:none;font-size:13px;"></textarea>
+                    <div id="deleteReasonError" class="text-warning small mt-1" style="display:none;">
+                        <i class="fas fa-exclamation-circle me-1"></i> يرجى كتابة سبب الإلغاء
+                    </div>
+                </div>
                 <div class="d-flex justify-content-center gap-3">
                     <form id="deleteForm" method="post">
                         @Html.AntiForgeryToken()
-                        <button type="submit" class="btn delete-confirm-btn px-4 fw-bold">تأكيد</button>
+                        <input type="hidden" name="reason" id="deleteReasonInput" />
+                        <button type="submit" class="btn delete-confirm-btn px-4 fw-bold" onclick="return validateDeleteReason()">تأكيد</button>
                     </form>
                     <button type="button" class="btn delete-cancel-btn px-4 fw-bold" data-bs-dismiss="modal">إلغاء</button>
                 </div>
@@ -230,7 +242,21 @@
         function confirmDelete(id, name) {
             document.getElementById('deleteItemName').textContent = name;
             document.getElementById('deleteForm').action = '@Url.Action("Delete")/' + id;
+            document.getElementById('deleteReason').value = '';
+            document.getElementById('deleteReasonError').style.display = 'none';
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
+            setTimeout(() => document.getElementById('deleteReason').focus(), 400);
+        }
+
+        function validateDeleteReason() {
+            var reason = document.getElementById('deleteReason').value.trim();
+            if (!reason) {
+                document.getElementById('deleteReasonError').style.display = 'block';
+                document.getElementById('deleteReason').focus();
+                return false;
+            }
+            document.getElementById('deleteReasonInput').value = reason;
+            return true;
         }
     </script>
 }
