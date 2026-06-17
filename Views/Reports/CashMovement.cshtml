@@ -1,4 +1,4 @@
-﻿@model List<Salon.Models.CashMovementReportItem>
+﻿@model  List<Salon.Models.CashMovementReportItem>
 @{
     ViewData["Title"] = "تقرير حركة الصندوق";
     string selectedDept = ViewBag.SelectedDept ?? "";
@@ -6,6 +6,8 @@
     decimal totalSulfa = ViewBag.TotalSulfa is decimal ts2 ? ts2 : 0m;
     decimal totalRatib = ViewBag.TotalRatib is decimal tr ? tr : 0m;
     decimal totalExpenses = ViewBag.TotalExpenses is decimal te ? te : 0m;
+    decimal totalCashExpenses = ViewBag.TotalCashExpenses is decimal tce ? tce : 0m;
+    decimal totalNonCashExpenses = ViewBag.TotalNonCashExpenses is decimal tnce ? tnce : 0m;
     decimal totalDeposits = ViewBag.TotalDeposits is decimal td ? td : 0m;
     decimal totalCashSales = ViewBag.TotalCashSales is decimal tcs ? tcs : 0m;
     decimal totalKNet = ViewBag.TotalKNet is decimal tkn ? tkn : 0m;
@@ -18,17 +20,20 @@
     // الكي نت لا يدخل في حساب رصيد الكاش
     string[] cashCreditTypes = { "مبيعات كاش", "إيداع" };
 
-    // رصيد كاش جاري بعد كل حركة (يستثني الكي نت)
+    // رصيد كاش جاري بعد كل حركة (يستثني الكي نت والمصروفات غير النقدية)
     var ascItems = Model.OrderBy(i => i.Date).ThenBy(i => i.Type).ToList();
     var itemBalance = new Dictionary<Salon.Models.CashMovementReportItem, decimal>();
     decimal runBal = 0m;
     foreach (var itm in ascItems)
     {
-        if (debitTypes.Contains(itm.Type))
+        // السحب دايمًا نقدي - المصروف/السلفة/الراتب فقط لو طريقة الدفع نقدي
+        bool affectsCash = itm.Type == "سحب" ||
+            (debitTypes.Contains(itm.Type) && itm.PaymentMethod == "نقدي");
+        if (affectsCash)
             runBal -= itm.Amount;
         else if (cashCreditTypes.Contains(itm.Type))
             runBal += itm.Amount;
-        // كي نت لا يؤثر على رصيد الكاش
+        // كي نت والمصروفات غير النقدية لا تؤثر على رصيد الكاش
         itemBalance[itm] = runBal;
     }
 }
@@ -129,10 +134,24 @@
     </div>
 </div>
 
-@* خط فاصل وإجمالي المصروفات *@
-<div class="alert alert-danger py-2 px-3 mb-3 d-flex justify-content-between align-items-center">
+@* خط فاصل وإجمالي المصروفات مع تفصيل نقدي/غير نقدي *@
+<div class="alert alert-danger py-2 px-3 mb-1 d-flex justify-content-between align-items-center">
     <span><i class="fas fa-equals me-1"></i> إجمالي المصروفات (مصروفات + سلف + مرتبات)</span>
     <strong>@totalExpenses.ToString("N3") د.ك</strong>
+</div>
+<div class="row g-2 mb-3">
+    <div class="col-6">
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 rounded" style="background:#fff0f0; border:1px solid #fca5a5;">
+            <span class="small"><i class="fas fa-money-bill-wave me-1 text-danger"></i> نقدي <span class="text-muted">(يؤثر على الرصيد)</span></span>
+            <strong class="text-danger">@totalCashExpenses.ToString("N3") د.ك</strong>
+        </div>
+    </div>
+    <div class="col-6">
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 rounded" style="background:#f9fafb; border:1px solid #d1d5db;">
+            <span class="small"><i class="fas fa-university me-1 text-muted"></i> بطاقة / تحويل <span class="text-muted">(خارج الرصيد)</span></span>
+            <strong class="text-muted">@totalNonCashExpenses.ToString("N3") د.ك</strong>
+        </div>
+    </div>
 </div>
 
 @* صف الدخل *@
@@ -182,7 +201,7 @@
                 </div>
                 <div class="text-muted" style="font-size:12px;">
                     مبيعات كاش (@totalCashSales.ToString("N3")) + إيداعات (@totalDeposits.ToString("N3"))
-                    − مصروفات (@totalExpenses.ToString("N3")) − سحوبات (@totalWithdrawals.ToString("N3"))
+                    − مصروفات نقدي (@totalCashExpenses.ToString("N3")) − سحوبات (@totalWithdrawals.ToString("N3"))
                 </div>
             </div>
             <div class="col-auto">
@@ -243,11 +262,13 @@
                             bool isKNet = item.Type == "كي نت";
                             bool isDeposit = item.Type == "إيداع";
                             bool isWithdrawal = item.Type == "سحب";
+                            bool isNonCashExpense = isDebit && !isWithdrawal && item.PaymentMethod != "نقدي";
                             decimal bal = itemBalance.TryGetValue(item, out decimal b) ? b : 0m;
 
                             string rowBg = isKNet ? "background:#f0f9ff;" :
                             isWithdrawal ? "background:#fff5f5;" :
-                            isCashSale ? "background:#f0fdf4;" : "";
+                            isCashSale ? "background:#f0fdf4;" :
+                            isNonCashExpense ? "background:#fafafa;" : "";
                             <tr style="@rowBg">
                                 <td class="text-muted small">@row</td>
                                 <td>@(isCashSale || isKNet ? item.Date.ToString("yyyy/MM/dd") : item.Date.ToString("yyyy/MM/dd hh:mm tt"))</td>
@@ -258,16 +279,28 @@
                                             <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1">
                                                 <i class="fas fa-minus-circle me-1"></i>مصروف
                                             </span>
+                                            @if (item.PaymentMethod != "نقدي")
+                                            {
+                                                <small class="text-muted ms-1">(@item.PaymentMethod)</small>
+                                            }
                                             break;
                                         case "سلفة":
                                             <span class="badge px-2 py-1" style="background:rgba(245,158,11,0.12); color:#b45309;">
                                                 <i class="fas fa-hand-holding-usd me-1"></i>سلفة
                                             </span>
+                                            @if (item.PaymentMethod != "نقدي")
+                                            {
+                                                <small class="text-muted ms-1">(@item.PaymentMethod)</small>
+                                            }
                                             break;
                                         case "راتب":
                                             <span class="badge px-2 py-1" style="background:rgba(111,66,193,0.12); color:#6f42c1;">
                                                 <i class="fas fa-money-bill-wave me-1"></i>راتب
                                             </span>
+                                            @if (item.PaymentMethod != "نقدي")
+                                            {
+                                                <small class="text-muted ms-1">(@item.PaymentMethod)</small>
+                                            }
                                             break;
                                         case "مبيعات كاش":
                                             <span class="badge px-2 py-1" style="background:rgba(22,163,74,0.12); color:#16a34a;">
@@ -298,8 +331,8 @@
                                     style="color:@(isDebit ? "#dc2626" : isKNet ? "#0ea5e9" : "#16a34a");">
                                     @(isDebit ? "-" : "+")@item.Amount.ToString("N3")
                                 </td>
-                                <td class="text-end fw-bold" style="background:#eff6ff; font-size:0.9em; color:@(isKNet ? "#6b7280" : bal >= 0 ? "#1d4ed8" : "#dc2626");">
-                                    @(isKNet ? "—" : bal.ToString("N3"))
+                                <td class="text-end fw-bold" style="background:#eff6ff; font-size:0.9em; color:@(isKNet || isNonCashExpense ? "#6b7280" : bal >= 0 ? "#1d4ed8" : "#dc2626");">
+                                    @(isKNet || isNonCashExpense ? "—" : bal.ToString("N3"))
                                 </td>
                             </tr>
                         }
@@ -374,7 +407,7 @@
                         }
                         <tr style="background:#eff6ff;">
                             <td colspan="6" class="text-end fw-bold" style="color:#1d4ed8;">
-                                <i class="fas fa-wallet me-1"></i> رصيد الكاش (كاش + إيداعات − مصروفات − سحوبات)
+                                <i class="fas fa-wallet me-1"></i> رصيد الكاش (كاش + إيداعات − مصروفات نقدي − سحوبات)
                             </td>
                             <td class="text-end fw-bold" style="color:@(cashBalance >= 0 ? "#1d4ed8" : "#dc2626"); font-size:1.05em;">
                                 @cashBalance.ToString("N3")
