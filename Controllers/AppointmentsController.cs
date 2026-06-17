@@ -352,10 +352,6 @@ namespace Salon.Controllers
                 {
                     status = "خارج الدوام";
                 }
-                else if (employeeId.HasValue && attendance == null)
-                {
-                    status = "غير متاح";
-                }
                 else
                 {
                     status = "متاح";
