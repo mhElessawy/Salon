@@ -25,6 +25,15 @@ namespace Salon.Models
         [DataType(DataType.DateTime)]
         public DateTime AppointmentDate { get; set; }
 
+        [Display(Name = "وقت الانتهاء")]
+        public TimeSpan? EndTime { get; set; }
+
+        [Display(Name = "الباقة المستخدمة")]
+        public int? CustomerPackageId { get; set; }
+
+        [ForeignKey("CustomerPackageId")]
+        public CustomerPackage? CustomerPackage { get; set; }
+
         [Display(Name = "الحالة")]
         public string Status { get; set; } = "مجدول";
 

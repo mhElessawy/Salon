@@ -58,13 +58,31 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> Create()
         {
-            await PopulateDropdowns();
-            return View(new Appointment { AppointmentDate = DateTime.Now });
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
+            ViewBag.UserDept = userDept;
+            ViewBag.CanSelectDept = userDept != "حلاقة" && userDept != "مساج";
+            ViewBag.InitialDept = (userDept == "حلاقة" || userDept == "مساج") ? userDept : "حلاقة";
+
+            // Load services for the initial department
+            var svcQuery = _context.Services.Include(s => s.ServiceCategory).Where(s => s.IsActive);
+            if (userDept == "حلاقة" || userDept == "مساج")
+                svcQuery = svcQuery.Where(s => s.ServiceCategory!.Department == userDept);
+            ViewBag.Services = await svcQuery.OrderBy(s => s.Name).ToListAsync();
+
+            return View(new Appointment { AppointmentDate = DateTime.Today });
         }
 
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Appointment model, int[]? serviceIds)
         {
+            // Remove navigation properties from validation
+            ModelState.Remove("Customer");
+            ModelState.Remove("Employee");
+            ModelState.Remove("CustomerPackage");
+            ModelState.Remove("AppointmentServices");
+
             if (ModelState.IsValid)
             {
                 _context.Appointments.Add(model);
@@ -80,14 +98,46 @@ namespace Salon.Controllers
                             ServiceId = sid
                         });
                     }
-                    await _context.SaveChangesAsync();
                 }
 
+                // Deduct session from package if used
+                if (model.CustomerPackageId.HasValue)
+                {
+                    var customerPkg = await _context.CustomerPackages
+                        .Include(cp => cp.ServicePackage)
+                        .FirstOrDefaultAsync(cp => cp.Id == model.CustomerPackageId.Value);
+
+                    if (customerPkg != null && customerPkg.RemainingSessions > 0)
+                    {
+                        customerPkg.RemainingSessions--;
+                        if (customerPkg.RemainingSessions == 0)
+                            customerPkg.IsActive = false;
+
+                        _context.CustomerPackageTransactions.Add(new CustomerPackageTransaction
+                        {
+                            CustomerPackageId = customerPkg.Id,
+                            UsedDate = model.AppointmentDate,
+                            EmployeeId = model.EmployeeId,
+                            Notes = $"حجز موعد #{model.Id}"
+                        });
+                    }
+                }
+
+                await _context.SaveChangesAsync();
                 await _audit.LogAsync("Add", "Appointments", $"New appointment on {model.AppointmentDate:yyyy/MM/dd HH:mm}", model.Id);
-                TempData["Success"] = "Appointment added created successfully";
+                TempData["Success"] = "تم إضافة الموعد بنجاح";
                 return RedirectToAction(nameof(Index));
             }
-            await PopulateDropdowns();
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+            ViewBag.UserDept = userDept;
+            ViewBag.CanSelectDept = userDept != "حلاقة" && userDept != "مساج";
+            ViewBag.InitialDept = (userDept == "حلاقة" || userDept == "مساج") ? userDept : "حلاقة";
+            var svcQuery = _context.Services.Include(s => s.ServiceCategory).Where(s => s.IsActive);
+            if (userDept == "حلاقة" || userDept == "مساج")
+                svcQuery = svcQuery.Where(s => s.ServiceCategory!.Department == userDept);
+            ViewBag.Services = await svcQuery.OrderBy(s => s.Name).ToListAsync();
             return View(model);
         }
 
@@ -105,6 +155,11 @@ namespace Salon.Controllers
         public async Task<IActionResult> Edit(int id, Appointment model, int[]? serviceIds)
         {
             if (id != model.Id) return NotFound();
+            ModelState.Remove("Customer");
+            ModelState.Remove("Employee");
+            ModelState.Remove("CustomerPackage");
+            ModelState.Remove("AppointmentServices");
+
             if (ModelState.IsValid)
             {
                 var existingServices = _context.AppointmentServices.Where(a => a.AppointmentId == id);
@@ -125,7 +180,7 @@ namespace Salon.Controllers
                 _context.Update(model);
                 await _context.SaveChangesAsync();
                 await _audit.LogAsync("Edit", "Appointments", $"Edit appointment ID {model.Id}", model.Id);
-                TempData["Success"] = "Appointment updated created successfully";
+                TempData["Success"] = "تم تعديل الموعد بنجاح";
                 return RedirectToAction(nameof(Index));
             }
             await PopulateDropdowns();
@@ -141,9 +196,177 @@ namespace Salon.Controllers
                 _context.Appointments.Remove(apt);
                 await _context.SaveChangesAsync();
                 await _audit.LogAsync("Delete", "Appointments", $"Delete appointment on {apt.AppointmentDate:yyyy/MM/dd HH:mm}", id);
-                TempData["Success"] = "Appointment deleted created successfully";
+                TempData["Success"] = "تم حذف الموعد بنجاح";
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        // ─── AJAX: عملاء حسب القسم ────────────────────────────────────
+        [HttpGet]
+        public async Task<IActionResult> GetCustomersByDepartment(string dept)
+        {
+            var q = _context.Customers.Where(c => c.IsActive);
+            if (!string.IsNullOrEmpty(dept))
+                q = q.Where(c => c.Department == dept);
+
+            var list = await q.OrderBy(c => c.FullName)
+                .Select(c => new { c.Id, c.FullName, c.Phone })
+                .ToListAsync();
+
+            return Json(list);
+        }
+
+        // ─── AJAX: موظفون حسب القسم ───────────────────────────────────
+        [HttpGet]
+        public async Task<IActionResult> GetEmployeesByDepartment(string dept)
+        {
+            var q = _context.Employees
+                .Include(e => e.DepartmentNav)
+                .Where(e => e.IsActive);
+
+            if (!string.IsNullOrEmpty(dept))
+                q = q.Where(e => e.DepartmentNav!.Name == dept);
+
+            var list = await q.OrderBy(e => e.FullName)
+                .Select(e => new { e.Id, e.FullName, dept = e.DepartmentNav != null ? e.DepartmentNav.Name : "" })
+                .ToListAsync();
+
+            return Json(list);
+        }
+
+        // ─── AJAX: باقات عميل النشطة ─────────────────────────────────
+        [HttpGet]
+        public async Task<IActionResult> GetCustomerPackages(int customerId)
+        {
+            var today = DateTime.Today;
+            var list = await _context.CustomerPackages
+                .Include(cp => cp.ServicePackage)
+                .Where(cp => cp.CustomerId == customerId
+                    && cp.IsActive
+                    && cp.RemainingSessions > 0
+                    && (cp.ExpiryDate == null || cp.ExpiryDate >= today))
+                .Select(cp => new
+                {
+                    cp.Id,
+                    name = cp.ServicePackage != null ? cp.ServicePackage.NameAr : "",
+                    cp.RemainingSessions,
+                    cp.TotalSessions,
+                    expiry = cp.ExpiryDate != null ? cp.ExpiryDate.Value.ToString("dd/MM/yyyy") : ""
+                })
+                .ToListAsync();
+
+            return Json(list);
+        }
+
+        // ─── AJAX: خدمات حسب القسم ───────────────────────────────────
+        [HttpGet]
+        public async Task<IActionResult> GetServicesByDepartment(string dept)
+        {
+            var q = _context.Services
+                .Include(s => s.ServiceCategory)
+                .Where(s => s.IsActive);
+
+            if (!string.IsNullOrEmpty(dept))
+                q = q.Where(s => s.ServiceCategory!.Department == dept);
+
+            var list = await q.OrderBy(s => s.Name)
+                .Select(s => new
+                {
+                    s.Id,
+                    s.Name,
+                    price = s.Price.ToString("N3"),
+                    category = s.ServiceCategory != null ? s.ServiceCategory.Name : ""
+                })
+                .ToListAsync();
+
+            return Json(list);
+        }
+
+        // ─── AJAX: فترات الوقت المتاحة ───────────────────────────────
+        [HttpGet]
+        public async Task<IActionResult> GetTimeSlots(string date, int? employeeId)
+        {
+            if (!DateTime.TryParse(date, out var targetDate))
+                return Json(new List<object>());
+
+            var startOfDay = targetDate.Date;
+            var endOfDay = startOfDay.AddDays(1);
+
+            var appointments = await _context.Appointments
+                .Include(a => a.Customer)
+                .Include(a => a.Employee)
+                .Where(a => a.AppointmentDate >= startOfDay && a.AppointmentDate < endOfDay)
+                .Where(a => !employeeId.HasValue || a.EmployeeId == employeeId)
+                .ToListAsync();
+
+            Attendance? attendance = null;
+            List<AttendancePermission> breaks = new();
+            if (employeeId.HasValue)
+            {
+                attendance = await _context.Attendances
+                    .Include(a => a.Permissions)
+                    .FirstOrDefaultAsync(a => a.EmployeeId == employeeId.Value && a.AttendanceDate == startOfDay);
+                if (attendance != null)
+                    breaks = attendance.Permissions.ToList();
+            }
+
+            var slots = new List<object>();
+            for (int hour = 11; hour < 19; hour++)
+            {
+                var slotStart = TimeSpan.FromHours(hour);
+                var slotEnd = TimeSpan.FromHours(hour + 1);
+
+                bool isBreak = breaks.Any(b =>
+                    b.LeaveTime < slotEnd && (b.ReturnTime == null || b.ReturnTime > slotStart));
+
+                bool outsideShift = false;
+                if (attendance != null)
+                {
+                    if (attendance.CheckIn.HasValue && slotEnd <= attendance.CheckIn.Value)
+                        outsideShift = true;
+                    if (attendance.CheckOut.HasValue && slotStart >= attendance.CheckOut.Value)
+                        outsideShift = true;
+                }
+
+                var overlapping = appointments.FirstOrDefault(a =>
+                {
+                    var aptStart = a.AppointmentDate.TimeOfDay;
+                    var aptEnd = a.EndTime ?? aptStart.Add(TimeSpan.FromHours(1));
+                    return aptStart < slotEnd && aptEnd > slotStart;
+                });
+
+                string status;
+                string? personName = null;
+
+                if (overlapping != null)
+                {
+                    status = "محجوز";
+                    personName = overlapping.Customer?.FullName;
+                }
+                else if (isBreak)
+                {
+                    status = "استراحة";
+                    personName = "استراحة الموظف";
+                }
+                else if (outsideShift)
+                {
+                    status = "خارج الدوام";
+                }
+                else
+                {
+                    status = "متاح";
+                }
+
+                slots.Add(new
+                {
+                    startTime = $"{hour:D2}:00",
+                    endTime = $"{hour + 1:D2}:00",
+                    status,
+                    personName
+                });
+            }
+
+            return Json(slots);
         }
 
         private async Task PopulateDropdowns()

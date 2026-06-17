@@ -115,18 +115,18 @@
 <!-- Stats Row -->
 <div class="d-flex gap-2 flex-wrap mb-3">
     <span class="stat-chip" style="background:#e8f4fd;color:#1a6fc4;">
-        <i class="fas fa-calendar-alt"></i> الكل: @total
+        <i class="fas fa-calendar-alt"></i> <span>الكل:</span> @total
     </span>
     <span class="stat-chip" style="background:#fff8e1;color:#856404;">
-        <i class="fas fa-clock"></i> مجدول: @scheduled
+        <i class="fas fa-clock"></i> <span>مجدول:</span> @scheduled
     </span>
     <span class="stat-chip" style="background:#d1f3e8;color:#0a6640;">
-        <i class="fas fa-check-circle"></i> مكتمل: @completed
+        <i class="fas fa-check-circle"></i> <span>مكتمل:</span> @completed
     </span>
     @if (cancelled > 0)
     {
         <span class="stat-chip" style="background:#fce4e4;color:#c0392b;">
-            <i class="fas fa-times-circle"></i> ملغي: @cancelled
+            <i class="fas fa-times-circle"></i> <span>ملغي:</span> @cancelled
         </span>
     }
     @if (isFiltered)
@@ -135,11 +135,15 @@
             <i class="fas fa-filter"></i>
             @if (!string.IsNullOrEmpty(fromVal))
             {
-                <text>من @fromVal </text>
+                <span>من</span>
+        
+                <text> @fromVal </text>
             }
             @if (!string.IsNullOrEmpty(toVal))
             {
-                <text>إلى @toVal</text>
+                <span>إلى</span>
+        
+                <text> @toVal</text>
             }
         </span>
     }
@@ -185,12 +189,18 @@
                             <td style="padding:10px 14px;">@(a.Employee?.FullName ?? "—")</td>
                             <td style="padding:10px 14px;white-space:nowrap;">
                                 <div style="font-weight:600;">@a.AppointmentDate.ToString("yyyy/MM/dd")</div>
-                                <div style="font-size:11px;color:#888;">@a.AppointmentDate.ToString("hh:mm tt")</div>
-                            </td>
-                            <td style="padding:10px 14px;font-size:12px;color:#555;">
-                                @(a.AppointmentServices.Any()
-                                                            ? string.Join("، ", a.AppointmentServices.Select(s => s.Service?.Name ?? ""))
-                                                            : "—")
+                                <div style="font-size:11px;color:#888;">
+                                    @a.AppointmentDate.ToString("hh:mm tt")
+                                    @if (a.EndTime.HasValue)
+                                    {
+                                        <text> — @(DateTime.Today.Add(a.EndTime.Value).ToString("hh:mm tt"))</text>
+                                    }
+                            </div>
+                        </td>
+                        <td style="padding:10px 14px;font-size:12px;color:#555;">
+                            @(a.AppointmentServices.Any()
+                                                        ? string.Join("، ", a.AppointmentServices.Select(s => s.Service?.Name ?? ""))
+                                                        : "—")
                         </td>
                         <td style="padding:10px 14px;">
                             <span class="status-badge @statusClass">@a.Status</span>

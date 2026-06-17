@@ -256,8 +256,14 @@ namespace Salon.Migrations
                 b.Property<int>("CustomerId")
                     .HasColumnType("int");
 
+                b.Property<int?>("CustomerPackageId")
+                    .HasColumnType("int");
+
                 b.Property<int?>("EmployeeId")
                     .HasColumnType("int");
+
+                b.Property<TimeSpan?>("EndTime")
+                    .HasColumnType("time");
 
                 b.Property<string>("Notes")
                     .HasColumnType("nvarchar(max)");
@@ -269,6 +275,8 @@ namespace Salon.Migrations
                 b.HasKey("Id");
 
                 b.HasIndex("CustomerId");
+
+                b.HasIndex("CustomerPackageId");
 
                 b.HasIndex("EmployeeId");
 
@@ -1170,11 +1178,17 @@ namespace Salon.Migrations
                     .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired();
 
+                b.HasOne("Salon.Models.CustomerPackage", "CustomerPackage")
+                    .WithMany()
+                    .HasForeignKey("CustomerPackageId");
+
                 b.HasOne("Salon.Models.Employee", "Employee")
                     .WithMany()
                     .HasForeignKey("EmployeeId");
 
                 b.Navigation("Customer");
+
+                b.Navigation("CustomerPackage");
 
                 b.Navigation("Employee");
             });
