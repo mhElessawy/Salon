@@ -80,19 +80,18 @@ namespace Salon.Controllers
             ViewBag.TotalSales = activeSales.Sum(s => s.NetAmount);
             ViewBag.TotalCancelled = cancelledSales.Sum(s => s.NetAmount);
 
+            var splitSales = activeSales.Where(s => s.PaymentMethod == "كي نت و كاش").ToList();
+
             ViewBag.TotalCash = activeSales
                 .Where(s => s.PaymentMethod == "كاش")
                 .Sum(s => s.NetAmount)
-                + activeSales
-                .Where(s => s.PaymentMethod == "كي نت و كاش")
-                .Sum(s => s.CashAmount ?? 0);
+                + splitSales.Sum(s => s.CashAmount ?? 0);
 
+            // derive K-Net from NetAmount - CashAmount so totals always balance
             ViewBag.TotalKnet = activeSales
                 .Where(s => s.PaymentMethod == "كي نت")
                 .Sum(s => s.NetAmount)
-                + activeSales
-                .Where(s => s.PaymentMethod == "كي نت و كاش")
-                .Sum(s => s.LinkAmount ?? 0);
+                + splitSales.Sum(s => s.NetAmount - (s.CashAmount ?? 0));
 
             ViewBag.TotalEmployeeDebt = activeSales
                 .Where(s => s.PaymentMethod == "دين على الموظف")
