@@ -3,6 +3,10 @@
     ViewData["Title"] = "سلف الموظفين";
     string[] arabicMonths = { "", "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
                                "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر" };
+    decimal pendingTotal  = (decimal)ViewBag.PendingTotal;
+    decimal approvedTotal = (decimal)ViewBag.ApprovedTotal;
+    int     pendingCount  = (int)ViewBag.PendingCount;
+    int     approvedCount = (int)ViewBag.ApprovedCount;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -22,7 +26,7 @@
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <div class="text-muted small mb-1">السلف المعلقة</div>
-                        <div class="fw-bold fs-4 text-warning">@((int)ViewBag.PendingCount)</div>
+                        <div class="fw-bold fs-4 text-warning">@pendingCount</div>
                         <div class="small text-muted">سلفة</div>
                     </div>
                     <div class="rounded-circle d-flex align-items-center justify-content-center"
@@ -31,7 +35,7 @@
                     </div>
                 </div>
                 <div class="mt-2 pt-2 border-top">
-                    <span class="fw-bold text-warning">@((decimal)ViewBag.PendingTotal).ToString("N3")</span>
+                    <span class="fw-bold text-warning">@pendingTotal.ToString("N3")</span>
                     <span class="text-muted small"> د.ك</span>
                 </div>
             </div>
@@ -43,7 +47,7 @@
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <div class="text-muted small mb-1">السلف الموافق عليها</div>
-                        <div class="fw-bold fs-4 text-success">@((int)ViewBag.ApprovedCount)</div>
+                        <div class="fw-bold fs-4 text-success">@approvedCount</div>
                         <div class="small text-muted">سلفة</div>
                     </div>
                     <div class="rounded-circle d-flex align-items-center justify-content-center"
@@ -52,7 +56,7 @@
                     </div>
                 </div>
                 <div class="mt-2 pt-2 border-top">
-                    <span class="fw-bold text-success">@((decimal)ViewBag.ApprovedTotal).ToString("N3")</span>
+                    <span class="fw-bold text-success">@approvedTotal.ToString("N3")</span>
                     <span class="text-muted small"> د.ك</span>
                 </div>
             </div>
@@ -86,6 +90,8 @@ else
         {
             var cardId = "emp-" + summary.Employee.Id;
             var hasRemaining = summary.TotalRemaining > 0;
+            var empPending  = summary.Advances.Where(a => a.Status == "معلق").Sum(a => a.Amount);
+            var empApproved = summary.Advances.Where(a => a.Status == "موافق عليها").Sum(a => a.Amount);
 
             <div class="col-md-6 col-xl-4">
                 <div class="card h-100 shadow-sm border-0" style="cursor:pointer;"
@@ -99,6 +105,23 @@ else
                             <span class="badge @(hasRemaining ? "bg-warning text-dark" : "bg-success") fs-6">
                                 @(hasRemaining ? "لديه رصيد" : "مسدد")
                             </span>
+                        </div>
+                        <!-- معلقة / موافق عليها -->
+                        <div class="row text-center g-2 mb-2">
+                            <div class="col-6">
+                                <div class="rounded p-2" style="background:#fef3c7;">
+                                    <div class="small text-muted">معلقة</div>
+                                    <div class="fw-bold text-warning">@empPending.ToString("N3")</div>
+                                    <div class="small text-muted">د.ك</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="rounded p-2" style="background:#d1fae5;">
+                                    <div class="small text-muted">موافق عليها</div>
+                                    <div class="fw-bold text-success">@empApproved.ToString("N3")</div>
+                                    <div class="small text-muted">د.ك</div>
+                                </div>
+                            </div>
                         </div>
                         <div class="row text-center g-2">
                             <div class="col-4">
