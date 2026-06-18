@@ -39,7 +39,7 @@ namespace Salon.Controllers
             else if (userDept == "مساج")
                 salesBase = salesBase.Where(s => s.SaleType != "حلاقة");
 
-            var salesToday = await salesBase.SumAsync(s => (decimal?)s.NetAmount) ?? 0;
+            var salesToday = (await salesBase.Select(s => s.NetAmount).ToListAsync()).Sum();
 
             var customersToday = await salesBase
                 .Where(s => s.CustomerId != null)
@@ -57,7 +57,7 @@ namespace Salon.Controllers
                 expensesQuery = expensesQuery.Where(e => e.Department == "مساج" || e.Department == null);
             // الأدمن يرى كل المصاريف
 
-            var expensesToday = await expensesQuery.SumAsync(e => (decimal?)e.Amount) ?? 0;
+            var expensesToday = (await expensesQuery.Select(e => e.Amount).ToListAsync()).Sum();
 
             var advancesQuery = _context.EmployeeAdvances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
@@ -66,7 +66,7 @@ namespace Salon.Controllers
             if (userDept == "حلاقة" || userDept == "مساج")
                 advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
 
-            var advancesToday = await advancesQuery.SumAsync(a => (decimal?)a.Amount) ?? 0;
+            var advancesToday = (await advancesQuery.Select(a => a.Amount).ToListAsync()).Sum();
 
             var netProfit = salesToday - expensesToday - advancesToday;
 

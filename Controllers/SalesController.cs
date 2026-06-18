@@ -412,7 +412,7 @@ namespace Salon.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id, string? reason)
         {
             var sale = await _context.Sales
                 .Include(s => s.SaleItems)
@@ -438,9 +438,13 @@ namespace Salon.Controllers
                         product.StockQuantity += item.Quantity;
                 }
                 sale.Status = "ملغي";
+                if (!string.IsNullOrWhiteSpace(reason))
+                    sale.Notes = string.IsNullOrWhiteSpace(sale.Notes)
+                        ? $"سبب الإلغاء: {reason}"
+                        : $"{sale.Notes} | سبب الإلغاء: {reason}";
                 await _context.SaveChangesAsync();
                 await _audit.LogAsync("Cancel", "المبيعات",
-                    $"إلغاء الفاتورة رقم {sale.InvoiceNumber}",
+                    $"إلغاء الفاتورة رقم {sale.InvoiceNumber}" + (string.IsNullOrWhiteSpace(reason) ? "" : $" — السبب: {reason}"),
                     sale.Id);
                 TempData["Success"] = "Invoice cancelled";
 
