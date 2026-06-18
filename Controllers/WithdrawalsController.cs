@@ -22,10 +22,14 @@ namespace Salon.Controllers
             _userManager = userManager;
         }
 
-        public async Task<IActionResult> Index(string? date, string? dept)
+        public async Task<IActionResult> Index(string? from, string? to, string? dept)
         {
-            DateTime filterDate = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
-            var nextDay = filterDate.AddDays(1);
+            DateTime dateFrom = string.IsNullOrEmpty(from)
+                ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)
+                : DateTime.Parse(from);
+            DateTime dateTo = string.IsNullOrEmpty(to)
+                ? DateTime.Today.AddDays(1)
+                : DateTime.Parse(to).AddDays(1);
 
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
@@ -34,14 +38,15 @@ namespace Salon.Controllers
                 dept = userDept;
 
             var query = _context.Withdrawals
-                .Where(w => w.WithdrawalDate >= filterDate && w.WithdrawalDate < nextDay);
+                .Where(w => w.WithdrawalDate >= dateFrom && w.WithdrawalDate < dateTo);
 
             if (!string.IsNullOrEmpty(dept))
                 query = query.Where(w => w.Department == dept);
 
-            var withdrawals = await query.OrderByDescending(w => w.CreatedAt).ToListAsync();
+            var withdrawals = await query.OrderByDescending(w => w.WithdrawalDate).ThenByDescending(w => w.CreatedAt).ToListAsync();
 
-            ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
             ViewBag.FilterDept = dept;
             ViewBag.Total = withdrawals.Sum(w => w.Amount);
             ViewBag.UserDepartment = userDept;

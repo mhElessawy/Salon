@@ -18,8 +18,10 @@
 <div class="card mb-3">
     <div class="card-body">
         <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
-            <label class="form-label mb-0">التاريخ:</label>
-            <input type="date" name="date" value="@ViewBag.FilterDate" class="form-control" style="max-width:200px;" />
+            <label class="form-label mb-0">من:</label>
+            <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:180px;" />
+            <label class="form-label mb-0">إلى:</label>
+            <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:180px;" />
             @if (userDept != "حلاقة" && userDept != "مساج")
             {
                 <label class="form-label mb-0">القسم:</label>
@@ -30,6 +32,7 @@
                 </select>
             }
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
+            <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm"><i class="fas fa-undo"></i></a>
         </form>
     </div>
 </div>
