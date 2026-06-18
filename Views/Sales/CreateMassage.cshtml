@@ -807,7 +807,7 @@
                 <p class="mb-2 fw-semibold" style="font-size:13px">
                     <i class="fas fa-exchange-alt me-1 text-info"></i>تفاصيل الدفع المختلط
                 </p>
-                <div class="d-flex gap-3 align-items-end flex-wrap">
+                <div class="d-flex gap-3 align-items-end flex-wrap mb-2">
                     <div>
                         <label class="form-label mb-1" style="font-size:12px">مبلغ الكاش</label>
                         <input type="number" name="CashAmount" id="cashAmountInput" class="form-control form-control-sm"
@@ -818,8 +818,8 @@
                         <input type="number" name="LinkAmount" id="linkAmountInput" class="form-control form-control-sm"
                                step="0.001" min="0" placeholder="0.000" oninput="onLinkInput()" style="width:130px" />
                     </div>
-                    <small id="splitStatus" class="align-self-end pb-1" style="font-size:12px;font-weight:600;"></small>
                 </div>
+                <div id="splitStatus" style="display:none;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;text-align:center;"></div>
             </div>
 
             <button type="submit" class="btn-save-invoice" id="saveBtn" disabled>
@@ -1111,22 +1111,30 @@
             return Math.max(0, s + pkgPay - d);
         }
         function updateSplitDisplay(cash, link, net) {
-            var statusEl = document.getElementById('splitStatus');
-            var bothZero  = cash <= 0 && link <= 0;
+            var el = document.getElementById('splitStatus');
+            var bothZero   = cash <= 0 && link <= 0;
             var eitherZero = cash <= 0 || link <= 0;
-            var sumOk = Math.abs(cash + link - net) < 0.005;
+            var sumOk      = Math.abs(cash + link - net) < 0.005;
             if (bothZero) {
-                statusEl.textContent = 'أدخل مبلغ الكاش أو الكي نت';
-                statusEl.style.color = '#6c757d';
+                el.style.display = 'none';
             } else if (eitherZero) {
-                statusEl.textContent = 'يجب أن يكون الكاش والكي نت أكبر من صفر';
-                statusEl.style.color = '#dc3545';
+                el.style.display = '';
+                el.style.background = '#f8d7da';
+                el.style.color      = '#842029';
+                el.style.border     = '1.5px solid #f5c2c7';
+                el.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>يجب أن يكون مبلغ الكاش ومبلغ الكي نت أكبر من صفر';
             } else if (!sumOk) {
-                statusEl.textContent = 'المجموع ' + (cash+link).toFixed(3) + ' ≠ ' + net.toFixed(3) + ' د.ك';
-                statusEl.style.color = '#dc3545';
+                el.style.display = '';
+                el.style.background = '#fff3cd';
+                el.style.color      = '#664d03';
+                el.style.border     = '1.5px solid #ffecb5';
+                el.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>مجموع الكاش والكي نت (' + (cash+link).toFixed(3) + ' د.ك) لا يساوي إجمالي الفاتورة (' + net.toFixed(3) + ' د.ك)';
             } else {
-                statusEl.textContent = '✓ يساوي إجمالي الفاتورة';
-                statusEl.style.color = '#198754';
+                el.style.display = '';
+                el.style.background = '#d1e7dd';
+                el.style.color      = '#0f5132';
+                el.style.border     = '1.5px solid #badbcc';
+                el.innerHTML = '<i class="fas fa-check-circle me-2"></i>صحيح — الكاش + الكي نت = ' + net.toFixed(3) + ' د.ك';
             }
             document.getElementById('splitCashDisplay').textContent = cash.toFixed(3) + ' د.ك';
             document.getElementById('splitKnetDisplay').textContent = link.toFixed(3) + ' د.ك';
