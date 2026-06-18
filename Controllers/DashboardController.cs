@@ -61,7 +61,8 @@ namespace Salon.Controllers
 
             var advancesQuery = _context.EmployeeAdvances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
-                .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow);
+                .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow
+                         && (a.Status == "موافق عليها" || a.Status == "مسددة"));
 
             if (userDept == "حلاقة" || userDept == "مساج")
                 advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
