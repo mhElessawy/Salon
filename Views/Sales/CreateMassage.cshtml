@@ -719,6 +719,14 @@
                     <input type="hidden" name="Discount" id="discountInput" value="0" />
                 }
                 <div class="total-row net"><span>الصافي:</span><span id="netDisplay">0.000 د.ك</span></div>
+                <div id="splitCashRow" class="total-row" style="display:none;padding-top:3px;">
+                    <span style="color:#28a745;font-size:12px;"><i class="fas fa-money-bill-wave me-1"></i>كاش:</span>
+                    <span id="splitCashDisplay" style="color:#28a745;font-size:12px;font-weight:700;">0.000 د.ك</span>
+                </div>
+                <div id="splitKnetRow" class="total-row" style="display:none;padding-bottom:3px;">
+                    <span style="color:#1a6fc4;font-size:12px;"><i class="fas fa-credit-card me-1"></i>كي نت:</span>
+                    <span id="splitKnetDisplay" style="color:#1a6fc4;font-size:12px;font-weight:700;">0.000 د.ك</span>
+                </div>
                 <div class="total-row" style="border-top:1px dashed #a8e6ef;padding-top:8px;margin-top:4px;">
                     <span style="color:#17a2b8;font-size:12px;"><i class="fas fa-hand-holding-usd me-1"></i>عمولة خدمة للموظف:</span>
                     <input type="number" name="EmployeeGift" id="giftInput" class="discount-input"
@@ -803,14 +811,14 @@
                     <div>
                         <label class="form-label mb-1" style="font-size:12px">مبلغ الكاش</label>
                         <input type="number" name="CashAmount" id="cashAmountInput" class="form-control form-control-sm"
-                               step="0.001" min="0" placeholder="0.000" oninput="validateSplit()" style="width:130px" />
+                               step="0.001" min="0" placeholder="0.000" oninput="onCashInput()" style="width:130px" />
                     </div>
                     <div>
                         <label class="form-label mb-1" style="font-size:12px">مبلغ كي نت</label>
                         <input type="number" name="LinkAmount" id="linkAmountInput" class="form-control form-control-sm"
-                               step="0.001" min="0" placeholder="0.000" oninput="validateSplit()" style="width:130px" />
+                               step="0.001" min="0" placeholder="0.000" oninput="onLinkInput()" style="width:130px" />
                     </div>
-                    <small id="splitStatus" class="text-muted align-self-end pb-1"></small>
+                    <small id="splitStatus" class="align-self-end pb-1" style="font-size:12px;font-weight:600;"></small>
                 </div>
             </div>
 
@@ -880,8 +888,8 @@
                             <div class="assign-pkg-card" id="apc-@p.Id"
                                  onclick="selectAssignCard(@p.Id, '@Html.Raw(p.NameAr.Replace("'", "\\\'"))', @p.Price.ToString(System.Globalization.CultureInfo.InvariantCulture), @p.SessionCount, @p.ValidityDays)"
                                  style="border:2px solid #dee2e6;border-radius:12px;background:#fff;padding:12px 16px;
-                                                                cursor:pointer;min-width:170px;flex:1;max-width:230px;transition:all .2s;text-align:right;
-                                                                box-shadow:0 1px 4px rgba(0,0,0,.06);">
+                                                                    cursor:pointer;min-width:170px;flex:1;max-width:230px;transition:all .2s;text-align:right;
+                                                                    box-shadow:0 1px 4px rgba(0,0,0,.06);">
                                 <div style="font-weight:700;font-size:13px;color:#1a6fc4;margin-bottom:6px;">
                                     <i class="fas fa-box-open me-1"></i>@p.NameAr
                                 </div>
@@ -977,17 +985,17 @@
 
         @if (isEmployee && linkedEmpId.HasValue)
         {
-                                                    <text>
-                                                    document.querySelectorAll('.emp-item').forEach(function(el) {
-                                                        el.style.cursor = 'default'; el.onclick = null;
-                                                    });
-                                                    </text>
+                                                        <text>
+                                                        document.querySelectorAll('.emp-item').forEach(function(el) {
+                                                            el.style.cursor = 'default'; el.onclick = null;
+                                                        });
+                                                        </text>
         }
 
         function selectEmployee(id, el) {
             @if (isEmployee)
             {
-                                                    <text>return;</text>
+                                                        <text>return;</text>
             }
             document.querySelectorAll('.emp-item').forEach(function(e) { e.classList.remove('emp-selected'); });
             el.classList.add('emp-selected');
@@ -1056,6 +1064,9 @@
             } else {
                 hadiyaRow.style.display = 'none';
             }
+            if (document.getElementById('paymentMethodSelect').value === 'كي نت و كاش') {
+                validateSplit();
+            }
         }
         function filterItems(q) {
             q = q.toLowerCase();
@@ -1071,22 +1082,62 @@
         }
         function onPaymentChange() {
             var pm = document.getElementById('paymentMethodSelect').value;
-            var extraBar = document.getElementById('extraPaymentBar');
-            var splitSection = document.getElementById('splitSection');
-            var debtEmpSection = document.getElementById('debtEmpSection');
+            var extraBar        = document.getElementById('extraPaymentBar');
+            var splitSection    = document.getElementById('splitSection');
+            var debtEmpSection  = document.getElementById('debtEmpSection');
             var customerWarning = document.getElementById('customerDebtWarning');
             var customerSelect  = document.getElementById('customerSelect');
+            var splitCashRow    = document.getElementById('splitCashRow');
+            var splitKnetRow    = document.getElementById('splitKnetRow');
             splitSection.style.display = 'none';
+            splitCashRow.style.display = splitKnetRow.style.display = 'none';
             debtEmpSection.style.display = extraBar.style.display = 'none';
             customerWarning.style.display = 'none'; customerSelect.required = false;
-            if (pm === 'كي نت و كاش')        { splitSection.style.display = ''; }
+            if (pm === 'كي نت و كاش') {
+                splitSection.style.display = '';
+                splitCashRow.style.display = splitKnetRow.style.display = '';
+                var net = getNet();
+                document.getElementById('cashAmountInput').value = net.toFixed(3);
+                document.getElementById('linkAmountInput').value = '0.000';
+                updateSplitDisplay(net, 0, net);
+            }
             else if (pm === 'دين على العميل') { customerWarning.style.display = ''; customerSelect.required = true; }
             else if (pm === 'دين على الموظف') { extraBar.style.display = ''; debtEmpSection.style.display = ''; }
+        }
+        function getNet() {
+            var s = items.reduce(function(a,i) { return a + i.total; }, 0);
+            var d = parseFloat(document.getElementById('discountInput').value) || 0;
+            var pkgPay = parseFloat(document.getElementById('packagePaymentAmount').value) || 0;
+            return Math.max(0, s + pkgPay - d);
+        }
+        function updateSplitDisplay(cash, link, net) {
+            var ok = Math.abs(cash + link - net) < 0.005;
+            var statusEl = document.getElementById('splitStatus');
+            statusEl.textContent = ok ? '✓ يساوي إجمالي الفاتورة' : 'المجموع ' + (cash+link).toFixed(3) + ' ≠ ' + net.toFixed(3) + ' د.ك';
+            statusEl.style.color = ok ? '#198754' : '#dc3545';
+            document.getElementById('splitCashDisplay').textContent = cash.toFixed(3) + ' د.ك';
+            document.getElementById('splitKnetDisplay').textContent = link.toFixed(3) + ' د.ك';
+        }
+        function onCashInput() {
+            var net = getNet();
+            var cash = parseFloat(document.getElementById('cashAmountInput').value) || 0;
+            if (cash > net) { cash = net; document.getElementById('cashAmountInput').value = net.toFixed(3); }
+            var link = Math.max(0, +(net - cash).toFixed(3));
+            document.getElementById('linkAmountInput').value = link.toFixed(3);
+            updateSplitDisplay(cash, link, net);
+        }
+        function onLinkInput() {
+            var net = getNet();
+            var link = parseFloat(document.getElementById('linkAmountInput').value) || 0;
+            if (link > net) { link = net; document.getElementById('linkAmountInput').value = net.toFixed(3); }
+            var cash = Math.max(0, +(net - link).toFixed(3));
+            document.getElementById('cashAmountInput').value = cash.toFixed(3);
+            updateSplitDisplay(cash, link, net);
         }
         function validateSplit() {
             var cash = parseFloat(document.getElementById('cashAmountInput').value) || 0;
             var link = parseFloat(document.getElementById('linkAmountInput').value) || 0;
-            document.getElementById('splitStatus').textContent = 'المجموع: ' + (cash + link).toFixed(3) + ' د.ك';
+            updateSplitDisplay(cash, link, getNet());
         }
 
         document.getElementById('posForm').addEventListener('submit', function(e) {
@@ -1103,6 +1154,15 @@
             if (pm === 'دين على الموظف') {
                 var sel = document.getElementById('debtEmployeeSelect');
                 if (!sel || !sel.value) { alert('يرجى اختيار الموظف المدين'); return; }
+            }
+            if (pm === 'كي نت و كاش') {
+                var cash2 = parseFloat(document.getElementById('cashAmountInput').value) || 0;
+                var link2 = parseFloat(document.getElementById('linkAmountInput').value) || 0;
+                var net2  = getNet();
+                if (Math.abs(cash2 + link2 - net2) > 0.005) {
+                    alert('مبلغ الكاش + مبلغ كي نت (' + (cash2+link2).toFixed(3) + ' د.ك) يجب أن يساوي إجمالي الفاتورة (' + net2.toFixed(3) + ' د.ك)');
+                    return;
+                }
             }
             var c = document.getElementById('hiddenItems'); c.innerHTML = '';
             items.forEach(function(it) {
@@ -1435,6 +1495,13 @@
             document.getElementById('customerSelect').value = '';
             document.getElementById('paymentMethodSelect').value = 'كاش';
             document.getElementById('pkgPayTotalRow').style.display = 'none';
+            document.getElementById('cashAmountInput').value = '';
+            document.getElementById('linkAmountInput').value = '';
+            document.getElementById('splitCashDisplay').textContent = '0.000 د.ك';
+            document.getElementById('splitKnetDisplay').textContent = '0.000 د.ك';
+            document.getElementById('splitCashRow').style.display = 'none';
+            document.getElementById('splitKnetRow').style.display = 'none';
+            document.getElementById('splitStatus').textContent = '';
             document.querySelectorAll('.pay-btn').forEach(function(b) { b.classList.remove('active'); });
             document.querySelector('.pay-btn[data-value="كاش"]').classList.add('active');
             onPaymentChange();
@@ -1449,7 +1516,7 @@
         var schedEmployees = [
             @foreach (var emp in employees)
             {
-                    <text>{ id: @emp.Id, name: '@Html.Raw(emp.FullName.Replace("'", "\\'"))' },</text>
+                        <text>{ id: @emp.Id, name: '@Html.Raw(emp.FullName.Replace("'", "\\'"))' },</text>
             }
         ];
 

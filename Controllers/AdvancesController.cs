@@ -68,6 +68,10 @@ namespace Salon.Controllers
                 .ToList();
 
             ViewBag.Search = search;
+            ViewBag.PendingCount = advances.Count(a => a.Status == "معلق");
+            ViewBag.PendingTotal = advances.Where(a => a.Status == "معلق").Sum(a => a.Amount);
+            ViewBag.ApprovedCount = advances.Count(a => a.Status == "موافق عليها");
+            ViewBag.ApprovedTotal = advances.Where(a => a.Status == "موافق عليها").Sum(a => a.Amount);
             return View(summaries);
         }
 

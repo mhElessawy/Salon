@@ -283,7 +283,8 @@ namespace Salon.Controllers
 
             var advancesQuery = _context.EmployeeAdvances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
-                .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow);
+                .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow
+                         && (a.Status == "موافق عليها" || a.Status == "مسددة"));
             if (!string.IsNullOrEmpty(filterDept))
                 advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == filterDept);
 
@@ -486,7 +487,8 @@ namespace Salon.Controllers
 
             var todayAdvances = await _context.EmployeeAdvances
                 .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow
-                         && employeeIds.Contains(a.EmployeeId))
+                         && employeeIds.Contains(a.EmployeeId)
+                         && (a.Status == "موافق عليها" || a.Status == "مسددة"))
                 .ToListAsync();
 
             var shift = await _context.Shifts
@@ -584,7 +586,8 @@ namespace Salon.Controllers
                 var monthAdvances = await _context.EmployeeAdvances
                     .Include(a => a.Employee)
                     .Where(a => a.AdvanceDate >= monthStart && a.AdvanceDate < tomorrow
-                             && employeeIds.Contains(a.EmployeeId))
+                             && employeeIds.Contains(a.EmployeeId)
+                             && (a.Status == "موافق عليها" || a.Status == "مسددة"))
                     .OrderBy(a => a.AdvanceDate).ThenBy(a => a.Id)
                     .ToListAsync();
 
@@ -729,7 +732,8 @@ namespace Salon.Controllers
 
                 var advancesQuery = _context.EmployeeAdvances
                     .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
-                    .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo);
+                    .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo
+                             && (a.Status == "موافق عليها" || a.Status == "مسددة"));
                 if (filterDept)
                     advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == dept);
                 var advances = await advancesQuery
@@ -1032,7 +1036,8 @@ namespace Salon.Controllers
             // Advances
             var advQuery = _context.EmployeeAdvances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
-                .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo);
+                .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo
+                         && (a.Status == "موافق عليها" || a.Status == "مسددة"));
             if (deptFilter == "مساج") advQuery = advQuery.Where(a => a.Employee!.DepartmentNav!.Name == "مساج");
             else if (deptFilter == "حلاقة") advQuery = advQuery.Where(a => a.Employee!.DepartmentNav!.Name == "حلاقة");
             var advancesList = await advQuery.OrderBy(a => a.AdvanceDate).ToListAsync();
@@ -1152,7 +1157,8 @@ namespace Salon.Controllers
             var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
 
             var advancesByEmp = (await _context.EmployeeAdvances
-                .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo)
+                .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo
+                         && (a.Status == "موافق عليها" || a.Status == "مسددة"))
                 .ToListAsync())
                 .GroupBy(a => a.EmployeeId)
                 .ToDictionary(g => g.Key, g => g.Sum(a => a.Amount));
