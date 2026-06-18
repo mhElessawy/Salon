@@ -1,10 +1,13 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Salon.Models
 {
     public class Withdrawal
     {
         public int Id { get; set; }
+
+        [Display(Name = "القسم")]
+        public string? Department { get; set; } // "حلاقة" | "مساج"
 
         [Required(ErrorMessage = "المبلغ مطلوب")]
         [Display(Name = "المبلغ")]
