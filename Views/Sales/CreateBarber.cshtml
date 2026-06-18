@@ -1129,10 +1129,9 @@
                 if (pm === 'كي نت و كاش') {
                     splitSection.style.display = '';
                     splitCashRow.style.display = splitKnetRow.style.display = '';
-                    var net = getNet();
-                    document.getElementById('cashAmountInput').value = net.toFixed(3);
-                    document.getElementById('linkAmountInput').value = '0.000';
-                    updateSplitDisplay(net, 0, net);
+                    document.getElementById('cashAmountInput').value = '';
+                    document.getElementById('linkAmountInput').value = '';
+                    updateSplitDisplay(0, 0, getNet());
                 }
                 else if (pm === 'دين على العميل') { customerWarning.style.display = ''; customerSelect.required = true; }
                 else if (pm === 'دين على الموظف') { extraBar.style.display = ''; debtEmpSection.style.display = ''; }
@@ -1144,10 +1143,23 @@
                 return Math.max(0, s + pkgPay - d);
             }
             function updateSplitDisplay(cash, link, net) {
-                var ok = Math.abs(cash + link - net) < 0.005;
                 var statusEl = document.getElementById('splitStatus');
-                statusEl.textContent = ok ? '✓ يساوي إجمالي الفاتورة' : 'المجموع ' + (cash+link).toFixed(3) + ' ≠ ' + net.toFixed(3) + ' د.ك';
-                statusEl.style.color = ok ? '#198754' : '#dc3545';
+                var bothZero  = cash <= 0 && link <= 0;
+                var eitherZero = cash <= 0 || link <= 0;
+                var sumOk = Math.abs(cash + link - net) < 0.005;
+                if (bothZero) {
+                    statusEl.textContent = 'أدخل مبلغ الكاش أو الكي نت';
+                    statusEl.style.color = '#6c757d';
+                } else if (eitherZero) {
+                    statusEl.textContent = 'يجب أن يكون الكاش والكي نت أكبر من صفر';
+                    statusEl.style.color = '#dc3545';
+                } else if (!sumOk) {
+                    statusEl.textContent = 'المجموع ' + (cash+link).toFixed(3) + ' ≠ ' + net.toFixed(3) + ' د.ك';
+                    statusEl.style.color = '#dc3545';
+                } else {
+                    statusEl.textContent = '✓ يساوي إجمالي الفاتورة';
+                    statusEl.style.color = '#198754';
+                }
                 document.getElementById('splitCashDisplay').textContent = cash.toFixed(3) + ' د.ك';
                 document.getElementById('splitKnetDisplay').textContent = link.toFixed(3) + ' د.ك';
             }
@@ -1192,6 +1204,10 @@
                     var cash2 = parseFloat(document.getElementById('cashAmountInput').value) || 0;
                     var link2 = parseFloat(document.getElementById('linkAmountInput').value) || 0;
                     var net2  = getNet();
+                    if (cash2 <= 0 || link2 <= 0) {
+                        alert('يجب أن يكون مبلغ الكاش ومبلغ الكي نت أكبر من صفر');
+                        return;
+                    }
                     if (Math.abs(cash2 + link2 - net2) > 0.005) {
                         alert('مبلغ الكاش + مبلغ كي نت (' + (cash2+link2).toFixed(3) + ' د.ك) يجب أن يساوي إجمالي الفاتورة (' + net2.toFixed(3) + ' د.ك)');
                         return;
