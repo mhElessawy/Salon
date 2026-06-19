@@ -860,10 +860,11 @@ namespace Salon.Controllers
 
             if (showWithdrawals)
             {
-                var withdrawals = await _context.Withdrawals
-                    .Where(w => w.WithdrawalDate >= dateFrom && w.WithdrawalDate < dateTo)
-                    .OrderByDescending(w => w.WithdrawalDate)
-                    .ToListAsync();
+                var wQuery = _context.Withdrawals
+                    .Where(w => w.WithdrawalDate >= dateFrom && w.WithdrawalDate < dateTo);
+                if (filterDept)
+                    wQuery = wQuery.Where(w => w.Department == dept);
+                var withdrawals = await wQuery.OrderByDescending(w => w.WithdrawalDate).ToListAsync();
 
                 items.AddRange(withdrawals.Select(w => new CashMovementReportItem
                 {
@@ -1026,11 +1027,12 @@ namespace Salon.Controllers
             var depositsList = await depQuery.OrderBy(d => d.DepositDate).ToListAsync();
             decimal totalDeposits = depositsList.Sum(d => d.Amount);
 
-            // Withdrawals (no dept field)
-            var withdrawalsList = await _context.Withdrawals
-                .Where(w => w.WithdrawalDate >= dateFrom && w.WithdrawalDate < dateTo)
-                .OrderBy(w => w.WithdrawalDate)
-                .ToListAsync();
+            // Withdrawals — filtered by department when a specific dept is selected
+            var wdQuery = _context.Withdrawals
+                .Where(w => w.WithdrawalDate >= dateFrom && w.WithdrawalDate < dateTo);
+            if (deptFilter == "مساج") wdQuery = wdQuery.Where(w => w.Department == "مساج");
+            else if (deptFilter == "حلاقة") wdQuery = wdQuery.Where(w => w.Department == "حلاقة");
+            var withdrawalsList = await wdQuery.OrderBy(w => w.WithdrawalDate).ToListAsync();
             decimal totalWithdrawals = withdrawalsList.Sum(w => w.Amount);
 
             // Advances

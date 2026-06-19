@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
@@ -12,46 +13,71 @@ namespace Salon.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _audit;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public WithdrawalsController(ApplicationDbContext context, IAuditService audit)
+        public WithdrawalsController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _audit = audit;
+            _userManager = userManager;
         }
 
-        public async Task<IActionResult> Index(string? date)
+        public async Task<IActionResult> Index(string? from, string? to, string? dept)
         {
-            DateTime filterDate = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
-            var nextDay = filterDate.AddDays(1);
+            DateTime dateFrom = string.IsNullOrEmpty(from)
+                ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)
+                : DateTime.Parse(from);
+            DateTime dateTo = string.IsNullOrEmpty(to)
+                ? DateTime.Today.AddDays(1)
+                : DateTime.Parse(to).AddDays(1);
 
-            var withdrawals = await _context.Withdrawals
-                .Where(w => w.WithdrawalDate >= filterDate && w.WithdrawalDate < nextDay)
-                .OrderByDescending(w => w.CreatedAt)
-                .ToListAsync();
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
 
-            ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
+            if ((userDept == "حلاقة" || userDept == "مساج") && string.IsNullOrEmpty(dept))
+                dept = userDept;
+
+            var query = _context.Withdrawals
+                .Where(w => w.WithdrawalDate >= dateFrom && w.WithdrawalDate < dateTo);
+
+            if (!string.IsNullOrEmpty(dept))
+                query = query.Where(w => w.Department == dept);
+
+            var withdrawals = await query.OrderByDescending(w => w.WithdrawalDate).ThenByDescending(w => w.CreatedAt).ToListAsync();
+
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
+            ViewBag.FilterDept = dept;
             ViewBag.Total = withdrawals.Sum(w => w.Amount);
+            ViewBag.UserDepartment = userDept;
             return View(withdrawals);
         }
 
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
+            var currentUser = await _userManager.GetUserAsync(User);
+            ViewBag.UserDepartment = currentUser?.UserDepartment;
             return View(new Withdrawal { WithdrawalDate = DateTime.Today });
         }
 
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Withdrawal model)
         {
+            if (string.IsNullOrEmpty(model.Department))
+                ModelState.AddModelError("Department", "يرجى اختيار القسم");
+
             if (ModelState.IsValid)
             {
                 model.CreatedAt = DateTime.Now;
                 _context.Withdrawals.Add(model);
                 await _context.SaveChangesAsync();
                 await _audit.LogAsync("Add", "Withdrawals",
-                    $"{model.Description} - {model.Amount:F3} KD", model.Id);
+                    $"[{model.Department}] {model.Description} - {model.Amount:F3} KD", model.Id);
                 TempData["Success"] = "تم إضافة السحب بنجاح";
                 return RedirectToAction(nameof(Index));
             }
+            var cu = await _userManager.GetUserAsync(User);
+            ViewBag.UserDepartment = cu?.UserDepartment;
             return View(model);
         }
 
@@ -59,6 +85,8 @@ namespace Salon.Controllers
         {
             var w = await _context.Withdrawals.FindAsync(id);
             if (w == null) return NotFound();
+            var currentUser = await _userManager.GetUserAsync(User);
+            ViewBag.UserDepartment = currentUser?.UserDepartment;
             return View(w);
         }
 
@@ -66,15 +94,21 @@ namespace Salon.Controllers
         public async Task<IActionResult> Edit(int id, Withdrawal model)
         {
             if (id != model.Id) return NotFound();
+
+            if (string.IsNullOrEmpty(model.Department))
+                ModelState.AddModelError("Department", "يرجى اختيار القسم");
+
             if (ModelState.IsValid)
             {
                 _context.Update(model);
                 await _context.SaveChangesAsync();
                 await _audit.LogAsync("Edit", "Withdrawals",
-                    $"{model.Description} - {model.Amount:F3} KD", model.Id);
+                    $"[{model.Department}] {model.Description} - {model.Amount:F3} KD", model.Id);
                 TempData["Success"] = "تم تعديل السحب بنجاح";
                 return RedirectToAction(nameof(Index));
             }
+            var cu = await _userManager.GetUserAsync(User);
+            ViewBag.UserDepartment = cu?.UserDepartment;
             return View(model);
         }
 
@@ -84,7 +118,7 @@ namespace Salon.Controllers
             var w = await _context.Withdrawals.FindAsync(id);
             if (w != null)
             {
-                var desc = $"{w.Description} - {w.Amount:F3} KD";
+                var desc = $"[{w.Department}] {w.Description} - {w.Amount:F3} KD";
                 _context.Withdrawals.Remove(w);
                 await _context.SaveChangesAsync();
                 await _audit.LogAsync("Delete", "Withdrawals", desc, id);
