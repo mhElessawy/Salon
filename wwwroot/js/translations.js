@@ -73,6 +73,7 @@ window.PAGE_TRANSLATIONS = {
     'صافي الربح اليوم': 'Net Profit Today',
     'ربح': 'Profit',
     'تم إضافتهم اليوم': 'Added Today',
+    'عملاء جدد اليوم': 'New Customers Today',
     'أعياد ميلاد قريبة': 'Upcoming Birthdays',
     'خلال 7 أيام القادمة': 'Within Next 7 Days',
     'منتجات قاربت صلاحيتها': 'Products Nearing Expiry',
