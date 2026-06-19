@@ -248,8 +248,10 @@
                 } else {
                     // على المحمول: أمسح inline style وخلي CSS يتحكم (translateX(-100%) مخفي بالـ CSS)
                     if (sb) { sb.style.transform = ''; sb.classList.remove('show'); }
-                    if (overlay) overlay.classList.remove('show');
-                    if (closeBtn) closeBtn.removeAttribute('style');
+                    var _ov = document.getElementById('sidebarOverlay');
+                    if (_ov) _ov.classList.remove('show');
+                    var _cb = document.getElementById('sidebarCloseBtn');
+                    if (_cb) _cb.removeAttribute('style');
                     document.body.classList.remove('sidebar-open');
                 }
             } else {
