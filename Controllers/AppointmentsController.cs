@@ -83,6 +83,10 @@ namespace Salon.Controllers
             ModelState.Remove("CustomerPackage");
             ModelState.Remove("AppointmentServices");
 
+            // الموعد يجب أن يكون في المستقبل
+            if (model.AppointmentDate <= DateTime.Now)
+                ModelState.AddModelError("AppointmentDate", "يجب أن يكون وقت الموعد بعد الوقت الحالي");
+
             if (ModelState.IsValid)
             {
                 _context.Appointments.Add(model);

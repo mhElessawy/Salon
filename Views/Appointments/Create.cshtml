@@ -436,8 +436,9 @@
 
 @@media (max-width: 768px) {
     .appt-body { flex-direction: column; }
-    .details-panel { width: 100%; max-width: 100%; border-inline-start: none; border-top: 1px solid #e9ecef; min-height: 300px; }
-    .calendar-section { min-height: 300px; }
+    /* على الموبايل: calendar فوق، details تحت */
+    .calendar-section { order: 1; min-height: 280px; }
+    .details-panel { order: 2; width: 100%; max-width: 100%; border-inline-start: none; border-top: 1px solid #e9ecef; }
 }
 </style>
 }
@@ -503,17 +504,7 @@
     <!-- ─── Body (Calendar + Details) ──────────────────────── -->
     <div class="appt-body">
 
-        <!-- Calendar Section -->
-        <div class="calendar-section">
-            <div class="calendar-wrapper" id="calendarWrapper">
-                <div class="calendar-loading">
-                    <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
-                    جاري التحميل...
-                </div>
-            </div>
-        </div>
-
-        <!-- Details Panel -->
+        <!-- Details Panel - أول في HTML = يمين في RTL flex -->
         <div class="details-panel">
             <div class="details-header">
                 <div class="cal-icon"><i class="fas fa-calendar-alt"></i></div>
@@ -620,6 +611,16 @@
             </div>
         </div><!-- /details-panel -->
 
+        <!-- Calendar Section - ثاني في HTML = يسار في RTL flex -->
+        <div class="calendar-section">
+            <div class="calendar-wrapper" id="calendarWrapper">
+                <div class="calendar-loading">
+                    <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
+                    جاري التحميل...
+                </div>
+            </div>
+        </div>
+
     </div><!-- /appt-body -->
 </div><!-- /appt-page -->
 </form>
@@ -712,6 +713,13 @@
             return;
         }
 
+        // تحديد وقت الآن لمنع الحجز في الماضي
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        const selectedDate = document.getElementById('dateSelect').value;
+        const isToday = (selectedDate === todayStr);
+        const nowMinutes = isToday ? (now.getHours() * 60 + now.getMinutes()) : -1;
+
         // Header
         let html = '<table class="cal-table"><thead><tr>';
         html += '<th class="time-th">الوقت</th>';
@@ -725,14 +733,25 @@
 
         // Rows
         timeSlots.forEach(slot => {
+            // وقت البداية بالدقائق للمقارنة
+            const [sh, sm] = slot.startTime.split(':').map(Number);
+            const slotMinutes = sh * 60 + sm;
+            const isPast = isToday && slotMinutes <= nowMinutes;
+
             html += '<tr>';
-            html += `<td class="time-cell">${esc(slot.timeLabel)}</td>`;
+            html += `<td class="time-cell" style="${isPast ? 'color:#ccc;' : ''}">${esc(slot.timeLabel)}</td>`;
 
             slot.cells.forEach((cell, idx) => {
                 const emp = employees[idx];
                 const isSelected = selectedSlot
                     && selectedSlot.empId === cell.empId
                     && selectedSlot.startTime === slot.startTime;
+
+                // وقت مضى → غير قابل للحجز
+                if (isPast) {
+                    html += `<td class="slot-cell slot-outside" style="color:#ddd;">—</td>`;
+                    return;
+                }
 
                 if (cell.status === 'محجوز') {
                     html += `<td class="slot-cell slot-booked">
@@ -837,21 +856,25 @@
         const cid = this.value;
         document.getElementById('hdnCustomerId').value = cid;
 
-        // Clear package
+        // Clear package selection
         usedPackageId = null;
         packageServiceName = '';
         document.getElementById('hdnPackageId').value = '';
         document.getElementById('packagesSection').style.display = 'none';
         document.getElementById('packagesList').innerHTML = '';
+        renderServicesList();
 
         if (!cid) return;
 
-        const res = await fetch('/Appointments/GetCustomerPackages?customerId=' + cid);
-        const pkgs = await res.json();
-
-        if (pkgs.length) {
-            renderPackages(pkgs);
-            document.getElementById('packagesSection').style.display = '';
+        try {
+            const res = await fetch('/Appointments/GetCustomerPackages?customerId=' + cid);
+            const pkgs = await res.json();
+            if (pkgs.length) {
+                renderPackages(pkgs);
+                document.getElementById('packagesSection').style.display = '';
+            }
+        } catch(e) {
+            console.error('خطأ في تحميل الباقات', e);
         }
     });
 
