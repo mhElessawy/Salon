@@ -499,7 +499,7 @@
 
         <div class="date-nav">
             <button type="button" class="btn-nav" id="btnPrevDate"><i class="fas fa-chevron-right"></i></button>
-            <input type="date" id="dateSelect" value="@todayDateStr" min="@todayDateStr" />
+            <input type="date" id="dateSelect" value="@todayDateStr" />
             <button type="button" class="btn-nav" id="btnNextDate"><i class="fas fa-chevron-left"></i></button>
         </div>
 
@@ -554,7 +554,7 @@
                     <div class="di-icon"><i class="fas fa-calendar"></i></div>
                     <div class="panel-dt-inner">
                         <div class="di-label">التاريخ</div>
-                        <input type="date" id="panelDateInput" value="@todayDateStr" min="@todayDateStr" />
+                        <input type="date" id="panelDateInput" value="@todayDateStr" />
                     </div>
                 </div>
                 <!-- الوقت: يُحدَّد من الجدول فقط -->
@@ -781,12 +781,6 @@
                     && selectedSlot.empId === cell.empId
                     && selectedSlot.startTime === slot.startTime;
 
-                // وقت مضى → غير قابل للحجز
-                if (isPast) {
-                    html += `<td class="slot-cell slot-outside" style="color:#ddd;">—</td>`;
-                    return;
-                }
-
                 if (cell.status === 'محجوز') {
                     html += `<td class="slot-cell slot-booked">
                         <div class="slot-booked-name"><i class="fas fa-user" style="font-size:9px;"></i>${esc(cell.personName||'')}</div>
@@ -795,6 +789,9 @@
                     html += `<td class="slot-cell slot-break"><i class="fas fa-coffee" style="font-size:10px;"></i> استراحة</td>`;
                 } else if (cell.status === 'خارج الدوام') {
                     html += `<td class="slot-cell slot-outside">—</td>`;
+                } else if (isPast) {
+                    // وقت/تاريخ مضى → اعرض فاضي بدون حجز
+                    html += `<td class="slot-cell slot-outside" style="color:#ddd;">—</td>`;
                 } else {
                     const selClass = isSelected ? ' slot-selected' : '';
                     html += `<td class="slot-cell slot-available${selClass}"
@@ -871,12 +868,9 @@
     });
 
     document.getElementById('btnPrevDate').addEventListener('click', function() {
-        const todayStr = new Date().toISOString().split('T')[0];
         const d = new Date(document.getElementById('dateSelect').value + 'T00:00:00');
         d.setDate(d.getDate() - 1);
-        const newDate = d.toISOString().split('T')[0];
-        if (newDate < todayStr) return;
-        setDate(newDate);
+        setDate(d.toISOString().split('T')[0]);
     });
 
     document.getElementById('btnNextDate').addEventListener('click', function() {
