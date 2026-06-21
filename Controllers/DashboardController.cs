@@ -15,6 +15,13 @@ namespace Salon.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IPermissionService _permissionService;
 
+        private static readonly TimeZoneInfo _kuwaitTz =
+            TimeZoneInfo.CreateCustomTimeZone("Kuwait Standard Time",
+                TimeSpan.FromHours(3), "Kuwait Standard Time", "Kuwait Standard Time");
+
+        private static DateTime KuwaitToday =>
+            TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _kuwaitTz).Date;
+
         public DashboardController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IPermissionService permissionService)
         {
             _context = context;
@@ -27,7 +34,7 @@ namespace Salon.Controllers
             if (!await _permissionService.HasAccessAsync("Dashboard"))
                 return View(new DashboardViewModel { HasAccess = false });
 
-            var today = DateTime.Today;
+            var today = KuwaitToday;
             var tomorrow = today.AddDays(1);
 
             var currentUser = await _userManager.GetUserAsync(User);
