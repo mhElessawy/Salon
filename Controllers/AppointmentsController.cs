@@ -75,7 +75,7 @@ namespace Salon.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Appointment model, int[]? serviceIds)
+        public async Task<IActionResult> Create(Appointment model, int[]? serviceIds, int[]? companionCustomerIds)
         {
             // Remove navigation properties from validation
             ModelState.Remove("Customer");
@@ -120,6 +120,24 @@ namespace Salon.Controllers
                             EmployeeId = model.EmployeeId,
                             Notes = $"حجز موعد #{model.Id}"
                         });
+                    }
+                }
+
+                // Create companion appointments (same time/employee, different customer)
+                if (companionCustomerIds != null)
+                {
+                    foreach (var cid in companionCustomerIds)
+                    {
+                        var companion = new Appointment
+                        {
+                            CustomerId = cid,
+                            EmployeeId = model.EmployeeId,
+                            AppointmentDate = model.AppointmentDate,
+                            EndTime = model.EndTime,
+                            Status = "مجدول",
+                            Notes = $"مرافق الموعد #{model.Id}"
+                        };
+                        _context.Appointments.Add(companion);
                     }
                 }
 
@@ -367,6 +385,97 @@ namespace Salon.Controllers
             }
 
             return Json(slots);
+        }
+
+        // ─── AJAX: عرض التقويم (كل الموظفين × كل الأوقات) ──────────────
+        [HttpGet]
+        public async Task<IActionResult> GetCalendarView(string date, string? dept)
+        {
+            if (!DateTime.TryParse(date, out var targetDate))
+                return Json(new { employees = new List<object>(), timeSlots = new List<object>() });
+
+            var startOfDay = targetDate.Date;
+            var endOfDay = startOfDay.AddDays(1);
+
+            var empQuery = _context.Employees
+                .Include(e => e.DepartmentNav)
+                .Where(e => e.IsActive);
+            if (!string.IsNullOrEmpty(dept) && dept != "الكل")
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == dept);
+            var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+            var empIds = employees.Select(e => e.Id).ToList();
+
+            var appointments = await _context.Appointments
+                .Include(a => a.Customer)
+                .Where(a => a.AppointmentDate >= startOfDay && a.AppointmentDate < endOfDay
+                         && a.EmployeeId != null && empIds.Contains(a.EmployeeId!.Value))
+                .ToListAsync();
+
+            var attendances = await _context.Attendances
+                .Include(a => a.Permissions)
+                .Where(a => a.AttendanceDate == startOfDay && empIds.Contains(a.EmployeeId))
+                .ToListAsync();
+
+            var employeeData = employees.Select(e => new
+            {
+                id = e.Id,
+                name = e.FullName,
+                jobTitle = e.JobTitle ?? "",
+                dept = e.DepartmentNav?.Name ?? ""
+            }).ToList<object>();
+
+            var timeSlots = new List<object>();
+            for (int m = 0; m < (18 - 9) * 60; m += 30)
+            {
+                var slotStart = TimeSpan.FromMinutes(9 * 60 + m);
+                var slotEnd = slotStart.Add(TimeSpan.FromMinutes(30));
+
+                var cells = employees.Select(emp =>
+                {
+                    var att = attendances.FirstOrDefault(a => a.EmployeeId == emp.Id);
+                    var breaks = att?.Permissions ?? new List<AttendancePermission>();
+
+                    bool isBreak = breaks.Any(b =>
+                        b.LeaveTime < slotEnd && (b.ReturnTime == null || b.ReturnTime > slotStart));
+
+                    bool outsideShift = false;
+                    if (att != null)
+                    {
+                        if (att.CheckIn.HasValue && slotEnd <= att.CheckIn.Value) outsideShift = true;
+                        if (att.CheckOut.HasValue && slotStart >= att.CheckOut.Value) outsideShift = true;
+                    }
+
+                    var overlap = appointments.FirstOrDefault(a =>
+                        a.EmployeeId == emp.Id
+                        && a.AppointmentDate.TimeOfDay < slotEnd
+                        && (a.EndTime ?? a.AppointmentDate.TimeOfDay.Add(TimeSpan.FromHours(1))) > slotStart);
+
+                    string status;
+                    string? personName = null;
+
+                    if (overlap != null) { status = "محجوز"; personName = overlap.Customer?.FullName; }
+                    else if (isBreak) { status = "استراحة"; }
+                    else if (outsideShift) { status = "خارج الدوام"; }
+                    else { status = "متاح"; }
+
+                    return new { empId = emp.Id, status, personName };
+                }).ToList<object>();
+
+                int h = (int)slotStart.TotalHours;
+                int mins = slotStart.Minutes;
+                string amPm = h < 12 ? "ص" : "م";
+                int h12 = h == 0 ? 12 : h > 12 ? h - 12 : h;
+
+                timeSlots.Add(new
+                {
+                    startTime = $"{h:D2}:{mins:D2}",
+                    endTime = $"{(int)slotEnd.TotalHours:D2}:{slotEnd.Minutes:D2}",
+                    timeLabel = $"{h12:D2}:{mins:D2} {amPm}",
+                    cells
+                });
+            }
+
+            return Json(new { employees = employeeData, timeSlots });
         }
 
         private async Task PopulateDropdowns()
