@@ -337,27 +337,63 @@
 .btn-use-pkg:hover { background: #0d6efd; color: #fff; }
 .btn-use-pkg.active { background: #0d6efd; color: #fff; }
 
-/* services */
-.service-list-item {
+/* service cards */
+.svc-card {
+    background: #fff;
+    border: 1.5px solid #e9ecef;
+    border-radius: 10px;
+    padding: 9px 11px;
+    margin-bottom: 7px;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 7px 8px;
-    border-radius: 8px;
-    background: #f8f9fa;
-    margin-bottom: 6px;
-    font-size: 12px;
+    gap: 9px;
+    transition: border-color .15s, box-shadow .15s;
 }
-.sli-name { flex: 1; font-weight: 600; color: #333; }
-.sli-emp  { font-size: 11px; color: #555; background: #e9ecef; border-radius: 5px; padding: 2px 6px; white-space: nowrap; }
-.sli-price { font-weight: 700; color: #198754; white-space: nowrap; }
-.sli-del {
+.svc-card:hover { border-color: #c8d0dd; box-shadow: 0 2px 8px rgba(0,0,0,.05); }
+.svc-card.from-pkg { border-color: #b8d4f5; background: #f0f7ff; }
+.svc-card-icon {
+    width: 34px; height: 34px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; flex-shrink: 0;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+.svc-card.from-pkg .svc-card-icon { background: linear-gradient(135deg, #0d6efd, #38b2f5); }
+.svc-card-body { flex: 1; min-width: 0; }
+.svc-card-name { font-weight: 700; font-size: 12px; color: #222; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.svc-card-emp  { font-size: 11px; color: #777; margin-top: 3px; display: flex; align-items: center; gap: 5px; }
+.emp-chip { background: #f0f2f5; border-radius: 5px; padding: 1px 6px; font-size: 10px; color: #555; border: 1px solid #e0e4ea; }
+.svc-card-right { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; flex-shrink: 0; }
+.svc-card-price { font-weight: 700; color: #198754; font-size: 13px; white-space: nowrap; }
+.svc-card-price.from-pkg { color: #0d6efd; font-size: 11px; background: #e0eeff; border-radius: 5px; padding: 2px 6px; }
+.svc-card-del {
     width: 20px; height: 20px; background: #fce4e4; border: none;
     border-radius: 50%; color: #dc3545; font-size: 10px;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; flex-shrink: 0; padding: 0;
+    cursor: pointer; padding: 0; transition: background .1s; flex-shrink: 0;
 }
-.sli-del:hover { background: #f5b5b5; }
+.svc-card-del:hover { background: #f5b5b5; }
+
+/* panel date/time inputs */
+.panel-dt-row {
+    display: flex; align-items: center; gap: 9px; padding: 5px 0;
+}
+.panel-dt-row .di-icon { flex-shrink: 0; }
+.panel-dt-row .panel-dt-inner { flex: 1; }
+.panel-dt-row .di-label { font-size: 11px; color: #aaa; margin-bottom: 3px; }
+.panel-dt-row input[type=date], .panel-dt-row input[type=time] {
+    width: 100%; font-size: 13px; font-weight: 600;
+    border: 1.5px solid #dee2e6; border-radius: 8px;
+    padding: 5px 8px; color: #333; background: #fff;
+    transition: border-color .15s; cursor: pointer;
+}
+.panel-dt-row input:focus { border-color: #0d6efd; outline: none; }
+
+/* companion text input */
+.add-companion-row input[type=text] {
+    flex: 1; font-size: 13px; border-radius: 7px;
+    border: 1.5px solid #dee2e6; padding: 5px 8px; background: #fff;
+}
+.add-companion-row input[type=text]:focus { border-color: #28a745; outline: none; }
 
 /* add service dropdown */
 .add-svc-wrap { position: relative; }
@@ -513,19 +549,19 @@
 
             <div class="details-body">
 
-                <!-- Date / Time -->
-                <div class="detail-info-row">
+                <!-- Date / Time - inputs قابلة للتعديل -->
+                <div class="panel-dt-row">
                     <div class="di-icon"><i class="fas fa-calendar"></i></div>
-                    <div>
+                    <div class="panel-dt-inner">
                         <div class="di-label">التاريخ</div>
-                        <div class="di-value" id="displayDate">—</div>
+                        <input type="date" id="panelDateInput" value="@todayDateStr" />
                     </div>
                 </div>
-                <div class="detail-info-row">
+                <div class="panel-dt-row">
                     <div class="di-icon"><i class="fas fa-clock"></i></div>
-                    <div>
+                    <div class="panel-dt-inner">
                         <div class="di-label">الوقت</div>
-                        <div class="di-value" id="displayTime">—</div>
+                        <input type="time" id="panelTimeInput" step="1800" placeholder="-- اختر الوقت --" />
                     </div>
                 </div>
 
@@ -553,9 +589,7 @@
                 <div id="companionsListUI"></div>
 
                 <div id="addCompanionRow" class="add-companion-row" style="display:none;">
-                    <select id="companionSelect" class="form-select form-select-sm">
-                        <option value="">-- اختر مرافق --</option>
-                    </select>
+                    <input type="text" id="companionNameInput" placeholder="اكتب اسم المرافق..." maxlength="80" />
                     <button type="button" id="btnConfirmCompanion" class="btn-add-c" title="إضافة">
                         <i class="fas fa-check"></i>
                     </button>
@@ -668,14 +702,10 @@
     async function loadCustomers() {
         const res = await fetch('/Appointments/GetCustomersByDepartment?dept=' + encodeURIComponent(currentDept));
         allCustomers = await res.json();
-
-        const sel  = document.getElementById('customerSelect');
-        const cSel = document.getElementById('companionSelect');
-        sel.innerHTML  = '<option value="">-- اختر العميل --</option>';
-        cSel.innerHTML = '<option value="">-- اختر مرافق --</option>';
+        const sel = document.getElementById('customerSelect');
+        sel.innerHTML = '<option value="">-- اختر العميل --</option>';
         allCustomers.forEach(c => {
-            sel.innerHTML  += `<option value="${c.id}" data-phone="${esc(c.phone||'')}">${esc(c.fullName)}</option>`;
-            cSel.innerHTML += `<option value="${c.id}">${esc(c.fullName)}</option>`;
+            sel.innerHTML += `<option value="${c.id}" data-phone="${esc(c.phone||'')}">${esc(c.fullName)}</option>`;
         });
     }
 
@@ -786,13 +816,11 @@
         document.getElementById('hdnEndTime').value = endTime + ':00';
         document.getElementById('hdnEmployeeId').value = empId;
 
-        // Update time display
-        document.getElementById('displayTime').textContent = timeLabel + ' — ' + formatTime12(endTime);
+        // تحديث الـ panel time input
+        document.getElementById('panelTimeInput').value = startTime;
 
-        // Re-render using cached data (no network request needed)
+        // إعادة رسم الجدول من الـ cache
         buildCalendarTable(cachedCalendar.employees, cachedCalendar.timeSlots);
-
-        // Update services employee chip
         renderServicesList();
     };
 
@@ -808,29 +836,70 @@
     // ── Date navigation ──────────────────────────────────────────────
     function updateDisplayDate() {
         const v = document.getElementById('dateSelect').value;
-        document.getElementById('displayDate').textContent = v ? dateLabel(v) : '—';
+        document.getElementById('panelDateInput').value = v;
     }
 
-    document.getElementById('dateSelect').addEventListener('change', function() {
-        updateDisplayDate();
+    function setDate(newDate) {
+        document.getElementById('dateSelect').value = newDate;
+        document.getElementById('panelDateInput').value = newDate;
         selectedSlot = null;
         document.getElementById('hdnAppointmentDate').value = '';
-        document.getElementById('displayTime').textContent = '—';
+        document.getElementById('panelTimeInput').value = '';
         renderCalendar();
+    }
+
+    // date picker in filter bar
+    document.getElementById('dateSelect').addEventListener('change', function() {
+        document.getElementById('panelDateInput').value = this.value;
+        selectedSlot = null;
+        document.getElementById('hdnAppointmentDate').value = '';
+        document.getElementById('panelTimeInput').value = '';
+        renderCalendar();
+    });
+
+    // date picker in details panel
+    document.getElementById('panelDateInput').addEventListener('change', function() {
+        setDate(this.value);
+    });
+
+    // time picker in details panel
+    document.getElementById('panelTimeInput').addEventListener('change', function() {
+        const timeVal = this.value;
+        if (!timeVal) return;
+        const date = document.getElementById('dateSelect').value;
+        if (!date) { alert('يرجى تحديد التاريخ أولاً'); this.value = ''; return; }
+
+        // حساب وقت الانتهاء (+1 ساعة)
+        const [h, m] = timeVal.split(':').map(Number);
+        const endH = (h + 1) < 24 ? h + 1 : h;
+        const endTime = String(endH).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+
+        document.getElementById('hdnAppointmentDate').value = date + 'T' + timeVal + ':00';
+        document.getElementById('hdnEndTime').value = endTime + ':00';
+
+        // احتفظ بالموظف من اختيار الكالندر إن وجد، وإلا اتركه فارغاً
+        if (!selectedSlot) {
+            selectedSlot = { empId: null, empName: null, startTime: timeVal, endTime, timeLabel: formatTime12(timeVal) };
+        } else {
+            selectedSlot.startTime = timeVal;
+            selectedSlot.endTime = endTime;
+            selectedSlot.timeLabel = formatTime12(timeVal);
+        }
+
+        buildCalendarTable(cachedCalendar.employees, cachedCalendar.timeSlots);
+        renderServicesList();
     });
 
     document.getElementById('btnPrevDate').addEventListener('click', function() {
         const d = new Date(document.getElementById('dateSelect').value + 'T00:00:00');
         d.setDate(d.getDate() - 1);
-        document.getElementById('dateSelect').value = d.toISOString().split('T')[0];
-        document.getElementById('dateSelect').dispatchEvent(new Event('change'));
+        setDate(d.toISOString().split('T')[0]);
     });
 
     document.getElementById('btnNextDate').addEventListener('click', function() {
         const d = new Date(document.getElementById('dateSelect').value + 'T00:00:00');
         d.setDate(d.getDate() + 1);
-        document.getElementById('dateSelect').value = d.toISOString().split('T')[0];
-        document.getElementById('dateSelect').dispatchEvent(new Event('change'));
+        setDate(d.toISOString().split('T')[0]);
     });
 
     // ── Department buttons ────────────────────────────────────────────
@@ -916,23 +985,30 @@
     });
 
     document.getElementById('btnConfirmCompanion').addEventListener('click', function() {
-        const sel = document.getElementById('companionSelect');
-        const id = sel.value;
-        const name = sel.options[sel.selectedIndex]?.text;
-        if (!id || companions.find(c => c.id === id)) return;
-        companions.push({ id, name });
-        sel.value = '';
+        const inp = document.getElementById('companionNameInput');
+        const name = inp.value.trim();
+        if (!name) return;
+        if (companions.find(c => c.name === name)) { inp.value = ''; return; }
+        companions.push({ name });
+        inp.value = '';
         document.getElementById('addCompanionRow').style.display = 'none';
         renderCompanions();
     });
 
+    // إضافة مرافق بالضغط على Enter
+    document.getElementById('companionNameInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); document.getElementById('btnConfirmCompanion').click(); }
+    });
+
     function renderCompanions() {
         const ul = document.getElementById('companionsListUI');
-        document.getElementById('companionsCountBadge').textContent = companions.length;
+        const badge = document.getElementById('companionsCountBadge');
+        badge.textContent = companions.length;
+        badge.style.display = companions.length ? '' : 'none';
         if (!companions.length) { ul.innerHTML = ''; return; }
         ul.innerHTML = companions.map((c, i) =>
             `<div class="companion-item">
-                <i class="fas fa-user text-secondary" style="font-size:11px;"></i>
+                <i class="fas fa-user-friends text-secondary" style="font-size:11px;"></i>
                 <span class="companion-name">${esc(c.name)}</span>
                 <button type="button" class="btn-remove" onclick="removeCompanion(${i})"><i class="fas fa-times"></i></button>
             </div>`
@@ -978,32 +1054,55 @@
         renderServicesList();
     };
 
+    // أيقونات الخدمات حسب الفئة
+    const svcIcons = {
+        'حلاقة': 'fa-cut', 'شعر': 'fa-cut', 'بشرة': 'fa-leaf',
+        'مساج': 'fa-spa', 'جمال': 'fa-star', 'حمام': 'fa-shower',
+    };
+    function svcIcon(category) {
+        const k = Object.keys(svcIcons).find(k => (category || '').includes(k));
+        return svcIcons[k] || 'fa-concierge-bell';
+    }
+
     function renderServicesList() {
         const ul = document.getElementById('servicesListUI');
-        const empName = selectedSlot ? selectedSlot.empName : '—';
+        const empName = (selectedSlot && selectedSlot.empName) ? selectedSlot.empName : null;
+        const empChip = empName ? `<span class="emp-chip"><i class="fas fa-user" style="font-size:9px;"></i> ${esc(empName)}</span>` : '';
 
         let html = '';
 
-        // Package service row (if package selected)
+        // Package service card
         if (usedPackageId) {
-            html += `<div class="service-list-item">
-                <span class="sli-name">${esc(packageServiceName)}</span>
-                <span class="sli-emp">${esc(empName)}</span>
-                <span class="sli-price text-info" style="font-size:11px;">من الباقة</span>
+            html += `<div class="svc-card from-pkg">
+                <div class="svc-card-icon"><i class="fas fa-layer-group"></i></div>
+                <div class="svc-card-body">
+                    <div class="svc-card-name">${esc(packageServiceName)}</div>
+                    <div class="svc-card-emp">${empChip}</div>
+                </div>
+                <div class="svc-card-right">
+                    <span class="svc-card-price from-pkg">من الباقة</span>
+                </div>
             </div>`;
         }
 
-        // Regular services
+        // Regular service cards
         addedServices.forEach(s => {
-            html += `<div class="service-list-item">
-                <span class="sli-name">${esc(s.name)}</span>
-                <span class="sli-emp">${esc(empName)}</span>
-                <span class="sli-price">${s.price} د.ك</span>
-                <button type="button" class="sli-del" onclick="removeService(${s.id})"><i class="fas fa-times"></i></button>
+            html += `<div class="svc-card">
+                <div class="svc-card-icon"><i class="fas ${svcIcon(s.category)}"></i></div>
+                <div class="svc-card-body">
+                    <div class="svc-card-name">${esc(s.name)}</div>
+                    <div class="svc-card-emp">${empChip}</div>
+                </div>
+                <div class="svc-card-right">
+                    <span class="svc-card-price">${s.price}</span>
+                    <span style="font-size:10px;color:#aaa;">د.ك</span>
+                </div>
+                <button type="button" class="svc-card-del" onclick="removeService(${s.id})" title="حذف"><i class="fas fa-times"></i></button>
             </div>`;
         });
 
-        ul.innerHTML = html || (usedPackageId ? '' : '<div class="text-muted small p-1">لم يتم إضافة خدمات بعد</div>');
+        if (!html) html = '<div class="text-muted small p-1 text-center" style="opacity:.6;">لم تُضَف خدمات بعد</div>';
+        ul.innerHTML = html;
 
         // Total
         const total = addedServices.reduce((sum, s) => sum + (s.priceNum || 0), 0);
@@ -1025,14 +1124,28 @@
             document.getElementById('customerSelect').focus();
             return;
         }
-        if (!selectedSlot) {
+
+        const timeVal = document.getElementById('panelTimeInput').value;
+        if (!timeVal) {
             e.preventDefault();
-            alert('يرجى اختيار وقت الموعد من الجدول');
+            alert('يرجى تحديد وقت الموعد');
+            document.getElementById('panelTimeInput').focus();
             return;
         }
 
-        // CustomerId hidden
+        // تأكيد الحقول المخفية
         document.getElementById('hdnCustomerId').value = cid;
+        const date = document.getElementById('dateSelect').value;
+        document.getElementById('hdnAppointmentDate').value = date + 'T' + timeVal + ':00';
+
+        if (selectedSlot && selectedSlot.empId) {
+            document.getElementById('hdnEmployeeId').value = selectedSlot.empId;
+            document.getElementById('hdnEndTime').value = selectedSlot.endTime + ':00';
+        } else {
+            const [h, m] = timeVal.split(':').map(Number);
+            const endH = (h + 1) < 24 ? h + 1 : h;
+            document.getElementById('hdnEndTime').value = String(endH).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':00';
+        }
 
         // Service IDs
         this.querySelectorAll('input[name="serviceIds"]').forEach(el => el.remove());
@@ -1042,18 +1155,15 @@
             this.appendChild(inp);
         });
 
-        // Companion appointments (simple: save IDs in hidden fields)
-        this.querySelectorAll('input[name="companionCustomerIds"]').forEach(el => el.remove());
-        companions.forEach(c => {
+        // Companion names (نص حر)
+        this.querySelectorAll('input[name="companionNames"]').forEach(el => el.remove());
+        if (companions.length) {
             const inp = document.createElement('input');
-            inp.type = 'hidden'; inp.name = 'companionCustomerIds'; inp.value = c.id;
+            inp.type = 'hidden';
+            inp.name = 'companionNames';
+            inp.value = companions.map(c => c.name).join('،');
             this.appendChild(inp);
-        });
-
-        const date = document.getElementById('dateSelect').value;
-        document.getElementById('hdnAppointmentDate').value = date + 'T' + selectedSlot.startTime + ':00';
-        document.getElementById('hdnEndTime').value = selectedSlot.endTime + ':00';
-        document.getElementById('hdnEmployeeId').value = selectedSlot.empId;
+        }
     });
 
     // ── Reset ─────────────────────────────────────────────────────────
@@ -1066,12 +1176,15 @@
         document.getElementById('customerSelect').value = '';
         document.getElementById('hdnCustomerId').value = '';
         document.getElementById('hdnPackageId').value = '';
-        document.getElementById('displayTime').textContent = '—';
+        document.getElementById('hdnEmployeeId').value = '';
+        document.getElementById('hdnAppointmentDate').value = '';
+        document.getElementById('hdnEndTime').value = '';
+        document.getElementById('panelTimeInput').value = '';
         document.getElementById('packagesSection').style.display = 'none';
         document.getElementById('packagesList').innerHTML = '';
         renderCompanions();
         renderServicesList();
-        renderCalendar();
+        buildCalendarTable(cachedCalendar.employees, cachedCalendar.timeSlots);
     });
 
     // ── Start ─────────────────────────────────────────────────────────

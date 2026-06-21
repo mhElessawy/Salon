@@ -75,7 +75,7 @@ namespace Salon.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Appointment model, int[]? serviceIds, int[]? companionCustomerIds)
+        public async Task<IActionResult> Create(Appointment model, int[]? serviceIds, string? companionNames)
         {
             // Remove navigation properties from validation
             ModelState.Remove("Customer");
@@ -127,22 +127,18 @@ namespace Salon.Controllers
                     }
                 }
 
-                // Create companion appointments (same time/employee, different customer)
-                if (companionCustomerIds != null)
+                // حفظ أسماء المرافقين في ملاحظات الموعد
+                if (!string.IsNullOrWhiteSpace(companionNames))
                 {
-                    foreach (var cid in companionCustomerIds)
-                    {
-                        var companion = new Appointment
-                        {
-                            CustomerId = cid,
-                            EmployeeId = model.EmployeeId,
-                            AppointmentDate = model.AppointmentDate,
-                            EndTime = model.EndTime,
-                            Status = "مجدول",
-                            Notes = $"مرافق الموعد #{model.Id}"
-                        };
-                        _context.Appointments.Add(companion);
-                    }
+                    var names = companionNames.Split('،', StringSplitOptions.RemoveEmptyEntries)
+                                             .Select(n => n.Trim())
+                                             .Where(n => n.Length > 0);
+                    var companionNote = "مرافقون: " + string.Join("، ", names);
+                    model.Notes = string.IsNullOrEmpty(model.Notes)
+                        ? companionNote
+                        : model.Notes + "\n" + companionNote;
+                    _context.Entry(model).Property(a => a.Notes).IsModified = true;
+                    await _context.SaveChangesAsync();
                 }
 
                 await _context.SaveChangesAsync();
