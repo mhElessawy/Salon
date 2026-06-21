@@ -549,7 +549,7 @@
 
             <div class="details-body">
 
-                <!-- Date / Time - inputs قابلة للتعديل -->
+                <!-- التاريخ: input للتنقل السريع -->
                 <div class="panel-dt-row">
                     <div class="di-icon"><i class="fas fa-calendar"></i></div>
                     <div class="panel-dt-inner">
@@ -557,11 +557,14 @@
                         <input type="date" id="panelDateInput" value="@todayDateStr" />
                     </div>
                 </div>
+                <!-- الوقت: يُحدَّد من الجدول فقط -->
                 <div class="panel-dt-row">
                     <div class="di-icon"><i class="fas fa-clock"></i></div>
                     <div class="panel-dt-inner">
                         <div class="di-label">الوقت</div>
-                        <input type="time" id="panelTimeInput" step="1800" placeholder="-- اختر الوقت --" />
+                        <div id="displayTime" style="font-size:13px;font-weight:700;color:#333;padding:5px 0;min-height:26px;">
+                            <span class="text-muted" style="font-weight:400;font-size:12px;">اضغط على خلية في الجدول</span>
+                        </div>
                     </div>
                 </div>
 
@@ -813,13 +816,15 @@
 
         const date = document.getElementById('dateSelect').value;
         document.getElementById('hdnAppointmentDate').value = date + 'T' + startTime + ':00';
-        document.getElementById('hdnEndTime').value = endTime + ':00';
+        document.getElementById('hdnEndTime').value = endTime === '00:00' ? '00:00:00' : endTime + ':00';
         document.getElementById('hdnEmployeeId').value = empId;
 
-        // تحديث الـ panel time input
-        document.getElementById('panelTimeInput').value = startTime;
+        // عرض الوقت في الـ panel
+        const endLabel = endTime === '00:00' ? '12:00 ص' : formatTime12(endTime);
+        document.getElementById('displayTime').innerHTML =
+            `<span style="color:#0d6efd;">${esc(timeLabel)}</span>
+             <span style="color:#aaa;font-size:11px;"> — ${endLabel}</span>`;
 
-        // إعادة رسم الجدول من الـ cache
         buildCalendarTable(cachedCalendar.employees, cachedCalendar.timeSlots);
         renderServicesList();
     };
@@ -848,46 +853,19 @@
         renderCalendar();
     }
 
-    // date picker in filter bar
+    // date picker في شريط الفلتر
     document.getElementById('dateSelect').addEventListener('change', function() {
         document.getElementById('panelDateInput').value = this.value;
         selectedSlot = null;
         document.getElementById('hdnAppointmentDate').value = '';
-        document.getElementById('panelTimeInput').value = '';
+        document.getElementById('displayTime').innerHTML =
+            '<span class="text-muted" style="font-weight:400;font-size:12px;">اضغط على خلية في الجدول</span>';
         renderCalendar();
     });
 
-    // date picker in details panel
+    // date picker في الـ panel
     document.getElementById('panelDateInput').addEventListener('change', function() {
         setDate(this.value);
-    });
-
-    // time picker in details panel
-    document.getElementById('panelTimeInput').addEventListener('change', function() {
-        const timeVal = this.value;
-        if (!timeVal) return;
-        const date = document.getElementById('dateSelect').value;
-        if (!date) { alert('يرجى تحديد التاريخ أولاً'); this.value = ''; return; }
-
-        // حساب وقت الانتهاء (+1 ساعة)
-        const [h, m] = timeVal.split(':').map(Number);
-        const endH = (h + 1) < 24 ? h + 1 : h;
-        const endTime = String(endH).padStart(2,'0') + ':' + String(m).padStart(2,'0');
-
-        document.getElementById('hdnAppointmentDate').value = date + 'T' + timeVal + ':00';
-        document.getElementById('hdnEndTime').value = endTime + ':00';
-
-        // احتفظ بالموظف من اختيار الكالندر إن وجد، وإلا اتركه فارغاً
-        if (!selectedSlot) {
-            selectedSlot = { empId: null, empName: null, startTime: timeVal, endTime, timeLabel: formatTime12(timeVal) };
-        } else {
-            selectedSlot.startTime = timeVal;
-            selectedSlot.endTime = endTime;
-            selectedSlot.timeLabel = formatTime12(timeVal);
-        }
-
-        buildCalendarTable(cachedCalendar.employees, cachedCalendar.timeSlots);
-        renderServicesList();
     });
 
     document.getElementById('btnPrevDate').addEventListener('click', function() {
@@ -1124,28 +1102,13 @@
             document.getElementById('customerSelect').focus();
             return;
         }
-
-        const timeVal = document.getElementById('panelTimeInput').value;
-        if (!timeVal) {
+        if (!selectedSlot || !selectedSlot.empId) {
             e.preventDefault();
-            alert('يرجى تحديد وقت الموعد');
-            document.getElementById('panelTimeInput').focus();
+            alert('يرجى اختيار موظف ووقت من الجدول');
             return;
         }
 
-        // تأكيد الحقول المخفية
         document.getElementById('hdnCustomerId').value = cid;
-        const date = document.getElementById('dateSelect').value;
-        document.getElementById('hdnAppointmentDate').value = date + 'T' + timeVal + ':00';
-
-        if (selectedSlot && selectedSlot.empId) {
-            document.getElementById('hdnEmployeeId').value = selectedSlot.empId;
-            document.getElementById('hdnEndTime').value = selectedSlot.endTime + ':00';
-        } else {
-            const [h, m] = timeVal.split(':').map(Number);
-            const endH = (h + 1) < 24 ? h + 1 : h;
-            document.getElementById('hdnEndTime').value = String(endH).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':00';
-        }
 
         // Service IDs
         this.querySelectorAll('input[name="serviceIds"]').forEach(el => el.remove());
@@ -1155,7 +1118,7 @@
             this.appendChild(inp);
         });
 
-        // Companion names (نص حر)
+        // Companion names
         this.querySelectorAll('input[name="companionNames"]').forEach(el => el.remove());
         if (companions.length) {
             const inp = document.createElement('input');

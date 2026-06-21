@@ -425,7 +425,7 @@ namespace Salon.Controllers
             }).ToList<object>();
 
             var timeSlots = new List<object>();
-            for (int m = 0; m < (18 - 9) * 60; m += 30)
+            for (int m = 0; m < (24 - 9) * 60; m += 30)   // 9 ص → 12 ليل = 15 ساعة
             {
                 var slotStart = TimeSpan.FromMinutes(9 * 60 + m);
                 var slotEnd = slotStart.Add(TimeSpan.FromMinutes(30));
@@ -466,10 +466,15 @@ namespace Salon.Controllers
                 string amPm = h < 12 ? "ص" : "م";
                 int h12 = h == 0 ? 12 : h > 12 ? h - 12 : h;
 
+                // وقت الانتهاء: منتصف الليل = 00:00
+                int endH = (int)slotEnd.TotalHours;
+                int endM = slotEnd.Minutes;
+                string endTimeRaw = endH >= 24 ? "00:00" : $"{endH:D2}:{endM:D2}";
+
                 timeSlots.Add(new
                 {
                     startTime = $"{h:D2}:{mins:D2}",
-                    endTime = $"{(int)slotEnd.TotalHours:D2}:{slotEnd.Minutes:D2}",
+                    endTime = endTimeRaw,
                     timeLabel = $"{h12:D2}:{mins:D2} {amPm}",
                     cells
                 });
