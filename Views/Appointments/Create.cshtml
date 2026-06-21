@@ -1,38 +1,106 @@
 @model Salon.Models.Appointment
 @{
-    ViewData["Title"] = "إضافة موعد جديد";
+    ViewData["Title"] = "حجز موعد جديد";
     bool canSelectDept = ViewBag.CanSelectDept == true;
     string initialDept = ViewBag.InitialDept ?? "حلاقة";
     string todayDateStr = DateTime.Today.ToString("yyyy-MM-dd");
-    string defaultApptDate = todayDateStr + "T11:00:00";
 }
 
 @section Styles {
     <style>
-        .dept-toggle-bar {
+        /* ─── page layout ─────────────────────────────── */
+        .appt-page {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 70px);
+            overflow: hidden;
+        }
+
+        .appt-body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            gap: 0;
+        }
+
+        /* ─── filter bar ──────────────────────────────── */
+        .appt-filter {
             background: #fff;
-            border-radius: 14px;
-            box-shadow: 0 2px 12px rgba(0,0,0,.08);
-            padding: 14px 20px;
-            margin-bottom: 16px;
+            border-bottom: 1px solid #e9ecef;
+            padding: 10px 16px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+            .appt-filter .filter-title {
+                font-weight: 700;
+                font-size: 15px;
+                color: #333;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-inline-end: auto;
+            }
+
+        .date-nav {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+            .date-nav input[type=date] {
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 5px 10px;
+                font-size: 13px;
+                font-weight: 600;
+                width: 130px;
+                cursor: pointer;
+            }
+
+        .btn-nav {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 15px;
+            color: #555;
+            transition: all .15s;
+        }
+
+            .btn-nav:hover {
+                background: #f0f0f0;
+            }
+
+        .filter-select {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 5px 10px;
+            font-size: 13px;
+            min-width: 120px;
+            cursor: pointer;
         }
 
         .dept-btn {
-            border: 2px solid #dee2e6;
-            border-radius: 10px;
+            border: 1.5px solid #dee2e6;
+            border-radius: 8px;
             background: #f8f9fa;
             color: #555;
-            padding: 8px 24px;
-            font-size: 15px;
+            padding: 5px 14px;
+            font-size: 13px;
             font-weight: 700;
             cursor: pointer;
             transition: all .2s;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
             .dept-btn.active {
@@ -42,407 +110,27 @@
             }
 
             .dept-btn:hover:not(.active) {
-                border-color: #aaa;
                 background: #efefef;
             }
 
-        .booking-card {
-            background: #fff;
-            border-radius: 14px;
-            box-shadow: 0 2px 12px rgba(0,0,0,.08);
-            padding: 20px;
-            margin-bottom: 16px;
-        }
-
-        .customer-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .customer-label {
-            font-weight: 700;
-            font-size: 14px;
-            white-space: nowrap;
-        }
-
-        .vip-badge {
-            background: linear-gradient(135deg, #f6c90e, #e8a000);
-            color: #fff;
-            border-radius: 6px;
-            padding: 3px 10px;
-            font-size: 12px;
-            font-weight: 700;
-            white-space: nowrap;
-        }
-
-        .phone-badge {
-            background: #e8f4fd;
-            color: #1a6fc4;
-            border-radius: 20px;
-            padding: 4px 12px;
-            font-size: 13px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .booking-type-section {
-            margin-top: 16px;
-        }
-
-        .booking-type-label {
-            font-weight: 700;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-
-        .booking-type-cards {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .booking-type-card {
-            border: 2px solid #dee2e6;
-            border-radius: 12px;
-            padding: 14px 22px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: all .2s;
-            background: #f8f9fa;
-            flex: 1;
-            min-width: 180px;
-        }
-
-            .booking-type-card.active {
-                border-color: #198754;
-                background: #e8f5e9;
-            }
-
-            .booking-type-card:hover:not(.active) {
-                border-color: #aaa;
-                background: #f0f0f0;
-            }
-
-            .booking-type-card .card-icon {
-                font-size: 22px;
-                color: #0d6efd;
-            }
-
-            .booking-type-card.active .card-icon {
-                color: #198754;
-            }
-
-            .booking-type-card .card-title {
-                font-weight: 700;
-                font-size: 14px;
-            }
-
-            .booking-type-card .card-sub {
-                font-size: 11px;
-                color: #888;
-            }
-
-        .packages-section {
-            margin-top: 16px;
-        }
-
-        .package-item {
-            border: 2px solid #dee2e6;
-            border-radius: 10px;
-            padding: 12px 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 8px;
-            transition: all .2s;
-        }
-
-            .package-item:hover {
-                border-color: #0d6efd;
-                background: #f0f6ff;
-            }
-
-            .package-item.selected {
-                border-color: #198754;
-                background: #e8f5e9;
-            }
-
-            .package-item input[type=radio] {
-                width: 18px;
-                height: 18px;
-                cursor: pointer;
-            }
-
-        .pkg-name {
-            font-weight: 700;
-            font-size: 14px;
-        }
-
-        .pkg-meta {
-            font-size: 12px;
-            color: #555;
-            display: flex;
-            gap: 10px;
-            margin-top: 3px;
-        }
-
-        .pkg-sessions {
-            background: #e8f5e9;
-            color: #1a7a42;
-            border-radius: 5px;
-            padding: 2px 8px;
-            font-weight: 700;
-            font-size: 12px;
-        }
-
-        .pkg-expiry {
-            color: #888;
-        }
-
-        .services-section {
-            margin-top: 16px;
-        }
-
-        .service-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 12px;
-            border-radius: 8px;
-            transition: background .15s;
-        }
-
-            .service-item:hover {
-                background: #f5f5f5;
-            }
-
-            .service-item input {
-                width: 16px;
-                height: 16px;
-                cursor: pointer;
-            }
-
-        .service-name {
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .service-price {
-            font-size: 12px;
-            color: #888;
-        }
-
-        /* Booking Summary */
-        .summary-card {
-            background: #fff;
-            border-radius: 14px;
-            box-shadow: 0 2px 12px rgba(0,0,0,.08);
-            overflow: hidden;
-            position: sticky;
-            top: 70px;
-        }
-
-        .summary-header {
-            background: linear-gradient(135deg, #0d6efd, #0056b3);
-            color: #fff;
-            padding: 14px 18px;
-            font-weight: 700;
-            font-size: 15px;
-        }
-
-        .summary-body {
-            padding: 16px;
-        }
-
-        .summary-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f0f0;
-            font-size: 13px;
-        }
-
-            .summary-item:last-child {
-                border-bottom: none;
-            }
-
-            .summary-item .si-icon {
-                color: #aaa;
-                width: 18px;
-                text-align: center;
-                flex-shrink: 0;
-                margin-top: 1px;
-            }
-
-            .summary-item .si-content {
-                flex: 1;
-            }
-
-            .summary-item .si-label {
-                font-size: 11px;
-                color: #aaa;
-            }
-
-            .summary-item .si-value {
-                font-weight: 600;
-            }
-
-        .summary-footer {
-            padding: 14px 16px;
-            border-top: 1px solid #f0f0f0;
-        }
-
-        /* Time Slots */
-        .slots-card {
-            background: #fff;
-            border-radius: 14px;
-            box-shadow: 0 2px 12px rgba(0,0,0,.08);
-            overflow: hidden;
-        }
-
-        .slots-filter {
-            background: #f8f9fa;
-            padding: 12px 16px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .slots-body {
-            padding: 0;
-        }
-
-        .slot-row {
-            display: grid;
-            grid-template-columns: 1fr auto auto;
-            align-items: center;
-            padding: 10px 16px;
-            border-bottom: 1px solid #f0f0f0;
-            gap: 10px;
-            transition: background .15s;
-        }
-
-            .slot-row:last-child {
-                border-bottom: none;
-            }
-
-            .slot-row.slot-available {
-                cursor: pointer;
-            }
-
-                .slot-row.slot-available:hover {
-                    background: #f0f9f0;
-                }
-
-            .slot-row.slot-selected {
-                background: #e8f5e9;
-                border-right: 3px solid #198754;
-            }
-
-            .slot-row.slot-booked {
-                background: #fff8f8;
-            }
-
-            .slot-row.slot-break {
-                background: #fffbf0;
-            }
-
-            .slot-row.slot-unavailable {
-                background: #fafafa;
-                opacity: .75;
-            }
-
-        .slot-person {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            color: #555;
-        }
-
-        .slot-select-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            font-weight: 700;
-            color: #198754;
-        }
-
-        .slot-badge {
-            border-radius: 20px;
-            padding: 3px 12px;
-            font-size: 12px;
-            font-weight: 700;
-            white-space: nowrap;
-        }
-
-        .badge-available {
-            background: #d1f3e8;
-            color: #0a6640;
-        }
-
-        .badge-booked {
-            background: #fce4e4;
-            color: #c0392b;
-        }
-
-        .badge-break {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .badge-unavailable {
-            background: #f0f0f0;
-            color: #888;
-        }
-
-        .badge-outside {
-            background: #e9ecef;
-            color: #6c757d;
-        }
-
-        .slot-time {
-            font-weight: 700;
-            font-size: 13px;
-            white-space: nowrap;
-            color: #333;
-            text-align: left;
-            direction: ltr;
-        }
-
-        .tz-note {
-            font-size: 11px;
-            color: #aaa;
-            padding: 8px 16px;
-            text-align: center;
-            border-top: 1px solid #f0f0f0;
-        }
-
+        /* ─── legend ──────────────────────────────────── */
         .legend-bar {
             display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
+            gap: 14px;
             align-items: center;
-            padding: 10px 16px;
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 1px 6px rgba(0,0,0,.06);
-            margin-top: 12px;
+            padding: 6px 16px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            flex-wrap: wrap;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             font-size: 12px;
             font-weight: 600;
+            color: #555;
         }
 
         .legend-dot {
@@ -452,247 +140,896 @@
             display: inline-block;
         }
 
-        .empty-slots {
+        /* ─── calendar section ────────────────────────── */
+        .calendar-section {
+            flex: 1;
+            overflow: auto;
+            background: #f4f5f7;
+        }
+
+        .calendar-wrapper {
+            min-width: 500px;
+            height: 100%;
+            overflow: auto;
+            position: relative;
+        }
+
+        .calendar-loading {
+            padding: 60px 20px;
             text-align: center;
-            padding: 32px 16px;
             color: #aaa;
         }
 
-            .empty-slots i {
-                font-size: 2rem;
-                margin-bottom: 8px;
+        /* ─── calendar table ──────────────────────────── */
+        .cal-table {
+            border-collapse: collapse;
+            width: 100%;
+            background: #fff;
+        }
+
+            .cal-table thead tr th {
+                position: sticky;
+                top: 0;
+                z-index: 10;
+                background: #f8f9fa;
+                padding: 10px 8px;
+                text-align: center;
+                border: 1px solid #dee2e6;
+                font-size: 13px;
+                font-weight: 700;
+                white-space: nowrap;
+            }
+
+                .cal-table thead tr th.time-th {
+                    position: sticky;
+                    top: 0;
+                    right: 0;
+                    z-index: 20;
+                    min-width: 80px;
+                    background: #e9ecef;
+                    color: #555;
+                }
+
+                .cal-table thead tr th.emp-th {
+                    min-width: 120px;
+                }
+
+        .emp-th-name {
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .emp-th-job {
+            font-size: 11px;
+            color: #888;
+            font-weight: 400;
+        }
+
+        .cal-table tbody tr:hover {
+            background: rgba(0,0,0,.01);
+        }
+
+        .cal-table td.time-cell {
+            position: sticky;
+            right: 0;
+            z-index: 5;
+            background: #f8f9fa;
+            padding: 6px 10px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #444;
+            border: 1px solid #dee2e6;
+            white-space: nowrap;
+            min-width: 80px;
+        }
+
+        .cal-table td.slot-cell {
+            padding: 4px 6px;
+            border: 1px solid #e9ecef;
+            text-align: center;
+            min-width: 120px;
+            height: 46px;
+            vertical-align: middle;
+            font-size: 11px;
+            transition: background .12s;
+            cursor: default;
+        }
+
+        .slot-available {
+            background: #fff;
+            cursor: pointer;
+            color: #555;
+        }
+
+            .slot-available:hover {
+                background: #e8f5e9;
+            }
+
+            .slot-available.slot-selected {
+                background: #c3f0d0 !important;
+                border: 2px solid #28a745 !important;
+                font-weight: 700;
+            }
+
+        .slot-booked {
+            background: #fdecea;
+            color: #c0392b;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .slot-booked-name {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+        }
+
+        .slot-break {
+            background: #fff8e1;
+            color: #856404;
+        }
+
+        .slot-outside {
+            background: #f5f5f5;
+            color: #bbb;
+        }
+
+        .avail-text {
+            color: #28a745;
+            font-size: 11px;
+        }
+
+        .slot-selected .avail-text {
+            color: #155724;
+            font-weight: 700;
+        }
+
+        /* ─── details panel ───────────────────────────── */
+        .details-panel {
+            width: 320px;
+            min-width: 290px;
+            max-width: 340px;
+            flex-shrink: 0;
+            background: #fff;
+            border-inline-start: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .details-header {
+            padding: 12px 16px;
+            background: #fff;
+            border-bottom: 1px solid #e9ecef;
+            font-weight: 700;
+            font-size: 14px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+            .details-header .cal-icon {
+                width: 30px;
+                height: 30px;
+                background: linear-gradient(135deg, #f6993f, #e67e22);
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                font-size: 14px;
+            }
+
+        .details-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 14px;
+        }
+
+        .detail-info-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 0;
+            font-size: 13px;
+            color: #444;
+        }
+
+            .detail-info-row .di-icon {
+                width: 28px;
+                height: 28px;
+                background: #f0f4ff;
+                border-radius: 7px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #0d6efd;
+                font-size: 12px;
+                flex-shrink: 0;
+            }
+
+        .di-value {
+            font-weight: 600;
+        }
+
+        .di-label {
+            font-size: 11px;
+            color: #888;
+        }
+
+        .section-divider {
+            border: none;
+            border-top: 1px solid #f0f0f0;
+            margin: 10px 0;
+        }
+
+        .panel-section-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* customer search */
+        .customer-search-wrap {
+            position: relative;
+        }
+
+            .customer-search-wrap .search-icon {
+                position: absolute;
+                top: 50%;
+                transform: translateY(-50%);
+                right: 10px;
+                color: #aaa;
+                font-size: 13px;
+                pointer-events: none;
+                z-index: 1;
+            }
+
+            .customer-search-wrap select {
+                padding-right: 32px;
+                border-radius: 8px;
+                border: 1px solid #dee2e6;
+                font-size: 13px;
+            }
+
+        /* companions */
+        .companion-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+
+            .companion-item .companion-name {
+                flex: 1;
+                font-weight: 600;
+            }
+
+            .companion-item .btn-remove {
+                width: 22px;
+                height: 22px;
+                background: #fce4e4;
+                border: none;
+                border-radius: 50%;
+                color: #dc3545;
+                font-size: 11px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                padding: 0;
+            }
+
+                .companion-item .btn-remove:hover {
+                    background: #f5b5b5;
+                }
+
+        .add-companion-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+            .add-companion-row select {
+                flex: 1;
+                font-size: 12px;
+                border-radius: 7px;
+                border: 1px solid #dee2e6;
+            }
+
+            .add-companion-row .btn-add-c {
+                width: 30px;
+                height: 30px;
+                background: #e8f5e9;
+                border: 1px solid #28a745;
+                border-radius: 7px;
+                color: #28a745;
+                font-size: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                padding: 0;
+                flex-shrink: 0;
+            }
+
+                .add-companion-row .btn-add-c:hover {
+                    background: #c8f5d8;
+                }
+
+        /* packages */
+        .package-card {
+            border: 1.5px solid #dee2e6;
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+            .package-card:hover {
+                border-color: #0d6efd;
+                background: #f0f6ff;
+            }
+
+            .package-card.pkg-selected {
+                border-color: #198754;
+                background: #e8f5e9;
+            }
+
+        .pkg-name {
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .pkg-meta {
+            font-size: 11px;
+            color: #666;
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+            flex-wrap: wrap;
+        }
+
+        .pkg-sessions-badge {
+            background: #e8f5e9;
+            color: #1a7a42;
+            border-radius: 5px;
+            padding: 2px 7px;
+            font-weight: 700;
+            font-size: 11px;
+        }
+
+        .pkg-expiry-badge {
+            color: #888;
+        }
+
+        /* use-pkg btn */
+        .btn-use-pkg {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1.5px solid #0d6efd;
+            background: #f0f6ff;
+            color: #0d6efd;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: all .15s;
+        }
+
+            .btn-use-pkg:hover {
+                background: #0d6efd;
+                color: #fff;
+            }
+
+            .btn-use-pkg.active {
+                background: #0d6efd;
+                color: #fff;
+            }
+
+        /* service cards */
+        .svc-card {
+            background: #fff;
+            border: 1.5px solid #e9ecef;
+            border-radius: 10px;
+            padding: 9px 11px;
+            margin-bottom: 7px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            transition: border-color .15s, box-shadow .15s;
+        }
+
+            .svc-card:hover {
+                border-color: #c8d0dd;
+                box-shadow: 0 2px 8px rgba(0,0,0,.05);
+            }
+
+            .svc-card.from-pkg {
+                border-color: #b8d4f5;
+                background: #f0f7ff;
+            }
+
+        .svc-card-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 13px;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .svc-card.from-pkg .svc-card-icon {
+            background: linear-gradient(135deg, #0d6efd, #38b2f5);
+        }
+
+        .svc-card-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .svc-card-name {
+            font-weight: 700;
+            font-size: 12px;
+            color: #222;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .svc-card-emp {
+            font-size: 11px;
+            color: #777;
+            margin-top: 3px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .emp-chip {
+            background: #f0f2f5;
+            border-radius: 5px;
+            padding: 1px 6px;
+            font-size: 10px;
+            color: #555;
+            border: 1px solid #e0e4ea;
+        }
+
+        .svc-card-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .svc-card-price {
+            font-weight: 700;
+            color: #198754;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+            .svc-card-price.from-pkg {
+                color: #0d6efd;
+                font-size: 11px;
+                background: #e0eeff;
+                border-radius: 5px;
+                padding: 2px 6px;
+            }
+
+        .svc-card-del {
+            width: 20px;
+            height: 20px;
+            background: #fce4e4;
+            border: none;
+            border-radius: 50%;
+            color: #dc3545;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            transition: background .1s;
+            flex-shrink: 0;
+        }
+
+            .svc-card-del:hover {
+                background: #f5b5b5;
+            }
+
+        /* panel date/time inputs */
+        .panel-dt-row {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 5px 0;
+        }
+
+            .panel-dt-row .di-icon {
+                flex-shrink: 0;
+            }
+
+            .panel-dt-row .panel-dt-inner {
+                flex: 1;
+            }
+
+            .panel-dt-row .di-label {
+                font-size: 11px;
+                color: #aaa;
+                margin-bottom: 3px;
+            }
+
+            .panel-dt-row input[type=date], .panel-dt-row input[type=time] {
+                width: 100%;
+                font-size: 13px;
+                font-weight: 600;
+                border: 1.5px solid #dee2e6;
+                border-radius: 8px;
+                padding: 5px 8px;
+                color: #333;
+                background: #fff;
+                transition: border-color .15s;
+                cursor: pointer;
+            }
+
+            .panel-dt-row input:focus {
+                border-color: #0d6efd;
+                outline: none;
+            }
+
+        /* companion text input */
+        .add-companion-row input[type=text] {
+            flex: 1;
+            font-size: 13px;
+            border-radius: 7px;
+            border: 1.5px solid #dee2e6;
+            padding: 5px 8px;
+            background: #fff;
+        }
+
+            .add-companion-row input[type=text]:focus {
+                border-color: #28a745;
+                outline: none;
+            }
+
+        /* add service dropdown */
+        .add-svc-wrap {
+            position: relative;
+        }
+
+        .svc-dropdown {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 6px);
+            right: 0;
+            left: 0;
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,.12);
+            z-index: 100;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+            .svc-dropdown.open {
                 display: block;
-                opacity: .4;
+            }
+
+        .svc-dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f5f5f5;
+            transition: background .1s;
+        }
+
+            .svc-dropdown-item:last-child {
+                border-bottom: none;
+            }
+
+            .svc-dropdown-item:hover {
+                background: #f0f6ff;
+            }
+
+            .svc-dropdown-item .svc-ddi-price {
+                color: #198754;
+                font-weight: 700;
+                font-size: 12px;
+            }
+
+        /* total */
+        .total-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 8px;
+            font-size: 13px;
+            border: 1px solid #e9ecef;
+        }
+
+            .total-bar .total-label {
+                font-weight: 600;
+                color: #555;
+            }
+
+            .total-bar .total-value {
+                font-weight: 700;
+                color: #198754;
+                font-size: 14px;
+            }
+
+        /* details footer */
+        .details-footer {
+            padding: 12px 14px;
+            border-top: 1px solid #e9ecef;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-save-appt {
+            background: linear-gradient(135deg, #f6993f, #e67e22);
+            border: none;
+            color: #fff;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 10px;
+            border-radius: 10px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: opacity .2s;
+        }
+
+            .btn-save-appt:hover {
+                opacity: .9;
+            }
+
+        .btn-cancel-row {
+            display: flex;
+            gap: 8px;
+        }
+
+            .btn-cancel-row .btn {
+                flex: 1;
+                font-size: 13px;
+                border-radius: 8px;
             }
 
         @@media (max-width: 768px) {
-            .booking-type-card
+            .appt-body {
+                flex-direction: column;
+            }
+            /* على الموبايل: calendar فوق، details تحت */
+            .calendar-section {
+                order: 1;
+                min-height: 280px;
+            }
 
-        {
-            min-width: 140px;
-            padding: 10px 14px;
+            .details-panel {
+                order: 2;
+                width: 100%;
+                max-width: 100%;
+                border-inline-start: none;
+                border-top: 1px solid #e9ecef;
+            }
         }
-
-        .summary-card {
-            position: static;
-        }
-
-        }</style>
+    </style>
 }
-
-<div class="page-header d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h1><i class="fas fa-calendar-plus me-2"></i>إضافة موعد جديد</h1>
-    </div>
-    <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
-        <i class="fas fa-arrow-right me-1"></i> المواعيد
-    </a>
-</div>
 
 <form id="bookingForm" asp-action="Create" method="post" autocomplete="off">
     @Html.AntiForgeryToken()
-
-    <!-- Hidden fields set by JS -->
     <input type="hidden" name="Status" value="مجدول" />
-    <input type="hidden" id="hdnAppointmentDate" name="AppointmentDate" value="@defaultApptDate" />
+    <input type="hidden" id="hdnAppointmentDate" name="AppointmentDate" value="@todayDateStr T11:00:00" />
     <input type="hidden" id="hdnEndTime" name="EndTime" />
     <input type="hidden" id="hdnEmployeeId" name="EmployeeId" />
+    <input type="hidden" id="hdnCustomerId" name="CustomerId" />
+    <input type="hidden" id="hdnPackageId" name="CustomerPackageId" />
 
-    @* Department Selector - visible only for admin/manager *@
-    @if (canSelectDept)
-    {
-        <div class="dept-toggle-bar">
-            <span style="font-weight:700;font-size:14px;color:#555;">القسم:</span>
-            <button type="button" class="dept-btn @(initialDept == "حلاقة" ? "active" : "")" data-dept="حلاقة">
-                <i class="fas fa-cut"></i> حلاقة
-            </button>
-            <button type="button" class="dept-btn @(initialDept == "مساج" ? "active" : "")" data-dept="مساج">
-                <i class="fas fa-spa"></i> مساج
-            </button>
-        </div>
-    }
+    <div class="appt-page">
 
-    @* Customer + Booking Type *@
-    <div class="booking-card">
-        @* Customer Row *@
-        <div class="customer-row">
-            <span class="customer-label">العميل *</span>
-            <div style="flex:1;min-width:200px;">
-                <select id="customerSelect" name="CustomerId" class="form-select form-select-sm">
-                    <option value="">-- اختر العميل --</option>
-                </select>
+        <!-- ─── Filter Bar ──────────────────────────────────────── -->
+        <div class="appt-filter">
+            <span class="filter-title">
+                <i class="fas fa-calendar-plus text-warning"></i>
+                حجز موعد جديد
+            </span>
+
+            <div class="date-nav">
+                <button type="button" class="btn-nav" id="btnPrevDate"><i class="fas fa-chevron-right"></i></button>
+                <input type="date" id="dateSelect" value="@todayDateStr" />
+                <button type="button" class="btn-nav" id="btnNextDate"><i class="fas fa-chevron-left"></i></button>
             </div>
-            <div id="customerInfo" style="display:none;align-items:center;gap:8px;" class="d-flex">
-                <span class="phone-badge" id="customerPhone">
-                    <i class="fas fa-phone"></i> <span id="customerPhoneText"></span>
-                </span>
-                <span class="vip-badge">VIP</span>
-            </div>
-        </div>
 
-        @* Booking Type - shown when customer has packages *@
-        <div class="booking-type-section" id="bookingTypeSection" style="display:none;">
-            <div class="booking-type-label">نوع الحجز</div>
-            <div class="booking-type-cards">
-                <div class="booking-type-card" id="cardNewService" onclick="selectBookingType('new')">
-                    <div class="card-icon"><i class="fas fa-plus-circle"></i></div>
-                    <div>
-                        <div class="card-title">خدمة جديدة</div>
-                        <div class="card-sub">حجز خدمة بدون باقة</div>
-                    </div>
-                </div>
-                <div class="booking-type-card" id="cardFromPackage" onclick="selectBookingType('package')">
-                    <div class="card-icon"><i class="fas fa-gift"></i></div>
-                    <div>
-                        <div class="card-title">من باقة موجودة</div>
-                        <div class="card-sub">حجز جلسة من باقة العميل</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+            <select id="empFilterSel" class="filter-select">
+                <option value="">اختر الموظف</option>
+                <option value="">الكل</option>
+            </select>
 
-        @* Packages List *@
-        <div class="packages-section" id="packagesSection" style="display:none;">
-            <div class="booking-type-label">الباقات النشطة للعميل</div>
-            <div id="packagesList"></div>
-        </div>
+            <select id="svcFilterSel" class="filter-select" style="display:none;">
+                <option value="">اختر الخدمة</option>
+            </select>
 
-        @* Services List *@
-        <div class="services-section" id="servicesSection" style="display:none;">
-            <div class="booking-type-label">اختر الخدمة</div>
-            <div id="servicesList"></div>
-        </div>
-    </div>
-
-    @* Time Slots Info Alert *@
-    <div class="alert alert-warning d-flex align-items-center gap-2 mb-3" style="border-radius:10px;">
-        <i class="fas fa-clock fa-lg"></i>
-        <div>اختر الوقت المناسب من الأوقات المتاحة باللون الأخضر</div>
-    </div>
-
-    @* Main Two-Column Layout *@
-    <div class="row g-3">
-
-        @* Left: Booking Summary *@
-        <div class="col-md-4">
-            <div class="summary-card">
-                <div class="summary-header">
-                    <i class="fas fa-receipt me-2"></i>ملخص الحجز
-                </div>
-                <div class="summary-body">
-                    <div class="summary-item" id="siCustomer">
-                        <div class="si-icon"><i class="fas fa-user"></i></div>
-                        <div class="si-content">
-                            <div class="si-label">العميل</div>
-                            <div class="si-value" id="siCustomerVal"><span class="text-muted">—</span></div>
-                        </div>
-                    </div>
-                    <div class="summary-item" id="siService">
-                        <div class="si-icon"><i class="fas fa-concierge-bell"></i></div>
-                        <div class="si-content">
-                            <div class="si-label">الخدمة / الباقة</div>
-                            <div class="si-value" id="siServiceVal"><span class="text-muted">—</span></div>
-                        </div>
-                    </div>
-                    <div class="summary-item" id="siEmployee">
-                        <div class="si-icon"><i class="fas fa-user-tie"></i></div>
-                        <div class="si-content">
-                            <div class="si-label">الموظف</div>
-                            <div class="si-value" id="siEmployeeVal"><span class="text-muted">—</span></div>
-                        </div>
-                    </div>
-                    <div class="summary-item">
-                        <div class="si-icon"><i class="fas fa-calendar"></i></div>
-                        <div class="si-content">
-                            <div class="si-label">التاريخ</div>
-                            <div class="si-value" id="siDateVal"><span class="text-muted">—</span></div>
-                        </div>
-                    </div>
-                    <div class="summary-item">
-                        <div class="si-icon"><i class="fas fa-clock"></i></div>
-                        <div class="si-content">
-                            <div class="si-label">الوقت</div>
-                            <div class="si-value" id="siTimeVal"><span class="text-muted">—</span></div>
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <label class="form-label" style="font-size:13px;font-weight:600;">الملاحظات</label>
-                        <textarea name="Notes" class="form-control form-control-sm" rows="3" placeholder="ملاحظات إضافية..."></textarea>
-                    </div>
-                </div>
-                <div class="summary-footer">
-                    <button type="submit" class="btn btn-success w-100 mb-2" id="confirmBtn">
-                        <i class="fas fa-calendar-check me-2"></i>تأكيد الحجز
+            @if (canSelectDept)
+            {
+                <div class="d-flex gap-1">
+                    <button type="button" class="dept-btn @(initialDept == "حلاقة" ? "active" : "")" data-dept="حلاقة">
+                        <i class="fas fa-cut"></i> حلاقة
                     </button>
-                    <a href="@Url.Action("Index")" class="btn btn-outline-secondary w-100">
-                        <i class="fas fa-times me-1"></i>إلغاء
-                    </a>
+                    <button type="button" class="dept-btn @(initialDept == "مساج" ? "active" : "")" data-dept="مساج">
+                        <i class="fas fa-spa"></i> مساج
+                    </button>
                 </div>
-            </div>
+            }
 
-            @* Package note *@
-            <div class="alert alert-info mt-3" id="packageNote" style="display:none;font-size:13px;border-radius:10px;">
-                <i class="fas fa-info-circle me-1"></i>
-                سيتم استخدام جلسة واحدة من الباقة عند تأكيد الحجز
-            </div>
+            <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm ms-auto" style="font-size:12px;">
+                <i class="fas fa-arrow-right me-1"></i>المواعيد
+            </a>
         </div>
 
-        @* Right: Date/Employee + Time Slots *@
-        <div class="col-md-8">
-            <div class="slots-card">
-                @* Filter Row *@
-                <div class="slots-filter">
-                    <div class="row g-2 align-items-center">
-                        <div class="col-md-5">
-                            <label class="form-label mb-1" style="font-size:12px;font-weight:600;color:#555;">الموظف *</label>
-                            <select id="empSelect" class="form-select form-select-sm">
-                                <option value="">-- اختر الموظف --</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label mb-1" style="font-size:12px;font-weight:600;color:#555;">التاريخ *</label>
-                            <input type="date" id="dateSelect" class="form-control form-control-sm" value="@todayDateStr" />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label mb-1" style="font-size:12px;font-weight:600;color:#555;">عرض الفترات</label>
-                            <select id="intervalSelect" class="form-select form-select-sm">
-                                <option value="60">كل ساعة</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                @* Time Slots *@
-                <div class="slots-body" id="slotsBody">
-                    <div class="empty-slots">
-                        <i class="fas fa-calendar-alt"></i>
-                        <span>اختر التاريخ والموظف لعرض الأوقات المتاحة</span>
-                    </div>
-                </div>
-
-                <div class="tz-note">جميع الأوقات حسب توقيت الكويت (Asia/Kuwait)</div>
-            </div>
-
-            @* Legend *@
-            <div class="legend-bar">
-                <div class="legend-item">
-                    <span class="legend-dot" style="background:#28a745;"></span> متاح
-                </div>
-                <div class="legend-item">
-                    <span class="legend-dot" style="background:#dc3545;"></span> محجوز
-                </div>
-                <div class="legend-item">
-                    <span class="legend-dot" style="background:#ffc107;"></span> استراحة الموظف
-                </div>
-                <div class="legend-item">
-                    <span class="legend-dot" style="background:#adb5bd;"></span> غير متاح
-                </div>
-                <div class="legend-item">
-                    <span class="legend-dot" style="background:#6c757d;"></span> خارج الدوام
-                </div>
-            </div>
+        <!-- ─── Legend ──────────────────────────────────────────── -->
+        <div class="legend-bar">
+            <div class="legend-item"><span class="legend-dot" style="background:#28a745;"></span> متاح</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#e74c3c;"></span> محجوز</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#f39c12;"></span> استراحة</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#adb5bd;"></span> خارج الدوام</div>
         </div>
-    </div>
+
+        <!-- ─── Body (Calendar + Details) ──────────────────────── -->
+        <div class="appt-body">
+
+            <!-- Details Panel - أول في HTML = يمين في RTL flex -->
+            <div class="details-panel">
+                <div class="details-header">
+                    <div class="cal-icon"><i class="fas fa-calendar-alt"></i></div>
+                    تفاصيل الموعد
+                </div>
+
+                <div class="details-body">
+
+                    <!-- التاريخ: input للتنقل السريع -->
+                    <div class="panel-dt-row">
+                        <div class="di-icon"><i class="fas fa-calendar"></i></div>
+                        <div class="panel-dt-inner">
+                            <div class="di-label">التاريخ</div>
+                            <input type="date" id="panelDateInput" value="@todayDateStr" />
+                        </div>
+                    </div>
+                    <!-- الوقت: يُحدَّد من الجدول فقط -->
+                    <div class="panel-dt-row">
+                        <div class="di-icon"><i class="fas fa-clock"></i></div>
+                        <div class="panel-dt-inner">
+                            <div class="di-label">الوقت</div>
+                            <div id="displayTime" style="font-size:13px;font-weight:700;color:#333;padding:5px 0;min-height:26px;">
+                                <span class="text-muted" style="font-weight:400;font-size:12px;">اضغط على خلية في الجدول</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="section-divider" />
+
+                    <!-- Main Customer -->
+                    <div class="panel-section-title">العميل الرئيسي</div>
+                    <div class="customer-search-wrap mb-2">
+                        <i class="fas fa-search search-icon"></i>
+                        <select id="customerSelect" class="form-select form-select-sm w-100">
+                            <option value="">-- اختر العميل --</option>
+                        </select>
+                    </div>
+
+                    <hr class="section-divider" />
+
+                    <!-- Companions -->
+                    <div class="panel-section-title">
+                        <span>المرافقون <span id="companionsCountBadge" class="badge bg-secondary ms-1" style="font-size:10px;">0</span></span>
+                        <button type="button" id="btnToggleCompanion" class="btn btn-sm btn-outline-success py-0 px-2" style="font-size:11px;">
+                            <i class="fas fa-plus"></i> إضافة مرافق
+                        </button>
+                    </div>
+
+                    <div id="companionsListUI"></div>
+
+                    <div id="addCompanionRow" class="add-companion-row" style="display:none;">
+                        <input type="text" id="companionNameInput" placeholder="اكتب اسم المرافق..." maxlength="80" />
+                        <button type="button" id="btnConfirmCompanion" class="btn-add-c" title="إضافة">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </div>
+
+                    <hr class="section-divider" />
+
+                    <!-- Active Packages -->
+                    <div id="packagesSection" style="display:none;">
+                        <div class="panel-section-title">الباقات النشطة</div>
+                        <div id="packagesList"></div>
+                        <hr class="section-divider" />
+                    </div>
+
+                    <!-- Services -->
+                    <div class="panel-section-title">
+                        <span>الخدمات</span>
+                        <div class="add-svc-wrap">
+                            <button type="button" id="btnAddService" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size:11px;">
+                                <i class="fas fa-plus"></i> إضافة
+                            </button>
+                            <div id="svcDropdown" class="svc-dropdown"></div>
+                        </div>
+                    </div>
+                    <div id="servicesListUI"></div>
+
+                    <!-- Total -->
+                    <div class="total-bar" id="totalBar" style="display:none;">
+                        <span class="total-label">إجمالي الخدمات</span>
+                        <span class="total-value" id="totalPriceVal">0.000 د.ك</span>
+                    </div>
+
+                    <hr class="section-divider" />
+
+                    <!-- Notes -->
+                    <div class="panel-section-title">ملاحظات</div>
+                    <textarea name="Notes" class="form-control form-control-sm" rows="2" placeholder="ملاحظات إضافية..."></textarea>
+
+                </div><!-- /details-body -->
+
+                <div class="details-footer">
+                    <button type="submit" class="btn-save-appt" id="confirmBtn">
+                        <i class="fas fa-calendar-check"></i> حفظ الموعد
+                    </button>
+                    <div class="btn-cancel-row">
+                        <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-times me-1"></i>إلغاء
+                        </a>
+                        <button type="button" id="btnReset" class="btn btn-outline-warning btn-sm">
+                            <i class="fas fa-redo me-1"></i>إعادة تعيين
+                        </button>
+                    </div>
+                </div>
+            </div><!-- /details-panel -->
+            <!-- Calendar Section - ثاني في HTML = يسار في RTL flex -->
+            <div class="calendar-section">
+                <div class="calendar-wrapper" id="calendarWrapper">
+                    <div class="calendar-loading">
+                        <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
+                        جاري التحميل...
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /appt-body -->
+    </div><!-- /appt-page -->
 </form>
 
 @section Scripts {
@@ -700,377 +1037,491 @@
         (function () {
             'use strict';
 
-            let currentDept = '@Html.Raw(initialDept)';
-            let selectedSlot = null;
-            let selectedPackageId = null;
-            let selectedPackageName = '';
-            let selectedPackageRemaining = 0;
-            let bookingType = 'new';
-            let loadedSlots = [];
+            // ── State ────────────────────────────────────────────────────────
+            let currentDept     = '@Html.Raw(initialDept)';
+            let selectedSlot    = null;    // { empId, empName, startTime, endTime, timeLabel }
+            let allCustomers    = [];
+            let allServices     = [];      // { id, name, price, priceNum, category }
+            let companions      = [];      // { id, name }
+            let addedServices   = [];      // { id, name, priceNum, price }
+            let usedPackageId   = null;
+            let packageServiceName = '';
+            let cachedCalendar  = { employees: [], timeSlots: [] };
 
-            function t(ar, en) {
-                return localStorage.getItem('lang') === 'en' ? en : ar;
+            // ── Helpers ──────────────────────────────────────────────────────
+            function esc(str) {
+                return String(str || '')
+                    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
             }
 
-            // ── Department buttons ───────────────────────────────
-            document.querySelectorAll('.dept-btn').forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    currentDept = this.dataset.dept;
-                    document.querySelectorAll('.dept-btn').forEach(function (b) { b.classList.remove('active'); });
-                    this.classList.add('active');
-                    loadCustomers();
-                    loadEmployees();
-                    loadServicesByDept();
-                    resetSelection();
-                });
-            });
+            function dateLabel(dateStr) {
+                const d = new Date(dateStr + 'T00:00:00');
+                const days = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+                const dd = String(d.getDate()).padStart(2,'0');
+                const mm = String(d.getMonth()+1).padStart(2,'0');
+                const yyyy = d.getFullYear();
+                return days[d.getDay()] + ' - ' + yyyy + '/' + mm + '/' + dd;
+            }
 
-            // ── Load customers ───────────────────────────────────
+            // ── Init ─────────────────────────────────────────────────────────
+            async function init() {
+                await loadCustomers();
+                await loadServices();
+                renderCalendar();
+                updateDisplayDate();
+            }
+
             async function loadCustomers() {
                 const res = await fetch('/Appointments/GetCustomersByDepartment?dept=' + encodeURIComponent(currentDept));
-                const customers = await res.json();
+                allCustomers = await res.json();
                 const sel = document.getElementById('customerSelect');
-                sel.innerHTML = '<option value="">' + t('-- اختر العميل --', '-- Select Customer --') + '</option>';
-                customers.forEach(function (c) {
-                    const opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.text = c.fullName;
-                    opt.dataset.phone = c.phone || '';
-                    sel.appendChild(opt);
+                sel.innerHTML = '<option value="">-- اختر العميل --</option>';
+                allCustomers.forEach(c => {
+                    sel.innerHTML += `<option value="${c.id}" data-phone="${esc(c.phone||'')}">${esc(c.fullName)}</option>`;
                 });
             }
 
-            // ── Load employees ───────────────────────────────────
-            async function loadEmployees() {
-                const res = await fetch('/Appointments/GetEmployeesByDepartment?dept=' + encodeURIComponent(currentDept));
-                const employees = await res.json();
-                const sel = document.getElementById('empSelect');
-                sel.innerHTML = '<option value="">' + t('-- اختر الموظف --', '-- Select Employee --') + '</option>';
-                employees.forEach(function (e) {
-                    const opt = document.createElement('option');
-                    opt.value = e.id;
-                    opt.text = e.fullName + ' [' + e.dept + ']';
-                    sel.appendChild(opt);
-                });
-            }
-
-            // ── Load services by department ──────────────────────
-            async function loadServicesByDept() {
+            async function loadServices() {
                 const res = await fetch('/Appointments/GetServicesByDepartment?dept=' + encodeURIComponent(currentDept));
-                const services = await res.json();
-                let html = '';
-                if (!services.length) {
-                    html = '<div class="text-muted small p-2">' + t('لا توجد خدمات في هذا القسم', 'No services in this department') + '</div>';
-                } else {
-                    services.forEach(function (s) {
-                        html += '<div class="service-item"><input type="checkbox" name="serviceIds" value="' + s.id + '" class="form-check-input" id="svc' + s.id + '" />' +
-                            '<label for="svc' + s.id + '" style="cursor:pointer;display:flex;justify-content:space-between;flex:1;">' +
-                            '<span class="service-name">' + s.name + '</span>' +
-                            '<span class="service-price">' + s.price + ' د.ك</span>' +
-                            '</label></div>';
-                    });
-                }
-                document.getElementById('servicesList').innerHTML = html;
+                const data = await res.json();
+                allServices = data.map(s => ({
+                    id: s.id, name: s.name,
+                    priceNum: parseFloat(s.price) || 0,
+                    price: s.price,
+                    category: s.category || ''
+                }));
+                renderServiceDropdown();
             }
 
-            // ── Customer change ──────────────────────────────────
-            document.getElementById('customerSelect').addEventListener('change', async function () {
-                const customerId = this.value;
-                const opt = this.options[this.selectedIndex];
-                const phone = opt ? (opt.dataset.phone || '') : '';
+            // ── Calendar ─────────────────────────────────────────────────────
+            async function renderCalendar() {
+                const date = document.getElementById('dateSelect').value;
+                const wrapper = document.getElementById('calendarWrapper');
+                wrapper.innerHTML = '<div class="calendar-loading"><i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>جاري التحميل...</div>';
 
-                if (customerId && phone) {
-                    document.getElementById('customerPhoneText').textContent = phone;
-                    document.getElementById('customerInfo').style.display = 'flex';
-                } else {
-                    document.getElementById('customerInfo').style.display = 'none';
+                try {
+                    const res = await fetch(`/Appointments/GetCalendarView?date=${date}&dept=${encodeURIComponent(currentDept)}`);
+                    cachedCalendar = await res.json();
+                    buildCalendarTable(cachedCalendar.employees, cachedCalendar.timeSlots);
+                } catch(e) {
+                    wrapper.innerHTML = '<div class="calendar-loading text-danger"><i class="fas fa-exclamation-circle fa-2x mb-2 d-block"></i>خطأ في تحميل البيانات</div>';
                 }
+            }
 
-                updateSummary();
-
-                if (!customerId) {
-                    document.getElementById('bookingTypeSection').style.display = 'none';
-                    document.getElementById('packagesSection').style.display = 'none';
-                    document.getElementById('servicesSection').style.display = 'none';
+            function buildCalendarTable(employees, timeSlots) {
+                if (!employees.length) {
+                    document.getElementById('calendarWrapper').innerHTML =
+                        '<div class="calendar-loading"><i class="fas fa-users fa-2x mb-2 d-block text-muted"></i>لا يوجد موظفون في هذا القسم</div>';
                     return;
                 }
 
-                // Load packages for this customer
-                const res = await fetch('/Appointments/GetCustomerPackages?customerId=' + customerId);
-                const packages = await res.json();
+                // تحديد وقت الآن لمنع الحجز في الماضي
+                const now = new Date();
+                const todayStr = now.toISOString().split('T')[0];
+                const selectedDate = document.getElementById('dateSelect').value;
+                const isPastDate = selectedDate < todayStr;
+                const isToday = (selectedDate === todayStr);
+                const nowMinutes = isToday ? (now.getHours() * 60 + now.getMinutes()) : -1;
 
-                if (packages.length > 0) {
-                    renderPackages(packages);
-                    document.getElementById('bookingTypeSection').style.display = '';
-                    selectBookingType('package');
-                } else {
-                    document.getElementById('bookingTypeSection').style.display = 'none';
+                // Header
+                let html = '<table class="cal-table"><thead><tr>';
+                html += '<th class="time-th">الوقت</th>';
+                employees.forEach(emp => {
+                    html += `<th class="emp-th">
+                        <div class="emp-th-name">${esc(emp.name)}</div>
+                        <div class="emp-th-job">${esc(emp.jobTitle)}</div>
+                    </th>`;
+                });
+                html += '</tr></thead><tbody>';
+
+                // Rows
+                timeSlots.forEach(slot => {
+                    // وقت البداية بالدقائق للمقارنة
+                    const [sh, sm] = slot.startTime.split(':').map(Number);
+                    const slotMinutes = sh * 60 + sm;
+                    const isPast = isPastDate || (isToday && slotMinutes <= nowMinutes);
+
+                    html += '<tr>';
+                    html += `<td class="time-cell" style="${isPast ? 'color:#ccc;' : ''}">${esc(slot.timeLabel)}</td>`;
+
+                    slot.cells.forEach((cell, idx) => {
+                        const emp = employees[idx];
+                        const isSelected = selectedSlot
+                            && selectedSlot.empId === cell.empId
+                            && selectedSlot.startTime === slot.startTime;
+
+                        if (cell.status === 'محجوز') {
+                            html += `<td class="slot-cell slot-booked">
+                                <div class="slot-booked-name"><i class="fas fa-user" style="font-size:9px;"></i>${esc(cell.personName||'')}</div>
+                            </td>`;
+                        } else if (cell.status === 'استراحة') {
+                            html += `<td class="slot-cell slot-break"><i class="fas fa-coffee" style="font-size:10px;"></i> استراحة</td>`;
+                        } else if (cell.status === 'خارج الدوام') {
+                            html += `<td class="slot-cell slot-outside">—</td>`;
+                        } else if (isPast) {
+                            // وقت/تاريخ مضى → اعرض فاضي بدون حجز
+                            html += `<td class="slot-cell slot-outside" style="color:#ddd;">—</td>`;
+                        } else {
+                            const selClass = isSelected ? ' slot-selected' : '';
+                            html += `<td class="slot-cell slot-available${selClass}"
+                                onclick="selectSlot(${cell.empId},'${esc(emp.name)}','${slot.startTime}','${slot.endTime}','${slot.timeLabel}')"
+                                title="${esc(emp.name)} — ${slot.timeLabel}">
+                                ${isSelected ? '<i class="fas fa-check-circle text-success"></i>' : '<span class="avail-text">متاح</span>'}
+                            </td>`;
+                        }
+                    });
+
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table>';
+                document.getElementById('calendarWrapper').innerHTML = html;
+            }
+
+            window.selectSlot = function(empId, empName, startTime, endTime, timeLabel) {
+                selectedSlot = { empId, empName, startTime, endTime, timeLabel };
+
+                const date = document.getElementById('dateSelect').value;
+                document.getElementById('hdnAppointmentDate').value = date + 'T' + startTime + ':00';
+                document.getElementById('hdnEndTime').value = endTime === '00:00' ? '00:00:00' : endTime + ':00';
+                document.getElementById('hdnEmployeeId').value = empId;
+
+                // عرض الوقت في الـ panel
+                const endLabel = endTime === '00:00' ? '12:00 ص' : formatTime12(endTime);
+                document.getElementById('displayTime').innerHTML =
+                    `<span style="color:#0d6efd;">${esc(timeLabel)}</span>
+                     <span style="color:#aaa;font-size:11px;"> — ${endLabel}</span>`;
+
+                buildCalendarTable(cachedCalendar.employees, cachedCalendar.timeSlots);
+                renderServicesList();
+            };
+
+            function formatTime12(t) {
+                const parts = t.split(':');
+                let h = parseInt(parts[0]);
+                const m = parts[1] || '00';
+                const ap = h < 12 ? 'ص' : 'م';
+                const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                return String(h12).padStart(2,'0') + ':' + m + ' ' + ap;
+            }
+
+            // ── Date navigation ──────────────────────────────────────────────
+            function updateDisplayDate() {
+                const v = document.getElementById('dateSelect').value;
+                document.getElementById('panelDateInput').value = v;
+            }
+
+            function setDate(newDate) {
+                document.getElementById('dateSelect').value = newDate;
+                document.getElementById('panelDateInput').value = newDate;
+                selectedSlot = null;
+                document.getElementById('hdnAppointmentDate').value = '';
+                document.getElementById('displayTime').innerHTML =
+                    '<span class="text-muted" style="font-weight:400;font-size:12px;">اضغط على خلية في الجدول</span>';
+                renderCalendar();
+            }
+
+            // date picker في شريط الفلتر
+            document.getElementById('dateSelect').addEventListener('change', function() {
+                document.getElementById('panelDateInput').value = this.value;
+                selectedSlot = null;
+                document.getElementById('hdnAppointmentDate').value = '';
+                document.getElementById('displayTime').innerHTML =
+                    '<span class="text-muted" style="font-weight:400;font-size:12px;">اضغط على خلية في الجدول</span>';
+                renderCalendar();
+            });
+
+            // date picker في الـ panel
+            document.getElementById('panelDateInput').addEventListener('change', function() {
+                setDate(this.value);
+            });
+
+            document.getElementById('btnPrevDate').addEventListener('click', function() {
+                const d = new Date(document.getElementById('dateSelect').value + 'T00:00:00');
+                d.setDate(d.getDate() - 1);
+                setDate(d.toISOString().split('T')[0]);
+            });
+
+            document.getElementById('btnNextDate').addEventListener('click', function() {
+                const d = new Date(document.getElementById('dateSelect').value + 'T00:00:00');
+                d.setDate(d.getDate() + 1);
+                setDate(d.toISOString().split('T')[0]);
+            });
+
+            // ── Department buttons ────────────────────────────────────────────
+            document.querySelectorAll('.dept-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    currentDept = this.dataset.dept;
+                    document.querySelectorAll('.dept-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    selectedSlot = null;
+                    addedServices = [];
+                    usedPackageId = null;
+                    packageServiceName = '';
                     document.getElementById('packagesSection').style.display = 'none';
-                    document.getElementById('servicesSection').style.display = '';
-                    selectBookingType('new');
+                    renderServicesList();
+                    loadCustomers();
+                    loadServices();
+                    renderCalendar();
+                });
+            });
+
+            // ── Customer change ───────────────────────────────────────────────
+            document.getElementById('customerSelect').addEventListener('change', async function() {
+                const cid = this.value;
+                document.getElementById('hdnCustomerId').value = cid;
+
+                // Clear package selection
+                usedPackageId = null;
+                packageServiceName = '';
+                document.getElementById('hdnPackageId').value = '';
+                document.getElementById('packagesSection').style.display = 'none';
+                document.getElementById('packagesList').innerHTML = '';
+                renderServicesList();
+
+                if (!cid) return;
+
+                try {
+                    const res = await fetch('/Appointments/GetCustomerPackages?customerId=' + cid);
+                    const pkgs = await res.json();
+                    if (pkgs.length) {
+                        renderPackages(pkgs);
+                        document.getElementById('packagesSection').style.display = '';
+                    }
+                } catch(e) {
+                    console.error('خطأ في تحميل الباقات', e);
                 }
             });
 
-            // ── Render packages ──────────────────────────────────
-            function renderPackages(packages) {
+            function renderPackages(pkgs) {
                 let html = '';
-                packages.forEach(function (p) {
-                    html += '<div class="package-item" id="pkgItem' + p.id + '" onclick="togglePackage(' + p.id + ', \'' + escHtml(p.name) + '\', ' + p.remainingSessions + ', ' + p.totalSessions + ', \'' + p.expiry + '\')">' +
-                        '<input type="radio" name="CustomerPackageId" value="' + p.id + '" id="pkg' + p.id + '" />' +
-                        '<div style="flex:1;">' +
-                        '<div class="pkg-name">' + escHtml(p.name) + '</div>' +
-                        '<div class="pkg-meta">' +
-                        '<span class="pkg-sessions"><i class="fas fa-calendar-check me-1"></i>' + p.remainingSessions + ' / ' + p.totalSessions + ' ' + t('جلسة', 'session') + '</span>' +
-                        (p.expiry ? '<span class="pkg-expiry"><i class="fas fa-hourglass-end me-1"></i>' + p.expiry + '</span>' : '') +
-                        '</div></div></div>';
+                pkgs.forEach(p => {
+                    html += `<div class="package-card" id="pkgCard${p.id}" onclick="togglePkg(${p.id},'${esc(p.name)}',${p.remainingSessions})">
+                        <div class="pkg-name">${esc(p.name)}</div>
+                        <div class="pkg-meta">
+                            <span class="pkg-sessions-badge"><i class="fas fa-calendar-check me-1"></i>${p.remainingSessions} / ${p.totalSessions} جلسة</span>
+                            ${p.expiry ? `<span class="pkg-expiry-badge"><i class="fas fa-hourglass-end me-1"></i>${p.expiry}</span>` : ''}
+                        </div>
+                        <button type="button" class="btn-use-pkg" id="usePkgBtn${p.id}" onclick="event.stopPropagation(); usePkg(${p.id},'${esc(p.name)}',${p.remainingSessions})">
+                            <i class="fas fa-layer-group"></i> استخدام من الباقة
+                        </button>
+                    </div>`;
                 });
                 document.getElementById('packagesList').innerHTML = html;
             }
 
-            window.togglePackage = function (id, name, remaining, total, expiry) {
-                selectedPackageId = id;
-                selectedPackageName = name;
-                selectedPackageRemaining = remaining;
-
-                // Visually select
-                document.querySelectorAll('.package-item').forEach(function (el) { el.classList.remove('selected'); });
-                const pkgItem = document.getElementById('pkgItem' + id);
-                if (pkgItem) pkgItem.classList.add('selected');
-
-                // Check the radio
-                const radio = document.getElementById('pkg' + id);
-                if (radio) radio.checked = true;
-
-                updateSummary();
+            window.togglePkg = function(id, name, remaining) {
+                document.querySelectorAll('.package-card').forEach(c => c.classList.remove('pkg-selected'));
+                document.getElementById('pkgCard' + id)?.classList.add('pkg-selected');
             };
 
-            // ── Booking type selection ───────────────────────────
-            window.selectBookingType = function (type) {
-                bookingType = type;
-                document.getElementById('cardNewService').classList.toggle('active', type === 'new');
-                document.getElementById('cardFromPackage').classList.toggle('active', type === 'package');
-
-                if (type === 'package') {
-                    document.getElementById('packagesSection').style.display = '';
-                    document.getElementById('servicesSection').style.display = 'none';
-                    document.getElementById('packageNote').style.display = '';
-                    // Clear service checkboxes
-                    document.querySelectorAll('input[name="serviceIds"]').forEach(function (cb) { cb.checked = false; });
-                } else {
-                    document.getElementById('packagesSection').style.display = 'none';
-                    document.getElementById('servicesSection').style.display = '';
-                    document.getElementById('packageNote').style.display = 'none';
-                    // Clear package selection
-                    document.querySelectorAll('input[name="CustomerPackageId"]').forEach(function (r) { r.checked = false; });
-                    selectedPackageId = null;
-                    selectedPackageName = '';
-                }
-
-                updateSummary();
+            window.usePkg = function(id, name, remaining) {
+                usedPackageId = id;
+                packageServiceName = name;
+                document.getElementById('hdnPackageId').value = id;
+                document.querySelectorAll('.btn-use-pkg').forEach(b => b.classList.remove('active'));
+                document.getElementById('usePkgBtn' + id)?.classList.add('active');
+                renderServicesList();
             };
 
-            // ── Date / Employee change → load slots ─────────────
-            document.getElementById('dateSelect').addEventListener('change', function () {
-                updateDateSummary();
-                loadTimeSlots();
-            });
-            document.getElementById('empSelect').addEventListener('change', function () {
-                document.getElementById('hdnEmployeeId').value = this.value;
-                updateSummary();
-                loadTimeSlots();
+            // ── Companions ────────────────────────────────────────────────────
+            document.getElementById('btnToggleCompanion').addEventListener('click', function() {
+                const row = document.getElementById('addCompanionRow');
+                row.style.display = row.style.display === 'none' ? 'flex' : 'none';
             });
 
-            async function loadTimeSlots() {
-                const date = document.getElementById('dateSelect').value;
-                const employeeId = document.getElementById('empSelect').value;
-                if (!date) return;
+            document.getElementById('btnConfirmCompanion').addEventListener('click', function() {
+                const inp = document.getElementById('companionNameInput');
+                const name = inp.value.trim();
+                if (!name) return;
+                if (companions.find(c => c.name === name)) { inp.value = ''; return; }
+                companions.push({ name });
+                inp.value = '';
+                document.getElementById('addCompanionRow').style.display = 'none';
+                renderCompanions();
+            });
 
-                const url = '/Appointments/GetTimeSlots?date=' + date + (employeeId ? '&employeeId=' + employeeId : '');
-                try {
-                    const res = await fetch(url);
-                    loadedSlots = await res.json();
-                    renderTimeSlots();
-                } catch (e) {
-                    console.error('Error loading time slots', e);
-                }
+            // إضافة مرافق بالضغط على Enter
+            document.getElementById('companionNameInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); document.getElementById('btnConfirmCompanion').click(); }
+            });
+
+            function renderCompanions() {
+                const ul = document.getElementById('companionsListUI');
+                const badge = document.getElementById('companionsCountBadge');
+                badge.textContent = companions.length;
+                badge.style.display = companions.length ? '' : 'none';
+                if (!companions.length) { ul.innerHTML = ''; return; }
+                ul.innerHTML = companions.map((c, i) =>
+                    `<div class="companion-item">
+                        <i class="fas fa-user-friends text-secondary" style="font-size:11px;"></i>
+                        <span class="companion-name">${esc(c.name)}</span>
+                        <button type="button" class="btn-remove" onclick="removeCompanion(${i})"><i class="fas fa-times"></i></button>
+                    </div>`
+                ).join('');
             }
 
-            function renderTimeSlots() {
-                const container = document.getElementById('slotsBody');
-                if (!loadedSlots.length) {
-                    container.innerHTML = '<div class="empty-slots"><i class="fas fa-calendar-alt"></i>' + t('لا توجد بيانات متاحة', 'No data available') + '</div>';
-                    return;
-                }
+            window.removeCompanion = function(i) {
+                companions.splice(i, 1);
+                renderCompanions();
+            };
+
+            // ── Services dropdown ─────────────────────────────────────────────
+            function renderServiceDropdown() {
+                const ddEl = document.getElementById('svcDropdown');
+                if (!allServices.length) { ddEl.innerHTML = '<div class="p-2 text-muted small">لا توجد خدمات</div>'; return; }
+                ddEl.innerHTML = allServices.map(s =>
+                    `<div class="svc-dropdown-item" onclick="addService(${s.id},'${esc(s.name)}',${s.priceNum},'${esc(s.price)}')">
+                        <span>${esc(s.name)}</span>
+                        <span class="svc-ddi-price">${s.price} د.ك</span>
+                    </div>`
+                ).join('');
+            }
+
+            document.getElementById('btnAddService').addEventListener('click', function(e) {
+                e.stopPropagation();
+                const dd = document.getElementById('svcDropdown');
+                dd.classList.toggle('open');
+            });
+
+            document.addEventListener('click', function() {
+                document.getElementById('svcDropdown').classList.remove('open');
+            });
+
+            window.addService = function(id, name, priceNum, price) {
+                if (addedServices.find(s => s.id === id)) { document.getElementById('svcDropdown').classList.remove('open'); return; }
+                addedServices.push({ id, name, priceNum, price });
+                document.getElementById('svcDropdown').classList.remove('open');
+                renderServicesList();
+            };
+
+            window.removeService = function(id) {
+                addedServices = addedServices.filter(s => s.id !== id);
+                renderServicesList();
+            };
+
+            // أيقونات الخدمات حسب الفئة
+            const svcIcons = {
+                'حلاقة': 'fa-cut', 'شعر': 'fa-cut', 'بشرة': 'fa-leaf',
+                'مساج': 'fa-spa', 'جمال': 'fa-star', 'حمام': 'fa-shower',
+            };
+            function svcIcon(category) {
+                const k = Object.keys(svcIcons).find(k => (category || '').includes(k));
+                return svcIcons[k] || 'fa-concierge-bell';
+            }
+
+            function renderServicesList() {
+                const ul = document.getElementById('servicesListUI');
+                const empName = (selectedSlot && selectedSlot.empName) ? selectedSlot.empName : null;
+                const empChip = empName ? `<span class="emp-chip"><i class="fas fa-user" style="font-size:9px;"></i> ${esc(empName)}</span>` : '';
 
                 let html = '';
-                loadedSlots.forEach(function (slot) {
-                    const isSelected = selectedSlot && selectedSlot.startTime === slot.startTime;
-                    let rowClass = 'slot-row';
-                    let badgeHtml = '';
-                    let personHtml = '';
-                    let canSelect = false;
 
-                    switch (slot.status) {
-                        case 'متاح':
-                            rowClass += ' slot-available';
-                            canSelect = true;
-                            if (isSelected) {
-                                rowClass += ' slot-selected';
-                                personHtml = '<div class="slot-select-label"><input type="checkbox" checked class="form-check-input" style="width:18px;height:18px;pointer-events:none;" /><span>' + t('اختر هذا الوقت', 'Select This Time') + '</span></div>';
-                            }
-                            badgeHtml = '<span class="slot-badge badge-available">' + t('متاح', 'Available') + '</span>';
-                            break;
-                        case 'محجوز':
-                            rowClass += ' slot-booked';
-                            badgeHtml = '<span class="slot-badge badge-booked"><i class="fas fa-circle me-1" style="font-size:8px;"></i>' + t('محجوز', 'Booked') + '</span>';
-                            if (slot.personName) {
-                                personHtml = '<div class="slot-person"><i class="fas fa-user text-danger"></i>' + escHtml(slot.personName) + '</div>';
-                            }
-                            break;
-                        case 'استراحة':
-                            rowClass += ' slot-break';
-                            badgeHtml = '<span class="slot-badge badge-break">' + t('استراحة الموظف', 'Employee Break') + '</span>';
-                            personHtml = '<div class="slot-person text-warning"><i class="fas fa-coffee"></i> ' + t('استراحة', 'Break') + '</div>';
-                            break;
-                        case 'غير متاح':
-                            rowClass += ' slot-unavailable';
-                            badgeHtml = '<span class="slot-badge badge-unavailable">' + t('غير متاح', 'Unavailable') + '</span>';
-                            break;
-                        case 'خارج الدوام':
-                            rowClass += ' slot-unavailable';
-                            badgeHtml = '<span class="slot-badge badge-outside">' + t('خارج الدوام', 'Off Shift') + '</span>';
-                            break;
-                        default:
-                            badgeHtml = '<span class="slot-badge badge-unavailable">' + escHtml(slot.status) + '</span>';
-                    }
+                // Package service card
+                if (usedPackageId) {
+                    html += `<div class="svc-card from-pkg">
+                        <div class="svc-card-icon"><i class="fas fa-layer-group"></i></div>
+                        <div class="svc-card-body">
+                            <div class="svc-card-name">${esc(packageServiceName)}</div>
+                            <div class="svc-card-emp">${empChip}</div>
+                        </div>
+                        <div class="svc-card-right">
+                            <span class="svc-card-price from-pkg">من الباقة</span>
+                        </div>
+                    </div>`;
+                }
 
-                    const clickAttr = canSelect ? 'onclick="selectSlot(\'' + slot.startTime + '\', \'' + slot.endTime + '\')"' : '';
-
-                    html += '<div class="' + rowClass + '" ' + clickAttr + '>' +
-                        '<div>' + personHtml + '</div>' +
-                        '<div>' + badgeHtml + '</div>' +
-                        '<div class="slot-time">' + slot.startTime + ' — ' + slot.endTime + '</div>' +
-                        '</div>';
+                // Regular service cards
+                addedServices.forEach(s => {
+                    html += `<div class="svc-card">
+                        <div class="svc-card-icon"><i class="fas ${svcIcon(s.category)}"></i></div>
+                        <div class="svc-card-body">
+                            <div class="svc-card-name">${esc(s.name)}</div>
+                            <div class="svc-card-emp">${empChip}</div>
+                        </div>
+                        <div class="svc-card-right">
+                            <span class="svc-card-price">${s.price}</span>
+                            <span style="font-size:10px;color:#aaa;">د.ك</span>
+                        </div>
+                        <button type="button" class="svc-card-del" onclick="removeService(${s.id})" title="حذف"><i class="fas fa-times"></i></button>
+                    </div>`;
                 });
 
-                container.innerHTML = html;
-            }
+                if (!html) html = '<div class="text-muted small p-1 text-center" style="opacity:.6;">لم تُضَف خدمات بعد</div>';
+                ul.innerHTML = html;
 
-            window.selectSlot = function (startTime, endTime) {
-                selectedSlot = { startTime: startTime, endTime: endTime };
-
-                const date = document.getElementById('dateSelect').value;
-                document.getElementById('hdnAppointmentDate').value = date + 'T' + startTime + ':00';
-                document.getElementById('hdnEndTime').value = endTime + ':00';
-
-                renderTimeSlots();
-                updateSummary();
-            };
-
-            // ── Summary update ───────────────────────────────────
-            function updateSummary() {
-                const custSel = document.getElementById('customerSelect');
-                const custName = custSel.selectedIndex > 0 ? custSel.options[custSel.selectedIndex].text : '';
-                document.getElementById('siCustomerVal').innerHTML = custName || '<span class="text-muted">—</span>';
-
-                let serviceHtml = '<span class="text-muted">—</span>';
-                if (bookingType === 'package' && selectedPackageName) {
-                    serviceHtml = '<span>' + escHtml(selectedPackageName) + '</span> <small class="text-success">(' + selectedPackageRemaining + ' ' + t('جلسة متبقية', 'sessions remaining') + ')</small>';
-                } else if (bookingType === 'new') {
-                    const checked = document.querySelectorAll('input[name="serviceIds"]:checked');
-                    if (checked.length > 0) {
-                        const names = Array.from(checked).map(function (cb) {
-                            return cb.nextElementSibling ? cb.nextElementSibling.querySelector('.service-name')?.textContent || '' : '';
-                        }).filter(Boolean);
-                        serviceHtml = names.join('، ') || '<span class="text-muted">—</span>';
-                    }
-                }
-                document.getElementById('siServiceVal').innerHTML = serviceHtml;
-
-                const empSel = document.getElementById('empSelect');
-                const empName = empSel.selectedIndex > 0 ? empSel.options[empSel.selectedIndex].text : '';
-                document.getElementById('siEmployeeVal').innerHTML = empName || '<span class="text-muted">—</span>';
-
-                updateDateSummary();
-
-                if (selectedSlot) {
-                    document.getElementById('siTimeVal').innerHTML = selectedSlot.startTime + ' — ' + selectedSlot.endTime;
+                // Total
+                const total = addedServices.reduce((sum, s) => sum + (s.priceNum || 0), 0);
+                const totalBar = document.getElementById('totalBar');
+                if (addedServices.length) {
+                    totalBar.style.display = 'flex';
+                    document.getElementById('totalPriceVal').textContent = total.toFixed(3) + ' د.ك';
                 } else {
-                    document.getElementById('siTimeVal').innerHTML = '<span class="text-muted">—</span>';
+                    totalBar.style.display = 'none';
                 }
             }
 
-            function updateDateSummary() {
-                const dateVal = document.getElementById('dateSelect').value;
-                if (dateVal) {
-                    const d = new Date(dateVal + 'T00:00:00');
-                    const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-                    const dayName = days[d.getDay()];
-                    const dd = String(d.getDate()).padStart(2, '0');
-                    const mm = String(d.getMonth() + 1).padStart(2, '0');
-                    const yyyy = d.getFullYear();
-                    document.getElementById('siDateVal').innerHTML = dayName + ' ' + dd + '/' + mm + '/' + yyyy;
-                } else {
-                    document.getElementById('siDateVal').innerHTML = '<span class="text-muted">—</span>';
-                }
-            }
-
-            function resetSelection() {
-                selectedSlot = null;
-                selectedPackageId = null;
-                selectedPackageName = '';
-                document.getElementById('customerSelect').value = '';
-                document.getElementById('customerInfo').style.display = 'none';
-                document.getElementById('bookingTypeSection').style.display = 'none';
-                document.getElementById('packagesSection').style.display = 'none';
-                document.getElementById('servicesSection').style.display = 'none';
-                document.getElementById('packageNote').style.display = 'none';
-                loadedSlots = [];
-                document.getElementById('slotsBody').innerHTML =
-                    '<div class="empty-slots"><i class="fas fa-calendar-alt"></i><span>' +
-                    t('اختر التاريخ والموظف لعرض الأوقات المتاحة', 'Select date and employee to view available slots') +
-                    '</span></div>';
-                updateSummary();
-            }
-
-            function escHtml(str) {
-                return String(str)
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#39;');
-            }
-
-            // ── Form submit validation ───────────────────────────
-            document.getElementById('bookingForm').addEventListener('submit', function (e) {
-                const custId = document.getElementById('customerSelect').value;
-                if (!custId) {
+            // ── Form submit ───────────────────────────────────────────────────
+            document.getElementById('bookingForm').addEventListener('submit', function(e) {
+                const cid = document.getElementById('customerSelect').value;
+                if (!cid) {
                     e.preventDefault();
-                    alert('يرجى اختيار العميل');
+                    alert('يرجى اختيار العميل الرئيسي');
                     document.getElementById('customerSelect').focus();
                     return;
                 }
-                if (!selectedSlot) {
+                if (!selectedSlot || !selectedSlot.empId) {
                     e.preventDefault();
-                    alert('يرجى اختيار وقت الموعد من الجدول');
+                    alert('يرجى اختيار موظف ووقت من الجدول');
                     return;
                 }
 
-                // Ensure hidden fields are set
-                const date = document.getElementById('dateSelect').value;
-                document.getElementById('hdnAppointmentDate').value = date + 'T' + selectedSlot.startTime + ':00';
-                document.getElementById('hdnEndTime').value = selectedSlot.endTime + ':00';
-                document.getElementById('hdnEmployeeId').value = document.getElementById('empSelect').value;
+                document.getElementById('hdnCustomerId').value = cid;
+
+                // Service IDs
+                this.querySelectorAll('input[name="serviceIds"]').forEach(el => el.remove());
+                addedServices.forEach(s => {
+                    const inp = document.createElement('input');
+                    inp.type = 'hidden'; inp.name = 'serviceIds'; inp.value = s.id;
+                    this.appendChild(inp);
+                });
+
+                // Companion names
+                this.querySelectorAll('input[name="companionNames"]').forEach(el => el.remove());
+                if (companions.length) {
+                    const inp = document.createElement('input');
+                    inp.type = 'hidden';
+                    inp.name = 'companionNames';
+                    inp.value = companions.map(c => c.name).join('،');
+                    this.appendChild(inp);
+                }
             });
 
-            // ── Init ─────────────────────────────────────────────
-            loadCustomers();
-            loadEmployees();
-            loadServicesByDept();
-            loadTimeSlots();
-            updateSummary();
-            updateDateSummary();
+            // ── Reset ─────────────────────────────────────────────────────────
+            document.getElementById('btnReset').addEventListener('click', function() {
+                selectedSlot = null;
+                companions = [];
+                addedServices = [];
+                usedPackageId = null;
+                packageServiceName = '';
+                document.getElementById('customerSelect').value = '';
+                document.getElementById('hdnCustomerId').value = '';
+                document.getElementById('hdnPackageId').value = '';
+                document.getElementById('hdnEmployeeId').value = '';
+                document.getElementById('hdnAppointmentDate').value = '';
+                document.getElementById('hdnEndTime').value = '';
+                document.getElementById('displayTime').innerHTML =
+                    '<span class="text-muted" style="font-weight:400;font-size:12px;">اضغط على خلية في الجدول</span>';
+                document.getElementById('packagesSection').style.display = 'none';
+                document.getElementById('packagesList').innerHTML = '';
+                renderCompanions();
+                renderServicesList();
+                buildCalendarTable(cachedCalendar.employees, cachedCalendar.timeSlots);
+            });
+
+            // ── Start ─────────────────────────────────────────────────────────
+            init();
         })();
     </script>
 }
