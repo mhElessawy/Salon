@@ -494,7 +494,7 @@
     <div class="appt-filter">
         <span class="filter-title">
             <i class="fas fa-calendar-plus text-warning"></i>
-            حجز موعد جديد
+            <span data-i18n-en="New Appointment">حجز موعد جديد</span>
         </span>
 
         <div class="date-nav">
@@ -504,8 +504,8 @@
         </div>
 
         <select id="empFilterSel" class="filter-select">
-            <option value="">اختر الموظف</option>
-            <option value="">الكل</option>
+            <option value="" data-i18n-en="Select Employee">اختر الموظف</option>
+            <option value="" data-i18n-en="All">الكل</option>
         </select>
 
         <select id="svcFilterSel" class="filter-select" style="display:none;">
@@ -516,25 +516,25 @@
         {
             <div class="d-flex gap-1">
                 <button type="button" class="dept-btn @(initialDept == "حلاقة" ? "active" : "")" data-dept="حلاقة">
-                    <i class="fas fa-cut"></i> حلاقة
+                    <i class="fas fa-cut"></i> <span data-i18n-en="Barbering">حلاقة</span>
                 </button>
                 <button type="button" class="dept-btn @(initialDept == "مساج" ? "active" : "")" data-dept="مساج">
-                    <i class="fas fa-spa"></i> مساج
+                    <i class="fas fa-spa"></i> <span data-i18n-en="Massage">مساج</span>
                 </button>
             </div>
         }
 
         <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm ms-auto" style="font-size:12px;">
-            <i class="fas fa-arrow-right me-1"></i>المواعيد
+            <i class="fas fa-arrow-right me-1"></i><span data-i18n-en="Appointments">المواعيد</span>
         </a>
     </div>
 
     <!-- ─── Legend ──────────────────────────────────────────── -->
     <div class="legend-bar">
-        <div class="legend-item"><span class="legend-dot" style="background:#28a745;"></span> متاح</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#e74c3c;"></span> محجوز</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#f39c12;"></span> استراحة</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#adb5bd;"></span> خارج الدوام</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#28a745;"></span> <span data-i18n-en="Available">متاح</span></div>
+        <div class="legend-item"><span class="legend-dot" style="background:#e74c3c;"></span> <span data-i18n-en="Booked">محجوز</span></div>
+        <div class="legend-item"><span class="legend-dot" style="background:#f39c12;"></span> <span data-i18n-en="Break">استراحة</span></div>
+        <div class="legend-item"><span class="legend-dot" style="background:#adb5bd;"></span> <span data-i18n-en="Off-Duty">خارج الدوام</span></div>
     </div>
 
     <!-- ─── Body (Calendar + Details) ──────────────────────── -->
@@ -544,7 +544,7 @@
         <div class="details-panel">
             <div class="details-header">
                 <div class="cal-icon"><i class="fas fa-calendar-alt"></i></div>
-                تفاصيل الموعد
+                <span data-i18n-en="Appointment Details">تفاصيل الموعد</span>
             </div>
 
             <div class="details-body">
@@ -553,7 +553,7 @@
                 <div class="panel-dt-row">
                     <div class="di-icon"><i class="fas fa-calendar"></i></div>
                     <div class="panel-dt-inner">
-                        <div class="di-label">التاريخ</div>
+                        <div class="di-label" data-i18n-en="Date">التاريخ</div>
                         <input type="date" id="panelDateInput" value="@todayDateStr" />
                     </div>
                 </div>
@@ -561,9 +561,9 @@
                 <div class="panel-dt-row">
                     <div class="di-icon"><i class="fas fa-clock"></i></div>
                     <div class="panel-dt-inner">
-                        <div class="di-label">الوقت</div>
+                        <div class="di-label" data-i18n-en="Time">الوقت</div>
                         <div id="displayTime" style="font-size:13px;font-weight:700;color:#333;padding:5px 0;min-height:26px;">
-                            <span class="text-muted" style="font-weight:400;font-size:12px;">اضغط على خلية في الجدول</span>
+                            <span id="displayTimeHint" class="text-muted" style="font-weight:400;font-size:12px;" data-i18n-en="Click a cell in the calendar">اضغط على خلية في الجدول</span>
                         </div>
                     </div>
                 </div>
@@ -571,11 +571,11 @@
                 <hr class="section-divider" />
 
                 <!-- Main Customer -->
-                <div class="panel-section-title">العميل الرئيسي</div>
+                <div class="panel-section-title"><span data-i18n-en="Main Customer">العميل الرئيسي</span></div>
                 <div class="customer-search-wrap mb-2">
                     <i class="fas fa-search search-icon"></i>
                     <select id="customerSelect" class="form-select form-select-sm w-100">
-                        <option value="">-- اختر العميل --</option>
+                        <option value="" data-i18n-en="-- Select Customer --">-- اختر العميل --</option>
                     </select>
                 </div>
 
@@ -583,16 +583,16 @@
 
                 <!-- Companions -->
                 <div class="panel-section-title">
-                    <span>المرافقون <span id="companionsCountBadge" class="badge bg-secondary ms-1" style="font-size:10px;">0</span></span>
+                    <span><span data-i18n-en="Companions">المرافقون</span> <span id="companionsCountBadge" class="badge bg-secondary ms-1" style="font-size:10px;">0</span></span>
                     <button type="button" id="btnToggleCompanion" class="btn btn-sm btn-outline-success py-0 px-2" style="font-size:11px;">
-                        <i class="fas fa-plus"></i> إضافة مرافق
+                        <i class="fas fa-plus"></i> <span data-i18n-en="Add Companion">إضافة مرافق</span>
                     </button>
                 </div>
 
                 <div id="companionsListUI"></div>
 
                 <div id="addCompanionRow" class="add-companion-row" style="display:none;">
-                    <input type="text" id="companionNameInput" placeholder="اكتب اسم المرافق..." maxlength="80" />
+                    <input type="text" id="companionNameInput" placeholder="اكتب اسم المرافق..." data-placeholder-ar="اكتب اسم المرافق..." data-placeholder-en="Enter companion name..." maxlength="80" />
                     <button type="button" id="btnConfirmCompanion" class="btn-add-c" title="إضافة">
                         <i class="fas fa-check"></i>
                     </button>
@@ -602,17 +602,17 @@
 
                 <!-- Active Packages -->
                 <div id="packagesSection" style="display:none;">
-                    <div class="panel-section-title">الباقات النشطة</div>
+                    <div class="panel-section-title"><span data-i18n-en="Active Packages">الباقات النشطة</span></div>
                     <div id="packagesList"></div>
                     <hr class="section-divider" />
                 </div>
 
                 <!-- Services -->
                 <div class="panel-section-title">
-                    <span>الخدمات</span>
+                    <span data-i18n-en="Services">الخدمات</span>
                     <div class="add-svc-wrap">
                         <button type="button" id="btnAddService" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size:11px;">
-                            <i class="fas fa-plus"></i> إضافة
+                            <i class="fas fa-plus"></i> <span data-i18n-en="Add">إضافة</span>
                         </button>
                         <div id="svcDropdown" class="svc-dropdown"></div>
                     </div>
@@ -621,28 +621,28 @@
 
                 <!-- Total -->
                 <div class="total-bar" id="totalBar" style="display:none;">
-                    <span class="total-label">إجمالي الخدمات</span>
+                    <span class="total-label" data-i18n-en="Total Services">إجمالي الخدمات</span>
                     <span class="total-value" id="totalPriceVal">0.000 د.ك</span>
                 </div>
 
                 <hr class="section-divider" />
 
                 <!-- Notes -->
-                <div class="panel-section-title">ملاحظات</div>
-                <textarea name="Notes" class="form-control form-control-sm" rows="2" placeholder="ملاحظات إضافية..."></textarea>
+                <div class="panel-section-title"><span data-i18n-en="Notes">ملاحظات</span></div>
+                <textarea name="Notes" class="form-control form-control-sm" rows="2" placeholder="ملاحظات إضافية..." data-placeholder-ar="ملاحظات إضافية..." data-placeholder-en="Additional notes..."></textarea>
 
             </div><!-- /details-body -->
 
             <div class="details-footer">
                 <button type="submit" class="btn-save-appt" id="confirmBtn">
-                    <i class="fas fa-calendar-check"></i> حفظ الموعد
+                    <i class="fas fa-calendar-check"></i> <span data-i18n-en="Save Appointment">حفظ الموعد</span>
                 </button>
                 <div class="btn-cancel-row">
                     <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
-                        <i class="fas fa-times me-1"></i>إلغاء
+                        <i class="fas fa-times me-1"></i><span data-i18n-en="Cancel">إلغاء</span>
                     </a>
                     <button type="button" id="btnReset" class="btn btn-outline-warning btn-sm">
-                        <i class="fas fa-redo me-1"></i>إعادة تعيين
+                        <i class="fas fa-redo me-1"></i><span data-i18n-en="Reset">إعادة تعيين</span>
                     </button>
                 </div>
             </div>
@@ -677,6 +677,14 @@
     let usedPackageId   = null;
     let packageServiceName = '';
     let cachedCalendar  = { employees: [], timeSlots: [] };
+
+    // ── Language helper ──────────────────────────────────────────────
+    function isEn() { return localStorage.getItem('lang') === 'en'; }
+    function t(ar, en) { return isEn() ? en : ar; }
+    function fixTimeLabel(label) {
+        if (!isEn()) return label;
+        return label.replace('ص', 'AM').replace('م', 'PM');
+    }
 
     // ── Helpers ──────────────────────────────────────────────────────
     function esc(str) {
@@ -728,21 +736,21 @@
     async function renderCalendar() {
         const date = document.getElementById('dateSelect').value;
         const wrapper = document.getElementById('calendarWrapper');
-        wrapper.innerHTML = '<div class="calendar-loading"><i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>جاري التحميل...</div>';
+        wrapper.innerHTML = `<div class="calendar-loading"><i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>${t('جاري التحميل...','Loading...')}</div>`;
 
         try {
             const res = await fetch(`/Appointments/GetCalendarView?date=${date}&dept=${encodeURIComponent(currentDept)}`);
             cachedCalendar = await res.json();
             buildCalendarTable(cachedCalendar.employees, cachedCalendar.timeSlots);
         } catch(e) {
-            wrapper.innerHTML = '<div class="calendar-loading text-danger"><i class="fas fa-exclamation-circle fa-2x mb-2 d-block"></i>خطأ في تحميل البيانات</div>';
+            wrapper.innerHTML = `<div class="calendar-loading text-danger"><i class="fas fa-exclamation-circle fa-2x mb-2 d-block"></i>${t('خطأ في تحميل البيانات','Error loading data')}</div>`;
         }
     }
 
     function buildCalendarTable(employees, timeSlots) {
         if (!employees.length) {
             document.getElementById('calendarWrapper').innerHTML =
-                '<div class="calendar-loading"><i class="fas fa-users fa-2x mb-2 d-block text-muted"></i>لا يوجد موظفون في هذا القسم</div>';
+                `<div class="calendar-loading"><i class="fas fa-users fa-2x mb-2 d-block text-muted"></i>${t('لا يوجد موظفون في هذا القسم','No employees in this department')}</div>`;
             return;
         }
 
@@ -756,7 +764,7 @@
 
         // Header
         let html = '<table class="cal-table"><thead><tr>';
-        html += '<th class="time-th">الوقت</th>';
+        html += `<th class="time-th">${t('الوقت','Time')}</th>`;
         employees.forEach(emp => {
             html += `<th class="emp-th">
                 <div class="emp-th-name">${esc(emp.name)}</div>
@@ -773,7 +781,7 @@
             const isPast = isPastDate || (isToday && slotMinutes <= nowMinutes);
 
             html += '<tr>';
-            html += `<td class="time-cell" style="${isPast ? 'color:#ccc;' : ''}">${esc(slot.timeLabel)}</td>`;
+            html += `<td class="time-cell" style="${isPast ? 'color:#ccc;' : ''}">${esc(fixTimeLabel(slot.timeLabel))}</td>`;
 
             slot.cells.forEach((cell, idx) => {
                 const emp = employees[idx];
@@ -786,18 +794,18 @@
                         <div class="slot-booked-name"><i class="fas fa-user" style="font-size:9px;"></i>${esc(cell.personName||'')}</div>
                     </td>`;
                 } else if (cell.status === 'استراحة') {
-                    html += `<td class="slot-cell slot-break"><i class="fas fa-coffee" style="font-size:10px;"></i> استراحة</td>`;
+                    html += `<td class="slot-cell slot-break"><i class="fas fa-coffee" style="font-size:10px;"></i> ${t('استراحة','Break')}</td>`;
                 } else if (cell.status === 'خارج الدوام') {
                     html += `<td class="slot-cell slot-outside">—</td>`;
                 } else if (isPast) {
-                    // وقت/تاريخ مضى → اعرض فاضي بدون حجز
                     html += `<td class="slot-cell slot-outside" style="color:#ddd;">—</td>`;
                 } else {
                     const selClass = isSelected ? ' slot-selected' : '';
+                    const tLabel = fixTimeLabel(slot.timeLabel);
                     html += `<td class="slot-cell slot-available${selClass}"
-                        onclick="selectSlot(${cell.empId},'${esc(emp.name)}','${slot.startTime}','${slot.endTime}','${slot.timeLabel}')"
-                        title="${esc(emp.name)} — ${slot.timeLabel}">
-                        ${isSelected ? '<i class="fas fa-check-circle text-success"></i>' : '<span class="avail-text">متاح</span>'}
+                        onclick="selectSlot(${cell.empId},'${esc(emp.name)}','${slot.startTime}','${slot.endTime}','${esc(tLabel)}')"
+                        title="${esc(emp.name)} — ${tLabel}">
+                        ${isSelected ? '<i class="fas fa-check-circle text-success"></i>' : `<span class="avail-text">${t('متاح','Available')}</span>`}
                     </td>`;
                 }
             });
@@ -818,7 +826,7 @@
         document.getElementById('hdnEmployeeId').value = empId;
 
         // عرض الوقت في الـ panel
-        const endLabel = endTime === '00:00' ? '12:00 ص' : formatTime12(endTime);
+        const endLabel = endTime === '00:00' ? (isEn() ? '12:00 AM' : '12:00 ص') : formatTime12(endTime);
         document.getElementById('displayTime').innerHTML =
             `<span style="color:#0d6efd;">${esc(timeLabel)}</span>
              <span style="color:#aaa;font-size:11px;"> — ${endLabel}</span>`;
@@ -1078,7 +1086,7 @@
             </div>`;
         });
 
-        if (!html) html = '<div class="text-muted small p-1 text-center" style="opacity:.6;">لم تُضَف خدمات بعد</div>';
+        if (!html) html = `<div class="text-muted small p-1 text-center" style="opacity:.6;">${t('لم تُضَف خدمات بعد','No services added yet')}</div>`;
         ul.innerHTML = html;
 
         // Total
@@ -1097,13 +1105,13 @@
         const cid = document.getElementById('customerSelect').value;
         if (!cid) {
             e.preventDefault();
-            alert('يرجى اختيار العميل الرئيسي');
+            alert(t('يرجى اختيار العميل الرئيسي','Please select the main customer'));
             document.getElementById('customerSelect').focus();
             return;
         }
         if (!selectedSlot || !selectedSlot.empId) {
             e.preventDefault();
-            alert('يرجى اختيار موظف ووقت من الجدول');
+            alert(t('يرجى اختيار موظف ووقت من الجدول','Please select an employee and time from the calendar'));
             return;
         }
 
@@ -1151,7 +1159,36 @@
     });
 
     // ── Start ─────────────────────────────────────────────────────────
+    // تطبيق placeholders لو الصفحة محملة بالإنجليزي
+    if (isEn()) {
+        document.querySelectorAll('[data-placeholder-en]').forEach(function(el) {
+            el.placeholder = el.getAttribute('data-placeholder-en');
+        });
+    }
     init();
+
+    // ── إعادة بناء الجدول عند تبديل اللغة ────────────────────────────
+    const _origToggleLang = window.toggleLang;
+    if (typeof _origToggleLang === 'function') {
+        window.toggleLang = function() {
+            _origToggleLang.apply(this, arguments);
+            // تطبيق placeholder على حقول النصوص
+            document.querySelectorAll('[data-placeholder-en]').forEach(function(el) {
+                const isEnglish = localStorage.getItem('lang') === 'en';
+                el.placeholder = isEnglish ? el.getAttribute('data-placeholder-en') : el.getAttribute('data-placeholder-ar') || el.placeholder;
+                if (!el.getAttribute('data-placeholder-ar')) el.setAttribute('data-placeholder-ar', el.placeholder);
+            });
+            // إعادة بناء الجدول بالنصوص الصحيحة
+            if (cachedCalendar.employees.length) {
+                buildCalendarTable(cachedCalendar.employees, cachedCalendar.timeSlots);
+            }
+            // تحديث hint الوقت لو لم يُحدَّد وقت بعد
+            if (!selectedSlot) {
+                const hint = document.getElementById('displayTimeHint');
+                if (hint) hint.textContent = t('اضغط على خلية في الجدول','Click a cell in the calendar');
+            }
+        };
+    }
 })();
 </script>
 }
