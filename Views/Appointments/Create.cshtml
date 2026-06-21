@@ -499,7 +499,7 @@
 
         <div class="date-nav">
             <button type="button" class="btn-nav" id="btnPrevDate"><i class="fas fa-chevron-right"></i></button>
-            <input type="date" id="dateSelect" value="@todayDateStr" />
+            <input type="date" id="dateSelect" value="@todayDateStr" min="@todayDateStr" />
             <button type="button" class="btn-nav" id="btnNextDate"><i class="fas fa-chevron-left"></i></button>
         </div>
 
@@ -554,7 +554,7 @@
                     <div class="di-icon"><i class="fas fa-calendar"></i></div>
                     <div class="panel-dt-inner">
                         <div class="di-label">التاريخ</div>
-                        <input type="date" id="panelDateInput" value="@todayDateStr" />
+                        <input type="date" id="panelDateInput" value="@todayDateStr" min="@todayDateStr" />
                     </div>
                 </div>
                 <!-- الوقت: يُحدَّد من الجدول فقط -->
@@ -750,6 +750,7 @@
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
         const selectedDate = document.getElementById('dateSelect').value;
+        const isPastDate = selectedDate < todayStr;
         const isToday = (selectedDate === todayStr);
         const nowMinutes = isToday ? (now.getHours() * 60 + now.getMinutes()) : -1;
 
@@ -769,7 +770,7 @@
             // وقت البداية بالدقائق للمقارنة
             const [sh, sm] = slot.startTime.split(':').map(Number);
             const slotMinutes = sh * 60 + sm;
-            const isPast = isToday && slotMinutes <= nowMinutes;
+            const isPast = isPastDate || (isToday && slotMinutes <= nowMinutes);
 
             html += '<tr>';
             html += `<td class="time-cell" style="${isPast ? 'color:#ccc;' : ''}">${esc(slot.timeLabel)}</td>`;
@@ -849,7 +850,8 @@
         document.getElementById('panelDateInput').value = newDate;
         selectedSlot = null;
         document.getElementById('hdnAppointmentDate').value = '';
-        document.getElementById('panelTimeInput').value = '';
+        document.getElementById('displayTime').innerHTML =
+            '<span class="text-muted" style="font-weight:400;font-size:12px;">اضغط على خلية في الجدول</span>';
         renderCalendar();
     }
 
@@ -869,9 +871,12 @@
     });
 
     document.getElementById('btnPrevDate').addEventListener('click', function() {
+        const todayStr = new Date().toISOString().split('T')[0];
         const d = new Date(document.getElementById('dateSelect').value + 'T00:00:00');
         d.setDate(d.getDate() - 1);
-        setDate(d.toISOString().split('T')[0]);
+        const newDate = d.toISOString().split('T')[0];
+        if (newDate < todayStr) return;
+        setDate(newDate);
     });
 
     document.getElementById('btnNextDate').addEventListener('click', function() {
@@ -1142,7 +1147,8 @@
         document.getElementById('hdnEmployeeId').value = '';
         document.getElementById('hdnAppointmentDate').value = '';
         document.getElementById('hdnEndTime').value = '';
-        document.getElementById('panelTimeInput').value = '';
+        document.getElementById('displayTime').innerHTML =
+            '<span class="text-muted" style="font-weight:400;font-size:12px;">اضغط على خلية في الجدول</span>';
         document.getElementById('packagesSection').style.display = 'none';
         document.getElementById('packagesList').innerHTML = '';
         renderCompanions();
