@@ -435,7 +435,15 @@
             fetch('/Notifications/Panel', { credentials: 'same-origin' })
                 .then(function (r) { return r.text(); })
                 .then(function (html) {
-                    document.getElementById('notif-panel').innerHTML = html;
+                    var panel = document.getElementById('notif-panel');
+                    panel.innerHTML = html;
+                    // Re-execute any <script> tags (innerHTML doesn't run them)
+                    panel.querySelectorAll('script').forEach(function (oldScript) {
+                        var s = document.createElement('script');
+                        s.textContent = oldScript.textContent;
+                        document.body.appendChild(s);
+                        s.remove();
+                    });
                     _notifLoaded = true;
                 })
                 .catch(function () {
