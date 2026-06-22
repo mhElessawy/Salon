@@ -31,8 +31,8 @@
     <button class="np-tab" data-cat="مهمة" style="--tab-color:#dc3545">
         مهمة <span class="np-tab-cnt">@Model.Count(n => n.Category == "مهمة")</span>
     </button>
-    <button class="np-tab" data-cat="تشغيلية" style="--tab-color:#fd7e14">
-        تشغيلية <span class="np-tab-cnt">@Model.Count(n => n.Category == "تشغيلية")</span>
+    <button class="np-tab" data-cat="appointment" style="--tab-color:#F7941D">
+        مواعيد <span class="np-tab-cnt">@Model.Count(n => n.Type == "appointment")</span>
     </button>
     <button class="np-tab" data-cat="مالية" style="--tab-color:#0d6efd">
         مالية <span class="np-tab-cnt">@Model.Count(n => n.Category == "مالية")</span>
@@ -55,7 +55,7 @@
             <div class="np-day-label">@DayLabel(group.Key)</div>
             @foreach (var n in group.OrderByDescending(x => x.Date))
             {
-                <div class="np-card" data-cat="@n.Category">
+                <div class="np-card" data-cat="@n.Category" data-type="@n.Type">
                     <div class="np-icon" style="background:@n.IconBg">
                         <i class="@n.IconClass"></i>
                     </div>
@@ -115,14 +115,25 @@
 
 <script>
 (function () {
-    // Tab filtering
+    // Tab filtering (supports both data-cat=category and data-cat=type)
     document.querySelectorAll('.np-tab').forEach(function (tab) {
         tab.addEventListener('click', function () {
             document.querySelectorAll('.np-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             var cat = tab.dataset.cat;
             document.querySelectorAll('.np-card').forEach(function (card) {
-                card.style.display = (cat === 'all' || card.dataset.cat === cat) ? '' : 'none';
+                var match = cat === 'all' || card.dataset.cat === cat || card.dataset.type === cat;
+                card.style.display = match ? '' : 'none';
+            });
+            // Hide day-labels with no visible cards under them
+            document.querySelectorAll('.np-day-label').forEach(function (label) {
+                var next = label.nextElementSibling;
+                var hasVisible = false;
+                while (next && !next.classList.contains('np-day-label')) {
+                    if (next.classList.contains('np-card') && next.style.display !== 'none') hasVisible = true;
+                    next = next.nextElementSibling;
+                }
+                label.style.display = hasVisible ? '' : 'none';
             });
         });
     });

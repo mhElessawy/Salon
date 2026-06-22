@@ -421,6 +421,10 @@
                 overlay.classList.add('show');
                 btn.classList.add('active');
                 if (!_notifLoaded) loadNotifPanel();
+                // Reset badge immediately and notify server
+                var badge = document.getElementById('notif-count');
+                if (badge) { badge.textContent = '0'; badge.style.display = 'none'; }
+                fetch('/Notifications/MarkSeen', { method: 'POST', credentials: 'same-origin' }).catch(function () { });
             }
         }
 

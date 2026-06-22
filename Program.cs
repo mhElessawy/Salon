@@ -69,6 +69,7 @@ var emailSettings = builder.Configuration.GetSection("EmailSettings").Get<Salon.
 builder.Services.AddSingleton(emailSettings);
 builder.Services.AddScoped<IEmailService, EmailService>();
 
+builder.Services.AddMemoryCache();
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
