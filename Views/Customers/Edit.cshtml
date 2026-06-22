@@ -1,7 +1,9 @@
 @model Salon.Models.Customer
+@using Salon.Models
 @{
     ViewData["Title"] = "تعديل بيانات العميل";
     var userDept = ViewBag.UserDepartment as string;
+    var employees = ViewBag.Employees as List<Employee> ?? new List<Employee>();
 }
 
 <div class="page-header">
@@ -59,6 +61,16 @@
                         <option value="">-- اختر --</option>
                         <option>ذكر</option>
                         <option>أنثى</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="AssignedEmployeeId" class="form-label"></label>
+                    <select asp-for="AssignedEmployeeId" class="form-select">
+                        <option value="">-- اختر الموظف --</option>
+                        @foreach (var emp in employees)
+                        {
+                            <option value="@emp.Id" selected="@(Model.AssignedEmployeeId == emp.Id ? "selected" : null)">@emp.FullName</option>
+                        }
                     </select>
                 </div>
                 <div class="col-12">

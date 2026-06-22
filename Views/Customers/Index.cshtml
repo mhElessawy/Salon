@@ -99,6 +99,12 @@ else
                             {
                                 <span class="badge rounded-pill bg-info text-dark" style="font-size:0.7rem;">@c.Gender</span>
                             }
+                            @if (c.AssignedEmployee != null)
+                            {
+                                <span class="badge rounded-pill" style="background:#198754;font-size:0.7rem;">
+                                    <i class="fas fa-user-tie me-1" style="font-size:0.65rem;"></i><span data-i18n-en="Assigned:">مختص:</span> @c.AssignedEmployee.FullName
+                                </span>
+                            }
                         </div>
                     </div>
 
