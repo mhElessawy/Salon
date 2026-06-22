@@ -382,6 +382,28 @@ window.PAGE_TRANSLATIONS = {
     'استراحة': 'Break',
     'جلسة متبقية': 'sessions remaining',
 
+    // ── Appointments - New Calendar Create page ───────────
+    'حجز موعد جديد': 'New Appointment',
+    'تفاصيل الموعد': 'Appointment Details',
+    'العميل الرئيسي': 'Main Customer',
+    'المرافقون': 'Companions',
+    'إضافة مرافق': 'Add Companion',
+    'الباقات النشطة': 'Active Packages',
+    'حفظ الموعد': 'Save Appointment',
+    'إعادة تعيين': 'Reset',
+    'إجمالي الخدمات': 'Total Services',
+    'لم تُضَف خدمات بعد': 'No services added yet',
+    'جاري التحميل...': 'Loading...',
+    'خطأ في تحميل البيانات': 'Error loading data',
+    'لا يوجد موظفون في هذا القسم': 'No employees in this department',
+    'اضغط على خلية في الجدول': 'Click a cell in the calendar',
+    'الوقت': 'Time',
+    'خارج الدوام': 'Off-Duty',
+    'حلاقة': 'Barbering',
+    'مساج': 'Massage',
+    'استخدام من الباقة': 'Use from Package',
+    'من الباقة': 'From Package',
+
     // ── Employee Revenue Report ───────────────────────────
     'تقرير الإيراد حسب الموظف': 'Employee Revenue Report',
     'ملخص إيرادات وعمولات كل موظف خلال الفترة المحددة': 'Summary of each employee\'s revenue and commissions for the selected period',
