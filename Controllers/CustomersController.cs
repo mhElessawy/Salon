@@ -155,7 +155,7 @@ namespace Salon.Controllers
                 .Include(e => e.DepartmentNav)
                 .Where(e => e.IsActive);
 
-            if (!string.IsNullOrEmpty(userDepartment))
+            if (userDepartment == "حلاقة" || userDepartment == "مساج")
                 query = query.Where(e => e.DepartmentNav != null && e.DepartmentNav.Name == userDepartment);
 
             return await query.OrderBy(e => e.FullName).ToListAsync();
