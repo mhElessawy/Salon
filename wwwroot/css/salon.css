@@ -1,4 +1,4 @@
-﻿/* =============================================
+/* =============================================
    Salon Management System - Custom CSS
    Arabic RTL - Orange Theme
    ============================================= */
@@ -382,7 +382,7 @@ body.sidebar-collapsed .main-content {
     padding: 0 24px;
     position: sticky;
     top: 0;
-    z-index: 1060;
+    z-index: 999;
 }
 
 .topbar-right {
@@ -1287,10 +1287,10 @@ html[dir="ltr"] .password-toggle {
         border-color: #fff;
     }
 
-
-/* ===== ����� ������� ������ ===== */
+/* =============================================
+   PRINT
+   ============================================= */
 @media print {
-    /* ����� ����� ������� */
     .sidebar-overlay,
     .sidebar-close-btn,
     .sidebar,
@@ -1303,7 +1303,6 @@ html[dir="ltr"] .password-toggle {
         display: none !important;
     }
 
-    /* ����� �������� �� ��� layout */
     body,
     .app-wrapper,
     .main-content {
@@ -1312,7 +1311,6 @@ html[dir="ltr"] .password-toggle {
         background: #fff !important;
     }
 
-    /* ����� ������ ���� ������ */
     .print-area {
         width: 100% !important;
         margin: 0 !important;
@@ -1321,13 +1319,11 @@ html[dir="ltr"] .password-toggle {
         box-shadow: none !important;
     }
 
-        /* ��� �� ������ */
         .print-area .table {
             font-size: 11px;
             width: 100%;
         }
 
-        /* ������� �� ������� */
         .print-area .badge {
             border: 1px solid #999;
             color: #000 !important;
@@ -1335,7 +1331,6 @@ html[dir="ltr"] .password-toggle {
             -webkit-print-color-adjust: exact;
         }
 
-    /* ����� �������� �� ������� */
     tfoot.table-dark {
         background: #333 !important;
         -webkit-print-color-adjust: exact;
@@ -1343,7 +1338,14 @@ html[dir="ltr"] .password-toggle {
     }
 }
 
-/* ── Notifications Panel ─────────────────────────────────────── */
+/* =============================================
+   NOTIFICATIONS PANEL
+   ============================================= */
+
+/* Raise topbar above Bootstrap modal backdrop (z-index 1040) so the
+   bell remains clickable even when a modal is open on Dashboard */
+.topbar { z-index: 1060; }
+
 #notif-overlay {
     display: none;
     position: fixed;
