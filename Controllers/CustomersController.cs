@@ -60,10 +60,7 @@ namespace Salon.Controllers
             if (!string.IsNullOrEmpty(user?.UserDepartment))
                 model.Department = user.UserDepartment;
             ViewBag.UserDepartment = user?.UserDepartment;
-            ViewBag.Employees = await _context.Employees
-                .Where(e => e.IsActive)
-                .OrderBy(e => e.FullName)
-                .ToListAsync();
+            ViewBag.Employees = await GetEmployeesForUserAsync(user?.UserDepartment);
             return View(model);
         }
 
@@ -88,10 +85,7 @@ namespace Salon.Controllers
             }
             var user = await _userManager.GetUserAsync(User);
             ViewBag.UserDepartment = user?.UserDepartment;
-            ViewBag.Employees = await _context.Employees
-                .Where(e => e.IsActive)
-                .OrderBy(e => e.FullName)
-                .ToListAsync();
+            ViewBag.Employees = await GetEmployeesForUserAsync(user?.UserDepartment);
             return View(model);
         }
 
@@ -101,10 +95,7 @@ namespace Salon.Controllers
             if (customer == null) return NotFound();
             var user = await _userManager.GetUserAsync(User);
             ViewBag.UserDepartment = user?.UserDepartment;
-            ViewBag.Employees = await _context.Employees
-                .Where(e => e.IsActive)
-                .OrderBy(e => e.FullName)
-                .ToListAsync();
+            ViewBag.Employees = await GetEmployeesForUserAsync(user?.UserDepartment);
             return View(customer);
         }
 
@@ -130,10 +121,7 @@ namespace Salon.Controllers
             }
             var user = await _userManager.GetUserAsync(User);
             ViewBag.UserDepartment = user?.UserDepartment;
-            ViewBag.Employees = await _context.Employees
-                .Where(e => e.IsActive)
-                .OrderBy(e => e.FullName)
-                .ToListAsync();
+            ViewBag.Employees = await GetEmployeesForUserAsync(user?.UserDepartment);
             return View(model);
         }
 
@@ -159,6 +147,18 @@ namespace Salon.Controllers
                 TempData["Success"] = "Customer deleted created successfully";
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        private async Task<List<Employee>> GetEmployeesForUserAsync(string? userDepartment)
+        {
+            var query = _context.Employees
+                .Include(e => e.DepartmentNav)
+                .Where(e => e.IsActive);
+
+            if (!string.IsNullOrEmpty(userDepartment))
+                query = query.Where(e => e.DepartmentNav != null && e.DepartmentNav.Name == userDepartment);
+
+            return await query.OrderBy(e => e.FullName).ToListAsync();
         }
     }
 }
