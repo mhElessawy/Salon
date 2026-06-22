@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Salon.Models
 {
@@ -32,6 +33,12 @@ namespace Salon.Models
 
         [Display(Name = "الملاحظات")]
         public string? Notes { get; set; }
+
+        [Display(Name = "الموظف المسؤول")]
+        public int? AssignedEmployeeId { get; set; }
+
+        [ForeignKey("AssignedEmployeeId")]
+        public Employee? AssignedEmployee { get; set; }
 
         [Display(Name = "تاريخ الإضافة")]
         public DateTime CreatedAt { get; set; } = DateTime.Now;

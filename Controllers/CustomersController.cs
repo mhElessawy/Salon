@@ -60,6 +60,10 @@ namespace Salon.Controllers
             if (!string.IsNullOrEmpty(user?.UserDepartment))
                 model.Department = user.UserDepartment;
             ViewBag.UserDepartment = user?.UserDepartment;
+            ViewBag.Employees = await _context.Employees
+                .Where(e => e.IsActive)
+                .OrderBy(e => e.FullName)
+                .ToListAsync();
             return View(model);
         }
 
@@ -82,6 +86,12 @@ namespace Salon.Controllers
                 TempData["Success"] = "Customer added created successfully";
                 return RedirectToAction(nameof(Index));
             }
+            var user = await _userManager.GetUserAsync(User);
+            ViewBag.UserDepartment = user?.UserDepartment;
+            ViewBag.Employees = await _context.Employees
+                .Where(e => e.IsActive)
+                .OrderBy(e => e.FullName)
+                .ToListAsync();
             return View(model);
         }
 
@@ -89,6 +99,12 @@ namespace Salon.Controllers
         {
             var customer = await _context.Customers.FindAsync(id);
             if (customer == null) return NotFound();
+            var user = await _userManager.GetUserAsync(User);
+            ViewBag.UserDepartment = user?.UserDepartment;
+            ViewBag.Employees = await _context.Employees
+                .Where(e => e.IsActive)
+                .OrderBy(e => e.FullName)
+                .ToListAsync();
             return View(customer);
         }
 
@@ -112,6 +128,12 @@ namespace Salon.Controllers
                 TempData["Success"] = "Customer data updated created successfully";
                 return RedirectToAction(nameof(Index));
             }
+            var user = await _userManager.GetUserAsync(User);
+            ViewBag.UserDepartment = user?.UserDepartment;
+            ViewBag.Employees = await _context.Employees
+                .Where(e => e.IsActive)
+                .OrderBy(e => e.FullName)
+                .ToListAsync();
             return View(model);
         }
 

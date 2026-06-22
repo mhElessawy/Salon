@@ -415,7 +415,12 @@ namespace Salon.Migrations
                 b.Property<string>("Phone")
                     .HasColumnType("nvarchar(max)");
 
+                b.Property<int?>("AssignedEmployeeId")
+                    .HasColumnType("int");
+
                 b.HasKey("Id");
+
+                b.HasIndex("AssignedEmployeeId");
 
                 b.ToTable("Customers", (string)null);
             });
@@ -1355,6 +1360,16 @@ namespace Salon.Migrations
                     .IsRequired();
 
                 b.Navigation("User");
+            });
+
+            modelBuilder.Entity("Salon.Models.Customer", b =>
+            {
+                b.HasOne("Salon.Models.Employee", "AssignedEmployee")
+                    .WithMany()
+                    .HasForeignKey("AssignedEmployeeId")
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                b.Navigation("AssignedEmployee");
             });
 
             modelBuilder.Entity("Salon.Models.Appointment", b =>
