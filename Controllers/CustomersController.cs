@@ -46,6 +46,7 @@ namespace Salon.Controllers
             var customers = await query
                 .Include(c => c.Sales).ThenInclude(s => s.Employee)
                 .Include(c => c.CustomerPackages).ThenInclude(cp => cp.ServicePackage)
+                .Include(c => c.AssignedEmployee)
                 .OrderByDescending(c => c.CreatedAt).ToListAsync();
             ViewBag.Search = search;
             ViewBag.Dept = dept;

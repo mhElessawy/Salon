@@ -566,6 +566,7 @@ window.PAGE_TRANSLATIONS = {
     'تاريخ المصروف': 'Expense Date',
     'تاريخ الإيداع': 'Deposit Date',
     // ── Customer form ─────────────────────────────────────────
+    'الموظف المسؤول': 'Assigned Employee',
     'الاسم الكامل عربي': 'Full Name (Arabic)',
     'الجنس': 'Gender',
     'ذكر': 'Male',
