@@ -1,0 +1,205 @@
+@model IEnumerable<Salon.Models.CustomerSalesRow>
+@{
+    ViewData["Title"] = "المبيعات على حسب العملاء";
+    string? userDept = ViewBag.UserDept as string;
+    bool isDeptUser = userDept == "حلاقة" || userDept == "مساج";
+    string? selectedType = ViewBag.SelectedSaleType as string;
+
+    decimal totalAmount = ViewBag.TotalAmount is decimal ta ? ta : 0m;
+    decimal totalCash = ViewBag.TotalCash is decimal tc ? tc : 0m;
+    decimal totalKnet = ViewBag.TotalKnet is decimal tk ? tk : 0m;
+    decimal totalDebt = ViewBag.TotalDebt is decimal td ? td : 0m;
+    decimal totalDiscount = ViewBag.TotalDiscount is decimal tdi ? tdi : 0m;
+    int totalInvoices = ViewBag.TotalInvoices is int ti ? ti : 0;
+    int totalCustomers = ViewBag.TotalCustomers is int tcu ? tcu : 0;
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1><i class="fas fa-users me-2"></i>المبيعات على حسب العملاء</h1>
+    <button onclick="window.print()" class="btn btn-dark btn-sm no-print">
+        <i class="fas fa-print me-1"></i> طباعة
+    </button>
+</div>
+
+<div class="card mb-3 no-print">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label mb-1">من:</label>
+                <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:170px;" />
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1">إلى:</label>
+                <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:170px;" />
+            </div>
+            @if (!isDeptUser)
+            {
+                <div class="col-auto">
+                    <label class="form-label mb-1">النوع:</label>
+                    <select name="saleType" class="form-select" style="max-width:160px;">
+                        <option value="">الكل</option>
+                        <option value="حلاقة" selected="@(selectedType == "حلاقة")">حلاقة</option>
+                        <option value="مساج" selected="@(selectedType == "مساج")">مساج</option>
+                        <option value="منتجات" selected="@(selectedType == "منتجات")">منتجات</option>
+                    </select>
+                </div>
+            }
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
+                <a href="@Url.Action("SalesByCustomer")" class="btn btn-secondary btn-sm ms-1"><i class="fas fa-undo"></i> إعادة تعيين</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="stat-card green">
+            <div class="stat-label">إجمالي المبيعات</div>
+            <div class="stat-value">@totalAmount.ToString("N3") د.ك</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card blue">
+            <div class="stat-label">عدد العملاء</div>
+            <div class="stat-value">@totalCustomers</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="border-right:4px solid #6f42c1;">
+            <div class="stat-label">إجمالي الفواتير</div>
+            <div class="stat-value" style="color:#6f42c1;">@totalInvoices</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card orange">
+            <div class="stat-label">إجمالي الخصومات</div>
+            <div class="stat-value">@totalDiscount.ToString("N3") د.ك</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="border-right:4px solid #0891b2;">
+            <div class="stat-label">إجمالي الكاش</div>
+            <div class="stat-value" style="color:#0891b2;">@totalCash.ToString("N3") د.ك</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="border-right:4px solid #059669;">
+            <div class="stat-label">إجمالي الكي نت</div>
+            <div class="stat-value" style="color:#059669;">@totalKnet.ToString("N3") د.ك</div>
+        </div>
+    </div>
+    @if (totalDebt > 0)
+    {
+        <div class="col-md-3">
+            <div class="stat-card red">
+                <div class="stat-label">دين على العملاء</div>
+                <div class="stat-value">@totalDebt.ToString("N3") د.ك</div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="card print-area">
+    <div class="card-body">
+        @if (!Model.Any())
+        {
+            <div class="alert alert-info text-center">لا توجد مبيعات في هذه الفترة</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>العميل</th>
+                            <th>رقم الهاتف</th>
+                            @if (!isDeptUser)
+                            {
+                                <th>القسم</th>
+                            }
+                            <th class="text-center">عدد الزيارات</th>
+                            <th class="text-end">إجمالي المبيعات</th>
+                            <th class="text-end">كاش</th>
+                            <th class="text-end">كي نت</th>
+                            @if (totalDebt > 0)
+                            {
+                                <th class="text-end">دين</th>
+                            }
+                            <th class="text-end">خصومات</th>
+                            <th>آخر زيارة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ int rowNum = 0; }
+                        @foreach (var row in Model)
+                        {
+                            rowNum++;
+                            <tr>
+                                <td class="text-muted small">@rowNum</td>
+                                <td>
+                                    @if (row.CustomerId.HasValue)
+                                    {
+                                        <a href="@Url.Action("Details", "Customers", new { id = row.CustomerId })" class="text-decoration-none">
+                                            <i class="fas fa-user me-1 text-primary"></i>@row.CustomerName
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted"><i class="fas fa-user-slash me-1"></i>@row.CustomerName</span>
+                                    }
+                                </td>
+                                <td class="text-muted">@(row.Phone ?? "—")</td>
+                                @if (!isDeptUser)
+                                {
+                                    <td>
+                                        @if (row.Department == "حلاقة")
+                                        {
+                                            <span class="badge bg-secondary">حلاقة</span>
+                                        }
+                                        else if (row.Department == "مساج")
+                                        {
+                                            <span class="badge" style="background:#6f42c1;">مساج</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                }
+                                <td class="text-center">
+                                    <span class="badge bg-info text-dark">@row.InvoiceCount</span>
+                                </td>
+                                <td class="text-end fw-bold text-success">@row.TotalAmount.ToString("N3")</td>
+                                <td class="text-end">@(row.TotalCash > 0 ? row.TotalCash.ToString("N3") : "—")</td>
+                                <td class="text-end">@(row.TotalKnet > 0 ? row.TotalKnet.ToString("N3") : "—")</td>
+                                @if (totalDebt > 0)
+                                {
+                                    <td class="text-end text-danger">@(row.TotalDebt > 0 ? row.TotalDebt.ToString("N3") : "—")</td>
+                                }
+                                <td class="text-end text-warning">@(row.TotalDiscount > 0 ? row.TotalDiscount.ToString("N3") : "—")</td>
+                                <td class="text-muted small">@(row.LastVisitDate?.ToString("yyyy/MM/dd") ?? "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-dark">
+                        <tr>
+                            <th colspan="@(isDeptUser ? 3 : 4)">الإجمالي</th>
+                            <th class="text-center">@totalInvoices فاتورة</th>
+                            <th class="text-end">@totalAmount.ToString("N3")</th>
+                            <th class="text-end">@totalCash.ToString("N3")</th>
+                            <th class="text-end">@totalKnet.ToString("N3")</th>
+                            @if (totalDebt > 0)
+                            {
+                                <th class="text-end">@totalDebt.ToString("N3")</th>
+                            }
+                            <th class="text-end">@totalDiscount.ToString("N3")</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+    </div>
+</div>

@@ -1359,5 +1359,75 @@ namespace Salon.Controllers
 
             return View(rows);
         }
+
+        public async Task<IActionResult> SalesByCustomer(string? from, string? to, string? saleType)
+        {
+            DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
+            DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
+            var query = _context.Sales
+                .Include(s => s.Customer)
+                .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
+
+            if (userDept == "مساج")
+                query = query.Where(s => s.SaleType == "مساج");
+            else if (userDept == "حلاقة")
+                query = query.Where(s => s.SaleType == "حلاقة");
+
+            if (!string.IsNullOrEmpty(saleType))
+                query = query.Where(s => s.SaleType == saleType);
+
+            var allSales = await query.ToListAsync();
+
+            string[] cashMethods = { "كاش", "نقدي", "Cash" };
+            string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
+            var rows = allSales
+                .GroupBy(s => new
+                {
+                    s.CustomerId,
+                    CustomerName = s.Customer?.FullName ?? "عميل غير محدد",
+                    Phone = s.Customer?.Phone,
+                    Department = s.Customer?.Department
+                })
+                .Select(g => new CustomerSalesRow
+                {
+                    CustomerId = g.Key.CustomerId,
+                    CustomerName = g.Key.CustomerName,
+                    Phone = g.Key.Phone,
+                    Department = g.Key.Department,
+                    InvoiceCount = g.Count(),
+                    TotalAmount = g.Sum(s => s.NetAmount),
+                    TotalCash = g.Sum(s =>
+                        cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                        mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0),
+                    TotalKnet = g.Sum(s =>
+                        knetMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                        mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0),
+                    TotalDebt = g.Sum(s => s.PaymentMethod == "دين على العميل" ? s.NetAmount : 0),
+                    TotalDiscount = g.Sum(s => s.Discount),
+                    LastVisitDate = g.Max(s => (DateTime?)s.SaleDate)
+                })
+                .OrderByDescending(r => r.TotalAmount)
+                .ToList();
+
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
+            ViewBag.SelectedSaleType = saleType;
+            ViewBag.UserDept = userDept;
+            ViewBag.TotalAmount = rows.Sum(r => r.TotalAmount);
+            ViewBag.TotalInvoices = rows.Sum(r => r.InvoiceCount);
+            ViewBag.TotalCustomers = rows.Count;
+            ViewBag.TotalCash = rows.Sum(r => r.TotalCash);
+            ViewBag.TotalKnet = rows.Sum(r => r.TotalKnet);
+            ViewBag.TotalDebt = rows.Sum(r => r.TotalDebt);
+            ViewBag.TotalDiscount = rows.Sum(r => r.TotalDiscount);
+
+            return View(rows);
+        }
     }
 }
