@@ -1,0 +1,114 @@
+@model IEnumerable<Salon.Models.Sale>
+@{
+    decimal totalNet = ViewBag.TotalNet is decimal t ? t : 0m;
+    int totalCount   = ViewBag.TotalCount is int c ? c : 0;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <span class="badge bg-primary fs-6">@totalCount فاتورة</span>
+        <span class="badge fs-6 ms-1" style="background:#16a34a;">@totalNet.ToString("N3") د.ك</span>
+    </div>
+    <small class="text-muted">@ViewBag.From — @ViewBag.To</small>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="text-center text-muted py-4">
+        <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+        لا توجد فواتير في هذه الفترة
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>رقم الفاتورة</th>
+                    <th>التاريخ</th>
+                    <th>الموظف</th>
+                    <th>النوع</th>
+                    <th class="text-end">الإجمالي</th>
+                    <th class="text-end">الخصم</th>
+                    <th class="text-end">الصافي</th>
+                    <th>طريقة الدفع</th>
+                    <th>الحالة</th>
+                    <th>العناصر</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Model)
+                {
+                    bool isCancelled = s.Status == "ملغي";
+                    <tr class="@(isCancelled ? "table-danger opacity-75" : "")">
+                        <td><span class="badge bg-secondary">@s.InvoiceNumber</span></td>
+                        <td style="font-size:.82rem;">@s.SaleDate.ToString("yyyy/MM/dd")<br /><small class="text-muted">@s.SaleDate.ToString("hh:mm tt")</small></td>
+                        <td>@(s.Employee?.FullName ?? "—")</td>
+                        <td>
+                            @if (s.SaleType == "حلاقة")
+                            {
+                                <span class="badge bg-secondary">حلاقة</span>
+                            }
+                            else if (s.SaleType == "مساج")
+                            {
+                                <span class="badge" style="background:#6f42c1;">مساج</span>
+                            }
+                            else
+                            {
+                                <span class="badge" style="background:#fd7e14;">@s.SaleType</span>
+                            }
+                        </td>
+                        <td class="text-end">@s.TotalAmount.ToString("N3")</td>
+                        <td class="text-end text-warning">@(s.Discount > 0 ? s.Discount.ToString("N3") : "—")</td>
+                        <td class="text-end fw-bold" style="color:@(isCancelled ? "#dc2626" : "#16a34a");">@s.NetAmount.ToString("N3")</td>
+                        <td>
+                            @{
+                                string pmBadge = s.PaymentMethod switch {
+                                    "كاش" or "نقدي" or "Cash" => "bg-primary",
+                                    "كي نت" or "بطاقة" or "K-Net" => "bg-success",
+                                    "كي نت و كاش" or "مناصفة" => "bg-info text-dark",
+                                    "دين على العميل" => "bg-danger",
+                                    _ => "bg-secondary"
+                                };
+                            }
+                            <span class="badge @pmBadge" style="font-size:.75rem;">@s.PaymentMethod</span>
+                        </td>
+                        <td>
+                            @if (isCancelled)
+                            {
+                                <span class="badge bg-danger">ملغي</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">مكتمل</span>
+                            }
+                        </td>
+                        <td>
+                            @if (s.SaleItems.Any())
+                            {
+                                <button class="btn btn-outline-secondary btn-sm py-0" type="button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#items-@s.Id">
+                                    <i class="fas fa-list" style="font-size:.7rem;"></i> @s.SaleItems.Count
+                                </button>
+                                <div class="collapse mt-1" id="items-@s.Id">
+                                    <ul class="list-unstyled mb-0 small text-muted">
+                                        @foreach (var item in s.SaleItems)
+                                        {
+                                            <li>• @item.ItemName × @item.Quantity — @item.Total.ToString("N3") د.ك</li>
+                                        }
+                                    </ul>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

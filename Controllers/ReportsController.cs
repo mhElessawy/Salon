@@ -1440,5 +1440,35 @@ namespace Salon.Controllers
 
             return View(rows);
         }
+
+        public async Task<IActionResult> CustomerSalesDetail(int customerId, string from, string to)
+        {
+            DateTime dateFrom = DateTime.Parse(from);
+            DateTime dateTo = DateTime.Parse(to).AddDays(1);
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
+            var salesQuery = _context.Sales
+                .Include(s => s.Employee)
+                .Include(s => s.SaleItems)
+                .Where(s => s.CustomerId == customerId && s.SaleDate >= dateFrom && s.SaleDate < dateTo);
+
+            if (userDept == "مساج")
+                salesQuery = salesQuery.Where(s => s.SaleType == "مساج");
+            else if (userDept == "حلاقة")
+                salesQuery = salesQuery.Where(s => s.SaleType == "حلاقة");
+
+            var sales = await salesQuery.OrderByDescending(s => s.SaleDate).ToListAsync();
+
+            var customer = await _context.Customers.FindAsync(customerId);
+            ViewBag.CustomerName = customer?.FullName ?? "غير محدد";
+            ViewBag.From = from;
+            ViewBag.To = to;
+            ViewBag.TotalNet = sales.Where(s => s.Status != "ملغي").Sum(s => s.NetAmount);
+            ViewBag.TotalCount = sales.Count(s => s.Status != "ملغي");
+
+            return PartialView("_CustomerSalesDetail", sales);
+        }
     }
 }

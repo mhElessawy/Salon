@@ -319,10 +319,11 @@
                             <td class="no-print">
                                 @if (row.CustomerId.HasValue)
                                 {
-                                    <a href="@Url.Action("Sales", "Reports", new { customerId = row.CustomerId, from = ViewBag.From, to = ViewBag.To })"
-                                       class="btn btn-outline-primary btn-sm" title="عرض تفاصيل الزيارات">
-                                        <i class="fas fa-eye me-1"></i>الزيارات
-                                    </a>
+                                    <button class="btn btn-outline-primary btn-sm"
+                                            title="عرض الفواتير"
+                                            onclick="showInvoices(@row.CustomerId, '@row.CustomerName.Replace("'", "\\'")' )">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
                                 }
                                 else
                                 {
@@ -353,12 +354,56 @@
     </div>
 </div>
 
+@* ── INVOICES MODAL ── *@
+<div class="modal fade" id="invoicesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-invoice me-2 text-primary"></i>
+                    <span id="modalCustomerName"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">جاري التحميل...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         function exportToExcel() {
             var table = document.getElementById('custSalesTable');
             var wb = XLSX.utils.table_to_book(table, { sheet: "Sales By Customer", raw: true });
             XLSX.writeFile(wb, 'sales_by_customer_@(ViewBag.From)_@(ViewBag.To).xlsx');
+        }
+
+        function showInvoices(customerId, customerName) {
+            document.getElementById('modalCustomerName').textContent = 'فواتير: ' + customerName;
+            document.getElementById('modalBody').innerHTML =
+                '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">جاري التحميل...</p></div>';
+
+            var modal = new bootstrap.Modal(document.getElementById('invoicesModal'));
+            modal.show();
+
+            fetch('@Url.Action("CustomerSalesDetail", "Reports")?customerId=' + customerId +
+                  '&from=@ViewBag.From&to=@ViewBag.To')
+                .then(function(r) { return r.text(); })
+                .then(function(html) {
+                    document.getElementById('modalBody').innerHTML = html;
+                })
+                .catch(function() {
+                    document.getElementById('modalBody').innerHTML =
+                        '<div class="alert alert-danger">حدث خطأ أثناء التحميل</div>';
+                });
         }
     </script>
 }
