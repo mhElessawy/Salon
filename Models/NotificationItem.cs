@@ -12,5 +12,7 @@
         public DateTime Date { get; set; }
         public string? ActionUrl { get; set; }
         public string? ActionText { get; set; }
+        public string Key { get; set; } = "";
+        public bool IsRead { get; set; } = false;
     }
 }

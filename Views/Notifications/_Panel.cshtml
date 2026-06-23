@@ -1,24 +1,25 @@
-﻿@model List<Salon.Models.NotificationItem>
+@model List<Salon.Models.NotificationItem>
 @{
-    var today = DateTime.Today;
+    var today     = DateTime.Today;
     var yesterday = today.AddDays(-1);
 
     string DayLabel(DateTime d) =>
-        d.Date == today ? $"اليوم {today:d MMMM yyyy}" :
-        d.Date == yesterday ? $"أمس {yesterday:d MMMM yyyy}" :
+        d.Date == today     ? $"اليوم {today:d MMMM yyyy}"     :
+        d.Date == yesterday ? $"أمس {yesterday:d MMMM yyyy}"   :
         d.ToString("d MMMM yyyy");
 
-    var grouped = Model
-        .GroupBy(n => n.Date.Date)
-        .OrderByDescending(g => g.Key)
-        .ToList();
+    var grouped   = Model.GroupBy(n => n.Date.Date).OrderByDescending(g => g.Key).ToList();
+    int unreadCnt = Model.Count(n => !n.IsRead);
 }
 
 <div class="np-header">
     <div class="np-header-title">
         <i class="fas fa-bell np-bell-icon"></i>
         <span>الإشعارات</span>
-        <span class="np-total-badge">@Model.Count</span>
+        @if (unreadCnt > 0)
+        {
+            <span class="np-total-badge">@unreadCnt</span>
+        }
     </div>
     <button class="np-settings-btn" onclick="toggleNpSettings()" title="الإعدادات">
         <i class="fas fa-cog"></i>
@@ -27,15 +28,17 @@
 
 <!-- Filter Tabs -->
 <div class="np-tabs">
-    <button class="np-tab active" data-cat="all">الكل <span class="np-tab-cnt">@Model.Count</span></button>
+    <button class="np-tab active" data-cat="all">
+        الكل <span class="np-tab-cnt">@Model.Count(n => !n.IsRead)</span>
+    </button>
     <button class="np-tab" data-cat="مهمة" style="--tab-color:#dc3545">
-        مهمة <span class="np-tab-cnt">@Model.Count(n => n.Category == "مهمة")</span>
+        مهمة <span class="np-tab-cnt">@Model.Count(n => n.Category == "مهمة" && !n.IsRead)</span>
     </button>
     <button class="np-tab" data-cat="appointment" style="--tab-color:#F7941D">
-        مواعيد <span class="np-tab-cnt">@Model.Count(n => n.Type == "appointment")</span>
+        مواعيد <span class="np-tab-cnt">@Model.Count(n => n.Type == "appointment" && !n.IsRead)</span>
     </button>
     <button class="np-tab" data-cat="مالية" style="--tab-color:#0d6efd">
-        مالية <span class="np-tab-cnt">@Model.Count(n => n.Category == "مالية")</span>
+        مالية <span class="np-tab-cnt">@Model.Count(n => n.Category == "مالية" && !n.IsRead)</span>
     </button>
 </div>
 
@@ -55,7 +58,11 @@
             <div class="np-day-label">@DayLabel(group.Key)</div>
             @foreach (var n in group.OrderByDescending(x => x.Date))
             {
-                <div class="np-card" data-cat="@n.Category" data-type="@n.Type">
+                <div class="np-card @(n.IsRead ? "np-card-read" : "")"
+                     data-cat="@n.Category"
+                     data-type="@n.Type"
+                     data-key="@n.Key"
+                     data-read="@n.IsRead.ToString().ToLower()">
                     <div class="np-icon" style="background:@n.IconBg">
                         <i class="@n.IconClass"></i>
                     </div>
@@ -66,12 +73,20 @@
                         </div>
                         <div class="np-subtitle">@n.SubTitle</div>
                         <div class="np-body">@n.Body</div>
-                        @if (n.ActionUrl != null)
-                        {
-                            <a href="@n.ActionUrl" class="np-action-btn">
-                                @n.ActionText <i class="fas fa-arrow-left ms-1" style="font-size:0.65rem;"></i>
-                            </a>
-                        }
+                        <div class="np-card-footer">
+                            @if (n.IsRead)
+                            {
+                                <span class="np-read-badge">
+                                    <i class="fas fa-check-circle me-1"></i>تمت القراءة
+                                </span>
+                            }
+                            else
+                            {
+                                <button class="np-markread-btn" onclick="markNotifRead(this,'@n.Key')">
+                                    <i class="fas fa-check me-1"></i>تمت القراءة
+                                </button>
+                            }
+                        </div>
                     </div>
                 </div>
             }
@@ -114,54 +129,99 @@
 </div>
 
 <script>
-    (function () {
-        // Tab filtering (supports both data-cat=category and data-cat=type)
-        document.querySelectorAll('.np-tab').forEach(function (tab) {
-            tab.addEventListener('click', function () {
-                document.querySelectorAll('.np-tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                var cat = tab.dataset.cat;
-                document.querySelectorAll('.np-card').forEach(function (card) {
-                    var match = cat === 'all' || card.dataset.cat === cat || card.dataset.type === cat;
-                    card.style.display = match ? '' : 'none';
-                });
-                // Hide day-labels with no visible cards under them
-                document.querySelectorAll('.np-day-label').forEach(function (label) {
-                    var next = label.nextElementSibling;
-                    var hasVisible = false;
-                    while (next && !next.classList.contains('np-day-label')) {
-                        if (next.classList.contains('np-card') && next.style.display !== 'none') hasVisible = true;
-                        next = next.nextElementSibling;
-                    }
-                    label.style.display = hasVisible ? '' : 'none';
-                });
+(function () {
+    // Tab filtering — hides read cards when filtering
+    document.querySelectorAll('.np-tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            document.querySelectorAll('.np-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            var cat = tab.dataset.cat;
+            document.querySelectorAll('.np-card').forEach(function (card) {
+                var match = cat === 'all' || card.dataset.cat === cat || card.dataset.type === cat;
+                card.style.display = match ? '' : 'none';
+            });
+            document.querySelectorAll('.np-day-label').forEach(function (label) {
+                var next = label.nextElementSibling;
+                var hasVisible = false;
+                while (next && !next.classList.contains('np-day-label')) {
+                    if (next.classList.contains('np-card') && next.style.display !== 'none') hasVisible = true;
+                    next = next.nextElementSibling;
+                }
+                label.style.display = hasVisible ? '' : 'none';
             });
         });
+    });
 
-        // Settings persistence
-        function loadNpSettings() {
-            try {
-                var s = JSON.parse(localStorage.getItem('npSettings') || '{}');
-                if (document.getElementById('ns-quick')) document.getElementById('ns-quick').checked = !!s.quick;
-                if (document.getElementById('ns-from')) document.getElementById('ns-from').value = s.from || '';
-                if (document.getElementById('ns-max')) document.getElementById('ns-max').value = s.max || 20;
-                if (document.getElementById('ns-archive')) document.getElementById('ns-archive').checked = !!s.archive;
-                if (document.getElementById('ns-auto')) document.getElementById('ns-auto').checked = !!s.auto;
-            } catch (e) { }
-        }
-        window.saveNpSettings = function () {
-            localStorage.setItem('npSettings', JSON.stringify({
-                quick: document.getElementById('ns-quick')?.checked,
-                from: document.getElementById('ns-from')?.value,
-                max: document.getElementById('ns-max')?.value,
-                archive: document.getElementById('ns-archive')?.checked,
-                auto: document.getElementById('ns-auto')?.checked
-            }));
-        };
-        window.toggleNpSettings = function () {
-            var el = document.getElementById('np-settings');
-            el.style.display = el.style.display === 'none' ? 'block' : 'none';
-        };
-        loadNpSettings();
-    })();
+    // Mark as read
+    window.markNotifRead = function (btn, key) {
+        var card = btn.closest('.np-card');
+        var fd = new FormData();
+        fd.append('key', key);
+        fetch('/Notifications/MarkRead', { method: 'POST', body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                // Style card as read
+                card.classList.add('np-card-read');
+                card.dataset.read = 'true';
+                var footer = btn.closest('.np-card-footer');
+                footer.innerHTML = '<span class="np-read-badge"><i class="fas fa-check-circle me-1"></i>تمت القراءة</span>';
+
+                // Update panel header badge
+                var hdrBadge = document.querySelector('.np-total-badge');
+                if (hdrBadge) {
+                    if (data.total > 0) hdrBadge.textContent = data.total;
+                    else hdrBadge.remove();
+                }
+
+                // Update tab counts
+                var cardCat  = card.dataset.cat;
+                var cardType = card.dataset.type;
+                document.querySelectorAll('.np-tab').forEach(function (tab) {
+                    var cnt = tab.querySelector('.np-tab-cnt');
+                    if (!cnt) return;
+                    var cur = parseInt(cnt.textContent) || 0;
+                    if (tab.dataset.cat === 'all' ||
+                        tab.dataset.cat === cardCat ||
+                        tab.dataset.cat === cardType) {
+                        cnt.textContent = Math.max(0, cur - 1);
+                    }
+                });
+
+                // Update main page badge
+                var pgBadge = document.getElementById('notif-count');
+                if (pgBadge) {
+                    pgBadge.textContent = data.total > 99 ? '99+' : data.total;
+                    pgBadge.style.display = data.total > 0 ? '' : 'none';
+                    pgBadge.style.background = data.important > 0 ? '#dc3545' : '#F7941D';
+                }
+            })
+            .catch(function () {});
+    };
+
+    // Settings persistence
+    function loadNpSettings() {
+        try {
+            var s = JSON.parse(localStorage.getItem('npSettings') || '{}');
+            if (document.getElementById('ns-quick'))   document.getElementById('ns-quick').checked   = !!s.quick;
+            if (document.getElementById('ns-from'))    document.getElementById('ns-from').value       = s.from || '';
+            if (document.getElementById('ns-max'))     document.getElementById('ns-max').value        = s.max  || 20;
+            if (document.getElementById('ns-archive')) document.getElementById('ns-archive').checked  = !!s.archive;
+            if (document.getElementById('ns-auto'))    document.getElementById('ns-auto').checked     = !!s.auto;
+        } catch (e) {}
+    }
+    window.saveNpSettings = function () {
+        localStorage.setItem('npSettings', JSON.stringify({
+            quick:   document.getElementById('ns-quick')?.checked,
+            from:    document.getElementById('ns-from')?.value,
+            max:     document.getElementById('ns-max')?.value,
+            archive: document.getElementById('ns-archive')?.checked,
+            auto:    document.getElementById('ns-auto')?.checked
+        }));
+    };
+    window.toggleNpSettings = function () {
+        var el = document.getElementById('np-settings');
+        el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    };
+    loadNpSettings();
+})();
 </script>

@@ -25,6 +25,10 @@ namespace Salon.Controllers
         public async Task<IActionResult> Panel()
         {
             var items = await BuildNotificationsAsync();
+            var userId = _userManager.GetUserId(User);
+            var readSet = _cache.TryGetValue($"notif_read_{userId}", out HashSet<string>? rk) ? rk : new HashSet<string>();
+            foreach (var item in items)
+                item.IsRead = readSet != null && readSet.Contains(item.Key);
             return PartialView("_Panel", items);
         }
 
@@ -33,11 +37,28 @@ namespace Salon.Controllers
         {
             var items = await BuildNotificationsAsync();
             var userId = _userManager.GetUserId(User);
-            var seenAt = _cache.TryGetValue($"notif_seen_{userId}", out DateTime seen) ? seen : DateTime.MinValue;
+            var readSet = _cache.TryGetValue($"notif_read_{userId}", out HashSet<string>? rk) ? rk : new HashSet<string>();
+            var unread = items.Where(n => !(readSet?.Contains(n.Key) ?? false)).ToList();
+            return Json(new { total = unread.Count, important = unread.Count(n => n.Category == "مهمة") });
+        }
 
-            var unseen = items.Count(n => n.Date > seenAt);
-            var important = items.Count(n => n.Category == "مهمة" && n.Date > seenAt);
-            return Json(new { total = unseen, important });
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> MarkRead([FromForm] string key)
+        {
+            var userId = _userManager.GetUserId(User);
+            var cacheKey = $"notif_read_{userId}";
+            var readSet = _cache.GetOrCreate(cacheKey, e =>
+            {
+                e.AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(3);
+                return new HashSet<string>();
+            }) ?? new HashSet<string>();
+            readSet.Add(key);
+            _cache.Set(cacheKey, readSet, TimeSpan.FromDays(3));
+
+            var items = await BuildNotificationsAsync();
+            var unread = items.Where(n => !readSet.Contains(n.Key)).ToList();
+            return Json(new { total = unread.Count, important = unread.Count(n => n.Category == "مهمة") });
         }
 
         [HttpPost]
@@ -47,6 +68,18 @@ namespace Salon.Controllers
             var userId = _userManager.GetUserId(User);
             _cache.Set($"notif_seen_{userId}", DateTime.Now, TimeSpan.FromDays(1));
             return Ok();
+        }
+
+        private static string NotifKey(string type, DateTime date, string sub)
+        {
+            unchecked
+            {
+                long h = 17;
+                foreach (char c in type) h = h * 31 + c;
+                h = h * 31 + date.Year * 366 * 24 * 60 + date.DayOfYear * 24 * 60 + date.Hour * 60 + date.Minute;
+                foreach (char c in sub) h = h * 31 + c;
+                return ((ulong)h).ToString("x");
+            }
         }
 
         private async Task<List<NotificationItem>> BuildNotificationsAsync()
@@ -85,34 +118,38 @@ namespace Salon.Controllers
 
                 if (Math.Abs(diff) >= 0.001m)
                 {
+                    var sub1 = $"الكاشير: {shift.CashierName ?? "غير محدد"}";
                     list.Add(new NotificationItem
                     {
                         Type = "shift-diff",
                         Category = "مهمة",
                         Title = "فرق في الصندوق",
-                        SubTitle = $"الكاشير: {shift.CashierName ?? "غير محدد"}",
+                        SubTitle = sub1,
                         Body = $"المتوقع: {expected:N3} | الموجود: {shift.ClosingBalance:N3} | الفرق: {diff:N3} د.ك",
                         IconClass = "fas fa-exclamation-triangle",
                         IconBg = "#dc3545",
                         Date = notifDate,
                         ActionUrl = Url.Action("Index", "Shifts"),
-                        ActionText = "عرض التفاصيل"
+                        ActionText = "عرض التفاصيل",
+                        Key = NotifKey("shift-diff", notifDate, sub1)
                     });
                 }
                 else
                 {
+                    var sub2 = $"الشفت: {shift.Name}";
                     list.Add(new NotificationItem
                     {
                         Type = "shift-close",
                         Category = "تشغيلية",
                         Title = "تم إغلاق الشفت",
-                        SubTitle = $"الشفت: {shift.Name}",
+                        SubTitle = sub2,
                         Body = $"الرصيد: {shift.ClosingBalance:N3} د.ك",
                         IconClass = "fas fa-check-circle",
                         IconBg = "#198754",
                         Date = notifDate,
                         ActionUrl = Url.Action("Reports", "Shifts"),
-                        ActionText = "عرض التقرير"
+                        ActionText = "عرض التقرير",
+                        Key = NotifKey("shift-close", notifDate, sub2)
                     });
                 }
             }
@@ -124,18 +161,20 @@ namespace Salon.Controllers
 
             foreach (var prod in lowStock)
             {
+                var subProd = $"المنتج: {prod.Name}";
                 list.Add(new NotificationItem
                 {
                     Type = "low-stock",
                     Category = "تشغيلية",
                     Title = "منتج وصل الحد الأدنى",
-                    SubTitle = $"المنتج: {prod.Name}",
+                    SubTitle = subProd,
                     Body = $"الكمية المتبقية: {prod.StockQuantity} قطعة | الحد الأدنى: {prod.MinStockLevel}",
                     IconClass = "fas fa-box",
                     IconBg = "#7c3aed",
                     Date = today,
                     ActionUrl = Url.Action("Index", "Inventory"),
-                    ActionText = "عرض المنتج"
+                    ActionText = "عرض المنتج",
+                    Key = NotifKey("low-stock", today, subProd)
                 });
             }
 
@@ -157,7 +196,8 @@ namespace Salon.Controllers
                     IconBg = "#0d6efd",
                     Date = exp.CreatedAt,
                     ActionUrl = Url.Action("Index", "Expenses"),
-                    ActionText = "عرض المصروف"
+                    ActionText = "عرض المصروف",
+                    Key = NotifKey("expense", exp.CreatedAt, exp.Description ?? "")
                 });
             }
 
@@ -192,7 +232,8 @@ namespace Salon.Controllers
                     IconBg = isOverdue ? "#dc3545" : (isTomorrow ? "#0d6efd" : "#F7941D"),
                     Date = appt.AppointmentDate,
                     ActionUrl = Url.Action("Index", "Appointments"),
-                    ActionText = "عرض الموعد"
+                    ActionText = "عرض الموعد",
+                    Key = NotifKey("appointment", appt.AppointmentDate, appt.Customer?.FullName ?? "")
                 });
             }
 
