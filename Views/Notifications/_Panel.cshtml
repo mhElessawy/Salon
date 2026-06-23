@@ -40,6 +40,9 @@
     <button class="np-tab" data-cat="مالية" style="--tab-color:#0d6efd">
         مالية <span class="np-tab-cnt">@Model.Count(n => n.Category == "مالية" && !n.IsRead)</span>
     </button>
+    <button class="np-tab" data-cat="advance" style="--tab-color:#7c3aed">
+        سلف <span class="np-tab-cnt">@Model.Count(n => (n.Type == "advance-new" || n.Type == "advance-pending") && !n.IsRead)</span>
+    </button>
 </div>
 
 <!-- Notifications list -->
@@ -137,7 +140,11 @@
             tab.classList.add('active');
             var cat = tab.dataset.cat;
             document.querySelectorAll('.np-card').forEach(function (card) {
-                var match = cat === 'all' || card.dataset.cat === cat || card.dataset.type === cat;
+                var isAdvance = card.dataset.type === 'advance-new' || card.dataset.type === 'advance-pending';
+                var match = cat === 'all'
+                    || card.dataset.cat === cat
+                    || card.dataset.type === cat
+                    || (cat === 'advance' && isAdvance);
                 card.style.display = match ? '' : 'none';
             });
             document.querySelectorAll('.np-day-label').forEach(function (label) {

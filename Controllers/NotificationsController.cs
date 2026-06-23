@@ -237,6 +237,57 @@ namespace Salon.Controllers
                 });
             }
 
+            // 5. Recent advances (last 2 days)
+            var recentAdvances = await _context.EmployeeAdvances
+                .Include(a => a.Employee)
+                .Where(a => a.AdvanceDate >= today.AddDays(-2))
+                .OrderByDescending(a => a.CreatedAt).Take(8).ToListAsync();
+
+            foreach (var adv in recentAdvances)
+            {
+                var subAdv = $"الموظف: {adv.Employee?.FullName ?? "غير محدد"}";
+                list.Add(new NotificationItem
+                {
+                    Type = "advance-new",
+                    Category = "مالية",
+                    Title = "سلفة جديدة",
+                    SubTitle = subAdv,
+                    Body = $"المبلغ: {adv.Amount:N3} د.ك | الحالة: {adv.Status}",
+                    IconClass = "fas fa-hand-holding-usd",
+                    IconBg = "#7c3aed",
+                    Date = adv.CreatedAt,
+                    ActionUrl = Url.Action("Index", "Advances"),
+                    ActionText = "عرض السلف",
+                    Key = NotifKey("advance-new", adv.CreatedAt, subAdv)
+                });
+            }
+
+            // 6. Pending (unpaid) advances
+            var pendingAdvances = await _context.EmployeeAdvances
+                .Include(a => a.Employee)
+                .Where(a => (a.Status == "معلق" || a.Status == "موافق") && a.Amount > a.DeductedAmount)
+                .OrderByDescending(a => a.AdvanceDate).Take(10).ToListAsync();
+
+            foreach (var adv in pendingAdvances)
+            {
+                var remaining = adv.Amount - adv.DeductedAmount;
+                var subPend = $"الموظف: {adv.Employee?.FullName ?? "غير محدد"}";
+                list.Add(new NotificationItem
+                {
+                    Type = "advance-pending",
+                    Category = "مهمة",
+                    Title = "سلفة غير مسددة",
+                    SubTitle = subPend,
+                    Body = $"المتبقي: {remaining:N3} د.ك | من أصل: {adv.Amount:N3} د.ك",
+                    IconClass = "fas fa-exclamation-circle",
+                    IconBg = "#f59e0b",
+                    Date = adv.AdvanceDate,
+                    ActionUrl = Url.Action("Index", "Advances"),
+                    ActionText = "عرض السلف",
+                    Key = NotifKey("advance-pending", adv.AdvanceDate, subPend)
+                });
+            }
+
             return list.OrderByDescending(n => n.Date).ToList();
         }
     }
