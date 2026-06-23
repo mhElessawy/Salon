@@ -1,4 +1,4 @@
-﻿/* =============================================
+/* =============================================
    Salon Management System - Custom CSS
    Arabic RTL - Orange Theme
    ============================================= */
@@ -382,7 +382,7 @@ body.sidebar-collapsed .main-content {
     padding: 0 24px;
     position: sticky;
     top: 0;
-    z-index: 999;
+    z-index: 1060;
 }
 
 .topbar-right {
@@ -1342,12 +1342,6 @@ html[dir="ltr"] .password-toggle {
    NOTIFICATIONS PANEL
    ============================================= */
 
-/* Raise topbar above Bootstrap modal backdrop (z-index 1040) so the
-   bell remains clickable even when a modal is open on Dashboard */
-.topbar {
-    z-index: 1060;
-}
-
 #notif-overlay {
     display: none;
     position: fixed;
@@ -1597,6 +1591,7 @@ html[dir="ltr"] #notif-panel.show {
         color: #fff;
     }
 
+/* Mark-as-read footer */
 .np-card-footer {
     margin-top: 6px;
 }
