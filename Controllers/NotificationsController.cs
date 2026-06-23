@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Salon.Data;
 using Salon.Models;
 
@@ -10,10 +12,14 @@ namespace Salon.Controllers
     public class NotificationsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IMemoryCache _cache;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public NotificationsController(ApplicationDbContext context)
+        public NotificationsController(ApplicationDbContext context, IMemoryCache cache, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _cache = cache;
+            _userManager = userManager;
         }
 
         public async Task<IActionResult> Panel()
@@ -26,8 +32,21 @@ namespace Salon.Controllers
         public async Task<IActionResult> Count()
         {
             var items = await BuildNotificationsAsync();
-            var important = items.Count(n => n.Category == "مهمة");
-            return Json(new { total = items.Count, important });
+            var userId = _userManager.GetUserId(User);
+            var seenAt = _cache.TryGetValue($"notif_seen_{userId}", out DateTime seen) ? seen : DateTime.MinValue;
+
+            var unseen = items.Count(n => n.Date > seenAt);
+            var important = items.Count(n => n.Category == "مهمة" && n.Date > seenAt);
+            return Json(new { total = unseen, important });
+        }
+
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public IActionResult MarkSeen()
+        {
+            var userId = _userManager.GetUserId(User);
+            _cache.Set($"notif_seen_{userId}", DateTime.Now, TimeSpan.FromDays(1));
+            return Ok();
         }
 
         private async Task<List<NotificationItem>> BuildNotificationsAsync()
@@ -142,54 +161,39 @@ namespace Salon.Controllers
                 });
             }
 
-            // 4. Late attendance today
-            var todayAttendances = await _context.Attendances
+            // 4. Appointments — overdue today, upcoming today, tomorrow
+            var now = DateTime.Now;
+            var tomorrow = today.AddDays(1);
+            var dayAfterTomorrow = today.AddDays(2);
+
+            var appointments = await _context.Appointments
+                .Include(a => a.Customer)
                 .Include(a => a.Employee)
-                .Where(a => a.AttendanceDate == today && a.CheckIn.HasValue)
+                .Where(a => a.AppointmentDate >= today && a.AppointmentDate < dayAfterTomorrow
+                         && a.Status == "مجدول")
+                .OrderBy(a => a.AppointmentDate)
+                .Take(15)
                 .ToListAsync();
 
-            var lateThreshold = new TimeSpan(9, 30, 0);
-            foreach (var att in todayAttendances.Where(a => a.CheckIn > lateThreshold))
+            foreach (var appt in appointments)
             {
+                bool isOverdue = appt.AppointmentDate < now;
+                bool isTomorrow = appt.AppointmentDate.Date == tomorrow;
+
                 list.Add(new NotificationItem
                 {
-                    Type = "late",
-                    Category = "تشغيلية",
-                    Title = "تأخر تسجيل حضور",
-                    SubTitle = $"الموظف: {att.Employee?.FullName ?? "غير محدد"}",
-                    Body = $"وقت الحضور: {att.CheckIn:hh\\:mm}",
-                    IconClass = "fas fa-clock",
-                    IconBg = "#fd7e14",
-                    Date = today.Add(att.CheckIn!.Value),
-                    ActionUrl = Url.Action("Index", "Attendance"),
-                    ActionText = "عرض الموظف"
+                    Type = "appointment",
+                    Category = isOverdue ? "مهمة" : "تشغيلية",
+                    Title = isOverdue ? "موعد فائت" : (isTomorrow ? "موعد الغد" : "موعد اليوم"),
+                    SubTitle = $"العميل: {appt.Customer?.FullName ?? "غير محدد"}",
+                    Body = $"الوقت: {appt.AppointmentDate:hh:mm tt}" +
+                           (appt.Employee != null ? $" | الموظف: {appt.Employee.FullName}" : ""),
+                    IconClass = isOverdue ? "fas fa-calendar-times" : "fas fa-calendar-check",
+                    IconBg = isOverdue ? "#dc3545" : (isTomorrow ? "#0d6efd" : "#F7941D"),
+                    Date = appt.AppointmentDate,
+                    ActionUrl = Url.Action("Index", "Appointments"),
+                    ActionText = "عرض الموعد"
                 });
-            }
-
-            // 5. Absent employees (if attendance exists for today — shift is open)
-            if (todayAttendances.Any())
-            {
-                var presentIds = todayAttendances.Select(a => a.EmployeeId).ToHashSet();
-                var absentEmployees = await _context.Employees
-                    .Where(e => e.IsActive && !presentIds.Contains(e.Id))
-                    .ToListAsync();
-
-                foreach (var emp in absentEmployees)
-                {
-                    list.Add(new NotificationItem
-                    {
-                        Type = "absent",
-                        Category = "تشغيلية",
-                        Title = "موظف غائب",
-                        SubTitle = $"الموظف: {emp.FullName}",
-                        Body = "لم يسجل حضوره اليوم",
-                        IconClass = "fas fa-user-times",
-                        IconBg = "#6c757d",
-                        Date = today,
-                        ActionUrl = Url.Action("Index", "Attendance"),
-                        ActionText = "عرض الحضور"
-                    });
-                }
             }
 
             return list.OrderByDescending(n => n.Date).ToList();
