@@ -1360,7 +1360,7 @@ namespace Salon.Controllers
             return View(rows);
         }
 
-        public async Task<IActionResult> SalesByCustomer(string? from, string? to, string? saleType)
+        public async Task<IActionResult> SalesByCustomer(string? from, string? to, string? saleType, int? customerId)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
@@ -1379,6 +1379,9 @@ namespace Salon.Controllers
 
             if (!string.IsNullOrEmpty(saleType))
                 query = query.Where(s => s.SaleType == saleType);
+
+            if (customerId.HasValue)
+                query = query.Where(s => s.CustomerId == customerId);
 
             var allSales = await query.ToListAsync();
 
@@ -1415,10 +1418,18 @@ namespace Salon.Controllers
                 .OrderByDescending(r => r.TotalAmount)
                 .ToList();
 
+            var customers = await _context.Customers
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.FullName)
+                .ToListAsync();
+
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
             ViewBag.SelectedSaleType = saleType;
+            ViewBag.SelectedCustomerId = customerId;
+            ViewBag.Customers = customers;
             ViewBag.UserDept = userDept;
+            ViewBag.IsDeptUser = userDept == "حلاقة" || userDept == "مساج";
             ViewBag.TotalAmount = rows.Sum(r => r.TotalAmount);
             ViewBag.TotalInvoices = rows.Sum(r => r.InvoiceCount);
             ViewBag.TotalCustomers = rows.Count;
