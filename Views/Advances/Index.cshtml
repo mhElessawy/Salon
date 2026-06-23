@@ -7,6 +7,7 @@
     decimal approvedTotal = (decimal)ViewBag.ApprovedTotal;
     int pendingCount = (int)ViewBag.PendingCount;
     int approvedCount = (int)ViewBag.ApprovedCount;
+    bool isManager = (bool)(ViewBag.IsManager ?? false);
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -14,8 +15,9 @@
         <h1><i class="fas fa-hand-holding-usd me-2"></i>سلف الموظفين</h1>
         <p>ملخص السلف لكل موظف</p>
     </div>
-    <a href="@Url.Action("Create")" class="btn btn-primary">
-        <i class="fas fa-plus me-1"></i> إضافة سلفة
+    <a href="@Url.Action("Create")" class="btn btn-@(isManager ? "primary" : "success")">
+        <i class="fas fa-@(isManager ? "plus" : "paper-plane") me-1"></i>
+        @(isManager ? "إضافة سلفة" : "طلب سلفة")
     </a>
 </div>
 
@@ -63,6 +65,17 @@
         </div>
     </div>
 </div>
+
+@if (isManager && pendingCount > 0)
+{
+    <div class="alert alert-warning d-flex align-items-center gap-3 shadow-sm mb-3">
+        <i class="fas fa-clock fs-4 text-warning"></i>
+        <div>
+            <strong>لديك @pendingCount طلب سلفة بانتظار موافقتك</strong>
+            <div class="small text-muted">إجمالي المبالغ المعلقة: @pendingTotal.ToString("N3") د.ك</div>
+        </div>
+    </div>
+}
 
 <div class="card mb-3">
     <div class="card-body py-2">
@@ -237,21 +250,28 @@ else
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        @if (adv.Status == "معلق")
+                                                        @if (adv.Status == "معلق" && isManager)
                                                         {
-                                                            <form asp-action="Approve" asp-route-id="@adv.Id" method="post" style="display:inline"
-                                                                  onclick="event.stopPropagation()">
-                                                                @Html.AntiForgeryToken()
-                                                                <button type="submit" class="btn btn-xs btn-success" title="موافقة">
-                                                                    <i class="fas fa-check"></i>
-                                                                </button>
-                                                            </form>
+                                                            <button type="button" class="btn btn-xs btn-success"
+                                                                    onclick="event.stopPropagation(); openApproveModal(@adv.Id, '@Html.Raw(summary.Employee.FullName)', '@adv.Amount.ToString("N3")')"
+                                                                    title="موافقة">
+                                                                <i class="fas fa-check"></i> موافقة
+                                                            </button>
                                                         }
-                                                        <button type="button" class="btn btn-xs btn-outline-danger"
-                                                                onclick="event.stopPropagation(); confirmDelete(@adv.Id, '@summary.Employee.FullName')"
-                                                                title="حذف">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
+                                                        else if (adv.Status == "معلق" && !isManager)
+                                                        {
+                                                            <span class="badge bg-warning text-dark">
+                                                                <i class="fas fa-clock me-1"></i>انتظار
+                                                            </span>
+                                                        }
+                                                        @if (isManager)
+                                                        {
+                                                            <button type="button" class="btn btn-xs btn-outline-danger ms-1"
+                                                                    onclick="event.stopPropagation(); confirmDelete(@adv.Id, '@summary.Employee.FullName')"
+                                                                    title="حذف">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        }
                                                     </td>
                                                 </tr>
                                                 @if (!string.IsNullOrEmpty(adv.Reason))
@@ -323,6 +343,52 @@ else
     </div>
 }
 
+<!-- Modal الموافقة على السلفة -->
+<div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#198754;color:#fff;">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle me-2"></i>الموافقة على طلب السلفة
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3 p-3 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">الموظف</span>
+                        <strong id="approveEmpName" class="fs-6"></strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <span class="text-muted">المبلغ</span>
+                        <strong id="approveAmount" class="fs-5 text-success"></strong>
+                        <span class="text-muted small">د.ك</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">طريقة الدفع <span class="text-danger">*</span></label>
+                    <select id="approvePaymentSelect" class="form-select form-select-lg">
+                        <option value="نقدي">💵 نقدي</option>
+                        <option value="تحويل بنكي">🏦 تحويل بنكي</option>
+                        <option value="شيك">📄 شيك</option>
+                        <option value="كنت">💳 كنت</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <form id="approveForm" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="paymentMethod" id="approvePaymentInput" value="نقدي" />
+                    <button type="submit" class="btn btn-success px-4">
+                        <i class="fas fa-check me-1"></i> موافقة وصرف
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal تأكيد الحذف -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -371,6 +437,18 @@ else
             document.getElementById('deleteEmpName').textContent = empName;
             document.getElementById('deleteForm').action = '/Advances/Delete/' + id;
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+
+        function openApproveModal(id, empName, amount) {
+            document.getElementById('approveEmpName').textContent = empName;
+            document.getElementById('approveAmount').textContent = amount;
+            document.getElementById('approveForm').action = '/Advances/Approve/' + id;
+            document.getElementById('approvePaymentSelect').value = 'نقدي';
+            document.getElementById('approvePaymentInput').value = 'نقدي';
+            document.getElementById('approvePaymentSelect').onchange = function () {
+                document.getElementById('approvePaymentInput').value = this.value;
+            };
+            new bootstrap.Modal(document.getElementById('approveModal')).show();
         }
     </script>
     <style>
