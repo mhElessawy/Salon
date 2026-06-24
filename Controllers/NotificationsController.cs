@@ -186,9 +186,6 @@ namespace Salon.Controllers
                     IconClass = "fas fa-box",
                     IconBg = "#7c3aed",
                     Date = today,
-                    ActionUrl = Url.Action("Index", "Inventory"),
-                    ActionText = "عرض المنتج",
-                    ActionTextEn = "View Product",
                     Key = NotifKey("low-stock", today, subProd)
                 });
             }
