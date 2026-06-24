@@ -40,7 +40,7 @@ namespace Salon.Controllers
         }
 
         // ===== قائمة الفواتير =====
-        public async Task<IActionResult> Index(string? from, string? to, string? type)
+        public async Task<IActionResult> Index(string? from, string? to, string? type, string? invoiceNumber)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? KuwaitToday : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? KuwaitToday.AddDays(1) : DateTime.Parse(to).AddDays(1);
@@ -68,6 +68,9 @@ namespace Salon.Controllers
 
             if (!string.IsNullOrEmpty(type))
                 query = query.Where(s => s.SaleType == type);
+
+            if (!string.IsNullOrEmpty(invoiceNumber))
+                query = query.Where(s => s.InvoiceNumber.Contains(invoiceNumber));
 
             var sales = await query.OrderByDescending(s => s.SaleDate).ToListAsync();
 
@@ -102,6 +105,7 @@ namespace Salon.Controllers
                 .Where(s => s.PaymentMethod == "دين على صاحب المكان")
                 .Sum(s => s.NetAmount);
 
+            ViewBag.InvoiceNumber = invoiceNumber;
             ViewBag.UserDepartment = userDept;
             ViewBag.IsEmployee = isEmployee;
             ViewBag.CanDeleteBarber = await _perms.HasAccessAsync("BarberInvoiceDelete");

@@ -224,7 +224,7 @@ namespace Salon.Controllers
             return View(expenses);
         }
 
-        public async Task<IActionResult> MyReport(string? saleType, string? paymentMethod, int? employeeId, string? date)
+        public async Task<IActionResult> MyReport(string? saleType, string? paymentMethod, int? employeeId, string? date, string? invoiceNumber)
         {
             var today = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
             var tomorrow = today.AddDays(1);
@@ -256,6 +256,8 @@ namespace Salon.Controllers
                 filtered = filtered.Where(s => s.PaymentMethod == paymentMethod);
             if (employeeId.HasValue)
                 filtered = filtered.Where(s => s.EmployeeId == employeeId);
+            if (!string.IsNullOrEmpty(invoiceNumber))
+                filtered = filtered.Where(s => s.InvoiceNumber.Contains(invoiceNumber, StringComparison.OrdinalIgnoreCase));
             var filteredList = filtered.ToList();
 
             // القسم الفعّال: يُعطى الأولوية لقسم المستخدم، ثم فلتر النوع المحدد
@@ -355,6 +357,7 @@ namespace Salon.Controllers
             ViewBag.SelectedSaleType = saleType;
             ViewBag.SelectedPaymentMethod = paymentMethod;
             ViewBag.SelectedEmployeeId = employeeId;
+            ViewBag.SelectedInvoiceNumber = invoiceNumber;
             return View(filteredList);
         }
 
