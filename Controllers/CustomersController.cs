@@ -27,6 +27,11 @@ namespace Salon.Controllers
             var user = await _userManager.GetUserAsync(User);
             var userDept = user?.UserDepartment;
 
+            var roles = await _userManager.GetRolesAsync(user!);
+            bool isManager = roles.Contains("Admin") || roles.Contains("Manager");
+            bool isEmployee = !isManager && roles.Contains("Employee");
+            int? linkedEmpId = user?.LinkedEmployeeId;
+
             var query = _context.Customers.Where(c => c.IsActive);
 
             // Department-restricted users see only their department's customers
@@ -36,6 +41,10 @@ namespace Salon.Controllers
                 query = query.Where(c => c.Department == "حلاقة");
             else if (!string.IsNullOrEmpty(dept))
                 query = query.Where(c => c.Department == dept);
+
+            // Employees see only customers assigned to them
+            if (isEmployee && linkedEmpId.HasValue)
+                query = query.Where(c => c.AssignedEmployeeId == linkedEmpId.Value);
 
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(c =>

@@ -69,6 +69,10 @@ namespace Salon.Controllers
 
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
+            var salaryRoles = await _userManager.GetRolesAsync(currentUser!);
+            bool salaryIsManager = salaryRoles.Contains("Admin") || salaryRoles.Contains("Manager");
+            bool salaryIsEmployee = !salaryIsManager && salaryRoles.Contains("Employee");
+            int? salaryLinkedEmpId = currentUser?.LinkedEmployeeId;
 
             // Scope to department-specific employees when user has a department restriction
             List<int>? deptEmpIds = null;
@@ -80,6 +84,10 @@ namespace Salon.Controllers
                     .Select(e => e.Id)
                     .ToListAsync();
             }
+
+            // Employees see only their own salary record
+            if (salaryIsEmployee && salaryLinkedEmpId.HasValue)
+                deptEmpIds = new List<int> { salaryLinkedEmpId.Value };
 
             var query = _context.Salaries.Include(s => s.Employee).Where(s => s.Year == y);
 

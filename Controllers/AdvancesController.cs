@@ -30,12 +30,18 @@ namespace Salon.Controllers
             var roles = await _userManager.GetRolesAsync(currentUser!);
             bool isManager = roles.Contains("Admin") || roles.Contains("Manager");
 
+            bool isEmployee = !isManager && roles.Contains("Employee");
+            int? linkedEmpId = currentUser?.LinkedEmployeeId;
+
             var advancesQuery = _context.EmployeeAdvances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                 .AsQueryable();
 
             if (userDept == "حلاقة" || userDept == "مساج")
                 advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
+
+            if (isEmployee && linkedEmpId.HasValue)
+                advancesQuery = advancesQuery.Where(a => a.EmployeeId == linkedEmpId.Value);
 
             if (!string.IsNullOrEmpty(search))
                 advancesQuery = advancesQuery.Where(a => a.Employee != null && a.Employee.FullName.Contains(search));
@@ -112,6 +118,14 @@ namespace Salon.Controllers
                 model.PaymentMethod = "نقدي";
             }
 
+            bool isEmployee = !isManager && roles.Contains("Employee");
+            int? linkedEmpId = currentUser?.LinkedEmployeeId;
+            if (isEmployee && linkedEmpId.HasValue && model.EmployeeId != linkedEmpId.Value)
+            {
+                TempData["Error"] = "لا يمكنك طلب سلفة لموظف آخر";
+                return RedirectToAction(nameof(Create));
+            }
+
             if (ModelState.IsValid)
             {
                 model.CreatedAt = DateTime.Now;
@@ -140,12 +154,23 @@ namespace Salon.Controllers
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
 
+            var reportRoles = await _userManager.GetRolesAsync(currentUser!);
+            bool reportIsManager = reportRoles.Contains("Admin") || reportRoles.Contains("Manager");
+            bool reportIsEmployee = !reportIsManager && reportRoles.Contains("Employee");
+            int? reportLinkedEmpId = currentUser?.LinkedEmployeeId;
+
             var query = _context.EmployeeAdvances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                 .AsQueryable();
 
             if (userDept == "حلاقة" || userDept == "مساج")
                 query = query.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
+
+            if (reportIsEmployee && reportLinkedEmpId.HasValue)
+            {
+                query = query.Where(a => a.EmployeeId == reportLinkedEmpId.Value);
+                employeeId = reportLinkedEmpId;
+            }
 
             if (dateFrom.HasValue)
                 query = query.Where(a => a.AdvanceDate >= dateFrom.Value);
@@ -164,6 +189,8 @@ namespace Salon.Controllers
             var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
             if (userDept == "حلاقة" || userDept == "مساج")
                 empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
+            if (reportIsEmployee && reportLinkedEmpId.HasValue)
+                empQuery = empQuery.Where(e => e.Id == reportLinkedEmpId.Value);
 
             ViewBag.Employees = (await empQuery.OrderBy(e => e.FullName).ToListAsync())
                 .Select(e => new SelectListItem { Value = e.Id.ToString(), Text = e.FullName })
