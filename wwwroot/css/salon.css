@@ -382,7 +382,7 @@ body.sidebar-collapsed .main-content {
     padding: 0 24px;
     position: sticky;
     top: 0;
-    z-index: 999;
+    z-index: 1060;
 }
 
 .topbar-right {
@@ -1342,12 +1342,6 @@ html[dir="ltr"] .password-toggle {
    NOTIFICATIONS PANEL
    ============================================= */
 
-/* Raise topbar above Bootstrap modal backdrop (z-index 1040) so the
-   bell remains clickable even when a modal is open on Dashboard */
-.topbar {
-    z-index: 1060;
-}
-
 #notif-overlay {
     display: none;
     position: fixed;
@@ -1596,6 +1590,39 @@ html[dir="ltr"] #notif-panel.show {
         background: #F7941D;
         color: #fff;
     }
+
+/* Mark-as-read footer */
+.np-card-footer {
+    margin-top: 6px;
+}
+
+.np-markread-btn {
+    background: none;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    color: #6b7280;
+    font-size: 0.72rem;
+    padding: 2px 10px;
+    cursor: pointer;
+    transition: all .15s;
+}
+
+    .np-markread-btn:hover {
+        background: #16a34a;
+        border-color: #16a34a;
+        color: #fff;
+    }
+
+.np-read-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #16a34a;
+}
+
+.np-card-read {
+    opacity: 0.55;
+    background: #f8f9fa;
+}
 
 /* Settings section */
 .np-settings {

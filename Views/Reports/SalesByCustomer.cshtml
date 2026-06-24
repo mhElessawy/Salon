@@ -1,0 +1,496 @@
+﻿@model List<Salon.Models.CustomerSalesRow>
+@using Salon.Models
+@{
+    ViewData["Title"] = "المبيعات على حسب العملاء";
+    string? userDept = ViewBag.UserDept as string;
+    bool isDeptUser = ViewBag.IsDeptUser is bool b && b;
+    string? selectedSaleType = ViewBag.SelectedSaleType as string;
+    int? selectedCustomerId = ViewBag.SelectedCustomerId as int?;
+    var customers = ViewBag.Customers as IEnumerable<Customer> ?? Enumerable.Empty<Customer>();
+
+    decimal totalAmount = ViewBag.TotalAmount is decimal ta ? ta : 0m;
+    decimal totalCash = ViewBag.TotalCash is decimal tc ? tc : 0m;
+    decimal totalKnet = ViewBag.TotalKnet is decimal tk ? tk : 0m;
+    decimal totalDebt = ViewBag.TotalDebt is decimal td ? td : 0m;
+    decimal totalDiscount = ViewBag.TotalDiscount is decimal tdi ? tdi : 0m;
+    int totalInvoices = ViewBag.TotalInvoices is int ti ? ti : 0;
+    int totalCustomers = ViewBag.TotalCustomers is int tcu ? tcu : 0;
+}
+
+<style>
+    @@media print {
+        @@page {
+            size: landscape;
+            margin: 1cm;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+
+        body {
+            direction: rtl;
+        }
+
+        .print-header {
+            display: block !important;
+        }
+
+        .app-wrapper, .main-content, .page-content {
+            display: block !important;
+            min-height: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
+            margin: 0 !important;
+        }
+
+        .card {
+            display: block !important;
+            box-shadow: none !important;
+            border: 1px solid #dee2e6 !important;
+        }
+
+        .card-header, .card-body {
+            display: block !important;
+        }
+
+        .table-responsive {
+            overflow: visible !important;
+        }
+
+        .emp-stat {
+            box-shadow: none !important;
+            border: 1px solid #e5e7eb;
+        }
+
+        .cust-table th, .cust-table td {
+            font-size: .72rem !important;
+            padding: 4px 5px !important;
+        }
+
+        * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
+
+    .print-header {
+        display: none;
+    }
+
+    .emp-stat {
+        background: #fff;
+        border-radius: 14px;
+        padding: 14px 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,.07);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 100%;
+    }
+
+    .emp-stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .emp-stat-label {
+        font-size: .74rem;
+        color: #6b7280;
+        margin-bottom: 2px;
+    }
+
+    .emp-stat-value {
+        font-size: 1.05rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .cust-table thead th {
+        background: #f8fafc;
+        font-size: .80rem;
+        font-weight: 600;
+        color: #374151;
+        border-bottom: 2px solid #e5e7eb;
+        white-space: nowrap;
+        padding: 9px 10px;
+        text-align: center;
+    }
+
+    .cust-table tbody td {
+        padding: 9px 10px;
+        font-size: .85rem;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+        text-align: center;
+    }
+
+    .cust-table tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    .cust-table tfoot td {
+        padding: 9px 10px;
+        font-weight: 700;
+        font-size: .88rem;
+        background: #f0f9ff;
+        border-top: 2px solid #bae6fd;
+        text-align: center;
+    }
+
+    .cust-table tbody td:nth-child(2) {
+        text-align: right;
+        font-weight: 600;
+    }
+
+    .cust-table tfoot td:nth-child(2) {
+        text-align: right;
+    }
+</style>
+
+@* ── PRINT HEADER ── *@
+<div class="print-header text-center mb-3">
+    <h4 class="fw-bold">تقرير المبيعات على حسب العملاء</h4>
+    <p class="mb-0">الفترة: @ViewBag.From إلى @ViewBag.To</p>
+</div>
+
+@* ── PAGE HEADER ── *@
+<div class="d-flex justify-content-between align-items-start mb-3 no-print flex-wrap gap-2">
+    <div>
+        <h1 class="h4 mb-0 fw-bold">
+            <i class="fas fa-user-tag me-2" style="color:var(--primary)"></i>
+            المبيعات على حسب العملاء
+        </h1>
+        <p class="text-muted small mb-0">إجمالي مبيعات كل عميل مع عدد الزيارات وطرق الدفع خلال الفترة المحددة</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-right me-1"></i>التقارير
+        </a>
+        <button onclick="window.print()" class="btn btn-dark btn-sm">
+            <i class="fas fa-print me-1"></i>طباعة
+        </button>
+        <button onclick="exportToExcel()" class="btn btn-success btn-sm">
+            <i class="fas fa-file-excel me-1"></i>Excel
+        </button>
+    </div>
+</div>
+
+@* ── FILTERS ── *@
+<div class="card mb-3 no-print">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label mb-1 small">من تاريخ</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                    <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:160px;" />
+                </div>
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1 small">إلى تاريخ</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                    <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:160px;" />
+                </div>
+            </div>
+            @if (!isDeptUser)
+            {
+                <div class="col-auto">
+                    <label class="form-label mb-1 small">القسم</label>
+                    <select name="saleType" class="form-select form-select-sm" style="max-width:140px;">
+                        <option value="">الكل</option>
+                        <option value="حلاقة" selected="@(selectedSaleType == "حلاقة")">✂️ حلاقة</option>
+                        <option value="مساج" selected="@(selectedSaleType == "مساج")">🌿 مساج</option>
+                        <option value="منتجات" selected="@(selectedSaleType == "منتجات")">📦 منتجات</option>
+                    </select>
+                </div>
+            }
+            <div class="col-auto">
+                <label class="form-label mb-1 small">العميل</label>
+                <select name="customerId" class="form-select form-select-sm" style="max-width:200px;">
+                    <option value="">-- الكل --</option>
+                    @foreach (var c in customers)
+                    {
+                        <option value="@c.Id" selected="@(selectedCustomerId == c.Id)">@c.FullName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-search me-1"></i>بحث
+                </button>
+                <a href="@Url.Action("SalesByCustomer")" class="btn btn-outline-secondary btn-sm ms-1">
+                    <i class="fas fa-undo me-1"></i>إعادة تعيين
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* ── SUMMARY CARDS ── *@
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-2">
+        <div class="emp-stat">
+            <div class="emp-stat-icon" style="background:#dcfce7;color:#16a34a;"><i class="fas fa-chart-bar"></i></div>
+            <div>
+                <div class="emp-stat-label">إجمالي المبيعات</div>
+                <div class="emp-stat-value" style="color:#16a34a;">@totalAmount.ToString("N3")</div>
+                <div class="emp-stat-label">د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="emp-stat">
+            <div class="emp-stat-icon" style="background:#dbeafe;color:#2563eb;"><i class="fas fa-users"></i></div>
+            <div>
+                <div class="emp-stat-label">عدد العملاء</div>
+                <div class="emp-stat-value" style="color:#2563eb;">@totalCustomers</div>
+                <div class="emp-stat-label">عميل</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="emp-stat">
+            <div class="emp-stat-icon" style="background:#f3e8ff;color:#7c3aed;"><i class="fas fa-file-invoice"></i></div>
+            <div>
+                <div class="emp-stat-label">إجمالي الفواتير</div>
+                <div class="emp-stat-value" style="color:#7c3aed;">@totalInvoices</div>
+                <div class="emp-stat-label">فاتورة</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="emp-stat">
+            <div class="emp-stat-icon" style="background:#e0f2fe;color:#0284c7;"><i class="fas fa-money-bill-wave"></i></div>
+            <div>
+                <div class="emp-stat-label">إجمالي الكاش</div>
+                <div class="emp-stat-value" style="color:#0284c7;">@totalCash.ToString("N3")</div>
+                <div class="emp-stat-label">د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="emp-stat">
+            <div class="emp-stat-icon" style="background:#d1fae5;color:#059669;"><i class="fas fa-credit-card"></i></div>
+            <div>
+                <div class="emp-stat-label">إجمالي الكي نت</div>
+                <div class="emp-stat-value" style="color:#059669;">@totalKnet.ToString("N3")</div>
+                <div class="emp-stat-label">د.ك</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="emp-stat">
+            <div class="emp-stat-icon" style="background:#fef3c7;color:#d97706;"><i class="fas fa-tags"></i></div>
+            <div>
+                <div class="emp-stat-label">إجمالي الخصومات</div>
+                <div class="emp-stat-value" style="color:#d97706;">@totalDiscount.ToString("N3")</div>
+                <div class="emp-stat-label">د.ك</div>
+            </div>
+        </div>
+    </div>
+    @if (totalDebt > 0)
+    {
+        <div class="col-6 col-md-2">
+            <div class="emp-stat">
+                <div class="emp-stat-icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-hand-holding-usd"></i></div>
+                <div>
+                    <div class="emp-stat-label">دين على العملاء</div>
+                    <div class="emp-stat-value" style="color:#dc2626;">@totalDebt.ToString("N3")</div>
+                    <div class="emp-stat-label">د.ك</div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@* ── TABLE ── *@
+<div class="card mb-3">
+    <div class="card-body p-0">
+        <div class="d-flex justify-content-between align-items-center px-3 pt-3 pb-2 no-print">
+            <h6 class="fw-bold mb-0">
+                <i class="fas fa-table me-2 text-primary"></i>تفصيل المبيعات حسب العميل
+            </h6>
+            <small class="text-muted">@totalInvoices فاتورة | @totalCustomers عميل</small>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table cust-table mb-0" id="custSalesTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th style="text-align:right;">العميل</th>
+                        <th>رقم الهاتف</th>
+                        @if (!isDeptUser)
+                        {
+                            <th>القسم</th>
+                        }
+                        <th>الزيارات</th>
+                        <th>إجمالي المبيعات<br /><small class="fw-normal text-muted">(د.ك)</small></th>
+                        <th>كاش<br /><small class="fw-normal text-muted">(د.ك)</small></th>
+                        <th>كي نت<br /><small class="fw-normal text-muted">(د.ك)</small></th>
+                        @if (totalDebt > 0)
+                        {
+                            <th>دين<br /><small class="fw-normal text-muted">(د.ك)</small></th>
+                        }
+                        <th>خصومات<br /><small class="fw-normal text-muted">(د.ك)</small></th>
+                        <th>آخر زيارة</th>
+                        <th class="no-print">إجراء</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="@(isDeptUser ? (totalDebt > 0 ? 11 : 10) : (totalDebt > 0 ? 12 : 11))" class="text-center py-4 text-muted">
+                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                لا توجد بيانات للفترة المحددة
+                            </td>
+                        </tr>
+                    }
+                    @{
+                        int rowNum = 0;
+                    }
+                    @foreach (var row in Model)
+                    {
+                        rowNum++;
+                        <tr>
+                            <td class="text-muted">@rowNum</td>
+                            <td style="text-align:right;">
+                                @if (row.CustomerId.HasValue)
+                                {
+                                    <a href="@Url.Action("Details", "Customers", new { id = row.CustomerId })" class="text-decoration-none text-dark">
+                                        <i class="fas fa-user me-1 text-primary" style="font-size:.8rem;"></i><strong>@row.CustomerName</strong>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted"><i class="fas fa-user-slash me-1" style="font-size:.8rem;"></i>@row.CustomerName</span>
+                                }
+                            </td>
+                            <td class="text-muted">@(row.Phone ?? "—")</td>
+                            @if (!isDeptUser)
+                            {
+                                <td>
+                                    @if (row.Department == "حلاقة")
+                                    {
+                                        <span class="badge bg-secondary">حلاقة</span>
+                                    }
+                                    else if (row.Department == "مساج")
+                                    {
+                                        <span class="badge" style="background:#6f42c1;">مساج</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                            }
+                            <td><span class="badge bg-info text-dark">@row.InvoiceCount</span></td>
+                            <td><strong style="color:#16a34a;">@row.TotalAmount.ToString("N3")</strong></td>
+                            <td style="color:#2563eb;">@(row.TotalCash > 0 ? row.TotalCash.ToString("N3") : "—")</td>
+                            <td style="color:#059669;">@(row.TotalKnet > 0 ? row.TotalKnet.ToString("N3") : "—")</td>
+                            @if (totalDebt > 0)
+                            {
+                                <td style="color:#dc2626;">@(row.TotalDebt > 0 ? row.TotalDebt.ToString("N3") : "—")</td>
+                            }
+                            <td style="color:#d97706;">@(row.TotalDiscount > 0 ? row.TotalDiscount.ToString("N3") : "—")</td>
+                            <td class="text-muted" style="font-size:.8rem;">@(row.LastVisitDate?.ToString("yyyy/MM/dd") ?? "—")</td>
+                            <td class="no-print">
+                                @if (row.CustomerId.HasValue)
+                                {
+                                    <button class="btn btn-outline-primary btn-sm"
+                                            title="عرض الفواتير"
+                                            onclick="showInvoices(@row.CustomerId, '@row.CustomerName.Replace("'", "\\'")' )">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="@(isDeptUser ? 3 : 4)" style="text-align:right;">الإجمالي</td>
+                        <td>@totalInvoices فاتورة</td>
+                        <td style="color:#16a34a;">@totalAmount.ToString("N3")</td>
+                        <td style="color:#2563eb;">@totalCash.ToString("N3")</td>
+                        <td style="color:#059669;">@totalKnet.ToString("N3")</td>
+                        @if (totalDebt > 0)
+                        {
+                            <td style="color:#dc2626;">@totalDebt.ToString("N3")</td>
+                        }
+                        <td style="color:#d97706;">@totalDiscount.ToString("N3")</td>
+                        <td></td>
+                        <td class="no-print"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+@* ── INVOICES MODAL ── *@
+<div class="modal fade" id="invoicesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-invoice me-2 text-primary"></i>
+                    <span id="modalCustomerName"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">جاري التحميل...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function exportToExcel() {
+            var table = document.getElementById('custSalesTable');
+            var wb = XLSX.utils.table_to_book(table, { sheet: "Sales By Customer", raw: true });
+            XLSX.writeFile(wb, 'sales_by_customer_@(ViewBag.From)_@(ViewBag.To).xlsx');
+        }
+
+        function showInvoices(customerId, customerName) {
+            document.getElementById('modalCustomerName').textContent = 'فواتير: ' + customerName;
+            document.getElementById('modalBody').innerHTML =
+                '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">جاري التحميل...</p></div>';
+
+            var modal = new bootstrap.Modal(document.getElementById('invoicesModal'));
+            modal.show();
+
+            fetch('@Url.Action("CustomerSalesDetail", "Reports")?customerId=' + customerId +
+                  '&from=@ViewBag.From&to=@ViewBag.To')
+                .then(function(r) { return r.text(); })
+                .then(function(html) {
+                    document.getElementById('modalBody').innerHTML = html;
+                })
+                .catch(function() {
+                    document.getElementById('modalBody').innerHTML =
+                        '<div class="alert alert-danger">حدث خطأ أثناء التحميل</div>';
+                });
+        }
+    </script>
+}

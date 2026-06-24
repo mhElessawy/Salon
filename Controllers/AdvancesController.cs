@@ -27,6 +27,8 @@ namespace Salon.Controllers
         {
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
+            var roles = await _userManager.GetRolesAsync(currentUser!);
+            bool isManager = roles.Contains("Admin") || roles.Contains("Manager");
 
             var advancesQuery = _context.EmployeeAdvances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
@@ -39,6 +41,7 @@ namespace Salon.Controllers
                 advancesQuery = advancesQuery.Where(a => a.Employee != null && a.Employee.FullName.Contains(search));
 
             var advances = await advancesQuery.OrderByDescending(a => a.AdvanceDate).ToListAsync();
+            ViewBag.IsManager = isManager;
 
             // subquery to avoid EF Core generating CTE (WITH) syntax error on SQL Server
             var employeeIdsSubquery = advancesQuery.Select(a => a.EmployeeId).Distinct();
@@ -79,16 +82,36 @@ namespace Salon.Controllers
         {
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
+            var roles = await _userManager.GetRolesAsync(currentUser!);
+            bool isManager = roles.Contains("Admin") || roles.Contains("Manager");
+
             var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
             if (userDept == "حلاقة" || userDept == "مساج")
                 empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
-            ViewBag.Employees = new SelectList(await empQuery.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName");
+
+            // If linked to an employee, pre-select them
+            int? linkedEmpId = currentUser?.LinkedEmployeeId;
+            if (linkedEmpId.HasValue && !isManager)
+                empQuery = empQuery.Where(e => e.Id == linkedEmpId.Value);
+
+            ViewBag.Employees = new SelectList(await empQuery.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName", linkedEmpId);
+            ViewBag.IsManager = isManager;
             return View(new EmployeeAdvance { AdvanceDate = DateTime.Today });
         }
 
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(EmployeeAdvance model)
         {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(currentUser!);
+            bool isManager = roles.Contains("Admin") || roles.Contains("Manager");
+
+            if (!isManager)
+            {
+                model.Status = "معلق";
+                model.PaymentMethod = "نقدي";
+            }
+
             if (ModelState.IsValid)
             {
                 model.CreatedAt = DateTime.Now;
@@ -97,17 +120,18 @@ namespace Salon.Controllers
 
                 var emp = await _context.Employees.FindAsync(model.EmployeeId);
                 await _audit.LogAsync("Add", "Advances",
-                    $"إضافة سلفة للموظف: {emp?.FullName ?? model.EmployeeId.ToString()} بمبلغ {model.Amount:N3} KD",
+                    $"{(isManager ? "إضافة" : "طلب")} سلفة للموظف: {emp?.FullName ?? model.EmployeeId.ToString()} بمبلغ {model.Amount:N3} KD",
                     model.Id);
 
-                TempData["Success"] = "Advance added created successfully";
+                TempData["Success"] = isManager ? "تم إضافة السلفة بنجاح" : "تم إرسال طلب السلفة بنجاح، في انتظار موافقة المدير";
                 return RedirectToAction(nameof(Index));
             }
-            var cu2 = await _userManager.GetUserAsync(User);
-            var ud2 = cu2?.UserDepartment;
+
+            var ud2 = currentUser?.UserDepartment;
             var eq2 = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
             if (ud2 == "حلاقة" || ud2 == "مساج") eq2 = eq2.Where(e => e.DepartmentNav!.Name == ud2);
             ViewBag.Employees = new SelectList(await eq2.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName");
+            ViewBag.IsManager = isManager;
             return View(model);
         }
 
@@ -154,19 +178,20 @@ namespace Salon.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> Approve(int id)
+        public async Task<IActionResult> Approve(int id, string paymentMethod = "نقدي")
         {
             var advance = await _context.EmployeeAdvances.Include(a => a.Employee).FirstOrDefaultAsync(a => a.Id == id);
             if (advance != null)
             {
                 advance.Status = "موافق عليها";
+                advance.PaymentMethod = paymentMethod;
                 await _context.SaveChangesAsync();
 
                 await _audit.LogAsync("Approve", "Advances",
-                    $"الموافقة على سلفة Employee: {advance.Employee?.FullName ?? advance.EmployeeId.ToString()} بمبلغ {advance.Amount:N3} KD",
+                    $"الموافقة على سلفة الموظف: {advance.Employee?.FullName ?? advance.EmployeeId.ToString()} بمبلغ {advance.Amount:N3} KD | طريقة الدفع: {paymentMethod}",
                     advance.Id);
 
-                TempData["Success"] = "Advance approved created successfully";
+                TempData["Success"] = "تمت الموافقة على السلفة بنجاح";
             }
             return RedirectToAction(nameof(Index));
         }

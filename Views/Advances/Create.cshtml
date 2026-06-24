@@ -1,49 +1,85 @@
 @{
-    ViewData["Title"] = "إضافة سلفة";
+    bool isManager = (bool)(ViewBag.IsManager ?? false);
+    ViewData["Title"] = isManager ? "إضافة سلفة" : "طلب سلفة";
 }
 
 <div class="page-header">
-    <h1><i class="fas fa-plus-circle me-2"></i>إضافة سلفة موظف</h1>
+    <h1>
+        <i class="fas fa-@(isManager ? "plus-circle" : "hand-paper") me-2"></i>
+        @ViewData["Title"]
+    </h1>
+    @if (!isManager)
+    {
+        <p class="text-muted">سيتم مراجعة طلبك من قِبَل المدير والموافقة عليه</p>
+    }
 </div>
-<div class="card">
+
+<div class="card shadow-sm">
     <div class="card-body">
+        @if (!isManager)
+        {
+            <div class="alert alert-info d-flex align-items-center gap-2 mb-4">
+                <i class="fas fa-info-circle fs-5"></i>
+                <span>بعد إرسال الطلب سيتحول إلى حالة <strong>معلق</strong> حتى يوافق عليه المدير</span>
+            </div>
+        }
+
         <form asp-action="Create" method="post">
             @Html.AntiForgeryToken()
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label">الموظف</label>
-                    <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select">
+                    <label class="form-label fw-semibold">الموظف <span class="text-danger">*</span></label>
+                    <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select" required>
                         <option value="">-- اختر الموظف --</option>
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">المبلغ</label>
-                    <input type="number" name="Amount" step="0.001" class="form-control" />
+                    <label class="form-label fw-semibold">المبلغ (د.ك) <span class="text-danger">*</span></label>
+                    <input type="number" name="Amount" step="0.001" min="0.001" class="form-control" required placeholder="0.000" />
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">التاريخ</label>
+                    <label class="form-label fw-semibold">التاريخ</label>
                     <input type="date" name="AdvanceDate" value="@DateTime.Today.ToString("yyyy-MM-dd")" class="form-control" />
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">السبب</label>
-                    <input type="text" name="Reason" class="form-control" />
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">السبب</label>
+                    <input type="text" name="Reason" class="form-control" placeholder="سبب طلب السلفة..." />
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">طريقة الدفع</label>
-                    <select name="PaymentMethod" class="form-select">
-                        <option value="نقدي">نقدي</option>
-                        <option value="تحويل بنكي">تحويل بنكي</option>
-                        <option value="شيك">شيك</option>
-                    </select>
-                </div>
+
+                @if (isManager)
+                {
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">طريقة الدفع</label>
+                        <select name="PaymentMethod" class="form-select">
+                            <option value="نقدي">نقدي</option>
+                            <option value="تحويل بنكي">تحويل بنكي</option>
+                            <option value="شيك">شيك</option>
+                            <option value="كنت">كنت</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">الحالة</label>
+                        <select name="Status" class="form-select">
+                            <option value="معلق">معلق</option>
+                            <option value="موافق عليها" selected>موافق عليها</option>
+                        </select>
+                    </div>
+                }
+
                 <div class="col-12">
-                    <label class="form-label">ملاحظات</label>
-                    <textarea name="Notes" class="form-control" rows="2"></textarea>
+                    <label class="form-label fw-semibold">ملاحظات</label>
+                    <textarea name="Notes" class="form-control" rows="2" placeholder="أي ملاحظات إضافية..."></textarea>
                 </div>
             </div>
-            <div class="mt-4">
-                <button type="submit" class="btn btn-primary me-2"><i class="fas fa-save me-1"></i> حفظ</button>
-                <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-@(isManager ? "primary" : "success") px-4">
+                    <i class="fas fa-@(isManager ? "save" : "paper-plane") me-1"></i>
+                    @(isManager ? "حفظ" : "إرسال الطلب")
+                </button>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-right me-1"></i> رجوع
+                </a>
             </div>
         </form>
     </div>
