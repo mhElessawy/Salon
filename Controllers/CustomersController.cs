@@ -66,11 +66,12 @@ namespace Salon.Controllers
         public async Task<IActionResult> Create()
         {
             var user = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(user!);
             var model = new Customer();
             if (!string.IsNullOrEmpty(user?.UserDepartment))
                 model.Department = user.UserDepartment;
             ViewBag.UserDepartment = user?.UserDepartment;
-            ViewBag.Employees = await GetEmployeesForUserAsync(user?.UserDepartment);
+            ViewBag.Employees = await GetEmployeesForUserAsync(user, roles);
             return View(model);
         }
 
@@ -94,8 +95,9 @@ namespace Salon.Controllers
                 return RedirectToAction(nameof(Index));
             }
             var user = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(user!);
             ViewBag.UserDepartment = user?.UserDepartment;
-            ViewBag.Employees = await GetEmployeesForUserAsync(user?.UserDepartment);
+            ViewBag.Employees = await GetEmployeesForUserAsync(user, roles);
             return View(model);
         }
 
@@ -104,8 +106,9 @@ namespace Salon.Controllers
             var customer = await _context.Customers.FindAsync(id);
             if (customer == null) return NotFound();
             var user = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(user!);
             ViewBag.UserDepartment = user?.UserDepartment;
-            ViewBag.Employees = await GetEmployeesForUserAsync(user?.UserDepartment);
+            ViewBag.Employees = await GetEmployeesForUserAsync(user, roles);
             return View(customer);
         }
 
@@ -130,8 +133,9 @@ namespace Salon.Controllers
                 return RedirectToAction(nameof(Index));
             }
             var user = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(user!);
             ViewBag.UserDepartment = user?.UserDepartment;
-            ViewBag.Employees = await GetEmployeesForUserAsync(user?.UserDepartment);
+            ViewBag.Employees = await GetEmployeesForUserAsync(user, roles);
             return View(model);
         }
 
@@ -159,14 +163,23 @@ namespace Salon.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        private async Task<List<Employee>> GetEmployeesForUserAsync(string? userDepartment)
+        private async Task<List<Employee>> GetEmployeesForUserAsync(ApplicationUser? user, IList<string> roles)
         {
+            bool isManager = roles.Contains("Admin") || roles.Contains("Manager");
+            bool isEmployee = !isManager && roles.Contains("Employee");
+            string? userDepartment = user?.UserDepartment;
+
             var query = _context.Employees
                 .Include(e => e.DepartmentNav)
                 .Where(e => e.IsActive);
 
+            // Cashier: sees only their department's employees
             if (userDepartment == "حلاقة" || userDepartment == "مساج")
                 query = query.Where(e => e.DepartmentNav != null && e.DepartmentNav.Name == userDepartment);
+
+            // Employee: sees only themselves
+            if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
+                query = query.Where(e => e.Id == user.LinkedEmployeeId!.Value);
 
             return await query.OrderBy(e => e.FullName).ToListAsync();
         }
