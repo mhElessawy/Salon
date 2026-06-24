@@ -15,12 +15,14 @@ namespace Salon.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _audit;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IEmailService _email;
 
-        public AdvancesController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager)
+        public AdvancesController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager, IEmailService email)
         {
             _context = context;
             _audit = audit;
             _userManager = userManager;
+            _email = email;
         }
 
         public async Task<IActionResult> Index(string? search)
@@ -132,10 +134,13 @@ namespace Salon.Controllers
                 _context.EmployeeAdvances.Add(model);
                 await _context.SaveChangesAsync();
 
-                var emp = await _context.Employees.FindAsync(model.EmployeeId);
+                var emp = await _context.Employees.Include(e => e.DepartmentNav).FirstOrDefaultAsync(e => e.Id == model.EmployeeId);
                 await _audit.LogAsync("Add", "Advances",
                     $"{(isManager ? "إضافة" : "طلب")} سلفة للموظف: {emp?.FullName ?? model.EmployeeId.ToString()} بمبلغ {model.Amount:N3} KD",
                     model.Id);
+
+                if (!isManager)
+                    _ = _email.SendAdvanceRequestAsync(emp?.FullName ?? "-", emp?.DepartmentNav?.Name ?? "-", model.Amount, model.Reason, model.AdvanceDate);
 
                 TempData["Success"] = isManager ? "تم إضافة السلفة بنجاح" : "تم إرسال طلب السلفة بنجاح، في انتظار موافقة المدير";
                 return RedirectToAction(nameof(Index));
@@ -183,6 +188,9 @@ namespace Salon.Controllers
 
             if (!string.IsNullOrEmpty(status))
                 query = query.Where(a => a.Status == status);
+
+            // التقرير لا يعرض السلف المعلقة (غير الموافق عليها)
+            query = query.Where(a => a.Status != "معلق");
 
             var advances = await query.OrderByDescending(a => a.AdvanceDate).ToListAsync();
 

@@ -43,7 +43,7 @@
                 <label class="form-label mb-1">الحالة</label>
                 <select name="status" class="form-select">
                     <option value="">-- الكل --</option>
-                    @foreach (var st in new[] { "معلق", "موافق عليها", "مدفوعة جزئياً", "مسددة" })
+                    @foreach (var st in new[] { "موافق عليها", "مدفوعة جزئياً", "مسددة" })
                     {
                         var selected = ViewBag.Status == st;
                         <option value="@st" selected="@(selected ? "selected" : null)">@st</option>

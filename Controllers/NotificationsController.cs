@@ -261,31 +261,31 @@ namespace Salon.Controllers
                 });
             }
 
-            // 5. Recent advances (last 2 days)
-            var recentAdvances = await _context.EmployeeAdvances
+            // 5. طلبات السلف الجديدة المعلقة (تنتظر موافقة الأدمن)
+            var pendingRequests = await _context.EmployeeAdvances
                 .Include(a => a.Employee)
-                .Where(a => a.AdvanceDate >= today.AddDays(-2))
-                .OrderByDescending(a => a.CreatedAt).Take(8).ToListAsync();
+                .Where(a => a.Status == "معلق" && a.CreatedAt >= today.AddDays(-7))
+                .OrderByDescending(a => a.CreatedAt).Take(10).ToListAsync();
 
-            foreach (var adv in recentAdvances)
+            foreach (var adv in pendingRequests)
             {
                 var subAdv = $"الموظف: {adv.Employee?.FullName ?? "غير محدد"}";
                 list.Add(new NotificationItem
                 {
                     Type = "advance-new",
-                    Category = "مالية",
-                    Title = "سلفة جديدة",
-                    TitleEn = "New Advance",
+                    Category = "مهمة",
+                    Title = "طلب سلفة جديد",
+                    TitleEn = "New Advance Request",
                     SubTitle = subAdv,
                     SubTitleEn = $"Employee: {adv.Employee?.FullName ?? "Unknown"}",
-                    Body = $"المبلغ: {adv.Amount:N3} د.ك | الحالة: {adv.Status}",
-                    BodyEn = $"Amount: {adv.Amount:N3} KD | Status: {adv.Status}",
+                    Body = $"المبلغ: {adv.Amount:N3} د.ك | ينتظر الموافقة",
+                    BodyEn = $"Amount: {adv.Amount:N3} KD | Awaiting Approval",
                     IconClass = "fas fa-hand-holding-usd",
-                    IconBg = "#7c3aed",
+                    IconBg = "#F7941D",
                     Date = adv.CreatedAt,
                     ActionUrl = Url.Action("Index", "Advances"),
-                    ActionText = "عرض السلف",
-                    ActionTextEn = "View Advances",
+                    ActionText = "مراجعة الطلب",
+                    ActionTextEn = "Review Request",
                     Key = NotifKey("advance-new", adv.CreatedAt, subAdv)
                 });
             }
