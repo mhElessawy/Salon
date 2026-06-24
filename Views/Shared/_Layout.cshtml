@@ -275,6 +275,13 @@
             if (typeof translatePageContent === 'function') {
                 translatePageContent(lang);
             }
+
+            // Reload notification panel in new language
+            _notifLoaded = false;
+            var notifPanel = document.getElementById('notif-panel');
+            if (notifPanel && notifPanel.classList.contains('show')) {
+                loadNotifPanel();
+            }
         }
 
         function toggleLang() {
@@ -410,20 +417,6 @@
     <script>
         var _notifLoaded = false;
 
-        function _applyLangToPanel() {
-            var _lang = localStorage.getItem('lang') || 'ar';
-            var panel = document.getElementById('notif-panel');
-            panel.querySelectorAll('[data-i18n-en]').forEach(function (el) {
-                if (_lang === 'en') {
-                    var en = el.getAttribute('data-i18n-en');
-                    if (en) el.textContent = en;
-                } else {
-                    var ar = el.getAttribute('data-i18n-ar');
-                    if (ar) el.textContent = ar;
-                }
-            });
-        }
-
         function toggleNotifPanel() {
             var panel = document.getElementById('notif-panel');
             var overlay = document.getElementById('notif-overlay');
@@ -434,11 +427,7 @@
                 panel.classList.add('show');
                 overlay.classList.add('show');
                 btn.classList.add('active');
-                if (!_notifLoaded) {
-                    loadNotifPanel();
-                } else {
-                    _applyLangToPanel();
-                }
+                if (!_notifLoaded) loadNotifPanel();
             }
         }
 
@@ -450,12 +439,12 @@
         }
 
         function loadNotifPanel() {
-            fetch('/Notifications/Panel', { credentials: 'same-origin' })
+            var lang = localStorage.getItem('lang') || 'ar';
+            fetch('/Notifications/Panel?lang=' + lang, { credentials: 'same-origin' })
                 .then(function (r) { return r.text(); })
                 .then(function (html) {
                     var panel = document.getElementById('notif-panel');
                     panel.innerHTML = html;
-                    // Re-execute any <script> tags (innerHTML doesn't run them)
                     panel.querySelectorAll('script').forEach(function (oldScript) {
                         var s = document.createElement('script');
                         s.textContent = oldScript.textContent;
@@ -463,7 +452,6 @@
                         s.remove();
                     });
                     _notifLoaded = true;
-                    _applyLangToPanel();
                 })
                 .catch(function () {
                     var errMsg = localStorage.getItem('lang') === 'en'

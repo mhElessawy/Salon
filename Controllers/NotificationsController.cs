@@ -22,13 +22,14 @@ namespace Salon.Controllers
             _userManager = userManager;
         }
 
-        public async Task<IActionResult> Panel()
+        public async Task<IActionResult> Panel([FromQuery] string lang = "ar")
         {
             var items = await BuildNotificationsAsync();
             var userId = _userManager.GetUserId(User);
             var readSet = _cache.TryGetValue($"notif_read_{userId}", out HashSet<string>? rk) ? rk : new HashSet<string>();
             foreach (var item in items)
                 item.IsRead = readSet != null && readSet.Contains(item.Key);
+            ViewBag.Lang = lang;
             return PartialView("_Panel", items);
         }
 

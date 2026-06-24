@@ -1,17 +1,19 @@
 @model List<Salon.Models.NotificationItem>
 @{
+    var lang = ViewBag.Lang as string ?? "ar";
+    bool isEn = lang == "en";
+
     var today = DateTime.Today;
     var yesterday = today.AddDays(-1);
 
-    string DayLabelAr(DateTime d) =>
-        d.Date == today ? $"اليوم {today:d MMMM yyyy}" :
-        d.Date == yesterday ? $"أمس {yesterday:d MMMM yyyy}" :
-        d.ToString("d MMMM yyyy");
-
-    string DayLabelEn(DateTime d) =>
-        d.Date == today ? $"Today {today:d MMMM yyyy}" :
-        d.Date == yesterday ? $"Yesterday {yesterday:d MMMM yyyy}" :
-        d.ToString("d MMMM yyyy");
+    string DayLabel(DateTime d) =>
+        isEn
+            ? (d.Date == today     ? $"Today {today:d MMMM yyyy}"
+             : d.Date == yesterday ? $"Yesterday {yesterday:d MMMM yyyy}"
+             : d.ToString("d MMMM yyyy"))
+            : (d.Date == today     ? $"اليوم {today:d MMMM yyyy}"
+             : d.Date == yesterday ? $"أمس {yesterday:d MMMM yyyy}"
+             : d.ToString("d MMMM yyyy"));
 
     var grouped = Model.GroupBy(n => n.Date.Date).OrderByDescending(g => g.Key).ToList();
     int unreadCnt = Model.Count(n => !n.IsRead);
@@ -20,7 +22,7 @@
 <div class="np-header">
     <div class="np-header-title">
         <i class="fas fa-bell np-bell-icon"></i>
-        <span data-i18n-en="Notifications" data-i18n-ar="الإشعارات">الإشعارات</span>
+        <span>@(isEn ? "Notifications" : "الإشعارات")</span>
         @if (unreadCnt > 0)
         {
             <span class="np-total-badge">@unreadCnt</span>
@@ -34,19 +36,19 @@
 <!-- Filter Tabs -->
 <div class="np-tabs">
     <button class="np-tab active" data-cat="all">
-        <span data-i18n-en="All" data-i18n-ar="الكل">الكل</span> <span class="np-tab-cnt">@Model.Count(n => !n.IsRead)</span>
+        <span>@(isEn ? "All" : "الكل")</span> <span class="np-tab-cnt">@Model.Count(n => !n.IsRead)</span>
     </button>
     <button class="np-tab" data-cat="مهمة" style="--tab-color:#dc3545">
-        <span data-i18n-en="Important" data-i18n-ar="مهمة">مهمة</span> <span class="np-tab-cnt">@Model.Count(n => n.Category == "مهمة" && !n.IsRead)</span>
+        <span>@(isEn ? "Important" : "مهمة")</span> <span class="np-tab-cnt">@Model.Count(n => n.Category == "مهمة" && !n.IsRead)</span>
     </button>
     <button class="np-tab" data-cat="appointment" style="--tab-color:#F7941D">
-        <span data-i18n-en="Appointments" data-i18n-ar="مواعيد">مواعيد</span> <span class="np-tab-cnt">@Model.Count(n => n.Type == "appointment" && !n.IsRead)</span>
+        <span>@(isEn ? "Appointments" : "مواعيد")</span> <span class="np-tab-cnt">@Model.Count(n => n.Type == "appointment" && !n.IsRead)</span>
     </button>
     <button class="np-tab" data-cat="مالية" style="--tab-color:#0d6efd">
-        <span data-i18n-en="Financial" data-i18n-ar="مالية">مالية</span> <span class="np-tab-cnt">@Model.Count(n => n.Category == "مالية" && !n.IsRead)</span>
+        <span>@(isEn ? "Financial" : "مالية")</span> <span class="np-tab-cnt">@Model.Count(n => n.Category == "مالية" && !n.IsRead)</span>
     </button>
     <button class="np-tab" data-cat="advance" style="--tab-color:#7c3aed">
-        <span data-i18n-en="Advances" data-i18n-ar="سلف">سلف</span> <span class="np-tab-cnt">@Model.Count(n => (n.Type == "advance-new" || n.Type == "advance-pending") && !n.IsRead)</span>
+        <span>@(isEn ? "Advances" : "سلف")</span> <span class="np-tab-cnt">@Model.Count(n => (n.Type == "advance-new" || n.Type == "advance-pending") && !n.IsRead)</span>
     </button>
 </div>
 
@@ -56,16 +58,14 @@
     {
         <div class="np-empty">
             <i class="fas fa-bell-slash"></i>
-            <p data-i18n-en="No notifications" data-i18n-ar="لا توجد إشعارات">لا توجد إشعارات</p>
+            <p>@(isEn ? "No notifications" : "لا توجد إشعارات")</p>
         </div>
     }
     else
     {
         @foreach (var group in grouped)
         {
-            <div class="np-day-label"
-                 data-i18n-en="@DayLabelEn(group.Key)"
-                 data-i18n-ar="@DayLabelAr(group.Key)">@DayLabelAr(group.Key)</div>
+            <div class="np-day-label">@DayLabel(group.Key)</div>
             @foreach (var n in group.OrderByDescending(x => x.Date))
             {
                 <div class="np-card @(n.IsRead ? "np-card-read" : "")"
@@ -78,34 +78,26 @@
                     </div>
                     <div class="np-content">
                         <div class="np-card-header">
-                            <span class="np-title"
-                                  data-i18n-en="@n.TitleEn"
-                                  data-i18n-ar="@n.Title">@n.Title</span>
+                            <span class="np-title">@(isEn ? n.TitleEn : n.Title)</span>
                             <span class="np-time">@n.Date.ToString("HH:mm")</span>
                         </div>
-                        <div class="np-subtitle"
-                             data-i18n-en="@n.SubTitleEn"
-                             data-i18n-ar="@n.SubTitle">@n.SubTitle</div>
-                        <div class="np-body"
-                             data-i18n-en="@n.BodyEn"
-                             data-i18n-ar="@n.Body">@n.Body</div>
+                        <div class="np-subtitle">@(isEn ? n.SubTitleEn : n.SubTitle)</div>
+                        <div class="np-body">@(isEn ? n.BodyEn : n.Body)</div>
                         <div class="np-card-footer">
                             @if (n.IsRead)
                             {
                                 <span class="np-read-badge">
-                                    <i class="fas fa-check-circle me-1"></i><span data-i18n-en="Read" data-i18n-ar="تمت القراءة">تمت القراءة</span>
+                                    <i class="fas fa-check-circle me-1"></i>@(isEn ? "Read" : "تمت القراءة")
                                 </span>
                             }
                             else
                             {
                                 <button class="np-markread-btn" onclick="markNotifRead(this,'@n.Key')">
-                                    <i class="fas fa-check me-1"></i><span data-i18n-en="Mark as Read" data-i18n-ar="تمت القراءة">تمت القراءة</span>
+                                    <i class="fas fa-check me-1"></i>@(isEn ? "Mark as Read" : "تمت القراءة")
                                 </button>
                                 @if (!string.IsNullOrEmpty(n.ActionUrl))
                                 {
-                                    <a class="np-action-btn" href="@n.ActionUrl"
-                                       data-i18n-en="@n.ActionTextEn"
-                                       data-i18n-ar="@n.ActionText">@n.ActionText</a>
+                                    <a class="np-action-btn" href="@n.ActionUrl">@(isEn ? n.ActionTextEn : n.ActionText)</a>
                                 }
                             }
                         </div>
@@ -118,31 +110,31 @@
 
 <!-- Settings Section -->
 <div class="np-settings" id="np-settings" style="display:none;">
-    <div class="np-settings-title"><i class="fas fa-sliders-h me-2"></i><span data-i18n-en="Notification Settings" data-i18n-ar="إعدادات الإشعارات">إعدادات الإشعارات</span></div>
+    <div class="np-settings-title"><i class="fas fa-sliders-h me-2"></i>@(isEn ? "Notification Settings" : "إعدادات الإشعارات")</div>
     <div class="np-setting-row">
-        <span data-i18n-en="Quick notifications" data-i18n-ar="إشعارات سريعة">إشعارات سريعة</span>
+        <span>@(isEn ? "Quick notifications" : "إشعارات سريعة")</span>
         <label class="np-toggle">
             <input type="checkbox" id="ns-quick" onchange="saveNpSettings()">
             <span class="np-slider"></span>
         </label>
     </div>
     <div class="np-setting-row">
-        <span data-i18n-en="Advanced notifications from" data-i18n-ar="بدء الإشعارات المتقدمة من">بدء الإشعارات المتقدمة من</span>
+        <span>@(isEn ? "Advanced notifications from" : "بدء الإشعارات المتقدمة من")</span>
         <input type="date" id="ns-from" class="np-date-input" onchange="saveNpSettings()" />
     </div>
     <div class="np-setting-row">
-        <span data-i18n-en="Max daily notifications" data-i18n-ar="عدد الإشعارات المسموحة يومياً">عدد الإشعارات المسموحة يومياً</span>
+        <span>@(isEn ? "Max daily notifications" : "عدد الإشعارات المسموحة يومياً")</span>
         <input type="number" id="ns-max" class="np-num-input" min="1" max="100" value="20" onchange="saveNpSettings()" />
     </div>
     <div class="np-setting-row">
-        <span data-i18n-en="Archive old notifications" data-i18n-ar="أرشفة جميع الإشعارات القديمة">أرشفة جميع الإشعارات القديمة</span>
+        <span>@(isEn ? "Archive old notifications" : "أرشفة جميع الإشعارات القديمة")</span>
         <label class="np-toggle">
             <input type="checkbox" id="ns-archive" onchange="saveNpSettings()">
             <span class="np-slider"></span>
         </label>
     </div>
     <div class="np-setting-row">
-        <span data-i18n-en="Enable auto display" data-i18n-ar="تفعيل عرض تلقائي">تفعيل عرض تلقائي</span>
+        <span>@(isEn ? "Enable auto display" : "تفعيل عرض تلقائي")</span>
         <label class="np-toggle">
             <input type="checkbox" id="ns-auto" onchange="saveNpSettings()">
             <span class="np-slider"></span>
@@ -152,16 +144,7 @@
 
 <script>
     (function () {
-        // Apply current language to dynamically loaded panel content
-        var _lang = localStorage.getItem('lang') || 'ar';
-        if (_lang === 'en') {
-            document.querySelectorAll('#notif-panel [data-i18n-en]').forEach(function (el) {
-                var en = el.getAttribute('data-i18n-en');
-                if (en) el.textContent = en;
-            });
-        }
-
-        // Tab filtering — hides read cards when filtering
+        // Tab filtering
         document.querySelectorAll('.np-tab').forEach(function (tab) {
             tab.addEventListener('click', function () {
                 document.querySelectorAll('.np-tab').forEach(t => t.classList.remove('active'));
@@ -198,9 +181,7 @@
                     card.classList.add('np-card-read');
                     card.dataset.read = 'true';
                     var footer = btn.closest('.np-card-footer');
-                    var _l = localStorage.getItem('lang') || 'ar';
-                    var readTxt = _l === 'en' ? 'Read' : 'تمت القراءة';
-                    footer.innerHTML = '<span class="np-read-badge"><i class="fas fa-check-circle me-1"></i>' + readTxt + '</span>';
+                    footer.innerHTML = '<span class="np-read-badge"><i class="fas fa-check-circle me-1"></i>@(isEn ? "Read" : "تمت القراءة")</span>';
 
                     var hdrBadge = document.querySelector('.np-total-badge');
                     if (hdrBadge) {
