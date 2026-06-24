@@ -410,6 +410,20 @@
     <script>
         var _notifLoaded = false;
 
+        function _applyLangToPanel() {
+            var _lang = localStorage.getItem('lang') || 'ar';
+            var panel = document.getElementById('notif-panel');
+            panel.querySelectorAll('[data-i18n-en]').forEach(function (el) {
+                if (_lang === 'en') {
+                    var en = el.getAttribute('data-i18n-en');
+                    if (en) el.textContent = en;
+                } else {
+                    var ar = el.getAttribute('data-i18n-ar');
+                    if (ar) el.textContent = ar;
+                }
+            });
+        }
+
         function toggleNotifPanel() {
             var panel = document.getElementById('notif-panel');
             var overlay = document.getElementById('notif-overlay');
@@ -420,7 +434,11 @@
                 panel.classList.add('show');
                 overlay.classList.add('show');
                 btn.classList.add('active');
-                if (!_notifLoaded) loadNotifPanel();
+                if (!_notifLoaded) {
+                    loadNotifPanel();
+                } else {
+                    _applyLangToPanel();
+                }
             }
         }
 
@@ -445,13 +463,7 @@
                         s.remove();
                     });
                     _notifLoaded = true;
-                    // Translate panel content if current language is English
-                    if ((localStorage.getItem('lang') || 'ar') === 'en') {
-                        panel.querySelectorAll('[data-i18n-en]').forEach(function (el) {
-                            var en = el.getAttribute('data-i18n-en');
-                            if (en) el.textContent = en;
-                        });
-                    }
+                    _applyLangToPanel();
                 })
                 .catch(function () {
                     var errMsg = localStorage.getItem('lang') === 'en'
