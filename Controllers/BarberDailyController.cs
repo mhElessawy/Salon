@@ -164,7 +164,7 @@ namespace Salon.Controllers
                     s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "دين على صاحب المكان")
                     .Sum(s => s.NetAmount);
                 var empAdv = advances.Where(a => a.EmployeeId == emp.Id).Sum(a => a.Amount);
-                var empHadiya = empSales.Sum(s => s.GiftForEmployee ?? 0);
+                var empHadiya = allSales.Where(s => s.EmployeeId == emp.Id).Sum(s => s.GiftForEmployee ?? 0);
                 var commission = emp.Commission;
                 var dueAmount = Math.Round(empTotal * commission / 100, 3);
 

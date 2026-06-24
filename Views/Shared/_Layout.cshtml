@@ -275,6 +275,13 @@
             if (typeof translatePageContent === 'function') {
                 translatePageContent(lang);
             }
+
+            // Reload notification panel in new language
+            _notifLoaded = false;
+            var notifPanel = document.getElementById('notif-panel');
+            if (notifPanel && notifPanel.classList.contains('show')) {
+                loadNotifPanel();
+            }
         }
 
         function toggleLang() {
@@ -432,12 +439,12 @@
         }
 
         function loadNotifPanel() {
-            fetch('/Notifications/Panel', { credentials: 'same-origin' })
+            var lang = localStorage.getItem('lang') || 'ar';
+            fetch('/Notifications/Panel?lang=' + lang, { credentials: 'same-origin' })
                 .then(function (r) { return r.text(); })
                 .then(function (html) {
                     var panel = document.getElementById('notif-panel');
                     panel.innerHTML = html;
-                    // Re-execute any <script> tags (innerHTML doesn't run them)
                     panel.querySelectorAll('script').forEach(function (oldScript) {
                         var s = document.createElement('script');
                         s.textContent = oldScript.textContent;
@@ -447,8 +454,11 @@
                     _notifLoaded = true;
                 })
                 .catch(function () {
+                    var errMsg = localStorage.getItem('lang') === 'en'
+                        ? 'Failed to load notifications'
+                        : 'تعذّر تحميل الإشعارات';
                     document.getElementById('notif-panel').innerHTML =
-                        '<div style="padding:30px;text-align:center;color:#adb5bd;">تعذّر تحميل الإشعارات</div>';
+                        '<div style="padding:30px;text-align:center;color:#adb5bd;">' + errMsg + '</div>';
                 });
         }
 

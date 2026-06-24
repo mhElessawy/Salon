@@ -22,13 +22,14 @@ namespace Salon.Controllers
             _userManager = userManager;
         }
 
-        public async Task<IActionResult> Panel()
+        public async Task<IActionResult> Panel([FromQuery] string lang = "ar")
         {
             var items = await BuildNotificationsAsync();
             var userId = _userManager.GetUserId(User);
             var readSet = _cache.TryGetValue($"notif_read_{userId}", out HashSet<string>? rk) ? rk : new HashSet<string>();
             foreach (var item in items)
                 item.IsRead = readSet != null && readSet.Contains(item.Key);
+            ViewBag.Lang = lang;
             return PartialView("_Panel", items);
         }
 
@@ -119,36 +120,46 @@ namespace Salon.Controllers
                 if (Math.Abs(diff) >= 0.001m)
                 {
                     var sub1 = $"الكاشير: {shift.CashierName ?? "غير محدد"}";
+                    var sub1En = $"Cashier: {shift.CashierName ?? "Unknown"}";
                     list.Add(new NotificationItem
                     {
                         Type = "shift-diff",
                         Category = "مهمة",
                         Title = "فرق في الصندوق",
+                        TitleEn = "Cash Register Difference",
                         SubTitle = sub1,
+                        SubTitleEn = sub1En,
                         Body = $"المتوقع: {expected:N3} | الموجود: {shift.ClosingBalance:N3} | الفرق: {diff:N3} د.ك",
+                        BodyEn = $"Expected: {expected:N3} | Found: {shift.ClosingBalance:N3} | Diff: {diff:N3} KD",
                         IconClass = "fas fa-exclamation-triangle",
                         IconBg = "#dc3545",
                         Date = notifDate,
                         ActionUrl = Url.Action("Index", "Shifts"),
                         ActionText = "عرض التفاصيل",
+                        ActionTextEn = "View Details",
                         Key = NotifKey("shift-diff", notifDate, sub1)
                     });
                 }
                 else
                 {
                     var sub2 = $"الشفت: {shift.Name}";
+                    var sub2En = $"Shift: {shift.Name}";
                     list.Add(new NotificationItem
                     {
                         Type = "shift-close",
                         Category = "تشغيلية",
                         Title = "تم إغلاق الشفت",
+                        TitleEn = "Shift Closed",
                         SubTitle = sub2,
+                        SubTitleEn = sub2En,
                         Body = $"الرصيد: {shift.ClosingBalance:N3} د.ك",
+                        BodyEn = $"Balance: {shift.ClosingBalance:N3} KD",
                         IconClass = "fas fa-check-circle",
                         IconBg = "#198754",
                         Date = notifDate,
                         ActionUrl = Url.Action("Reports", "Shifts"),
                         ActionText = "عرض التقرير",
+                        ActionTextEn = "View Report",
                         Key = NotifKey("shift-close", notifDate, sub2)
                     });
                 }
@@ -167,13 +178,17 @@ namespace Salon.Controllers
                     Type = "low-stock",
                     Category = "تشغيلية",
                     Title = "منتج وصل الحد الأدنى",
+                    TitleEn = "Product at Minimum Stock",
                     SubTitle = subProd,
+                    SubTitleEn = $"Product: {prod.Name}",
                     Body = $"الكمية المتبقية: {prod.StockQuantity} قطعة | الحد الأدنى: {prod.MinStockLevel}",
+                    BodyEn = $"Remaining: {prod.StockQuantity} pcs | Min Level: {prod.MinStockLevel}",
                     IconClass = "fas fa-box",
                     IconBg = "#7c3aed",
                     Date = today,
                     ActionUrl = Url.Action("Index", "Inventory"),
                     ActionText = "عرض المنتج",
+                    ActionTextEn = "View Product",
                     Key = NotifKey("low-stock", today, subProd)
                 });
             }
@@ -190,13 +205,17 @@ namespace Salon.Controllers
                     Type = "expense",
                     Category = "مالية",
                     Title = "تم إدخال مصروف",
-                    SubTitle = exp.Description,
+                    TitleEn = "Expense Added",
+                    SubTitle = exp.Description ?? "",
+                    SubTitleEn = exp.Description ?? "",
                     Body = $"المبلغ: {exp.Amount:N3} د.ك | الفئة: {exp.Category ?? "عامة"}",
+                    BodyEn = $"Amount: {exp.Amount:N3} KD | Category: {exp.Category ?? "General"}",
                     IconClass = "fas fa-file-invoice-dollar",
                     IconBg = "#0d6efd",
                     Date = exp.CreatedAt,
                     ActionUrl = Url.Action("Index", "Expenses"),
                     ActionText = "عرض المصروف",
+                    ActionTextEn = "View Expense",
                     Key = NotifKey("expense", exp.CreatedAt, exp.Description ?? "")
                 });
             }
@@ -225,14 +244,19 @@ namespace Salon.Controllers
                     Type = "appointment",
                     Category = isOverdue ? "مهمة" : "تشغيلية",
                     Title = isOverdue ? "موعد فائت" : (isTomorrow ? "موعد الغد" : "موعد اليوم"),
+                    TitleEn = isOverdue ? "Missed Appointment" : (isTomorrow ? "Tomorrow's Appointment" : "Today's Appointment"),
                     SubTitle = $"العميل: {appt.Customer?.FullName ?? "غير محدد"}",
+                    SubTitleEn = $"Customer: {appt.Customer?.FullName ?? "Unknown"}",
                     Body = $"الوقت: {appt.AppointmentDate:hh:mm tt}" +
                            (appt.Employee != null ? $" | الموظف: {appt.Employee.FullName}" : ""),
+                    BodyEn = $"Time: {appt.AppointmentDate:hh:mm tt}" +
+                             (appt.Employee != null ? $" | Employee: {appt.Employee.FullName}" : ""),
                     IconClass = isOverdue ? "fas fa-calendar-times" : "fas fa-calendar-check",
                     IconBg = isOverdue ? "#dc3545" : (isTomorrow ? "#0d6efd" : "#F7941D"),
                     Date = appt.AppointmentDate,
                     ActionUrl = Url.Action("Index", "Appointments"),
                     ActionText = "عرض الموعد",
+                    ActionTextEn = "View Appointment",
                     Key = NotifKey("appointment", appt.AppointmentDate, appt.Customer?.FullName ?? "")
                 });
             }
@@ -251,13 +275,17 @@ namespace Salon.Controllers
                     Type = "advance-new",
                     Category = "مالية",
                     Title = "سلفة جديدة",
+                    TitleEn = "New Advance",
                     SubTitle = subAdv,
+                    SubTitleEn = $"Employee: {adv.Employee?.FullName ?? "Unknown"}",
                     Body = $"المبلغ: {adv.Amount:N3} د.ك | الحالة: {adv.Status}",
+                    BodyEn = $"Amount: {adv.Amount:N3} KD | Status: {adv.Status}",
                     IconClass = "fas fa-hand-holding-usd",
                     IconBg = "#7c3aed",
                     Date = adv.CreatedAt,
                     ActionUrl = Url.Action("Index", "Advances"),
                     ActionText = "عرض السلف",
+                    ActionTextEn = "View Advances",
                     Key = NotifKey("advance-new", adv.CreatedAt, subAdv)
                 });
             }
@@ -277,13 +305,17 @@ namespace Salon.Controllers
                     Type = "advance-pending",
                     Category = "مهمة",
                     Title = "سلفة غير مسددة",
+                    TitleEn = "Unpaid Advance",
                     SubTitle = subPend,
+                    SubTitleEn = $"Employee: {adv.Employee?.FullName ?? "Unknown"}",
                     Body = $"المتبقي: {remaining:N3} د.ك | من أصل: {adv.Amount:N3} د.ك",
+                    BodyEn = $"Remaining: {remaining:N3} KD | Of: {adv.Amount:N3} KD",
                     IconClass = "fas fa-exclamation-circle",
                     IconBg = "#f59e0b",
                     Date = adv.AdvanceDate,
                     ActionUrl = Url.Action("Index", "Advances"),
                     ActionText = "عرض السلف",
+                    ActionTextEn = "View Advances",
                     Key = NotifKey("advance-pending", adv.AdvanceDate, subPend)
                 });
             }
