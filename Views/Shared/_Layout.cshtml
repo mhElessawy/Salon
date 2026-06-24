@@ -447,8 +447,11 @@
                     _notifLoaded = true;
                 })
                 .catch(function () {
+                    var errMsg = localStorage.getItem('lang') === 'en'
+                        ? 'Failed to load notifications'
+                        : 'تعذّر تحميل الإشعارات';
                     document.getElementById('notif-panel').innerHTML =
-                        '<div style="padding:30px;text-align:center;color:#adb5bd;">تعذّر تحميل الإشعارات</div>';
+                        '<div style="padding:30px;text-align:center;color:#adb5bd;">' + errMsg + '</div>';
                 });
         }
 
