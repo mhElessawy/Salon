@@ -445,6 +445,13 @@
                         s.remove();
                     });
                     _notifLoaded = true;
+                    // Translate panel content if current language is English
+                    if ((localStorage.getItem('lang') || 'ar') === 'en') {
+                        panel.querySelectorAll('[data-i18n-en]').forEach(function (el) {
+                            var en = el.getAttribute('data-i18n-en');
+                            if (en) el.textContent = en;
+                        });
+                    }
                 })
                 .catch(function () {
                     var errMsg = localStorage.getItem('lang') === 'en'
