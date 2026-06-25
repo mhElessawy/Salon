@@ -841,22 +841,69 @@
 
 <!-- ══ Modal: عميل جديد ══ -->
 <div class="modal fade" id="newCustomerModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>إضافة عميل جديد</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">الاسم الكامل <span class="text-danger">*</span></label>
-                    <input type="text" id="newCustName" class="form-control" placeholder="أدخل اسم العميل" />
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">الاسم الكامل عربي <span class="text-danger">*</span></label>
+                        <input type="text" id="newCustName" class="form-control" placeholder="الاسم بالعربية" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Full Name English</label>
+                        <input type="text" id="newCustFullNameEn" class="form-control" placeholder="Name in English" dir="ltr" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">رقم الهاتف</label>
+                        <input type="text" id="newCustPhone" class="form-control" dir="ltr" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">البريد الإلكتروني</label>
+                        <input type="email" id="newCustEmail" class="form-control" dir="ltr" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">تاريخ الميلاد</label>
+                        <input type="date" id="newCustBirthDate" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">الجنس</label>
+                        <select id="newCustGender" class="form-select">
+                            <option value="">-- اختر --</option>
+                            <option>ذكر</option>
+                            <option>أنثى</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">الموظف المسؤول</label>
+                        @if (isEmployee && linkedEmpId.HasValue)
+                        {
+                            var linkedEmpName = employees.FirstOrDefault(e => e.Id == linkedEmpId.Value)?.FullName ?? "—";
+                            <input type="hidden" id="newCustAssignedEmployee" value="@linkedEmpId" />
+                            <div class="form-control bg-light" style="cursor:default;">
+                                <i class="fas fa-user-tie me-1"></i>@linkedEmpName
+                            </div>
+                        }
+                        else
+                        {
+                            <select id="newCustAssignedEmployee" class="form-select">
+                                <option value="">-- اختر الموظف --</option>
+                                @foreach (var emp in employees)
+                                {
+                                    <option value="@emp.Id">@emp.FullName</option>
+                                }
+                            </select>
+                        }
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">ملاحظات</label>
+                        <textarea id="newCustNotes" class="form-control" rows="2"></textarea>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">رقم الهاتف</label>
-                    <input type="text" id="newCustPhone" class="form-control" placeholder="مثال: 96512345678" dir="ltr" />
-                </div>
-                <div id="newCustError" class="alert alert-danger d-none py-2"></div>
+                <div id="newCustError" class="alert alert-danger d-none py-2 mt-3"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
@@ -1670,14 +1717,27 @@
         // ===== عميل جديد =====
         function openNewCustomerModal() {
             document.getElementById('newCustName').value = '';
+            document.getElementById('newCustFullNameEn').value = '';
             document.getElementById('newCustPhone').value = '';
+            document.getElementById('newCustEmail').value = '';
+            document.getElementById('newCustBirthDate').value = '';
+            document.getElementById('newCustGender').value = '';
+            var empEl = document.getElementById('newCustAssignedEmployee');
+            if (empEl && empEl.tagName === 'SELECT') empEl.value = '';
+            document.getElementById('newCustNotes').value = '';
             document.getElementById('newCustError').classList.add('d-none');
             new bootstrap.Modal(document.getElementById('newCustomerModal')).show();
         }
 
         function submitNewCustomer() {
             var name = document.getElementById('newCustName').value.trim();
+            var fullNameEn = document.getElementById('newCustFullNameEn').value.trim();
             var phone = document.getElementById('newCustPhone').value.trim();
+            var email = document.getElementById('newCustEmail').value.trim();
+            var birthDate = document.getElementById('newCustBirthDate').value;
+            var gender = document.getElementById('newCustGender').value;
+            var assignedEmp = document.getElementById('newCustAssignedEmployee')?.value || '';
+            var notes = document.getElementById('newCustNotes').value.trim();
             var errEl = document.getElementById('newCustError');
             var btn = document.getElementById('newCustSubmitBtn');
 
@@ -1689,7 +1749,13 @@
             var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
             var body = new URLSearchParams({
                 fullName: name,
+                fullNameEn: fullNameEn,
                 phone: phone,
+                email: email,
+                birthDate: birthDate,
+                gender: gender,
+                assignedEmployeeIdStr: assignedEmp,
+                notes: notes,
                 department: 'مساج',
                 __RequestVerificationToken: token
             });
@@ -1703,7 +1769,7 @@
             .then(function(data) {
                 if (data && data.success) {
                     var sel = document.getElementById('customerSelect');
-                    var opt = new Option(data.fullName, data.id, true, true);
+                    var opt = new Option(data.displayName || data.fullName, data.id, true, true);
                     sel.appendChild(opt);
                     sel.value = data.id;
                     customerPhones[String(data.id)] = data.phone || '';
