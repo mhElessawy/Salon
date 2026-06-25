@@ -550,10 +550,19 @@
         <div class="pos-info-grid">
             <div>
                 <label class="form-label">العميل</label>
-                <select name="CustomerId" id="customerSelect" asp-items="@ViewBag.Customers"
-                        class="form-select form-select-sm" onchange="onCustomerChange(this.value)">
-                    <option value="">👤 زائر</option>
-                </select>
+                <div class="d-flex gap-1 align-items-center">
+                    <select name="CustomerId" id="customerSelect" asp-items="@ViewBag.Customers"
+                            class="form-select form-select-sm" onchange="onCustomerChange(this.value)">
+                        <option value="">👤 زائر</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-success" onclick="openNewCustomerModal()"
+                            title="إضافة عميل جديد" style="white-space:nowrap;font-size:12px;padding:4px 10px;">
+                        <i class="fas fa-user-plus"></i>
+                    </button>
+                </div>
+                <small id="customerPhoneDisplay" class="text-muted mt-1" style="display:none;">
+                    <i class="fas fa-phone me-1"></i><span id="customerPhoneText"></span>
+                </small>
                 <small id="customerDebtWarning" class="text-danger mt-1" style="display:none">
                     <i class="fas fa-exclamation-circle me-1"></i>يتطلب اختيار عميل مسجل
                 </small>
@@ -829,6 +838,35 @@
 
     </div>
 </form>
+
+<!-- ══ Modal: عميل جديد ══ -->
+<div class="modal fade" id="newCustomerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>إضافة عميل جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">الاسم الكامل <span class="text-danger">*</span></label>
+                    <input type="text" id="newCustName" class="form-control" placeholder="أدخل اسم العميل" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">رقم الهاتف</label>
+                    <input type="text" id="newCustPhone" class="form-control" placeholder="مثال: 96512345678" dir="ltr" />
+                </div>
+                <div id="newCustError" class="alert alert-danger d-none py-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-success" id="newCustSubmitBtn" onclick="submitNewCustomer()">
+                    <i class="fas fa-save me-1"></i> حفظ العميل
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- ══ Print Invoice Modal ══ -->
 <div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true" data-bs-backdrop="static">
@@ -1272,6 +1310,7 @@
         var pendingAutoSelectData = null; // للاختيار التلقائي بعد تعيين باقة جديدة
 
         function onCustomerChange(customerId) {
+            showCustomerPhone(customerId);
             clearPackageSelection();
             var area    = document.getElementById('customerPackagesArea');
             var btnWrap = document.getElementById('assignPackageBtnWrap');
@@ -1612,6 +1651,77 @@
                 }
             })
             .catch(function(e) { statusEl.textContent = '⚠ ' + e.message; });
+        }
+
+        // ===== هواتف العملاء =====
+        var customerPhones = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.CustomerPhones as Dictionary<string, string> ?? new Dictionary<string, string>()));
+
+        function showCustomerPhone(customerId) {
+            var el = document.getElementById('customerPhoneDisplay');
+            var txt = document.getElementById('customerPhoneText');
+            if (customerId && customerPhones[String(customerId)]) {
+                txt.textContent = customerPhones[String(customerId)];
+                el.style.display = '';
+            } else {
+                el.style.display = 'none';
+            }
+        }
+
+        // ===== عميل جديد =====
+        function openNewCustomerModal() {
+            document.getElementById('newCustName').value = '';
+            document.getElementById('newCustPhone').value = '';
+            document.getElementById('newCustError').classList.add('d-none');
+            new bootstrap.Modal(document.getElementById('newCustomerModal')).show();
+        }
+
+        function submitNewCustomer() {
+            var name = document.getElementById('newCustName').value.trim();
+            var phone = document.getElementById('newCustPhone').value.trim();
+            var errEl = document.getElementById('newCustError');
+            var btn = document.getElementById('newCustSubmitBtn');
+
+            if (!name) { errEl.textContent = 'الاسم الكامل مطلوب'; errEl.classList.remove('d-none'); return; }
+            errEl.classList.add('d-none');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري الحفظ...';
+
+            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            var body = new URLSearchParams({
+                fullName: name,
+                phone: phone,
+                department: 'مساج',
+                __RequestVerificationToken: token
+            });
+
+            fetch('/Customers/CreateQuick', {
+                method: 'POST', body: body,
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded',
+                           'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data && data.success) {
+                    var sel = document.getElementById('customerSelect');
+                    var opt = new Option(data.fullName, data.id, true, true);
+                    sel.appendChild(opt);
+                    sel.value = data.id;
+                    customerPhones[String(data.id)] = data.phone || '';
+                    bootstrap.Modal.getInstance(document.getElementById('newCustomerModal')).hide();
+                    onCustomerChange(data.id);
+                } else {
+                    errEl.textContent = (data && data.message) || 'حدث خطأ أثناء الحفظ';
+                    errEl.classList.remove('d-none');
+                }
+            })
+            .catch(function(e) {
+                errEl.textContent = 'خطأ: ' + e.message;
+                errEl.classList.remove('d-none');
+            })
+            .finally(function() {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save me-1"></i> حفظ العميل';
+            });
         }
     </script>
 }

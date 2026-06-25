@@ -481,9 +481,9 @@ namespace Salon.Controllers
             var customersQuery = _context.Customers.Where(c => c.IsActive);
             if (dept == "مساج" || dept == "حلاقة")
                 customersQuery = customersQuery.Where(c => c.Department == dept);
-            ViewBag.Customers = new SelectList(
-                await customersQuery.OrderBy(c => c.FullName).ToListAsync(),
-                "Id", "FullName");
+            var customerList = await customersQuery.OrderBy(c => c.FullName).ToListAsync();
+            ViewBag.Customers = new SelectList(customerList, "Id", "FullName");
+            ViewBag.CustomerPhones = customerList.ToDictionary(c => c.Id.ToString(), c => c.Phone ?? "");
 
             // الباقات المتاحة للتعيين
             var packagesQuery = _context.ServicePackages

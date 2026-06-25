@@ -90,6 +90,33 @@ namespace Salon.Controllers
             return View(model);
         }
 
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateQuick(string fullName, string? phone, string? department)
+        {
+            if (string.IsNullOrWhiteSpace(fullName))
+                return Json(new { success = false, message = "الاسم الكامل مطلوب" });
+
+            if (!string.IsNullOrEmpty(phone))
+            {
+                var phoneExists = await _context.Customers.AnyAsync(c => c.Phone == phone);
+                if (phoneExists)
+                    return Json(new { success = false, message = "رقم الهاتف مستخدم مسبقاً لعميل آخر" });
+            }
+
+            var customer = new Customer
+            {
+                FullName = fullName.Trim(),
+                Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim(),
+                Department = department,
+                CreatedAt = DateTime.Now,
+                IsActive = true
+            };
+            _context.Customers.Add(customer);
+            await _context.SaveChangesAsync();
+            await _audit.LogAsync("Add", "Customers", $"عميل جديد (سريع): {customer.FullName}", customer.Id);
+            return Json(new { success = true, id = customer.Id, fullName = customer.FullName, phone = customer.Phone ?? "" });
+        }
+
         public async Task<IActionResult> Edit(int id)
         {
             var customer = await _context.Customers.FindAsync(id);
