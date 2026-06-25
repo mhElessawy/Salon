@@ -28,12 +28,21 @@ namespace Salon.Controllers
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
 
+            var roles = await _userManager.GetRolesAsync(currentUser!);
+            bool isManager = roles.Contains("Admin") || roles.Contains("Manager");
+            bool isEmployee = !isManager && roles.Contains("Employee");
+            int? linkedEmpId = currentUser?.LinkedEmployeeId;
+
             var query = _context.Employees
                 .Include(e => e.DepartmentNav)
                 .Where(e => e.IsActive);
 
             if (userDept == "حلاقة" || userDept == "مساج")
                 query = query.Where(e => e.DepartmentNav!.Name == userDept);
+
+            // Employees see only themselves
+            if (isEmployee && linkedEmpId.HasValue)
+                query = query.Where(e => e.Id == linkedEmpId.Value);
 
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(e => e.FullName.Contains(search) || (e.Phone != null && e.Phone.Contains(search)));
@@ -122,7 +131,14 @@ namespace Salon.Controllers
 
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
+            var detailRoles = await _userManager.GetRolesAsync(currentUser!);
+            bool detailIsManager = detailRoles.Contains("Admin") || detailRoles.Contains("Manager");
+            bool detailIsEmployee = !detailIsManager && detailRoles.Contains("Employee");
+
             if ((userDept == "حلاقة" || userDept == "مساج") && employee.DepartmentNav?.Name != userDept)
+                return Forbid();
+
+            if (detailIsEmployee && currentUser?.LinkedEmployeeId.HasValue == true && employee.Id != currentUser.LinkedEmployeeId.Value)
                 return Forbid();
 
             return View(employee);

@@ -114,6 +114,7 @@
                     <option value="منتجات" selected="@(filterType == "منتجات" ? "selected" : null)">فواتير منتجات (PRD)</option>
                 }
             </select>
+            <input type="text" name="invoiceNumber" value="@ViewBag.InvoiceNumber" class="form-control" style="max-width:160px;" placeholder="رقم الفاتورة..." />
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> بحث</button>
             <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm"><i class="fas fa-undo"></i></a>
         </form>

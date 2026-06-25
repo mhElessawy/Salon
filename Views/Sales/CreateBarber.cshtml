@@ -83,8 +83,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                       COLUMN 1 (RIGHT in RTL) — Employees
-                                                                                                    ════════════════════════════════════════ */
+                                                                                                               COLUMN 1 (RIGHT in RTL) — Employees
+                                                                                                            ════════════════════════════════════════ */
         .pos-employees-panel {
             background: var(--emp-dark);
             border-radius: 12px;
@@ -207,8 +207,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                       COLUMN 2 (MIDDLE) — Services
-                                                                                                    ════════════════════════════════════════ */
+                                                                                                               COLUMN 2 (MIDDLE) — Services
+                                                                                                            ════════════════════════════════════════ */
         .pos-services-panel {
             background: #fff;
             border-radius: 12px;
@@ -307,8 +307,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                       COLUMN 3 (LEFT in RTL) — Cart / Invoice
-                                                                                                    ════════════════════════════════════════ */
+                                                                                                               COLUMN 3 (LEFT in RTL) — Cart / Invoice
+                                                                                                            ════════════════════════════════════════ */
         .pos-cart-panel {
             background: #fff;
             border-radius: 12px;
@@ -566,10 +566,16 @@
         <div class="pos-info-grid">
             <div>
                 <label class="form-label">العميل</label>
-                <select name="CustomerId" id="customerSelect" asp-items="@ViewBag.Customers"
-                        class="form-select form-select-sm" onchange="onCustomerChange(this.value)">
-                    <option value="">👤 زائر</option>
-                </select>
+                <div class="d-flex gap-1 align-items-center">
+                    <select name="CustomerId" id="customerSelect" asp-items="@ViewBag.Customers"
+                            class="form-select form-select-sm" onchange="onCustomerChange(this.value)">
+                        <option value="">👤 زائر</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-success" onclick="openNewCustomerModal()"
+                            title="إضافة عميل جديد" style="white-space:nowrap;font-size:12px;padding:4px 10px;">
+                        <i class="fas fa-user-plus"></i>
+                    </button>
+                </div>
                 <small id="customerDebtWarning" class="text-danger mt-1" style="display:none">
                     <i class="fas fa-exclamation-circle me-1"></i>يتطلب اختيار عميل مسجل
                 </small>
@@ -857,6 +863,82 @@
     </div><!-- /pos-wrapper -->
 </form>
 
+<!-- ══ Modal: عميل جديد ══ -->
+<div class="modal fade" id="newCustomerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>إضافة عميل جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">الاسم الكامل عربي <span class="text-danger">*</span></label>
+                        <input type="text" id="newCustName" class="form-control" placeholder="الاسم بالعربية" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Full Name English</label>
+                        <input type="text" id="newCustFullNameEn" class="form-control" placeholder="Name in English" dir="ltr" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">رقم الهاتف</label>
+                        <input type="text" id="newCustPhone" class="form-control" dir="ltr" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">البريد الإلكتروني</label>
+                        <input type="email" id="newCustEmail" class="form-control" dir="ltr" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">تاريخ الميلاد</label>
+                        <input type="date" id="newCustBirthDate" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">الجنس</label>
+                        <select id="newCustGender" class="form-select">
+                            <option value="">-- اختر --</option>
+                            <option>ذكر</option>
+                            <option>أنثى</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">الموظف المسؤول</label>
+                        @if (isEmployee && linkedEmpId.HasValue)
+                        {
+                            var linkedEmpName = employees.FirstOrDefault(e => e.Id == linkedEmpId.Value)?.FullName ?? "—";
+                            <input type="hidden" id="newCustAssignedEmployee" value="@linkedEmpId" />
+                            <div class="form-control bg-light" style="cursor:default;">
+                                <i class="fas fa-user-tie me-1"></i>@linkedEmpName
+                            </div>
+                        }
+                        else
+                        {
+                            <select id="newCustAssignedEmployee" class="form-select">
+                                <option value="">-- اختر الموظف --</option>
+                                @foreach (var emp in employees)
+                                {
+                                    <option value="@emp.Id">@emp.FullName</option>
+                                }
+                            </select>
+                        }
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">ملاحظات</label>
+                        <textarea id="newCustNotes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div id="newCustError" class="alert alert-danger d-none py-2 mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-success" id="newCustSubmitBtn" onclick="submitNewCustomer()">
+                    <i class="fas fa-save me-1"></i> حفظ العميل
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ══ Print Invoice Modal ══ -->
 <div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -915,8 +997,8 @@
                             <div class="assign-pkg-card" id="apc-@p.Id"
                                  onclick="selectAssignCard(@p.Id, '@Html.Raw(p.NameAr.Replace("'", "\\\'"))', @p.Price.ToString(System.Globalization.CultureInfo.InvariantCulture), @p.SessionCount, @p.ValidityDays)"
                                  style="border:2px solid #dee2e6;border-radius:12px;background:#fff;padding:12px 16px;
-                                                                        cursor:pointer;min-width:170px;flex:1;max-width:230px;transition:all .2s;text-align:right;
-                                                                        box-shadow:0 1px 4px rgba(0,0,0,.06);">
+                                                                            cursor:pointer;min-width:170px;flex:1;max-width:230px;transition:all .2s;text-align:right;
+                                                                            box-shadow:0 1px 4px rgba(0,0,0,.06);">
                                 <div style="font-weight:700;font-size:13px;color:#1a6fc4;margin-bottom:6px;">
                                     <i class="fas fa-box-open me-1"></i>@p.NameAr
                                 </div>
@@ -1012,18 +1094,18 @@
 
             @if (isEmployee && linkedEmpId.HasValue)
             {
-                                                                <text>
-                                                                document.querySelectorAll('.emp-item').forEach(function(el) {
-                                                                    el.style.cursor = 'default';
-                                                                    el.onclick = null;
-                                                                });
-                                                                </text>
+                                                                    <text>
+                                                                    document.querySelectorAll('.emp-item').forEach(function(el) {
+                                                                        el.style.cursor = 'default';
+                                                                        el.onclick = null;
+                                                                    });
+                                                                    </text>
             }
 
             function selectEmployee(id, el) {
                 @if (isEmployee)
                 {
-                                                                <text>return;</text>
+                                                                    <text>return;</text>
                 }
                 document.querySelectorAll('.emp-item').forEach(function(e) { e.classList.remove('emp-selected'); });
                 el.classList.add('emp-selected');
@@ -1589,7 +1671,7 @@
         var schedEmployees = [
             @foreach (var emp in employees)
             {
-                        <text>{ id: @emp.Id, name: '@Html.Raw(emp.FullName.Replace("'", "\\'"))' },</text>
+                            <text>{ id: @emp.Id, name: '@Html.Raw(emp.FullName.Replace("'", "\\'"))' },</text>
             }
         ];
 
@@ -1660,6 +1742,81 @@
                 }
             })
             .catch(function(e) { statusEl.textContent = '⚠ ' + e.message; });
+        }
+
+        // ===== عميل جديد =====
+        function openNewCustomerModal() {
+            document.getElementById('newCustName').value = '';
+            document.getElementById('newCustFullNameEn').value = '';
+            document.getElementById('newCustPhone').value = '';
+            document.getElementById('newCustEmail').value = '';
+            document.getElementById('newCustBirthDate').value = '';
+            document.getElementById('newCustGender').value = '';
+            var empEl = document.getElementById('newCustAssignedEmployee');
+            if (empEl && empEl.tagName === 'SELECT') empEl.value = '';
+            document.getElementById('newCustNotes').value = '';
+            document.getElementById('newCustError').classList.add('d-none');
+            new bootstrap.Modal(document.getElementById('newCustomerModal')).show();
+        }
+
+        function submitNewCustomer() {
+            var name = document.getElementById('newCustName').value.trim();
+            var fullNameEn = document.getElementById('newCustFullNameEn').value.trim();
+            var phone = document.getElementById('newCustPhone').value.trim();
+            var email = document.getElementById('newCustEmail').value.trim();
+            var birthDate = document.getElementById('newCustBirthDate').value;
+            var gender = document.getElementById('newCustGender').value;
+            var assignedEmp = document.getElementById('newCustAssignedEmployee')?.value || '';
+            var notes = document.getElementById('newCustNotes').value.trim();
+            var errEl = document.getElementById('newCustError');
+            var btn = document.getElementById('newCustSubmitBtn');
+
+            if (!name) { errEl.textContent = 'الاسم الكامل مطلوب'; errEl.classList.remove('d-none'); return; }
+            errEl.classList.add('d-none');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري الحفظ...';
+
+            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            var body = new URLSearchParams({
+                fullName: name,
+                fullNameEn: fullNameEn,
+                phone: phone,
+                email: email,
+                birthDate: birthDate,
+                gender: gender,
+                assignedEmployeeIdStr: assignedEmp,
+                notes: notes,
+                department: 'حلاقة',
+                __RequestVerificationToken: token
+            });
+
+            fetch('/Customers/CreateQuick', {
+                method: 'POST', body: body,
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded',
+                           'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data && data.success) {
+                    var sel = document.getElementById('customerSelect');
+                    var opt = new Option(data.displayName || data.fullName, data.id, true, true);
+                    sel.appendChild(opt);
+                    sel.value = data.id;
+                    bootstrap.Modal.getInstance(document.getElementById('newCustomerModal')).hide();
+                    onCustomerChange(data.id);
+                } else {
+                    errEl.textContent = (data && data.message) || 'حدث خطأ أثناء الحفظ';
+                    errEl.classList.remove('d-none');
+                }
+            })
+            .catch(function(e) {
+                errEl.textContent = 'خطأ: ' + e.message;
+                errEl.classList.remove('d-none');
+            })
+            .finally(function() {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save me-1"></i> حفظ العميل';
+            });
         }
     </script>
 }

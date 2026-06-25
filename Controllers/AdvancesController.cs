@@ -15,12 +15,14 @@ namespace Salon.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _audit;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IEmailService _email;
 
-        public AdvancesController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager)
+        public AdvancesController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager, IEmailService email)
         {
             _context = context;
             _audit = audit;
             _userManager = userManager;
+            _email = email;
         }
 
         public async Task<IActionResult> Index(string? search)
@@ -30,12 +32,18 @@ namespace Salon.Controllers
             var roles = await _userManager.GetRolesAsync(currentUser!);
             bool isManager = roles.Contains("Admin") || roles.Contains("Manager");
 
+            bool isEmployee = !isManager && roles.Contains("Employee");
+            int? linkedEmpId = currentUser?.LinkedEmployeeId;
+
             var advancesQuery = _context.EmployeeAdvances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                 .AsQueryable();
 
             if (userDept == "حلاقة" || userDept == "مساج")
                 advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
+
+            if (isEmployee && linkedEmpId.HasValue)
+                advancesQuery = advancesQuery.Where(a => a.EmployeeId == linkedEmpId.Value);
 
             if (!string.IsNullOrEmpty(search))
                 advancesQuery = advancesQuery.Where(a => a.Employee != null && a.Employee.FullName.Contains(search));
@@ -112,16 +120,27 @@ namespace Salon.Controllers
                 model.PaymentMethod = "نقدي";
             }
 
+            bool isEmployee = !isManager && roles.Contains("Employee");
+            int? linkedEmpId = currentUser?.LinkedEmployeeId;
+            if (isEmployee && linkedEmpId.HasValue && model.EmployeeId != linkedEmpId.Value)
+            {
+                TempData["Error"] = "لا يمكنك طلب سلفة لموظف آخر";
+                return RedirectToAction(nameof(Create));
+            }
+
             if (ModelState.IsValid)
             {
                 model.CreatedAt = DateTime.Now;
                 _context.EmployeeAdvances.Add(model);
                 await _context.SaveChangesAsync();
 
-                var emp = await _context.Employees.FindAsync(model.EmployeeId);
+                var emp = await _context.Employees.Include(e => e.DepartmentNav).FirstOrDefaultAsync(e => e.Id == model.EmployeeId);
                 await _audit.LogAsync("Add", "Advances",
                     $"{(isManager ? "إضافة" : "طلب")} سلفة للموظف: {emp?.FullName ?? model.EmployeeId.ToString()} بمبلغ {model.Amount:N3} KD",
                     model.Id);
+
+                if (!isManager)
+                    _ = _email.SendAdvanceRequestAsync(emp?.FullName ?? "-", emp?.DepartmentNav?.Name ?? "-", model.Amount, model.Reason, model.AdvanceDate);
 
                 TempData["Success"] = isManager ? "تم إضافة السلفة بنجاح" : "تم إرسال طلب السلفة بنجاح، في انتظار موافقة المدير";
                 return RedirectToAction(nameof(Index));
@@ -140,12 +159,23 @@ namespace Salon.Controllers
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
 
+            var reportRoles = await _userManager.GetRolesAsync(currentUser!);
+            bool reportIsManager = reportRoles.Contains("Admin") || reportRoles.Contains("Manager");
+            bool reportIsEmployee = !reportIsManager && reportRoles.Contains("Employee");
+            int? reportLinkedEmpId = currentUser?.LinkedEmployeeId;
+
             var query = _context.EmployeeAdvances
                 .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                 .AsQueryable();
 
             if (userDept == "حلاقة" || userDept == "مساج")
                 query = query.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
+
+            if (reportIsEmployee && reportLinkedEmpId.HasValue)
+            {
+                query = query.Where(a => a.EmployeeId == reportLinkedEmpId.Value);
+                employeeId = reportLinkedEmpId;
+            }
 
             if (dateFrom.HasValue)
                 query = query.Where(a => a.AdvanceDate >= dateFrom.Value);
@@ -159,11 +189,16 @@ namespace Salon.Controllers
             if (!string.IsNullOrEmpty(status))
                 query = query.Where(a => a.Status == status);
 
+            // التقرير لا يعرض السلف المعلقة (غير الموافق عليها)
+            query = query.Where(a => a.Status != "معلق");
+
             var advances = await query.OrderByDescending(a => a.AdvanceDate).ToListAsync();
 
             var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
             if (userDept == "حلاقة" || userDept == "مساج")
                 empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
+            if (reportIsEmployee && reportLinkedEmpId.HasValue)
+                empQuery = empQuery.Where(e => e.Id == reportLinkedEmpId.Value);
 
             ViewBag.Employees = (await empQuery.OrderBy(e => e.FullName).ToListAsync())
                 .Select(e => new SelectListItem { Value = e.Id.ToString(), Text = e.FullName })

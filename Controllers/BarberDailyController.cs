@@ -84,7 +84,7 @@ namespace Salon.Controllers
 
             var advancesQuery = _context.EmployeeAdvances
                 .Include(a => a.Employee)
-                .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow);
+                .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow && a.Status != "معلق");
 
             if (!isEmployee)
                 advancesQuery = advancesQuery.Where(a => employeeIds.Contains(a.EmployeeId));
@@ -123,7 +123,7 @@ namespace Salon.Controllers
             decimal prevExpenses = await _context.Expenses
                 .Where(e => e.ExpenseDate >= monthStart && e.ExpenseDate < today).SumAsync(e => e.Amount);
             decimal prevAdvances = await _context.EmployeeAdvances
-                .Where(a => a.AdvanceDate >= monthStart && a.AdvanceDate < today).SumAsync(a => a.Amount);
+                .Where(a => a.AdvanceDate >= monthStart && a.AdvanceDate < today && a.Status != "معلق").SumAsync(a => a.Amount);
             decimal prevWithdrawals = await _context.Withdrawals
                 .Where(w => w.WithdrawalDate >= monthStart && w.WithdrawalDate < today).SumAsync(w => w.Amount);
             decimal openingBalance = baseBalance + prevCash + prevDeposits - prevExpenses - prevAdvances - prevWithdrawals;

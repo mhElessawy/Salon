@@ -12,7 +12,8 @@
     var employees = ViewBag.Employees as List<Employee> ?? new List<Employee>();
     var selectedDate = ViewBag.SelectedDate as string ?? DateTime.Today.ToString("yyyy-MM-dd");
     bool isToday = ViewBag.IsToday is bool b && b;
-    var isFiltered = !string.IsNullOrEmpty(selectedSaleType) || !string.IsNullOrEmpty(selectedPayment) || selectedEmpId.HasValue;
+    var selectedInvoice = ViewBag.SelectedInvoiceNumber as string;
+    var isFiltered = !string.IsNullOrEmpty(selectedSaleType) || !string.IsNullOrEmpty(selectedPayment) || selectedEmpId.HasValue || !string.IsNullOrEmpty(selectedInvoice);
     var advancesList = ViewBag.AdvancesList as List<EmployeeAdvance> ?? new List<EmployeeAdvance>();
     var expensesTodayList = ViewBag.ExpensesTodayList as List<Expense> ?? new List<Expense>();
     var salariesTodayList = ViewBag.SalariesTodayList as List<Salary> ?? new List<Salary>();
@@ -496,7 +497,7 @@
 
     <!-- Date navigation bar -->
     <div class="dp2-datebar no-print">
-        <a href="?date=@prevDate.ToString("yyyy-MM-dd")@(isFiltered ? $"&saleType={selectedSaleType}&paymentMethod={selectedPayment}&employeeId={selectedEmpId}" : "")" class="btn btn-outline-secondary btn-sm"><i class="fas fa-chevron-right"></i></a>
+        <a href="?date=@prevDate.ToString("yyyy-MM-dd")@(isFiltered ? $"&saleType={selectedSaleType}&paymentMethod={selectedPayment}&employeeId={selectedEmpId}&invoiceNumber={selectedInvoice}" : "")" class="btn btn-outline-secondary btn-sm"><i class="fas fa-chevron-right"></i></a>
         <form method="get" action="@Url.Action("MyReport")" class="d-flex align-items-center gap-2" id="dateForm">
             <input type="hidden" name="saleType" value="@selectedSaleType" />
             <input type="hidden" name="paymentMethod" value="@selectedPayment" />
@@ -504,11 +505,15 @@
             {
                 <input type="hidden" name="employeeId" value="@selectedEmpId" />
             }
+            @if (!string.IsNullOrEmpty(selectedInvoice))
+            {
+                <input type="hidden" name="invoiceNumber" value="@selectedInvoice" />
+            }
             <input type="date" id="dateInput" name="date" value="@selectedDate" class="form-control form-control-sm" style="width:150px;" />
             <button type="button" class="btn btn-outline-secondary btn-sm" id="todayBtn" title="اليوم"><i class="fas fa-calendar-day"></i></button>
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i><span data-i18n-en="View">عرض</span></button>
         </form>
-        <a href="?date=@nextDate.ToString("yyyy-MM-dd")@(isFiltered ? $"&saleType={selectedSaleType}&paymentMethod={selectedPayment}&employeeId={selectedEmpId}" : "")"
+        <a href="?date=@nextDate.ToString("yyyy-MM-dd")@(isFiltered ? $"&saleType={selectedSaleType}&paymentMethod={selectedPayment}&employeeId={selectedEmpId}&invoiceNumber={selectedInvoice}" : "")"
            class="btn btn-outline-secondary btn-sm"
            @(nextDate > DateTime.Today ? "style=opacity:.4;pointer-events:none;" : "")>
             <i class="fas fa-chevron-left"></i>
@@ -553,6 +558,7 @@
                 }
             </select>
         }
+        <input type="text" name="invoiceNumber" value="@selectedInvoice" class="form-control form-control-sm" style="width:150px;" placeholder="رقم الفاتورة..." />
         <button type="submit" class="btn btn-dark btn-sm"><i class="fas fa-filter me-1"></i><span data-i18n-en="Filter">تصفية</span></button>
         @if (isFiltered)
         {
