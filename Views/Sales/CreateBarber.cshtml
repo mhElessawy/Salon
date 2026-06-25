@@ -576,10 +576,7 @@
                         <i class="fas fa-user-plus"></i>
                     </button>
                 </div>
-                <small id="customerPhoneDisplay" class="text-muted mt-1" style="display:none;">
-                    <i class="fas fa-phone me-1"></i><span id="customerPhoneText"></span>
-                </small>
-                <small id="customerDebtWarning" class="text-danger mt-1" style="display:none">
+<small id="customerDebtWarning" class="text-danger mt-1" style="display:none">
                     <i class="fas fa-exclamation-circle me-1"></i>يتطلب اختيار عميل مسجل
                 </small>
                 <!-- ── باقات العميل ── -->
@@ -1389,7 +1386,6 @@
             var pendingAutoSelectData = null; // للاختيار التلقائي بعد تعيين باقة جديدة
 
             function onCustomerChange(customerId) {
-                showCustomerPhone(customerId);
                 clearPackageSelection();
                 var area = document.getElementById('customerPackagesArea');
                 var btnWrap = document.getElementById('assignPackageBtnWrap');
@@ -1748,20 +1744,6 @@
             .catch(function(e) { statusEl.textContent = '⚠ ' + e.message; });
         }
 
-        // ===== هواتف العملاء =====
-        var customerPhones = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.CustomerPhones as Dictionary<string, string> ?? new Dictionary<string, string>()));
-
-        function showCustomerPhone(customerId) {
-            var el = document.getElementById('customerPhoneDisplay');
-            var txt = document.getElementById('customerPhoneText');
-            if (customerId && customerPhones[String(customerId)]) {
-                txt.textContent = customerPhones[String(customerId)];
-                el.style.display = '';
-            } else {
-                el.style.display = 'none';
-            }
-        }
-
         // ===== عميل جديد =====
         function openNewCustomerModal() {
             document.getElementById('newCustName').value = '';
@@ -1820,7 +1802,6 @@
                     var opt = new Option(data.displayName || data.fullName, data.id, true, true);
                     sel.appendChild(opt);
                     sel.value = data.id;
-                    customerPhones[String(data.id)] = data.phone || '';
                     bootstrap.Modal.getInstance(document.getElementById('newCustomerModal')).hide();
                     onCustomerChange(data.id);
                 } else {
