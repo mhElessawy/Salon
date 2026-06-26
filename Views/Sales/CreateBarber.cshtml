@@ -1033,8 +1033,8 @@
 .cust-card .cust-name { font-weight:700;font-size:14px;color:#222; }
 .cust-card .cust-phone { font-size:13px;color:#555; }
 .cust-card .cust-meta { font-size:11px;color:#888;margin-top:4px; }
-.cust-icon-end { color:#ccc;font-size:14px;align-self:center;transition:.15s; }
-.cust-card:hover .cust-icon-end { color:#e07b00; }
+.cust-select-btn { background:#f0f0f0;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;color:#555;white-space:nowrap;align-self:center;transition:.15s;flex-shrink:0; }
+.cust-card:hover .cust-select-btn,.cust-card:focus .cust-select-btn { background:#e07b00;color:#fff; }
 </style>
 
 <!-- ══ Print Invoice Modal ══ -->
@@ -1896,7 +1896,7 @@
                                   + (c.lastVisit ? 'آخر خدمة: ' + c.lastVisit + ' &nbsp;|&nbsp; ' : '')
                                   + 'نقاط الولاء: ' + c.visitCount
                                   + '</div></div>'
-                                  + '<i class="fas fa-user cust-icon-end"></i>'
+                                  + '<span class="cust-select-btn">اختيار</span>'
                                   + '</button>';
                         });
                         resultsEl.innerHTML = html;
