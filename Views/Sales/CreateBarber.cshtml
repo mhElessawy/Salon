@@ -1844,31 +1844,38 @@
 
         // ===== بحث عميل (popup) =====
         var _custSearchTimer = null;
+        var _custModalInstance = null;
+
         function openCustomerSearchModal(tab) {
             document.getElementById('custSearchInput').value = '';
             document.getElementById('custSearchResults').innerHTML = '';
             document.getElementById('custSearchEmpty').style.display = 'none';
-            resetQuickForm();
-            switchCustTab(tab || 'search');
-            new bootstrap.Modal(document.getElementById('customerSearchModal')).show();
-            setTimeout(function() { document.getElementById('custSearchInput').focus(); }, 350);
+            _resetQuickForm();
+            _switchCustTab(tab || 'search');
+            _custModalInstance = new bootstrap.Modal(document.getElementById('customerSearchModal'), { backdrop: true, keyboard: true });
+            _custModalInstance.show();
+            setTimeout(function() {
+                var inp = document.getElementById('custSearchInput');
+                if (inp) inp.focus();
+            }, 400);
         }
-        function switchCustTab(tab) {
+
+        function _switchCustTab(tab) {
             var isSearch = tab === 'search';
             document.getElementById('tabSearch').classList.toggle('active', isSearch);
             document.getElementById('tabRegister').classList.toggle('active', !isSearch);
-            // على الموبايل نخفي/نظهر الأعمدة، على الديسكتوب كلاهما ظاهرين
             if (window.innerWidth < 768) {
                 document.getElementById('custSearchPanel').style.display = isSearch ? '' : 'none';
                 document.getElementById('custRegisterPanel').style.display = isSearch ? 'none' : '';
             }
         }
+        function switchCustTab(tab) { _switchCustTab(tab); }
+
         function doCustomerSearch(val) {
             clearTimeout(_custSearchTimer);
             var q = val.trim();
             var resultsEl = document.getElementById('custSearchResults');
             var emptyEl = document.getElementById('custSearchEmpty');
-            // pre-fill quick form name
             var qName = document.getElementById('qCustName');
             if (qName && !qName.dataset.manualEdit) qName.value = val;
             if (q.length < 1) { resultsEl.innerHTML = ''; emptyEl.style.display = 'none'; return; }
@@ -1878,81 +1885,38 @@
                 fetch('/Customers/SearchJson?q=' + encodeURIComponent(q) + '&dept=حلاقة')
                     .then(function(r) { return r.json(); })
                     .then(function(data) {
-                        if (!data.length) {
-                            resultsEl.innerHTML = '';
-                            emptyEl.style.display = '';
-                            return;
-                        }
+                        if (!data.length) { resultsEl.innerHTML = ''; emptyEl.style.display = ''; return; }
                         var html = '';
                         data.forEach(function(c) {
-                            var callStr = 'selectCustomerFromSearch(' + c.id + ',' + JSON.stringify(c.displayName) + ')';
-                            html += '<button type="button" class="cust-card d-flex align-items-center gap-2 w-100 text-end"'
-                                  + ' onclick="' + callStr + '"'
-                                  + ' ontouchend="event.preventDefault();' + callStr + '">'
+                            html += '<div class="cust-card d-flex align-items-center gap-2"'
+                                  + ' data-cust-id="' + c.id + '"'
+                                  + ' data-cust-name="' + _escAttr(c.displayName) + '">'
                                   + '<div style="flex:1;min-width:0;">'
-                                  + '<div class="cust-name">' + escHtml(c.fullName) + '</div>'
-                                  + '<div class="cust-phone">' + escHtml(c.phone) + '</div>'
+                                  + '<div class="cust-name">' + _escHtml(c.fullName) + '</div>'
+                                  + '<div class="cust-phone">' + _escHtml(c.phone) + '</div>'
                                   + '<div class="cust-meta">'
                                   + (c.lastVisit ? 'آخر خدمة: ' + c.lastVisit + ' &nbsp;|&nbsp; ' : '')
                                   + 'نقاط الولاء: ' + c.visitCount
                                   + '</div></div>'
                                   + '<span class="cust-select-btn">اختيار</span>'
-                                  + '</button>';
+                                  + '</div>';
                         });
                         resultsEl.innerHTML = html;
                     })
                     .catch(function() { resultsEl.innerHTML = '<div class="text-danger text-center py-2">حدث خطأ في البحث</div>'; });
             }, 300);
         }
-        function escHtml(s) {
-            return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-        }
-        var _selectBusy = false;
-        function selectCustomerFromSearch(id, displayName) {
-            if (_selectBusy) return;
-            _selectBusy = true;
-            setTimeout(function() { _selectBusy = false; }, 600);
 
-            document.getElementById('customerSelect').value = id;
-            var nameEl = document.getElementById('customerDisplayName');
-            nameEl.textContent = displayName;
-            nameEl.style.color = '#212529';
-            forceCloseCustModal();
-            onCustomerChange(id);
-        }
-        function forceCloseCustModal() {
-            var modalEl = document.getElementById('customerSearchModal');
-            // محاولة Bootstrap أولاً
-            var m = bootstrap.Modal.getInstance(modalEl);
-            if (m) m.hide();
-            // إغلاق مباشر بدون انتظار animation
-            modalEl.classList.remove('show');
-            modalEl.style.display = 'none';
-            modalEl.setAttribute('aria-hidden', 'true');
-            modalEl.removeAttribute('aria-modal');
-            document.body.classList.remove('modal-open');
-            document.body.style.removeProperty('padding-right');
-            document.body.style.removeProperty('overflow');
-            document.querySelectorAll('.modal-backdrop').forEach(function(el) { el.remove(); });
-        }
-        function clearCustomerSelection() {
-            document.getElementById('customerSelect').value = '';
-            var nameEl = document.getElementById('customerDisplayName');
-            nameEl.textContent = 'زائر';
-            nameEl.style.color = '#6c757d';
-            forceCloseCustModal();
-            onCustomerChange('');
-        }
-        function resetQuickForm() {
-            document.getElementById('qCustName').value = '';
-            document.getElementById('qCustPhone').value = '';
-            document.getElementById('qCustLater').checked = true;
-            document.getElementById('qCustExtraFields').style.display = 'none';
-            document.getElementById('qCustSavedHint').style.display = 'none';
-            document.getElementById('qCustError').classList.add('d-none');
-            delete document.getElementById('qCustName').dataset.manualEdit;
-        }
+        // event delegation — مسجّل مرة واحدة عند تحميل الصفحة
         document.addEventListener('DOMContentLoaded', function() {
+            // اختيار عميل من نتائج البحث
+            document.getElementById('custSearchResults').addEventListener('click', function(e) {
+                var card = e.target.closest('[data-cust-id]');
+                if (!card) return;
+                _pickCustomer(parseInt(card.dataset.custId), card.dataset.custName);
+            });
+
+            // toggle إكمال البيانات لاحقاً
             var laterToggle = document.getElementById('qCustLater');
             if (laterToggle) {
                 laterToggle.addEventListener('change', function() {
@@ -1964,6 +1928,51 @@
             var qName = document.getElementById('qCustName');
             if (qName) qName.addEventListener('input', function() { this.dataset.manualEdit = '1'; });
         });
+
+        function _pickCustomer(id, displayName) {
+            // 1. ضبط القيم
+            document.getElementById('customerSelect').value = id;
+            var nameEl = document.getElementById('customerDisplayName');
+            nameEl.textContent = displayName;
+            nameEl.style.color = '#212529';
+            // 2. إغلاق الـ modal
+            if (_custModalInstance) {
+                _custModalInstance.hide();
+            } else {
+                var modalEl = document.getElementById('customerSearchModal');
+                var m = bootstrap.Modal.getInstance(modalEl);
+                if (m) m.hide();
+            }
+            // 3. تحميل باقات العميل
+            onCustomerChange(id);
+        }
+
+        function clearCustomerSelection() {
+            document.getElementById('customerSelect').value = '';
+            var nameEl = document.getElementById('customerDisplayName');
+            nameEl.textContent = 'زائر';
+            nameEl.style.color = '#6c757d';
+            if (_custModalInstance) _custModalInstance.hide();
+            onCustomerChange('');
+        }
+
+        function _resetQuickForm() {
+            document.getElementById('qCustName').value = '';
+            document.getElementById('qCustPhone').value = '';
+            document.getElementById('qCustLater').checked = true;
+            document.getElementById('qCustExtraFields').style.display = 'none';
+            document.getElementById('qCustSavedHint').style.display = 'none';
+            document.getElementById('qCustError').classList.add('d-none');
+            delete document.getElementById('qCustName').dataset.manualEdit;
+        }
+
+        function _escHtml(s) {
+            return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+        function _escAttr(s) {
+            return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+        }
+
         function submitQuickCustomer() {
             var name = document.getElementById('qCustName').value.trim();
             var phone = document.getElementById('qCustPhone').value.trim();
@@ -1976,9 +1985,9 @@
             var body = new URLSearchParams({
                 fullName: name, phone: phone,
                 fullNameEn: later ? '' : (document.getElementById('qCustFullNameEn').value.trim()),
-                email: later ? '' : (document.getElementById('qCustEmail').value.trim()),
+                email:     later ? '' : (document.getElementById('qCustEmail').value.trim()),
                 birthDate: later ? '' : (document.getElementById('qCustBirthDate').value),
-                gender: later ? '' : (document.getElementById('qCustGender').value),
+                gender:    later ? '' : (document.getElementById('qCustGender').value),
                 department: 'حلاقة',
                 __RequestVerificationToken: token
             });
@@ -1987,12 +1996,7 @@
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (data && data.success) {
-                    document.getElementById('customerSelect').value = data.id;
-                    var nameEl = document.getElementById('customerDisplayName');
-                    nameEl.textContent = data.displayName || data.fullName;
-                    nameEl.style.color = '#212529';
-                    bootstrap.Modal.getInstance(document.getElementById('customerSearchModal')).hide();
-                    onCustomerChange(data.id);
+                    _pickCustomer(data.id, data.displayName || data.fullName);
                 } else {
                     errEl.textContent = (data && data.message) || 'حدث خطأ';
                     errEl.classList.remove('d-none');
