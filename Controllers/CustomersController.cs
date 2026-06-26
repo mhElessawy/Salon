@@ -202,6 +202,49 @@ namespace Salon.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        [HttpGet]
+        public async Task<IActionResult> SearchJson(string? q, string? dept)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var userDept = user?.UserDepartment;
+
+            var query = _context.Customers.Where(c => c.IsActive);
+
+            var effectiveDept = userDept ?? dept;
+            if (effectiveDept == "مساج" || effectiveDept == "حلاقة")
+                query = query.Where(c => c.Department == effectiveDept);
+
+            if (!string.IsNullOrEmpty(q))
+                query = query.Where(c =>
+                    c.FullName.Contains(q) ||
+                    (c.FullNameEn != null && c.FullNameEn.Contains(q)) ||
+                    (c.Phone != null && c.Phone.Contains(q)));
+
+            var raw = await query
+                .OrderBy(c => c.FullName)
+                .Take(30)
+                .Select(c => new {
+                    id = c.Id,
+                    fullName = c.FullName,
+                    phone = c.Phone ?? "",
+                    displayName = string.IsNullOrEmpty(c.Phone) ? c.FullName : c.FullName + " — " + c.Phone,
+                    visitCount = c.Sales.Count(),
+                    lastVisit = c.Sales.Any() ? (DateTime?)c.Sales.Max(s => s.SaleDate) : null
+                })
+                .ToListAsync();
+
+            var results = raw.Select(c => new {
+                c.id,
+                c.fullName,
+                c.phone,
+                c.displayName,
+                c.visitCount,
+                lastVisit = c.lastVisit.HasValue ? c.lastVisit.Value.ToString("dd/MM/yyyy") : (string?)null
+            });
+
+            return Json(results);
+        }
+
         private async Task<List<Employee>> GetEmployeesForUserAsync(string? userDepartment)
         {
             var query = _context.Employees

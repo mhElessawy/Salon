@@ -83,8 +83,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                               COLUMN 1 (RIGHT in RTL) — Employees
-                                                                                                            ════════════════════════════════════════ */
+                                                                                                                       COLUMN 1 (RIGHT in RTL) — Employees
+                                                                                                                    ════════════════════════════════════════ */
         .pos-employees-panel {
             background: var(--emp-dark);
             border-radius: 12px;
@@ -207,8 +207,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                               COLUMN 2 (MIDDLE) — Services
-                                                                                                            ════════════════════════════════════════ */
+                                                                                                                       COLUMN 2 (MIDDLE) — Services
+                                                                                                                    ════════════════════════════════════════ */
         .pos-services-panel {
             background: #fff;
             border-radius: 12px;
@@ -307,8 +307,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                               COLUMN 3 (LEFT in RTL) — Cart / Invoice
-                                                                                                            ════════════════════════════════════════ */
+                                                                                                                       COLUMN 3 (LEFT in RTL) — Cart / Invoice
+                                                                                                                    ════════════════════════════════════════ */
         .pos-cart-panel {
             background: #fff;
             border-radius: 12px;
@@ -567,11 +567,16 @@
             <div>
                 <label class="form-label">العميل</label>
                 <div class="d-flex gap-1 align-items-center">
-                    <select name="CustomerId" id="customerSelect" asp-items="@ViewBag.Customers"
-                            class="form-select form-select-sm" onchange="onCustomerChange(this.value)">
-                        <option value="">👤 زائر</option>
-                    </select>
-                    <button type="button" class="btn btn-sm btn-success" onclick="openNewCustomerModal()"
+                    <input type="hidden" name="CustomerId" id="customerSelect" value="" />
+                    <div class="form-control form-control-sm d-flex align-items-center gap-1"
+                         id="customerDisplay"
+                         onclick="openCustomerSearchModal()"
+                         style="cursor:pointer;min-width:0;flex:1;background:#fff;user-select:none;">
+                        <i class="fas fa-user text-muted" style="font-size:11px;"></i>
+                        <span id="customerDisplayName" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:#6c757d;">زائر</span>
+                        <i class="fas fa-search text-muted" style="font-size:11px;"></i>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-success" onclick="openCustomerSearchModal('register')"
                             title="إضافة عميل جديد" style="white-space:nowrap;font-size:12px;padding:4px 10px;">
                         <i class="fas fa-user-plus"></i>
                     </button>
@@ -939,6 +944,148 @@
     </div>
 </div>
 
+<!-- ══ Modal: بحث عميل ══ -->
+<div class="modal fade" id="customerSearchModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" style="max-width:760px;">
+        <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+            <div class="modal-header border-0 pb-0 px-4 pt-3">
+                <h6 class="modal-title fw-bold fs-6">البحث عن العميل</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="d-flex border-bottom px-4 mb-0" id="custModalTabs">
+                    <button type="button" class="cust-tab active" id="tabSearch" onclick="switchCustTab('search')">البحث</button>
+                    <button type="button" class="cust-tab" id="tabRegister" onclick="switchCustTab('register')">تسجيل عميل جديد</button>
+                </div>
+                <div class="row g-0" style="min-height:420px;">
+                    <div class="col-md-6 border-start p-3" id="custSearchPanel">
+                        <div class="input-group mb-3" style="direction:rtl;">
+                            <input type="text" id="custSearchInput" class="form-control"
+                                   placeholder="اكتب الاسم أو رقم الهاتف" autocomplete="off"
+                                   oninput="doCustomerSearch(this.value)" />
+                            <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                        </div>
+                        <div id="custSearchResults" style="max-height:320px;overflow-y:auto;"></div>
+                        <div id="custSearchEmpty" class="text-center text-muted py-5" style="display:none;">
+                            <i class="fas fa-user-slash fa-2x mb-2 d-block"></i>لا توجد نتائج
+                        </div>
+                    </div>
+                    <div class="col-md-6 p-4" id="custRegisterPanel">
+                        <p class="text-warning fw-semibold mb-3" style="font-size:13px;">تسجيل عميل جديد (سريع)</p>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" style="font-size:13px;">الاسم <span class="text-danger">*</span></label>
+                            <input type="text" id="qCustName" class="form-control form-control-sm" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" style="font-size:13px;">رقم الهاتف <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                <input type="text" id="qCustPhone" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="mb-3 d-flex align-items-center justify-content-between">
+                            <label class="form-label mb-0 fw-semibold" style="font-size:13px;">إكمال البيانات لاحقاً</label>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="qCustLater" checked
+                                       style="width:2.5rem;height:1.3rem;cursor:pointer;" />
+                            </div>
+                        </div>
+                        <div id="qCustExtraFields" style="display:none;">
+                            <div class="mb-2"><input type="text" id="qCustFullNameEn" class="form-control form-control-sm" placeholder="الاسم بالإنجليزية" /></div>
+                            <div class="mb-2"><input type="email" id="qCustEmail" class="form-control form-control-sm" placeholder="البريد الإلكتروني" /></div>
+                            <div class="mb-2"><input type="date" id="qCustBirthDate" class="form-control form-control-sm" /></div>
+                            <div class="mb-2"><select id="qCustGender" class="form-select form-select-sm"><option value="">الجنس</option><option>ذكر</option><option>أنثى</option></select></div>
+                        </div>
+                        <div id="qCustSavedHint" class="rounded p-2 mb-3 text-center" style="display:none;background:#f0faf0;border:1px solid #c3e6c3;font-size:12px;">
+                            <i class="fas fa-check-circle text-success me-1"></i>
+                            سيتم حفظ العميل ويمكنك تعديل تفاصيله لاحقاً من صفحة العملاء
+                        </div>
+                        <div id="qCustError" class="alert alert-danger py-2 d-none" style="font-size:12px;"></div>
+                        <button type="button" class="btn w-100 fw-bold" onclick="submitQuickCustomer()"
+                                style="background:#e07b00;color:#fff;border-radius:8px;">
+                            <i class="fas fa-save me-1"></i> حفظ واختيار العميل
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    .cust-tab {
+        background: none;
+        border: none;
+        padding: 10px 18px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #888;
+        border-bottom: 3px solid transparent;
+        margin-bottom: -1px;
+        transition: .2s;
+    }
+
+        .cust-tab.active {
+            color: #e07b00;
+            border-bottom-color: #e07b00;
+            font-weight: 700;
+        }
+
+    .cust-card {
+        border: 1px solid #eee;
+        border-radius: 10px;
+        padding: 10px 14px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: .15s;
+        background: #fff;
+        display: flex;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+        .cust-card:hover, .cust-card:focus {
+            border-color: #e07b00;
+            background: #fff8f0;
+            outline: none;
+        }
+
+        .cust-card .cust-name {
+            font-weight: 700;
+            font-size: 14px;
+            color: #222;
+        }
+
+        .cust-card .cust-phone {
+            font-size: 13px;
+            color: #555;
+        }
+
+        .cust-card .cust-meta {
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+    .cust-select-btn {
+        background: #f0f0f0;
+        border: none;
+        border-radius: 8px;
+        padding: 5px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #555;
+        white-space: nowrap;
+        align-self: center;
+        transition: .15s;
+        flex-shrink: 0;
+    }
+
+    .cust-card:hover .cust-select-btn, .cust-card:focus .cust-select-btn {
+        background: #e07b00;
+        color: #fff;
+    }
+</style>
+
 <!-- ══ Print Invoice Modal ══ -->
 <div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -997,8 +1144,8 @@
                             <div class="assign-pkg-card" id="apc-@p.Id"
                                  onclick="selectAssignCard(@p.Id, '@Html.Raw(p.NameAr.Replace("'", "\\\'"))', @p.Price.ToString(System.Globalization.CultureInfo.InvariantCulture), @p.SessionCount, @p.ValidityDays)"
                                  style="border:2px solid #dee2e6;border-radius:12px;background:#fff;padding:12px 16px;
-                                                                            cursor:pointer;min-width:170px;flex:1;max-width:230px;transition:all .2s;text-align:right;
-                                                                            box-shadow:0 1px 4px rgba(0,0,0,.06);">
+                                                                                cursor:pointer;min-width:170px;flex:1;max-width:230px;transition:all .2s;text-align:right;
+                                                                                box-shadow:0 1px 4px rgba(0,0,0,.06);">
                                 <div style="font-weight:700;font-size:13px;color:#1a6fc4;margin-bottom:6px;">
                                     <i class="fas fa-box-open me-1"></i>@p.NameAr
                                 </div>
@@ -1094,18 +1241,18 @@
 
             @if (isEmployee && linkedEmpId.HasValue)
             {
-                                                                    <text>
-                                                                    document.querySelectorAll('.emp-item').forEach(function(el) {
-                                                                        el.style.cursor = 'default';
-                                                                        el.onclick = null;
-                                                                    });
-                                                                    </text>
+                                                                        <text>
+                                                                        document.querySelectorAll('.emp-item').forEach(function(el) {
+                                                                            el.style.cursor = 'default';
+                                                                            el.onclick = null;
+                                                                        });
+                                                                        </text>
             }
 
             function selectEmployee(id, el) {
                 @if (isEmployee)
                 {
-                                                                    <text>return;</text>
+                                                                        <text>return;</text>
                 }
                 document.querySelectorAll('.emp-item').forEach(function(e) { e.classList.remove('emp-selected'); });
                 el.classList.add('emp-selected');
@@ -1671,7 +1818,7 @@
         var schedEmployees = [
             @foreach (var emp in employees)
             {
-                            <text>{ id: @emp.Id, name: '@Html.Raw(emp.FullName.Replace("'", "\\'"))' },</text>
+                                <text>{ id: @emp.Id, name: '@Html.Raw(emp.FullName.Replace("'", "\\'"))' },</text>
             }
         ];
 
@@ -1744,6 +1891,162 @@
             .catch(function(e) { statusEl.textContent = '⚠ ' + e.message; });
         }
 
+        // ===== بحث عميل (popup) =====
+        var _custSearchTimer = null;
+        var _custModalInstance = null;
+
+        function openCustomerSearchModal(tab) {
+            document.getElementById('custSearchInput').value = '';
+            document.getElementById('custSearchResults').innerHTML = '';
+            document.getElementById('custSearchEmpty').style.display = 'none';
+            _resetQuickForm();
+            _switchCustTab(tab || 'search');
+            _custModalInstance = new bootstrap.Modal(document.getElementById('customerSearchModal'), { backdrop: true, keyboard: true });
+            _custModalInstance.show();
+            setTimeout(function() {
+                var inp = document.getElementById('custSearchInput');
+                if (inp) inp.focus();
+            }, 400);
+        }
+
+        function _switchCustTab(tab) {
+            var isSearch = tab === 'search';
+            document.getElementById('tabSearch').classList.toggle('active', isSearch);
+            document.getElementById('tabRegister').classList.toggle('active', !isSearch);
+            if (window.innerWidth < 768) {
+                document.getElementById('custSearchPanel').style.display = isSearch ? '' : 'none';
+                document.getElementById('custRegisterPanel').style.display = isSearch ? 'none' : '';
+            }
+        }
+        function switchCustTab(tab) { _switchCustTab(tab); }
+
+        function doCustomerSearch(val) {
+            clearTimeout(_custSearchTimer);
+            var q = val.trim();
+            var resultsEl = document.getElementById('custSearchResults');
+            var emptyEl = document.getElementById('custSearchEmpty');
+            var qName = document.getElementById('qCustName');
+            if (qName && !qName.dataset.manualEdit) qName.value = val;
+            if (q.length < 1) { resultsEl.innerHTML = ''; emptyEl.style.display = 'none'; return; }
+            _custSearchTimer = setTimeout(function() {
+                resultsEl.innerHTML = '<div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin fa-lg"></i></div>';
+                emptyEl.style.display = 'none';
+                fetch('/Customers/SearchJson?q=' + encodeURIComponent(q) + '&dept=مساج')
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (!data.length) { resultsEl.innerHTML = ''; emptyEl.style.display = ''; return; }
+                        var html = '';
+                        data.forEach(function(c) {
+                            html += '<div class="cust-card d-flex align-items-center gap-2"'
+                                  + ' data-cust-id="' + c.id + '"'
+                                  + ' data-cust-name="' + _escAttr(c.displayName) + '">'
+                                  + '<div style="flex:1;min-width:0;">'
+                                  + '<div class="cust-name">' + _escHtml(c.fullName) + '</div>'
+                                  + '<div class="cust-phone">' + _escHtml(c.phone) + '</div>'
+                                  + '<div class="cust-meta">'
+                                  + (c.lastVisit ? 'آخر خدمة: ' + c.lastVisit + ' &nbsp;|&nbsp; ' : '')
+                                  + 'نقاط الولاء: ' + c.visitCount
+                                  + '</div></div>'
+                                  + '<span class="cust-select-btn">اختيار</span>'
+                                  + '</div>';
+                        });
+                        resultsEl.innerHTML = html;
+                    })
+                    .catch(function() { resultsEl.innerHTML = '<div class="text-danger text-center py-2">حدث خطأ في البحث</div>'; });
+            }, 300);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('custSearchResults').addEventListener('click', function(e) {
+                var card = e.target.closest('[data-cust-id]');
+                if (!card) return;
+                _pickCustomer(parseInt(card.dataset.custId), card.dataset.custName);
+            });
+
+            var laterToggle = document.getElementById('qCustLater');
+            if (laterToggle) {
+                laterToggle.addEventListener('change', function() {
+                    document.getElementById('qCustExtraFields').style.display = this.checked ? 'none' : '';
+                    document.getElementById('qCustSavedHint').style.display = this.checked ? '' : 'none';
+                });
+                laterToggle.dispatchEvent(new Event('change'));
+            }
+            var qName = document.getElementById('qCustName');
+            if (qName) qName.addEventListener('input', function() { this.dataset.manualEdit = '1'; });
+        });
+
+        function _pickCustomer(id, displayName) {
+            document.getElementById('customerSelect').value = id;
+            var nameEl = document.getElementById('customerDisplayName');
+            nameEl.textContent = displayName;
+            nameEl.style.color = '#212529';
+            if (_custModalInstance) {
+                _custModalInstance.hide();
+            } else {
+                var m = bootstrap.Modal.getInstance(document.getElementById('customerSearchModal'));
+                if (m) m.hide();
+            }
+            onCustomerChange(id);
+        }
+
+        function clearCustomerSelection() {
+            document.getElementById('customerSelect').value = '';
+            var nameEl = document.getElementById('customerDisplayName');
+            nameEl.textContent = 'زائر';
+            nameEl.style.color = '#6c757d';
+            if (_custModalInstance) _custModalInstance.hide();
+            onCustomerChange('');
+        }
+
+        function _resetQuickForm() {
+            document.getElementById('qCustName').value = '';
+            document.getElementById('qCustPhone').value = '';
+            document.getElementById('qCustLater').checked = true;
+            document.getElementById('qCustExtraFields').style.display = 'none';
+            document.getElementById('qCustSavedHint').style.display = 'none';
+            document.getElementById('qCustError').classList.add('d-none');
+            delete document.getElementById('qCustName').dataset.manualEdit;
+        }
+
+        function _escHtml(s) {
+            return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+        function _escAttr(s) {
+            return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+        }
+
+        function submitQuickCustomer() {
+            var name = document.getElementById('qCustName').value.trim();
+            var phone = document.getElementById('qCustPhone').value.trim();
+            var errEl = document.getElementById('qCustError');
+            errEl.classList.add('d-none');
+            if (!name) { errEl.textContent = 'الاسم مطلوب'; errEl.classList.remove('d-none'); return; }
+            if (!phone) { errEl.textContent = 'رقم الهاتف مطلوب'; errEl.classList.remove('d-none'); return; }
+            var later = document.getElementById('qCustLater').checked;
+            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            var body = new URLSearchParams({
+                fullName: name, phone: phone,
+                fullNameEn: later ? '' : (document.getElementById('qCustFullNameEn').value.trim()),
+                email:     later ? '' : (document.getElementById('qCustEmail').value.trim()),
+                birthDate: later ? '' : (document.getElementById('qCustBirthDate').value),
+                gender:    later ? '' : (document.getElementById('qCustGender').value),
+                department: 'مساج',
+                __RequestVerificationToken: token
+            });
+            fetch('/Customers/CreateQuick', { method:'POST', body:body,
+                headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'} })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data && data.success) {
+                    _pickCustomer(data.id, data.displayName || data.fullName);
+                } else {
+                    errEl.textContent = (data && data.message) || 'حدث خطأ';
+                    errEl.classList.remove('d-none');
+                }
+            })
+            .catch(function(e) { errEl.textContent = 'خطأ: ' + e.message; errEl.classList.remove('d-none'); });
+        }
+
         // ===== عميل جديد =====
         function openNewCustomerModal() {
             document.getElementById('newCustName').value = '';
@@ -1798,10 +2101,10 @@
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (data && data.success) {
-                    var sel = document.getElementById('customerSelect');
-                    var opt = new Option(data.displayName || data.fullName, data.id, true, true);
-                    sel.appendChild(opt);
-                    sel.value = data.id;
+                    document.getElementById('customerSelect').value = data.id;
+                    var nameEl = document.getElementById('customerDisplayName');
+                    nameEl.textContent = data.displayName || data.fullName;
+                    nameEl.style.color = '#212529';
                     bootstrap.Modal.getInstance(document.getElementById('newCustomerModal')).hide();
                     onCustomerChange(data.id);
                 } else {

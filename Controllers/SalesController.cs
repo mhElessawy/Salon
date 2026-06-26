@@ -455,6 +455,17 @@ namespace Salon.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateNotes(int id, string? notes)
+        {
+            var sale = await _context.Sales.FindAsync(id);
+            if (sale == null) return Json(new { success = false, message = "الفاتورة غير موجودة" });
+            sale.Notes = notes?.Trim();
+            await _context.SaveChangesAsync();
+            await _audit.LogAsync("Edit", "المبيعات", $"تعديل ملاحظات الفاتورة {sale.InvoiceNumber}", sale.Id);
+            return Json(new { success = true, notes = sale.Notes ?? "" });
+        }
+
         // ===== Helpers =====
 
         private async Task<string> GenerateInvoiceNumber(string prefix)
