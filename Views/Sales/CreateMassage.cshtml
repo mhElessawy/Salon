@@ -1014,13 +1014,13 @@
 <style>
 .cust-tab { background:none;border:none;padding:10px 18px;font-size:14px;font-weight:500;color:#888;border-bottom:3px solid transparent;margin-bottom:-1px;transition:.2s; }
 .cust-tab.active { color:#e07b00;border-bottom-color:#e07b00;font-weight:700; }
-.cust-card { border:1px solid #eee;border-radius:10px;padding:10px 14px;margin-bottom:8px;cursor:pointer;transition:.15s;background:#fff; }
-.cust-card:hover { border-color:#e07b00;background:#fff8f0; }
+.cust-card { border:1px solid #eee;border-radius:10px;padding:10px 14px;margin-bottom:8px;cursor:pointer;transition:.15s;background:#fff;display:flex; }
+.cust-card:hover,.cust-card:focus { border-color:#e07b00;background:#fff8f0;outline:none; }
 .cust-card .cust-name { font-weight:700;font-size:14px;color:#222; }
 .cust-card .cust-phone { font-size:13px;color:#555; }
 .cust-card .cust-meta { font-size:11px;color:#888;margin-top:4px; }
-.cust-card .cust-select-btn { background:#f5f5f5;border:none;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0; }
-.cust-card:hover .cust-select-btn { background:#e07b00;color:#fff; }
+.cust-icon-end { color:#ccc;font-size:14px;align-self:center;transition:.15s; }
+.cust-card:hover .cust-icon-end { color:#e07b00; }
 </style>
 
 <!-- ══ Print Invoice Modal ══ -->
@@ -1865,7 +1865,8 @@
                         if (!data.length) { resultsEl.innerHTML = ''; emptyEl.style.display = ''; return; }
                         var html = '';
                         data.forEach(function(c) {
-                            html += '<div class="cust-card d-flex align-items-center gap-2" onclick="selectCustomerFromSearch(' + c.id + ',' + JSON.stringify(c.displayName) + ')">'
+                            html += '<button type="button" class="cust-card d-flex align-items-center gap-2 w-100 text-end"'
+                                  + ' onclick="selectCustomerFromSearch(' + c.id + ',' + JSON.stringify(c.displayName) + ')">'
                                   + '<div style="flex:1;min-width:0;">'
                                   + '<div class="cust-name">' + escHtml(c.fullName) + '</div>'
                                   + '<div class="cust-phone">' + escHtml(c.phone) + '</div>'
@@ -1873,8 +1874,8 @@
                                   + (c.lastVisit ? 'آخر خدمة: ' + c.lastVisit + ' &nbsp;|&nbsp; ' : '')
                                   + 'نقاط الولاء: ' + c.visitCount
                                   + '</div></div>'
-                                  + '<button type="button" class="cust-select-btn" title="اختيار"><i class="fas fa-user"></i></button>'
-                                  + '</div>';
+                                  + '<i class="fas fa-user cust-icon-end"></i>'
+                                  + '</button>';
                         });
                         resultsEl.innerHTML = html;
                     })
@@ -1889,7 +1890,9 @@
             var nameEl = document.getElementById('customerDisplayName');
             nameEl.textContent = displayName;
             nameEl.style.color = '#212529';
-            bootstrap.Modal.getInstance(document.getElementById('customerSearchModal')).hide();
+            var modalEl = document.getElementById('customerSearchModal');
+            var m = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            m.hide();
             onCustomerChange(id);
         }
         function clearCustomerSelection() {
