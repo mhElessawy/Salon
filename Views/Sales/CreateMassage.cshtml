@@ -596,7 +596,7 @@
                 </div>
             </div>
             <div>
-                <input type="hidden" asp-for="PaymentMethod" id="paymentMethodSelect" value="كاش" />
+                <input type="hidden" asp-for="PaymentMethod" id="paymentMethodSelect" value="" />
             </div>
             <div>
                 <label class="form-label">ملاحظات</label>
@@ -813,7 +813,7 @@
             <div class="payment-btn-group">
                 <div class="payment-btn-label">طريقة الدفع</div>
                 <div class="payment-btns">
-                    <button type="button" class="pay-btn active" data-value="كاش" onclick="selectPayment(this)">
+                    <button type="button" class="pay-btn" data-value="كاش" onclick="selectPayment(this)">
                         <i class="fas fa-money-bill-wave"></i> كاش
                     </button>
                     <button type="button" class="pay-btn" data-value="كي نت" onclick="selectPayment(this)">
@@ -1278,7 +1278,7 @@
                 items.push(it);
                 renderRow(it);
                 document.getElementById('emptyRow').style.display = 'none';
-                document.getElementById('saveBtn').disabled = false;
+                updateSaveBtn();
                 recalc();
             }
             function renderRow(it) {
@@ -1297,9 +1297,14 @@
                 var tr = document.getElementById('row-' + rid); if (tr) tr.remove();
                 if (!items.length) {
                     document.getElementById('emptyRow').style.display = '';
-                    document.getElementById('saveBtn').disabled = true;
                 }
+                updateSaveBtn();
                 recalc();
+            }
+            function updateSaveBtn() {
+                var hasItems = items.length > 0;
+                var hasPm = !!document.getElementById('paymentMethodSelect').value;
+                document.getElementById('saveBtn').disabled = !(hasItems && hasPm);
             }
             function recalc() {
                 var s = items.reduce(function(a,i) { return a + i.total; }, 0);
@@ -1339,6 +1344,7 @@
                 document.querySelectorAll('.pay-btn').forEach(function(b) { b.classList.remove('active'); });
                 btn.classList.add('active');
                 document.getElementById('paymentMethodSelect').value = btn.dataset.value;
+                updateSaveBtn();
                 onPaymentChange();
             }
             function onPaymentChange() {
@@ -1428,6 +1434,7 @@
                 var empId = document.getElementById('selectedEmployeeId').value;
                 if (!empId) { alert('يرجى اختيار الحلاق أولاً'); return; }
                 var pm = document.getElementById('paymentMethodSelect').value;
+                if (!pm) { alert('يرجى اختيار طريقة الدفع'); return; }
                 if (pm === 'دين على العميل') {
                     if (!document.getElementById('customerSelect').value) {
                         alert('طريقة الدفع "دين على العميل" تتطلب اختيار عميل مسجل'); return;
