@@ -185,7 +185,18 @@
                             <td>
                                 <span class="badge @(s.Status == "مكتمل" ? "bg-success" : "bg-danger")">@s.Status</span>
                             </td>
-                            <td class="small text-muted" style="max-width:160px;white-space:pre-wrap;">@s.Notes</td>
+                            <td style="max-width:160px;">
+                                <div class="d-flex align-items-start gap-1">
+                                    <span class="small text-muted notes-cell-text" id="notes-text-@s.Id"
+                                          style="white-space:pre-wrap;flex:1;">@s.Notes</span>
+                                    <button type="button" class="btn btn-sm p-0 text-secondary"
+                                            style="font-size:12px;flex-shrink:0;opacity:.6;"
+                                            title="تعديل الملاحظات"
+                                            onclick="openNotesModal(@s.Id, document.getElementById('notes-text-@s.Id').textContent.trim())">
+                                        <i class="fas fa-pen"></i>
+                                    </button>
+                                </div>
+                            </td>
                             <td>
                                 <a href="@Url.Action("Details", new { id = s.Id })" class="btn btn-sm btn-outline-primary me-1">
                                     <i class="fas fa-eye"></i>
@@ -210,6 +221,30 @@
                     }
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- Notes Modal -->
+<div class="modal fade" id="notesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold"><i class="fas fa-pen me-2 text-warning"></i>ملاحظات الفاتورة</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <textarea id="notesModalText" class="form-control" rows="4"
+                          placeholder="اكتب الملاحظات هنا..."
+                          style="resize:none;font-size:14px;"></textarea>
+                <div id="notesModalError" class="text-danger small mt-2" style="display:none;"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-warning btn-sm fw-bold px-4" onclick="saveNotes()">
+                    <i class="fas fa-save me-1"></i> حفظ
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -273,6 +308,41 @@
             }
             document.getElementById('deleteReasonInput').value = reason;
             return true;
+        }
+
+        var _notesSaleId = null;
+        var _notesModalInstance = null;
+
+        function openNotesModal(saleId, currentNotes) {
+            _notesSaleId = saleId;
+            document.getElementById('notesModalText').value = currentNotes || '';
+            document.getElementById('notesModalError').style.display = 'none';
+            _notesModalInstance = new bootstrap.Modal(document.getElementById('notesModal'));
+            _notesModalInstance.show();
+            setTimeout(function() { document.getElementById('notesModalText').focus(); }, 350);
+        }
+
+        function saveNotes() {
+            var notes = document.getElementById('notesModalText').value.trim();
+            var errEl = document.getElementById('notesModalError');
+            errEl.style.display = 'none';
+            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            fetch('@Url.Action("UpdateNotes", "Sales")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                body: new URLSearchParams({ id: _notesSaleId, notes: notes, __RequestVerificationToken: token })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    document.getElementById('notes-text-' + _notesSaleId).textContent = data.notes;
+                    if (_notesModalInstance) _notesModalInstance.hide();
+                } else {
+                    errEl.textContent = data.message || 'حدث خطأ';
+                    errEl.style.display = 'block';
+                }
+            })
+            .catch(function() { errEl.textContent = 'تعذّر الاتصال بالخادم'; errEl.style.display = 'block'; });
         }
     </script>
 }
