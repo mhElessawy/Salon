@@ -1907,23 +1907,40 @@
         function escHtml(s) {
             return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
+        var _selectBusy = false;
         function selectCustomerFromSearch(id, displayName) {
+            if (_selectBusy) return;
+            _selectBusy = true;
+            setTimeout(function() { _selectBusy = false; }, 600);
+
             document.getElementById('customerSelect').value = id;
             var nameEl = document.getElementById('customerDisplayName');
             nameEl.textContent = displayName;
             nameEl.style.color = '#212529';
-            var modalEl = document.getElementById('customerSearchModal');
-            var m = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-            m.hide();
+            forceCloseCustModal();
             onCustomerChange(id);
+        }
+        function forceCloseCustModal() {
+            var modalEl = document.getElementById('customerSearchModal');
+            // محاولة Bootstrap أولاً
+            var m = bootstrap.Modal.getInstance(modalEl);
+            if (m) m.hide();
+            // إغلاق مباشر بدون انتظار animation
+            modalEl.classList.remove('show');
+            modalEl.style.display = 'none';
+            modalEl.setAttribute('aria-hidden', 'true');
+            modalEl.removeAttribute('aria-modal');
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('padding-right');
+            document.body.style.removeProperty('overflow');
+            document.querySelectorAll('.modal-backdrop').forEach(function(el) { el.remove(); });
         }
         function clearCustomerSelection() {
             document.getElementById('customerSelect').value = '';
             var nameEl = document.getElementById('customerDisplayName');
             nameEl.textContent = 'زائر';
             nameEl.style.color = '#6c757d';
-            var m = bootstrap.Modal.getInstance(document.getElementById('customerSearchModal'));
-            if (m) m.hide();
+            forceCloseCustModal();
             onCustomerChange('');
         }
         function resetQuickForm() {
