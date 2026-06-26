@@ -576,7 +576,7 @@
                         <span id="customerDisplayName" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:#6c757d;">زائر</span>
                         <i class="fas fa-search text-muted" style="font-size:11px;"></i>
                     </div>
-                    <button type="button" class="btn btn-sm btn-success" onclick="openNewCustomerModal()"
+                    <button type="button" class="btn btn-sm btn-success" onclick="openCustomerSearchModal('register')"
                             title="إضافة عميل جديد" style="white-space:nowrap;font-size:12px;padding:4px 10px;">
                         <i class="fas fa-user-plus"></i>
                     </button>
@@ -946,26 +946,82 @@
 
 <!-- ══ Modal: بحث عميل ══ -->
 <div class="modal fade" id="customerSearchModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
-        <div class="modal-content">
-            <div class="modal-header py-2">
-                <h6 class="modal-title mb-0"><i class="fas fa-search me-2"></i>بحث عن عميل</h6>
+    <div class="modal-dialog modal-dialog-centered modal-lg" style="max-width:760px;">
+        <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+            <div class="modal-header border-0 pb-0 px-4 pt-3">
+                <h6 class="modal-title fw-bold fs-6">البحث عن العميل</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body p-3">
-                <div class="input-group mb-3">
-                    <span class="input-group-text"><i class="fas fa-search"></i></span>
-                    <input type="text" id="custSearchInput" class="form-control" placeholder="ابحث بالاسم أو رقم الجوال..."
-                           oninput="doCustomerSearch(this.value)" autocomplete="off" autofocus />
-                    <button type="button" class="btn btn-outline-secondary" onclick="clearCustomerSelection()" title="مسح">
-                        <i class="fas fa-user-slash"></i>
-                    </button>
+            <div class="modal-body p-0">
+                <div class="d-flex border-bottom px-4 mb-0" id="custModalTabs">
+                    <button type="button" class="cust-tab active" id="tabSearch" onclick="switchCustTab('search')">البحث</button>
+                    <button type="button" class="cust-tab" id="tabRegister" onclick="switchCustTab('register')">تسجيل عميل جديد</button>
                 </div>
-                <div id="custSearchResults" style="max-height:320px;overflow-y:auto;"></div>
+                <div class="row g-0" style="min-height:420px;">
+                    <div class="col-md-6 border-start p-3" id="custSearchPanel">
+                        <div class="input-group mb-3" style="direction:rtl;">
+                            <input type="text" id="custSearchInput" class="form-control"
+                                   placeholder="اكتب الاسم أو رقم الهاتف" autocomplete="off"
+                                   oninput="doCustomerSearch(this.value)" />
+                            <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                        </div>
+                        <div id="custSearchResults" style="max-height:320px;overflow-y:auto;"></div>
+                        <div id="custSearchEmpty" class="text-center text-muted py-5" style="display:none;">
+                            <i class="fas fa-user-slash fa-2x mb-2 d-block"></i>لا توجد نتائج
+                        </div>
+                    </div>
+                    <div class="col-md-6 p-4" id="custRegisterPanel">
+                        <p class="text-warning fw-semibold mb-3" style="font-size:13px;">تسجيل عميل جديد (سريع)</p>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" style="font-size:13px;">الاسم <span class="text-danger">*</span></label>
+                            <input type="text" id="qCustName" class="form-control form-control-sm" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" style="font-size:13px;">رقم الهاتف <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                <input type="text" id="qCustPhone" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="mb-3 d-flex align-items-center justify-content-between">
+                            <label class="form-label mb-0 fw-semibold" style="font-size:13px;">إكمال البيانات لاحقاً</label>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="qCustLater" checked
+                                       style="width:2.5rem;height:1.3rem;cursor:pointer;" />
+                            </div>
+                        </div>
+                        <div id="qCustExtraFields" style="display:none;">
+                            <div class="mb-2"><input type="text" id="qCustFullNameEn" class="form-control form-control-sm" placeholder="الاسم بالإنجليزية" /></div>
+                            <div class="mb-2"><input type="email" id="qCustEmail" class="form-control form-control-sm" placeholder="البريد الإلكتروني" /></div>
+                            <div class="mb-2"><input type="date" id="qCustBirthDate" class="form-control form-control-sm" /></div>
+                            <div class="mb-2"><select id="qCustGender" class="form-select form-select-sm"><option value="">الجنس</option><option>ذكر</option><option>أنثى</option></select></div>
+                        </div>
+                        <div id="qCustSavedHint" class="rounded p-2 mb-3 text-center" style="display:none;background:#f0faf0;border:1px solid #c3e6c3;font-size:12px;">
+                            <i class="fas fa-check-circle text-success me-1"></i>
+                            سيتم حفظ العميل ويمكنك تعديل تفاصيله لاحقاً من صفحة العملاء
+                        </div>
+                        <div id="qCustError" class="alert alert-danger py-2 d-none" style="font-size:12px;"></div>
+                        <button type="button" class="btn w-100 fw-bold" onclick="submitQuickCustomer()"
+                                style="background:#e07b00;color:#fff;border-radius:8px;">
+                            <i class="fas fa-save me-1"></i> حفظ واختيار العميل
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+<style>
+.cust-tab { background:none;border:none;padding:10px 18px;font-size:14px;font-weight:500;color:#888;border-bottom:3px solid transparent;margin-bottom:-1px;transition:.2s; }
+.cust-tab.active { color:#e07b00;border-bottom-color:#e07b00;font-weight:700; }
+.cust-card { border:1px solid #eee;border-radius:10px;padding:10px 14px;margin-bottom:8px;cursor:pointer;transition:.15s;background:#fff; }
+.cust-card:hover { border-color:#e07b00;background:#fff8f0; }
+.cust-card .cust-name { font-weight:700;font-size:14px;color:#222; }
+.cust-card .cust-phone { font-size:13px;color:#555; }
+.cust-card .cust-meta { font-size:11px;color:#888;margin-top:4px; }
+.cust-card .cust-select-btn { background:#f5f5f5;border:none;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0; }
+.cust-card:hover .cust-select-btn { background:#e07b00;color:#fff; }
+</style>
 
 <!-- ══ Print Invoice Modal ══ -->
 <div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true" data-bs-backdrop="static">
@@ -1772,41 +1828,61 @@
             .catch(function(e) { statusEl.textContent = '⚠ ' + e.message; });
         }
 
-        // ===== بحث عميل =====
+        // ===== بحث عميل (popup) =====
         var _custSearchTimer = null;
-        function openCustomerSearchModal() {
+        function openCustomerSearchModal(tab) {
             document.getElementById('custSearchInput').value = '';
             document.getElementById('custSearchResults').innerHTML = '';
+            document.getElementById('custSearchEmpty').style.display = 'none';
+            resetQuickForm();
+            switchCustTab(tab || 'search');
             new bootstrap.Modal(document.getElementById('customerSearchModal')).show();
-            setTimeout(function() { document.getElementById('custSearchInput').focus(); }, 300);
+            setTimeout(function() { document.getElementById('custSearchInput').focus(); }, 350);
+        }
+        function switchCustTab(tab) {
+            var isSearch = tab === 'search';
+            document.getElementById('tabSearch').classList.toggle('active', isSearch);
+            document.getElementById('tabRegister').classList.toggle('active', !isSearch);
+            if (window.innerWidth < 768) {
+                document.getElementById('custSearchPanel').style.display = isSearch ? '' : 'none';
+                document.getElementById('custRegisterPanel').style.display = isSearch ? 'none' : '';
+            }
         }
         function doCustomerSearch(val) {
             clearTimeout(_custSearchTimer);
             var q = val.trim();
             var resultsEl = document.getElementById('custSearchResults');
-            if (q.length < 1) { resultsEl.innerHTML = ''; return; }
+            var emptyEl = document.getElementById('custSearchEmpty');
+            var qName = document.getElementById('qCustName');
+            if (qName && !qName.dataset.manualEdit) qName.value = val;
+            if (q.length < 1) { resultsEl.innerHTML = ''; emptyEl.style.display = 'none'; return; }
             _custSearchTimer = setTimeout(function() {
-                resultsEl.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i></div>';
+                resultsEl.innerHTML = '<div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin fa-lg"></i></div>';
+                emptyEl.style.display = 'none';
                 fetch('/Customers/SearchJson?q=' + encodeURIComponent(q) + '&dept=مساج')
                     .then(function(r) { return r.json(); })
                     .then(function(data) {
-                        if (!data.length) {
-                            resultsEl.innerHTML = '<div class="text-center text-muted py-3">لا توجد نتائج</div>';
-                            return;
-                        }
-                        var html = '<div class="list-group list-group-flush">';
+                        if (!data.length) { resultsEl.innerHTML = ''; emptyEl.style.display = ''; return; }
+                        var html = '';
                         data.forEach(function(c) {
-                            html += '<button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3"'
-                                  + ' onclick="selectCustomerFromSearch(' + c.id + ', ' + JSON.stringify(c.displayName) + ')">'
-                                  + '<span style="font-weight:500;">' + c.fullName + '</span>'
-                                  + (c.phone ? '<span class="text-muted" style="font-size:12px;">' + c.phone + '</span>' : '')
-                                  + '</button>';
+                            html += '<div class="cust-card d-flex align-items-center gap-2" onclick="selectCustomerFromSearch(' + c.id + ',' + JSON.stringify(c.displayName) + ')">'
+                                  + '<div style="flex:1;min-width:0;">'
+                                  + '<div class="cust-name">' + escHtml(c.fullName) + '</div>'
+                                  + '<div class="cust-phone">' + escHtml(c.phone) + '</div>'
+                                  + '<div class="cust-meta">'
+                                  + (c.lastVisit ? 'آخر خدمة: ' + c.lastVisit + ' &nbsp;|&nbsp; ' : '')
+                                  + 'نقاط الولاء: ' + c.visitCount
+                                  + '</div></div>'
+                                  + '<button type="button" class="cust-select-btn" title="اختيار"><i class="fas fa-user"></i></button>'
+                                  + '</div>';
                         });
-                        html += '</div>';
                         resultsEl.innerHTML = html;
                     })
-                    .catch(function() { resultsEl.innerHTML = '<div class="text-danger text-center py-2">حدث خطأ</div>'; });
+                    .catch(function() { resultsEl.innerHTML = '<div class="text-danger text-center py-2">حدث خطأ في البحث</div>'; });
             }, 300);
+        }
+        function escHtml(s) {
+            return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
         function selectCustomerFromSearch(id, displayName) {
             document.getElementById('customerSelect').value = id;
@@ -1821,8 +1897,66 @@
             var nameEl = document.getElementById('customerDisplayName');
             nameEl.textContent = 'زائر';
             nameEl.style.color = '#6c757d';
-            bootstrap.Modal.getInstance(document.getElementById('customerSearchModal')).hide();
+            var m = bootstrap.Modal.getInstance(document.getElementById('customerSearchModal'));
+            if (m) m.hide();
             onCustomerChange('');
+        }
+        function resetQuickForm() {
+            document.getElementById('qCustName').value = '';
+            document.getElementById('qCustPhone').value = '';
+            document.getElementById('qCustLater').checked = true;
+            document.getElementById('qCustExtraFields').style.display = 'none';
+            document.getElementById('qCustSavedHint').style.display = 'none';
+            document.getElementById('qCustError').classList.add('d-none');
+            delete document.getElementById('qCustName').dataset.manualEdit;
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            var laterToggle = document.getElementById('qCustLater');
+            if (laterToggle) {
+                laterToggle.addEventListener('change', function() {
+                    document.getElementById('qCustExtraFields').style.display = this.checked ? 'none' : '';
+                    document.getElementById('qCustSavedHint').style.display = this.checked ? '' : 'none';
+                });
+                laterToggle.dispatchEvent(new Event('change'));
+            }
+            var qName = document.getElementById('qCustName');
+            if (qName) qName.addEventListener('input', function() { this.dataset.manualEdit = '1'; });
+        });
+        function submitQuickCustomer() {
+            var name = document.getElementById('qCustName').value.trim();
+            var phone = document.getElementById('qCustPhone').value.trim();
+            var errEl = document.getElementById('qCustError');
+            errEl.classList.add('d-none');
+            if (!name) { errEl.textContent = 'الاسم مطلوب'; errEl.classList.remove('d-none'); return; }
+            if (!phone) { errEl.textContent = 'رقم الهاتف مطلوب'; errEl.classList.remove('d-none'); return; }
+            var later = document.getElementById('qCustLater').checked;
+            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            var body = new URLSearchParams({
+                fullName: name, phone: phone,
+                fullNameEn: later ? '' : (document.getElementById('qCustFullNameEn').value.trim()),
+                email: later ? '' : (document.getElementById('qCustEmail').value.trim()),
+                birthDate: later ? '' : (document.getElementById('qCustBirthDate').value),
+                gender: later ? '' : (document.getElementById('qCustGender').value),
+                department: 'مساج',
+                __RequestVerificationToken: token
+            });
+            fetch('/Customers/CreateQuick', { method:'POST', body:body,
+                headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'} })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data && data.success) {
+                    document.getElementById('customerSelect').value = data.id;
+                    var nameEl = document.getElementById('customerDisplayName');
+                    nameEl.textContent = data.displayName || data.fullName;
+                    nameEl.style.color = '#212529';
+                    bootstrap.Modal.getInstance(document.getElementById('customerSearchModal')).hide();
+                    onCustomerChange(data.id);
+                } else {
+                    errEl.textContent = (data && data.message) || 'حدث خطأ';
+                    errEl.classList.remove('d-none');
+                }
+            })
+            .catch(function(e) { errEl.textContent = 'خطأ: ' + e.message; errEl.classList.remove('d-none'); });
         }
 
         // ===== عميل جديد =====

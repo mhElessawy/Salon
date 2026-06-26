@@ -220,16 +220,23 @@ namespace Salon.Controllers
                     (c.FullNameEn != null && c.FullNameEn.Contains(q)) ||
                     (c.Phone != null && c.Phone.Contains(q)));
 
-            var results = await query
+            var raw = await query
                 .OrderBy(c => c.FullName)
                 .Take(30)
                 .Select(c => new {
                     id = c.Id,
                     fullName = c.FullName,
                     phone = c.Phone ?? "",
-                    displayName = string.IsNullOrEmpty(c.Phone) ? c.FullName : c.FullName + " — " + c.Phone
+                    displayName = string.IsNullOrEmpty(c.Phone) ? c.FullName : c.FullName + " — " + c.Phone,
+                    visitCount = c.Sales.Count(),
+                    lastVisit = c.Sales.Any() ? (DateTime?)c.Sales.Max(s => s.SaleDate) : null
                 })
                 .ToListAsync();
+
+            var results = raw.Select(c => new {
+                c.id, c.fullName, c.phone, c.displayName, c.visitCount,
+                lastVisit = c.lastVisit.HasValue ? c.lastVisit.Value.ToString("dd/MM/yyyy") : (string?)null
+            });
 
             return Json(results);
         }
