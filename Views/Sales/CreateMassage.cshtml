@@ -83,8 +83,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                                       COLUMN 1 (RIGHT in RTL) — Employees
-                                                                                                                    ════════════════════════════════════════ */
+                                                                                                                               COLUMN 1 (RIGHT in RTL) — Employees
+                                                                                                                            ════════════════════════════════════════ */
         .pos-employees-panel {
             background: var(--emp-dark);
             border-radius: 12px;
@@ -207,8 +207,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                                       COLUMN 2 (MIDDLE) — Services
-                                                                                                                    ════════════════════════════════════════ */
+                                                                                                                               COLUMN 2 (MIDDLE) — Services
+                                                                                                                            ════════════════════════════════════════ */
         .pos-services-panel {
             background: #fff;
             border-radius: 12px;
@@ -307,8 +307,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                                       COLUMN 3 (LEFT in RTL) — Cart / Invoice
-                                                                                                                    ════════════════════════════════════════ */
+                                                                                                                               COLUMN 3 (LEFT in RTL) — Cart / Invoice
+                                                                                                                            ════════════════════════════════════════ */
         .pos-cart-panel {
             background: #fff;
             border-radius: 12px;
@@ -552,7 +552,7 @@
     </div>
 </div>
 
-<form asp-action="CreateBarber" method="post" id="posForm">
+<form asp-action="CreateMassage" method="post" id="posForm">
     @Html.AntiForgeryToken()
     <input asp-for="InvoiceNumber" type="hidden" />
     <input asp-for="SaleType" type="hidden" value="حلاقة" />
@@ -598,7 +598,7 @@
                 </div>
             </div>
             <div>
-                <input type="hidden" asp-for="PaymentMethod" id="paymentMethodSelect" value="كاش" />
+                <input type="hidden" asp-for="PaymentMethod" id="paymentMethodSelect" value="" />
             </div>
             <div>
                 <label class="form-label">ملاحظات</label>
@@ -815,7 +815,7 @@
             <div class="payment-btn-group">
                 <div class="payment-btn-label">طريقة الدفع</div>
                 <div class="payment-btns">
-                    <button type="button" class="pay-btn active" data-value="كاش" onclick="selectPayment(this)">
+                    <button type="button" class="pay-btn" data-value="كاش" onclick="selectPayment(this)">
                         <i class="fas fa-money-bill-wave"></i> كاش
                     </button>
                     <button type="button" class="pay-btn" data-value="كي نت" onclick="selectPayment(this)">
@@ -1169,8 +1169,8 @@
                             <div class="assign-pkg-card" id="apc-@p.Id"
                                  onclick="selectAssignCard(@p.Id, '@Html.Raw(p.NameAr.Replace("'", "\\\'"))', @p.Price.ToString(System.Globalization.CultureInfo.InvariantCulture), @p.SessionCount, @p.ValidityDays)"
                                  style="border:2px solid #dee2e6;border-radius:12px;background:#fff;padding:12px 16px;
-                                                                                cursor:pointer;min-width:170px;flex:1;max-width:230px;transition:all .2s;text-align:right;
-                                                                                box-shadow:0 1px 4px rgba(0,0,0,.06);">
+                                                                                    cursor:pointer;min-width:170px;flex:1;max-width:230px;transition:all .2s;text-align:right;
+                                                                                    box-shadow:0 1px 4px rgba(0,0,0,.06);">
                                 <div style="font-weight:700;font-size:13px;color:#1a6fc4;margin-bottom:6px;">
                                     <i class="fas fa-box-open me-1"></i>@p.NameAr
                                 </div>
@@ -1266,18 +1266,18 @@
 
             @if (isEmployee && linkedEmpId.HasValue)
             {
-                                                                        <text>
-                                                                        document.querySelectorAll('.emp-item').forEach(function(el) {
-                                                                            el.style.cursor = 'default';
-                                                                            el.onclick = null;
-                                                                        });
-                                                                        </text>
+                                                                            <text>
+                                                                            document.querySelectorAll('.emp-item').forEach(function(el) {
+                                                                                el.style.cursor = 'default';
+                                                                                el.onclick = null;
+                                                                            });
+                                                                            </text>
             }
 
             function selectEmployee(id, el) {
                 @if (isEmployee)
                 {
-                                                                        <text>return;</text>
+                                                                            <text>return;</text>
                 }
                 document.querySelectorAll('.emp-item').forEach(function(e) { e.classList.remove('emp-selected'); });
                 el.classList.add('emp-selected');
@@ -1303,7 +1303,7 @@
                 items.push(it);
                 renderRow(it);
                 document.getElementById('emptyRow').style.display = 'none';
-                document.getElementById('saveBtn').disabled = false;
+                updateSaveBtn();
                 recalc();
             }
             function renderRow(it) {
@@ -1322,9 +1322,14 @@
                 var tr = document.getElementById('row-' + rid); if (tr) tr.remove();
                 if (!items.length) {
                     document.getElementById('emptyRow').style.display = '';
-                    document.getElementById('saveBtn').disabled = true;
                 }
+                updateSaveBtn();
                 recalc();
+            }
+            function updateSaveBtn() {
+                var hasItems = items.length > 0;
+                var hasPm = !!document.getElementById('paymentMethodSelect').value;
+                document.getElementById('saveBtn').disabled = !(hasItems && hasPm);
             }
             function recalc() {
                 var s = items.reduce(function(a,i) { return a + i.total; }, 0);
@@ -1368,6 +1373,7 @@
                 document.querySelectorAll('.pay-btn').forEach(function(b) { b.classList.remove('active'); });
                 btn.classList.add('active');
                 document.getElementById('paymentMethodSelect').value = btn.dataset.value;
+                updateSaveBtn();
                 onPaymentChange();
             }
             function onPaymentChange() {
@@ -1487,6 +1493,7 @@
                 var empId = document.getElementById('selectedEmployeeId').value;
                 if (!empId) { alert('يرجى اختيار الحلاق أولاً'); return; }
                 var pm = document.getElementById('paymentMethodSelect').value;
+                if (!pm) { alert('يرجى اختيار طريقة الدفع'); return; }
                 if (pm === 'دين على العميل') {
                     if (!document.getElementById('customerSelect').value) {
                         alert('طريقة الدفع "دين على العميل" تتطلب اختيار عميل مسجل'); return;
@@ -1877,7 +1884,7 @@
         var schedEmployees = [
             @foreach (var emp in employees)
             {
-                                <text>{ id: @emp.Id, name: '@Html.Raw(emp.FullName.Replace("'", "\\'"))' },</text>
+                                    <text>{ id: @emp.Id, name: '@Html.Raw(emp.FullName.Replace("'", "\\'"))' },</text>
             }
         ];
 
