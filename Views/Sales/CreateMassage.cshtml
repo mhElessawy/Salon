@@ -1861,7 +1861,7 @@
                 document.getElementById('giftInput').value = '';
                 document.getElementById('notesInput').value = '';
                 document.getElementById('customerSelect').value = '';
-                document.getElementById('paymentMethodSelect').value = 'كاش';
+                document.getElementById('paymentMethodSelect').value = '';
                 document.getElementById('pkgPayTotalRow').style.display = 'none';
                 document.getElementById('cashAmountInput').value = '';
                 document.getElementById('linkAmountInput').value = '';
@@ -1871,7 +1871,6 @@
                 document.getElementById('splitKnetRow').style.display = 'none';
                 document.getElementById('splitStatus').textContent = '';
                 document.querySelectorAll('.pay-btn').forEach(function(b) { b.classList.remove('active'); });
-                document.querySelector('.pay-btn[data-value="كاش"]').classList.add('active');
                 onPaymentChange();
                 clearPackageSelection();
                 document.getElementById('customerPackagesArea').style.display = 'none';
