@@ -846,6 +846,12 @@ namespace Salon.Migrations
                 b.Property<decimal>("TotalAmount")
                     .HasColumnType("decimal(18,3)");
 
+                b.Property<decimal?>("PaidAmount")
+                    .HasColumnType("decimal(18,3)");
+
+                b.Property<decimal?>("ChangeAmount")
+                    .HasColumnType("decimal(18,3)");
+
                 b.HasKey("Id");
 
                 b.HasIndex("CustomerId");

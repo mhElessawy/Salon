@@ -177,6 +177,16 @@
                                         <i class="fas fa-credit-card me-1"></i>كي نت: @((s.NetAmount - (s.CashAmount ?? 0)).ToString("N3")) د.ك
                                     </div>
                                 }
+                                else if (s.PaymentMethod == "كاش" && s.PaidAmount.HasValue && s.PaidAmount > 0)
+                                {
+                                    <div><i class="fas fa-money-bill-wave me-1" style="color:#198754;"></i>كاش</div>
+                                    <div class="small" style="color:#198754;white-space:nowrap;">
+                                        <i class="fas fa-hand-holding-usd me-1"></i>دفع: @s.PaidAmount.Value.ToString("N3") د.ك
+                                    </div>
+                                    <div class="small" style="color:#e67e22;white-space:nowrap;">
+                                        <i class="fas fa-coins me-1"></i>الباقي: @((s.ChangeAmount ?? 0).ToString("N3")) د.ك
+                                    </div>
+                                }
                                 else
                                 {
                                     @s.PaymentMethod
@@ -298,7 +308,6 @@
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
             setTimeout(() => document.getElementById('deleteReason').focus(), 400);
         }
-
         function validateDeleteReason() {
             var reason = document.getElementById('deleteReason').value.trim();
             if (!reason) {
@@ -309,10 +318,8 @@
             document.getElementById('deleteReasonInput').value = reason;
             return true;
         }
-
         var _notesSaleId = null;
         var _notesModalInstance = null;
-
         function openNotesModal(saleId, currentNotes) {
             _notesSaleId = saleId;
             document.getElementById('notesModalText').value = currentNotes || '';
@@ -321,7 +328,6 @@
             _notesModalInstance.show();
             setTimeout(function() { document.getElementById('notesModalText').focus(); }, 350);
         }
-
         function saveNotes() {
             var notes = document.getElementById('notesModalText').value.trim();
             var errEl = document.getElementById('notesModalError');

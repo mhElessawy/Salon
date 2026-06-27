@@ -70,6 +70,14 @@ namespace Salon.Models
         [DataType(DataType.Currency)]
         public decimal? GiftForEmployee { get; set; }
 
+        [Display(Name = "المبلغ المدفوع نقداً")]
+        [DataType(DataType.Currency)]
+        public decimal? PaidAmount { get; set; }
+
+        [Display(Name = "المبلغ المرتجع (الفكة)")]
+        [DataType(DataType.Currency)]
+        public decimal? ChangeAmount { get; set; }
+
         public ICollection<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
     }
 

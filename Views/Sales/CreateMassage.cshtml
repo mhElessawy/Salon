@@ -83,8 +83,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                                               COLUMN 1 (RIGHT in RTL) — Employees
-                                                                                                                            ════════════════════════════════════════ */
+                                                                                                                                       COLUMN 1 (RIGHT in RTL) — Employees
+                                                                                                                                    ════════════════════════════════════════ */
         .pos-employees-panel {
             background: var(--emp-dark);
             border-radius: 12px;
@@ -207,8 +207,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                                               COLUMN 2 (MIDDLE) — Services
-                                                                                                                            ════════════════════════════════════════ */
+                                                                                                                                       COLUMN 2 (MIDDLE) — Services
+                                                                                                                                    ════════════════════════════════════════ */
         .pos-services-panel {
             background: #fff;
             border-radius: 12px;
@@ -307,8 +307,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                                               COLUMN 3 (LEFT in RTL) — Cart / Invoice
-                                                                                                                            ════════════════════════════════════════ */
+                                                                                                                                       COLUMN 3 (LEFT in RTL) — Cart / Invoice
+                                                                                                                                    ════════════════════════════════════════ */
         .pos-cart-panel {
             background: #fff;
             border-radius: 12px;
@@ -559,6 +559,8 @@
     <input type="hidden" id="selectedEmployeeId" name="EmployeeId" value="@(autoSelectEmpId > 0 ? autoSelectEmpId.ToString() : "")" />
     <input type="hidden" id="customerPackageId" name="customerPackageId" value="" />
     <input type="hidden" id="packagePaymentAmount" name="packagePaymentAmount" value="0" />
+    <input type="hidden" id="paidAmountInput" name="PaidAmount" value="" />
+    <input type="hidden" id="changeAmountInput" name="ChangeAmount" value="" />
     <div id="hiddenItems"></div>
 
     <!-- ══ Top: Customer / Payment / Notes ══ -->
@@ -860,6 +862,29 @@
                 <div id="splitStatus" style="display:none;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;text-align:center;"></div>
             </div>
 
+            <!-- ══ قسم الكاش: المبلغ المدفوع والباقي ══ -->
+            <div id="cashSection" style="display:none;padding:10px 14px;background:#f0faf4;border-top:2px solid #28a745;">
+                <p class="mb-2 fw-semibold" style="font-size:13px;color:#155724;">
+                    <i class="fas fa-money-bill-wave me-1"></i>تفاصيل الدفع نقداً
+                </p>
+                <div class="d-flex gap-3 align-items-end flex-wrap mb-2">
+                    <div>
+                        <label class="form-label mb-1" style="font-size:12px">المبلغ المدفوع</label>
+                        <input type="number" id="cashPaidInput" class="form-control form-control-sm"
+                               step="0.001" min="0" placeholder="0.000" oninput="onCashPaidInput()" style="width:140px" />
+                    </div>
+                    <div>
+                        <label class="form-label mb-1" style="font-size:12px">الباقي (الفكة)</label>
+                        <div class="form-control form-control-sm text-center fw-bold"
+                             id="cashChangeDisplay"
+                             style="width:140px;background:#fff;color:#155724;border-color:#28a745;">
+                            0.000 د.ك
+                        </div>
+                    </div>
+                </div>
+                <div id="cashPaidStatus" style="display:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;"></div>
+            </div>
+
             <button type="submit" class="btn-save-invoice" id="saveBtn" disabled>
                 <i class="fas fa-print me-2"></i> إتمام العملية
             </button>
@@ -1144,8 +1169,8 @@
                             <div class="assign-pkg-card" id="apc-@p.Id"
                                  onclick="selectAssignCard(@p.Id, '@Html.Raw(p.NameAr.Replace("'", "\\\'"))', @p.Price.ToString(System.Globalization.CultureInfo.InvariantCulture), @p.SessionCount, @p.ValidityDays)"
                                  style="border:2px solid #dee2e6;border-radius:12px;background:#fff;padding:12px 16px;
-                                                                                    cursor:pointer;min-width:170px;flex:1;max-width:230px;transition:all .2s;text-align:right;
-                                                                                    box-shadow:0 1px 4px rgba(0,0,0,.06);">
+                                                                                        cursor:pointer;min-width:170px;flex:1;max-width:230px;transition:all .2s;text-align:right;
+                                                                                        box-shadow:0 1px 4px rgba(0,0,0,.06);">
                                 <div style="font-weight:700;font-size:13px;color:#1a6fc4;margin-bottom:6px;">
                                     <i class="fas fa-box-open me-1"></i>@p.NameAr
                                 </div>
@@ -1241,18 +1266,18 @@
 
             @if (isEmployee && linkedEmpId.HasValue)
             {
-                                                                            <text>
-                                                                            document.querySelectorAll('.emp-item').forEach(function(el) {
-                                                                                el.style.cursor = 'default';
-                                                                                el.onclick = null;
-                                                                            });
-                                                                            </text>
+                                                                                <text>
+                                                                                document.querySelectorAll('.emp-item').forEach(function(el) {
+                                                                                    el.style.cursor = 'default';
+                                                                                    el.onclick = null;
+                                                                                });
+                                                                                </text>
             }
 
             function selectEmployee(id, el) {
                 @if (isEmployee)
                 {
-                                                                            <text>return;</text>
+                                                                                <text>return;</text>
                 }
                 document.querySelectorAll('.emp-item').forEach(function(e) { e.classList.remove('emp-selected'); });
                 el.classList.add('emp-selected');
@@ -1333,6 +1358,10 @@
                 if (document.getElementById('paymentMethodSelect').value === 'كي نت و كاش') {
                     validateSplit();
                 }
+                if (document.getElementById('paymentMethodSelect').value === 'كاش' &&
+                    document.getElementById('cashSection').style.display !== 'none') {
+                    onCashPaidInput();
+                }
             }
             function filterItems(q) {
                 q = q.toLowerCase();
@@ -1351,17 +1380,27 @@
                 var pm = document.getElementById('paymentMethodSelect').value;
                 var extraBar        = document.getElementById('extraPaymentBar');
                 var splitSection    = document.getElementById('splitSection');
+                var cashSection     = document.getElementById('cashSection');
                 var debtEmpSection  = document.getElementById('debtEmpSection');
                 var customerWarning = document.getElementById('customerDebtWarning');
                 var customerSelect  = document.getElementById('customerSelect');
                 var splitCashRow    = document.getElementById('splitCashRow');
                 var splitKnetRow    = document.getElementById('splitKnetRow');
                 splitSection.style.display = 'none';
+                cashSection.style.display  = 'none';
                 splitCashRow.style.display = splitKnetRow.style.display = 'none';
                 debtEmpSection.style.display = extraBar.style.display = 'none';
                 customerWarning.style.display = 'none';
                 customerSelect.required = false;
-                if (pm === 'كي نت و كاش') {
+                document.getElementById('paidAmountInput').value = '';
+                document.getElementById('changeAmountInput').value = '';
+                if (pm === 'كاش') {
+                    cashSection.style.display = '';
+                    document.getElementById('cashPaidInput').value = '';
+                    document.getElementById('cashChangeDisplay').textContent = '0.000 د.ك';
+                    document.getElementById('cashPaidStatus').style.display = 'none';
+                }
+                else if (pm === 'كي نت و كاش') {
                     splitSection.style.display = '';
                     splitCashRow.style.display = splitKnetRow.style.display = '';
                     document.getElementById('cashAmountInput').value = '';
@@ -1370,6 +1409,26 @@
                 }
                 else if (pm === 'دين على العميل') { customerWarning.style.display = ''; customerSelect.required = true; }
                 else if (pm === 'دين على الموظف') { extraBar.style.display = ''; debtEmpSection.style.display = ''; }
+            }
+            function onCashPaidInput() {
+                var net   = getNet();
+                var paid  = parseFloat(document.getElementById('cashPaidInput').value) || 0;
+                var change = Math.max(0, paid - net);
+                document.getElementById('cashChangeDisplay').textContent = change.toFixed(3) + ' د.ك';
+                document.getElementById('paidAmountInput').value  = paid.toFixed(3);
+                document.getElementById('changeAmountInput').value = change.toFixed(3);
+                var st = document.getElementById('cashPaidStatus');
+                if (paid <= 0) {
+                    st.style.display = 'none';
+                } else if (paid < net) {
+                    st.style.display = '';
+                    st.style.background = '#fff3cd'; st.style.color = '#664d03'; st.style.border = '1.5px solid #ffecb5';
+                    st.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>المبلغ المدفوع أقل من الإجمالي (' + net.toFixed(3) + ' د.ك)';
+                } else {
+                    st.style.display = '';
+                    st.style.background = '#d1e7dd'; st.style.color = '#0f5132'; st.style.border = '1.5px solid #badbcc';
+                    st.innerHTML = '<i class="fas fa-check-circle me-1"></i>الباقي للعميل: ' + change.toFixed(3) + ' د.ك';
+                }
             }
             function getNet() {
                 var s = items.reduce(function(a,i) { return a + i.total; }, 0);
@@ -1825,7 +1884,7 @@
         var schedEmployees = [
             @foreach (var emp in employees)
             {
-                                    <text>{ id: @emp.Id, name: '@Html.Raw(emp.FullName.Replace("'", "\\'"))' },</text>
+                                        <text>{ id: @emp.Id, name: '@Html.Raw(emp.FullName.Replace("'", "\\'"))' },</text>
             }
         ];
 
