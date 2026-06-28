@@ -1013,13 +1013,19 @@
                 </div>
                 <div class="row g-0" style="min-height:420px;">
                     <div class="col-md-6 border-start p-3" id="custSearchPanel">
-                        <div class="input-group mb-3" style="direction:rtl;">
+                        <div class="input-group mb-2" style="direction:rtl;">
                             <input type="text" id="custSearchInput" class="form-control"
                                    placeholder="اكتب الاسم أو رقم الهاتف" autocomplete="off"
                                    oninput="doCustomerSearch(this.value)" />
                             <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
                         </div>
-                        <div id="custSearchResults" style="max-height:320px;overflow-y:auto;"></div>
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-sm btn-outline-secondary w-100"
+                                    onclick="showAllCustomers()" style="font-size:12px;">
+                                <i class="fas fa-users me-1"></i>جلب كل العملاء
+                            </button>
+                        </div>
+                        <div id="custSearchResults" style="max-height:280px;overflow-y:auto;"></div>
                         <div id="custSearchEmpty" class="text-center text-muted py-5" style="display:none;">
                             <i class="fas fa-user-slash fa-2x mb-2 d-block"></i>لا توجد نتائج
                         </div>
@@ -2072,6 +2078,35 @@
             }
         }
         function switchCustTab(tab) { _switchCustTab(tab); }
+
+        function showAllCustomers() {
+            var resultsEl = document.getElementById('custSearchResults');
+            var emptyEl = document.getElementById('custSearchEmpty');
+            resultsEl.innerHTML = '<div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin fa-lg"></i></div>';
+            emptyEl.style.display = 'none';
+            fetch('/Customers/SearchJson?q=&dept=')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (!data.length) { resultsEl.innerHTML = ''; emptyEl.style.display = ''; return; }
+                    var html = '';
+                    data.forEach(function(c) {
+                        html += '<div class="cust-card d-flex align-items-center gap-2"'
+                              + ' data-cust-id="' + c.id + '"'
+                              + ' data-cust-name="' + _escAttr(c.displayName) + '">'
+                              + '<div style="flex:1;min-width:0;">'
+                              + '<div class="cust-name">' + _escHtml(c.fullName) + '</div>'
+                              + '<div class="cust-phone">' + _escHtml(c.phone) + '</div>'
+                              + '<div class="cust-meta">'
+                              + (c.lastVisit ? 'آخر خدمة: ' + c.lastVisit + ' &nbsp;|&nbsp; ' : '')
+                              + 'نقاط الولاء: ' + c.visitCount
+                              + '</div></div>'
+                              + '<span class="cust-select-btn">اختيار</span>'
+                              + '</div>';
+                    });
+                    resultsEl.innerHTML = html;
+                })
+                .catch(function() { resultsEl.innerHTML = '<small class="text-danger">حدث خطأ</small>'; });
+        }
 
         function doCustomerSearch(val) {
             clearTimeout(_custSearchTimer);
