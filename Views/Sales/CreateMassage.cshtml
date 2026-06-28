@@ -555,7 +555,7 @@
 <form asp-action="CreateMassage" method="post" id="posForm">
     @Html.AntiForgeryToken()
     <input asp-for="InvoiceNumber" type="hidden" />
-    <input asp-for="SaleType" type="hidden" value="حلاقة" />
+    <input asp-for="SaleType" type="hidden" value="مساج" />
     <input type="hidden" id="selectedEmployeeId" name="EmployeeId" value="@(autoSelectEmpId > 0 ? autoSelectEmpId.ToString() : "")" />
     <input type="hidden" id="customerPackageId" name="customerPackageId" value="" />
     <input type="hidden" id="packagePaymentAmount" name="packagePaymentAmount" value="0" />
@@ -1674,7 +1674,7 @@
                 area.innerHTML = '<small class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>جاري التحميل...</small>';
                 area.style.display = '';
 
-                fetch('/Sales/GetCustomerPackagesForSale?customerId=' + encodeURIComponent(customerId) + '&dept=' + encodeURIComponent('حلاقة'))
+                fetch('/Sales/GetCustomerPackagesForSale?customerId=' + encodeURIComponent(customerId) + '&dept=' + encodeURIComponent('مساج'))
                     .then(function(r) {
                         if (!r.ok) throw new Error('HTTP ' + r.status);
                         return r.json();
@@ -2218,7 +2218,7 @@
                 gender: gender,
                 assignedEmployeeIdStr: assignedEmp,
                 notes: notes,
-                department: 'حلاقة',
+                department: 'مساج',
                 __RequestVerificationToken: token
             });
 
