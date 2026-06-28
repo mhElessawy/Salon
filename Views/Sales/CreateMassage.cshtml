@@ -901,21 +901,21 @@
                 <div style="width:72px;height:72px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
                     <i class="fas fa-user-times" style="font-size:32px;color:#fff;"></i>
                 </div>
-                <h4 style="color:#fff;font-weight:700;margin:0;font-size:20px;">يجب اختيار عميل مسجل</h4>
-                <p style="color:rgba(255,255,255,.85);margin:8px 0 0;font-size:13px;">لا يمكن إتمام الفاتورة كـ "زائر" في هذه الحالة</p>
+                <h4 style="color:#fff;font-weight:700;margin:0;font-size:20px;" data-i18n-en="A registered customer must be selected">يجب اختيار عميل مسجل</h4>
+                <p style="color:rgba(255,255,255,.85);margin:8px 0 0;font-size:13px;" data-i18n-en='Invoice cannot be completed as "Walk-in" in this case'>لا يمكن إتمام الفاتورة كـ "زائر" في هذه الحالة</p>
             </div>
             <div class="modal-body" style="padding:24px;">
                 <div id="customerRequiredReasons" style="display:flex;flex-direction:column;gap:10px;"></div>
                 <div style="margin-top:20px;padding:12px 14px;background:#fdf2f2;border-radius:10px;border:1px solid #f5c2c7;">
                     <p style="margin:0;font-size:13px;color:#842029;">
-                        <i class="fas fa-info-circle me-2"></i>اضغط على حقل العميل في أعلى الصفحة لاختيار عميل مسجل أو إضافة عميل جديد.
+                        <i class="fas fa-info-circle me-2"></i><span data-i18n-en="Click the customer field at the top of the page to select a registered customer or add a new one.">اضغط على حقل العميل في أعلى الصفحة لاختيار عميل مسجل أو إضافة عميل جديد.</span>
                     </p>
                 </div>
             </div>
             <div class="modal-footer border-0" style="padding:0 24px 20px;justify-content:center;">
                 <button type="button" class="btn btn-danger btn-lg px-5" data-bs-dismiss="modal" onclick="openCustomerSearchModal()"
                         style="border-radius:10px;font-weight:600;font-size:15px;">
-                    <i class="fas fa-user-search me-2"></i>اختيار العميل الآن
+                    <i class="fas fa-user-search me-2"></i><span data-i18n-en="Select Customer Now">اختيار العميل الآن</span>
                 </button>
             </div>
         </div>
@@ -1003,13 +1003,13 @@
     <div class="modal-dialog modal-dialog-centered modal-lg" style="max-width:760px;">
         <div class="modal-content" style="border-radius:16px;overflow:hidden;">
             <div class="modal-header border-0 pb-0 px-4 pt-3">
-                <h6 class="modal-title fw-bold fs-6">البحث عن العميل</h6>
+                <h6 class="modal-title fw-bold fs-6" data-i18n-en="Search Customer">البحث عن العميل</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-0">
                 <div class="d-flex border-bottom px-4 mb-0" id="custModalTabs">
-                    <button type="button" class="cust-tab active" id="tabSearch" onclick="switchCustTab('search')">البحث</button>
-                    <button type="button" class="cust-tab" id="tabRegister" onclick="switchCustTab('register')">تسجيل عميل جديد</button>
+                    <button type="button" class="cust-tab active" id="tabSearch" onclick="switchCustTab('search')" data-i18n-en="Search">البحث</button>
+                    <button type="button" class="cust-tab" id="tabRegister" onclick="switchCustTab('register')" data-i18n-en="Register New Customer">تسجيل عميل جديد</button>
                 </div>
                 <div class="row g-0" style="min-height:420px;">
                     <div class="col-md-6 border-start p-3" id="custSearchPanel">
@@ -1022,29 +1022,29 @@
                         <div class="mb-3">
                             <button type="button" class="btn btn-sm btn-outline-secondary w-100"
                                     onclick="showAllCustomers()" style="font-size:12px;">
-                                <i class="fas fa-users me-1"></i>جلب كل العملاء
+                                <i class="fas fa-users me-1"></i><span data-i18n-en="Load All Customers">جلب كل العملاء</span>
                             </button>
                         </div>
                         <div id="custSearchResults" style="max-height:280px;overflow-y:auto;"></div>
                         <div id="custSearchEmpty" class="text-center text-muted py-5" style="display:none;">
-                            <i class="fas fa-user-slash fa-2x mb-2 d-block"></i>لا توجد نتائج
+                            <i class="fas fa-user-slash fa-2x mb-2 d-block"></i><span data-i18n-en="No results found">لا توجد نتائج</span>
                         </div>
                     </div>
                     <div class="col-md-6 p-4" id="custRegisterPanel">
-                        <p class="text-warning fw-semibold mb-3" style="font-size:13px;">تسجيل عميل جديد (سريع)</p>
+                        <p class="text-warning fw-semibold mb-3" style="font-size:13px;" data-i18n-en="Quick Customer Registration">تسجيل عميل جديد (سريع)</p>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold" style="font-size:13px;">الاسم <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold" style="font-size:13px;" data-i18n-en="Full Name *">الاسم <span class="text-danger">*</span></label>
                             <input type="text" id="qCustName" class="form-control form-control-sm" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold" style="font-size:13px;">رقم الهاتف <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold" style="font-size:13px;" data-i18n-en="Phone Number *">رقم الهاتف <span class="text-danger">*</span></label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text"><i class="fas fa-phone"></i></span>
                                 <input type="text" id="qCustPhone" class="form-control" />
                             </div>
                         </div>
                         <div class="mb-3 d-flex align-items-center justify-content-between">
-                            <label class="form-label mb-0 fw-semibold" style="font-size:13px;">إكمال البيانات لاحقاً</label>
+                            <label class="form-label mb-0 fw-semibold" style="font-size:13px;" data-i18n-en="Complete details later">إكمال البيانات لاحقاً</label>
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input" type="checkbox" id="qCustLater" checked
                                        style="width:2.5rem;height:1.3rem;cursor:pointer;" />
@@ -1058,12 +1058,12 @@
                         </div>
                         <div id="qCustSavedHint" class="rounded p-2 mb-3 text-center" style="display:none;background:#f0faf0;border:1px solid #c3e6c3;font-size:12px;">
                             <i class="fas fa-check-circle text-success me-1"></i>
-                            سيتم حفظ العميل ويمكنك تعديل تفاصيله لاحقاً من صفحة العملاء
+                            <span data-i18n-en="Customer will be saved. You can edit details later from the Customers page.">سيتم حفظ العميل ويمكنك تعديل تفاصيله لاحقاً من صفحة العملاء</span>
                         </div>
                         <div id="qCustError" class="alert alert-danger py-2 d-none" style="font-size:12px;"></div>
                         <button type="button" class="btn w-100 fw-bold" onclick="submitQuickCustomer()"
                                 style="background:#e07b00;color:#fff;border-radius:8px;">
-                            <i class="fas fa-save me-1"></i> حفظ واختيار العميل
+                            <i class="fas fa-save me-1"></i> <span data-i18n-en="Save &amp; Select Customer">حفظ واختيار العميل</span>
                         </button>
                     </div>
                 </div>
