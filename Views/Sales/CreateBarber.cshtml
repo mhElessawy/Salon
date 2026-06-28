@@ -893,6 +893,35 @@
     </div><!-- /pos-wrapper -->
 </form>
 
+<!-- ══ Modal: تنبيه اختيار العميل ══ -->
+<div class="modal fade" id="customerRequiredModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:18px;overflow:hidden;">
+            <div style="background:linear-gradient(135deg,#c0392b,#e74c3c);padding:32px 24px 20px;text-align:center;">
+                <div style="width:72px;height:72px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                    <i class="fas fa-user-times" style="font-size:32px;color:#fff;"></i>
+                </div>
+                <h4 style="color:#fff;font-weight:700;margin:0;font-size:20px;">يجب اختيار عميل مسجل</h4>
+                <p style="color:rgba(255,255,255,.85);margin:8px 0 0;font-size:13px;">لا يمكن إتمام الفاتورة كـ "زائر" في هذه الحالة</p>
+            </div>
+            <div class="modal-body" style="padding:24px;">
+                <div id="customerRequiredReasons" style="display:flex;flex-direction:column;gap:10px;"></div>
+                <div style="margin-top:20px;padding:12px 14px;background:#fdf2f2;border-radius:10px;border:1px solid #f5c2c7;">
+                    <p style="margin:0;font-size:13px;color:#842029;">
+                        <i class="fas fa-info-circle me-2"></i>اضغط على حقل العميل في أعلى الصفحة لاختيار عميل مسجل أو إضافة عميل جديد.
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer border-0" style="padding:0 24px 20px;justify-content:center;">
+                <button type="button" class="btn btn-danger btn-lg px-5" data-bs-dismiss="modal" onclick="openCustomerSearchModal()"
+                        style="border-radius:10px;font-weight:600;font-size:15px;">
+                    <i class="fas fa-user-search me-2"></i>اختيار العميل الآن
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ══ Modal: عميل جديد ══ -->
 <div class="modal fade" id="newCustomerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -1529,11 +1558,22 @@
                     if (!document.getElementById('customerSelect').value) {
                         var discount3 = parseFloat(document.getElementById('discountInput').value) || 0;
                         var hadiya3   = parseFloat(document.getElementById('hadiyaInput').value)   || 0;
-                        var msg = 'يرجى اختيار عميل مسجل (ليس زائر) في الحالات التالية:\n';
-                        if (pm === 'دين على العميل' || pm === 'دين على الموظف' || pm === 'دين على صاحب المكان') msg += '• طريقة الدفع: ' + pm + '\n';
-                        if (discount3 > 0) msg += '• تم إدخال خصم\n';
-                        if (hadiya3 > 0)   msg += '• تم إدخال هدية للموظف\n';
-                        alert(msg);
+                        var reasons = [];
+                        if (pm === 'دين على العميل' || pm === 'دين على الموظف' || pm === 'دين على صاحب المكان')
+                            reasons.push({ icon: 'fa-hand-holding-usd', color: '#c0392b', text: 'طريقة الدفع: <strong>' + pm + '</strong>' });
+                        if (discount3 > 0)
+                            reasons.push({ icon: 'fa-percent', color: '#e67e22', text: 'تم إدخال <strong>خصم</strong> على الفاتورة' });
+                        if (hadiya3 > 0)
+                            reasons.push({ icon: 'fa-gift', color: '#8e44ad', text: 'تم إدخال <strong>هدية للموظف</strong>' });
+                        var reasonsHtml = reasons.map(function(r) {
+                            return '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#fff;border-radius:10px;border:1px solid #f0d0d0;">' +
+                                '<div style="width:36px;height:36px;background:' + r.color + '22;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+                                '<i class="fas ' + r.icon + '" style="color:' + r.color + ';font-size:15px;"></i></div>' +
+                                '<span style="font-size:14px;color:#333;">' + r.text + '</span></div>';
+                        }).join('');
+                        document.getElementById('customerRequiredReasons').innerHTML = reasonsHtml;
+                        var modal = new bootstrap.Modal(document.getElementById('customerRequiredModal'));
+                        modal.show();
                         updateCustomerWarning();
                         return;
                     }
