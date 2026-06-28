@@ -852,6 +852,8 @@ namespace Salon.Migrations
                 b.Property<decimal?>("ChangeAmount")
                     .HasColumnType("decimal(18,3)");
 
+                b.Property<string>("KnetReceiptNumber");
+
                 b.HasKey("Id");
 
                 b.HasIndex("CustomerId");
