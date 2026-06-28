@@ -1835,7 +1835,7 @@
             function openAssignPackageModal() {
                 var sel = document.getElementById('customerSelect');
                 var customerId = sel.value;
-                var customerName = sel.options[sel.selectedIndex]?.text || '';
+                var customerName = document.getElementById('customerDisplayName').textContent || '';
                 if (!customerId) { alert('اختر عميلاً أولاً'); return; }
                 document.getElementById('assignCustomerId').value = customerId;
                 document.getElementById('assignCustomerName').value = customerName;
