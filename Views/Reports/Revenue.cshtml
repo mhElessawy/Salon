@@ -849,10 +849,10 @@
                     'كاش': 'success', 'نقدي': 'success', 'Cash': 'success',
                     'كي نت': 'primary', 'بطاقة': 'primary', 'K-Net': 'primary',
                     'دين على الموظف': 'warning',
-                    'دين على صاحب المكان': 'danger'
+                    'دين على الإدارة': 'danger'
                 };
                 const cls = map[p] || 'secondary';
-                const labelEn = { 'كاش': 'Cash', 'نقدي': 'Cash', 'كي نت': 'K-Net', 'بطاقة': 'K-Net', 'دين على الموظف': 'Employee Debt', 'دين على صاحب المكان': 'Owner Account' };
+                const labelEn = { 'كاش': 'Cash', 'نقدي': 'Cash', 'كي نت': 'K-Net', 'بطاقة': 'K-Net', 'دين على الموظف': 'Employee Debt', 'دين على الإدارة': 'Owner Account' };
                 return `<span class="badge bg-${cls}">${isEn && labelEn[p] ? labelEn[p] : p}</span>`;
             };
 

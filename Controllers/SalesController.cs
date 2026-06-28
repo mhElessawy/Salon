@@ -99,7 +99,7 @@ namespace Salon.Controllers
                 .Sum(s => s.NetAmount);
 
             ViewBag.TotalOwnerDebt = activeSales
-                .Where(s => s.PaymentMethod == "دين على صاحب المكان")
+                .Where(s => s.PaymentMethod == "دين على الإدارة")
                 .Sum(s => s.NetAmount);
 
             ViewBag.UserDepartment = userDept;

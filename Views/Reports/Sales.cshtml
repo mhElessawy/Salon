@@ -70,7 +70,7 @@
                     <option value="كي نت و كاش" selected="@(selectedPaymentMethod == "كي نت و كاش")">↔ كاش + كي نت</option>
                     <option value="دين على العميل" selected="@(selectedPaymentMethod == "دين على العميل")">👤 دين على العميل</option>
                     <option value="دين على الموظف" selected="@(selectedPaymentMethod == "دين على الموظف")">👷 دين على الموظف</option>
-                    <option value="دين على صاحب المكان" selected="@(selectedPaymentMethod == "دين على صاحب المكان")">🏠 دين على صاحب المكان</option>
+                    <option value="دين على الإدارة" selected="@(selectedPaymentMethod == "دين على الإدارة")">🏠 دين على الإدارة</option>
                 </select>
             </div>
             <div class="col-auto">
@@ -211,7 +211,7 @@
     </div>
     <div class="col-md-2">
         <div class="stat-card" style="border-right:4px solid #7c3aed;">
-            <div class="stat-label">دين على صاحب المكان</div>
+            <div class="stat-label">دين على الإدارة</div>
             <div class="stat-value" style="color:#7c3aed;">@ViewBag.TotalOwnerDebt?.ToString("N3") د.ك</div>
         </div>
     </div>

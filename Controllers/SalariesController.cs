@@ -58,7 +58,7 @@ namespace Salon.Controllers
                 mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
             ViewBag.EmployeeDebt = activeSales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
             ViewBag.CustomerDebt = activeSales.Where(s => s.PaymentMethod == "دين على العميل").Sum(s => s.NetAmount);
-            ViewBag.OwnerDebt = activeSales.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount);
+            ViewBag.OwnerDebt = activeSales.Where(s => s.PaymentMethod == "دين على الإدارة").Sum(s => s.NetAmount);
 
             return View(salary);
         }

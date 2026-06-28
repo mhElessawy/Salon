@@ -96,7 +96,7 @@ namespace Salon.Controllers
                 knetMethodsSales.Contains(s.PaymentMethod) ? s.NetAmount :
                 mixedMethodsSales.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
             ViewBag.TotalEmployeeDebt = activeSales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
-            ViewBag.TotalOwnerDebt = activeSales.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount);
+            ViewBag.TotalOwnerDebt = activeSales.Where(s => s.PaymentMethod == "دين على الإدارة").Sum(s => s.NetAmount);
             ViewBag.TotalCancelled = cancelledSales.Sum(s => s.NetAmount);
             ViewBag.TotalCancelledCount = cancelledSales.Count;
             ViewBag.TotalGifts = activeSales.Sum(s => s.EmployeeGift ?? 0);
@@ -307,7 +307,7 @@ namespace Salon.Controllers
             string[] cashMethods = { "كاش", "نقدي", "Cash" };
             string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
             string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
-            string[] debtMethods = { "دين على العميل", "دين على الموظف", "دين على صاحب المكان", "آجل", "Customer Debit", "Employee Debit", "Owner Debit" };
+            string[] debtMethods = { "دين على العميل", "دين على الموظف", "دين على الإدارة", "آجل", "Customer Debit", "Employee Debit", "Owner Debit" };
 
             ViewBag.SalesToday = salesToday;
             ViewBag.ExpensesToday = expensesToday;
@@ -332,7 +332,7 @@ namespace Salon.Controllers
                 .Where(s => debtMethods.Contains(s.PaymentMethod))
                 .Sum(s => s.NetAmount);
             ViewBag.EmployeeDebtTotal = activeSalesReport.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
-            ViewBag.OwnerDebtTotal = activeSalesReport.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount);
+            ViewBag.OwnerDebtTotal = activeSalesReport.Where(s => s.PaymentMethod == "دين على الإدارة").Sum(s => s.NetAmount);
             ViewBag.CancelledTotal = cancelledSalesReport.Sum(s => s.NetAmount);
             ViewBag.CancelledCount = cancelledSalesReport.Count;
             ViewBag.TotalGiftsToday = activeSalesReport.Sum(s => s.EmployeeGift ?? 0);
@@ -1063,7 +1063,7 @@ namespace Salon.Controllers
                     Knet = g.Sum(s => knetMethods.Contains(s.PaymentMethod) ? s.NetAmount
                         : mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0),
                     EmployeeDebt = g.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount),
-                    OwnerDebt = g.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount),
+                    OwnerDebt = g.Where(s => s.PaymentMethod == "دين على الإدارة").Sum(s => s.NetAmount),
                     Count = g.Count()
                 })
                 .OrderBy(r => r.Date)
@@ -1103,7 +1103,7 @@ namespace Salon.Controllers
             ViewBag.TotalCash = totalCash;
             ViewBag.TotalKnet = totalKnet;
             ViewBag.TotalEmployeeDebt = allSales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
-            ViewBag.TotalOwnerDebt = allSales.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount);
+            ViewBag.TotalOwnerDebt = allSales.Where(s => s.PaymentMethod == "دين على الإدارة").Sum(s => s.NetAmount);
             ViewBag.TotalCount = allSales.Count;
             ViewBag.TotalExpenses = totalExpenses;
             ViewBag.TotalDeposits = totalDeposits;

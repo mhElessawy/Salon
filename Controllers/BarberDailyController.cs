@@ -136,7 +136,7 @@ namespace Salon.Controllers
                 knetMethods.Contains(s.PaymentMethod) ? s.NetAmount :
                 mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
             decimal debtRevenue = staffSales.Where(s =>
-                s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "دين على صاحب المكان")
+                s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "دين على الإدارة")
                 .Sum(s => s.NetAmount);
 
             var tipInvoices = allSales.Where(s => (s.GiftForEmployee ?? 0) > 0).ToList();
@@ -161,7 +161,7 @@ namespace Salon.Controllers
                     knetMethods.Contains(s.PaymentMethod) ? s.NetAmount :
                     mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
                 var empDebts = empSales.Where(s =>
-                    s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "دين على صاحب المكان")
+                    s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "دين على الإدارة")
                     .Sum(s => s.NetAmount);
                 var empAdv = advances.Where(a => a.EmployeeId == emp.Id).Sum(a => a.Amount);
                 var empHadiya = allSales.Where(s => s.EmployeeId == emp.Id).Sum(s => s.GiftForEmployee ?? 0);
