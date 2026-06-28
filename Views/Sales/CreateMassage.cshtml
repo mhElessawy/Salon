@@ -1160,6 +1160,32 @@
     }
 </style>
 
+<!-- ══ Confirm Save Modal ══ -->
+<div class="modal fade" id="confirmSaveModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:460px;">
+        <div class="modal-content" style="border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <div style="background:linear-gradient(135deg,#1a3a5c,#1a6fc4);padding:32px 28px 24px;text-align:center;color:#fff;">
+                <div style="width:72px;height:72px;background:rgba(255,255,255,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                    <i class="fas fa-file-invoice-dollar" style="font-size:32px;"></i>
+                </div>
+                <h4 class="mb-1 fw-bold" data-i18n-en="Confirm Save Invoice">تأكيد حفظ الفاتورة</h4>
+                <p class="mb-0" style="opacity:.85;font-size:14px;" data-i18n-en="Are you sure you want to save this invoice?">هل أنت متأكد من حفظ هذه الفاتورة؟</p>
+            </div>
+            <div id="confirmSaveDetails" style="padding:20px 24px;background:#f8f9fa;border-bottom:1px solid #eee;font-size:14px;"></div>
+            <div style="padding:20px 24px;display:flex;gap:12px;justify-content:center;">
+                <button type="button" onclick="doSaveInvoice()" id="confirmSaveBtn"
+                        style="flex:1;padding:12px 24px;background:linear-gradient(135deg,#1a6fc4,#1a3a5c);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;" data-i18n-en="✔ Confirm">
+                    ✔ تأكيد
+                </button>
+                <button type="button" data-bs-dismiss="modal"
+                        style="flex:1;padding:12px 24px;background:#fff;color:#555;border:2px solid #ddd;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;" data-i18n-en="✖ Cancel">
+                    ✖ إلغاء
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ══ Print Invoice Modal ══ -->
 <div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -1644,6 +1670,39 @@
                         return;
                     }
                 }
+                // ── عرض modal التأكيد ──
+                var net3 = getNet();
+                var custName = document.getElementById('customerDisplayName').textContent.trim() || _t('بدون عميل','No Customer');
+                var empName  = document.querySelector('#employeeCards .emp-card.selected .emp-name')?.textContent?.trim() || '—';
+                var pmDisplayNamesConfirm = {
+                    'كاش': _t('كاش','Cash'),
+                    'كي نت': _t('كي نت','K-Net'),
+                    'كي نت و كاش': _t('كي نت و كاش','K-Net + Cash'),
+                    'دين على العميل': _t('دين على العميل','Customer Debit'),
+                    'دين على الموظف': _t('دين على الموظف','Employee Debit'),
+                    'دين على الإدارة': _t('دين على الإدارة','Department Debit')
+                };
+                var pmLabel = pmDisplayNamesConfirm[pm] || pm;
+                var rows = [
+                    { icon:'fa-user',        color:'#1a6fc4', label: _t('العميل','Customer'),          val: custName },
+                    { icon:'fa-spa',         color:'#6c3483', label: _t('المعالج','Therapist'),         val: empName  },
+                    { icon:'fa-list',        color:'#117a65', label: _t('عدد الأصناف','Items'),         val: items.length + ' ' + _t('صنف','item(s)') },
+                    { icon:'fa-money-bill',  color:'#27ae60', label: _t('الإجمالي الصافي','Net Total'), val: '<strong style="font-size:17px">' + net3.toFixed(3) + ' د.ك</strong>' },
+                    { icon:'fa-credit-card', color:'#e67e22', label: _t('طريقة الدفع','Payment Method'),val: pmLabel }
+                ];
+                document.getElementById('confirmSaveDetails').innerHTML = rows.map(function(r) {
+                    return '<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #eee;">' +
+                        '<div style="width:34px;height:34px;background:' + r.color + '18;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+                        '<i class="fas ' + r.icon + '" style="color:' + r.color + ';font-size:14px;"></i></div>' +
+                        '<span style="color:#666;min-width:110px;font-size:13px;">' + r.label + '</span>' +
+                        '<span style="color:#222;font-weight:600;font-size:13px;">' + r.val + '</span></div>';
+                }).join('');
+                new bootstrap.Modal(document.getElementById('confirmSaveModal')).show();
+            });
+
+            function doSaveInvoice() {
+                bootstrap.Modal.getInstance(document.getElementById('confirmSaveModal')).hide();
+                var pm = document.getElementById('paymentMethodSelect').value;
                 var c = document.getElementById('hiddenItems'); c.innerHTML = '';
                 items.forEach(function(it) {
                     c.innerHTML +=
@@ -1653,7 +1712,6 @@
                         '<input type="hidden" name="itemQtys"   value="' + it.qty   + '"/>';
                 });
 
-                // تأكد من قيمة دفع الباقة لحظة الإرسال
                 var pkgSection = document.getElementById('packagePaymentSection');
                 if (pkgSection && pkgSection.style.display !== 'none') {
                     var pkgPayVal = parseFloat(document.getElementById('pkgPayInput').value) || 0;
@@ -1662,10 +1720,10 @@
 
                 var saveBtn = document.getElementById('saveBtn');
                 saveBtn.disabled = true;
-                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري الحفظ...';
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> ' + _t('جاري الحفظ...','Saving...');
+                document.getElementById('confirmSaveBtn').disabled = true;
 
                 var formData = new FormData(document.getElementById('posForm'));
-                // أضف قيمة دفع الباقة مباشرة في FormData لضمان إرسالها صح
                 var pkgSecCheck = document.getElementById('packagePaymentSection');
                 if (pkgSecCheck && pkgSecCheck.style.display !== 'none') {
                     var finalPkgAmt = parseFloat(document.getElementById('pkgPayInput').value) || 0;
@@ -1703,15 +1761,17 @@
                     } else {
                         alert(_t('خطأ: ','Error: ') + (data.message || _t('حدث خطأ أثناء الحفظ','An error occurred while saving')));
                         saveBtn.disabled = false;
-                        saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> ' + _t('حفظ فاتورة المساج','Save Massage Invoice');
+                        saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> ' + _t('إتمام العملية','Complete');
+                        document.getElementById('confirmSaveBtn').disabled = false;
                     }
                 })
                 .catch(function(err) {
                     alert(_t('حدث خطأ أثناء الحفظ: ','Error while saving: ') + (err.message || _t('يرجى المحاولة مرة أخرى','Please try again')));
                     saveBtn.disabled = false;
-                    saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> ' + _t('حفظ فاتورة المساج','Save Massage Invoice');
+                    saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> ' + _t('إتمام العملية','Complete');
+                    document.getElementById('confirmSaveBtn').disabled = false;
                 });
-            });
+            }
 
             function printInvoice() {
                 var frame = document.getElementById('printFrame');
