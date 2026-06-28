@@ -83,8 +83,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                                                       COLUMN 1 (RIGHT in RTL) — Employees
-                                                                                                                                    ════════════════════════════════════════ */
+                                                                                                                                               COLUMN 1 (RIGHT in RTL) — Employees
+                                                                                                                                            ════════════════════════════════════════ */
         .pos-employees-panel {
             background: var(--emp-dark);
             border-radius: 12px;
@@ -207,8 +207,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                                                       COLUMN 2 (MIDDLE) — Services
-                                                                                                                                    ════════════════════════════════════════ */
+                                                                                                                                               COLUMN 2 (MIDDLE) — Services
+                                                                                                                                            ════════════════════════════════════════ */
         .pos-services-panel {
             background: #fff;
             border-radius: 12px;
@@ -307,8 +307,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                                                       COLUMN 3 (LEFT in RTL) — Cart / Invoice
-                                                                                                                                    ════════════════════════════════════════ */
+                                                                                                                                               COLUMN 3 (LEFT in RTL) — Cart / Invoice
+                                                                                                                                            ════════════════════════════════════════ */
         .pos-cart-panel {
             background: #fff;
             border-radius: 12px;
@@ -893,6 +893,35 @@
     </div><!-- /pos-wrapper -->
 </form>
 
+<!-- ══ Modal: تنبيه اختيار العميل ══ -->
+<div class="modal fade" id="customerRequiredModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:18px;overflow:hidden;">
+            <div style="background:linear-gradient(135deg,#c0392b,#e74c3c);padding:32px 24px 20px;text-align:center;">
+                <div style="width:72px;height:72px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                    <i class="fas fa-user-times" style="font-size:32px;color:#fff;"></i>
+                </div>
+                <h4 style="color:#fff;font-weight:700;margin:0;font-size:20px;">يجب اختيار عميل مسجل</h4>
+                <p style="color:rgba(255,255,255,.85);margin:8px 0 0;font-size:13px;">لا يمكن إتمام الفاتورة كـ "زائر" في هذه الحالة</p>
+            </div>
+            <div class="modal-body" style="padding:24px;">
+                <div id="customerRequiredReasons" style="display:flex;flex-direction:column;gap:10px;"></div>
+                <div style="margin-top:20px;padding:12px 14px;background:#fdf2f2;border-radius:10px;border:1px solid #f5c2c7;">
+                    <p style="margin:0;font-size:13px;color:#842029;">
+                        <i class="fas fa-info-circle me-2"></i>اضغط على حقل العميل في أعلى الصفحة لاختيار عميل مسجل أو إضافة عميل جديد.
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer border-0" style="padding:0 24px 20px;justify-content:center;">
+                <button type="button" class="btn btn-danger btn-lg px-5" data-bs-dismiss="modal" onclick="openCustomerSearchModal()"
+                        style="border-radius:10px;font-weight:600;font-size:15px;">
+                    <i class="fas fa-user-search me-2"></i>اختيار العميل الآن
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ══ Modal: عميل جديد ══ -->
 <div class="modal fade" id="newCustomerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -1184,8 +1213,8 @@
                             <div class="assign-pkg-card" id="apc-@p.Id"
                                  onclick="selectAssignCard(@p.Id, '@Html.Raw(p.NameAr.Replace("'", "\\\'"))', @p.Price.ToString(System.Globalization.CultureInfo.InvariantCulture), @p.SessionCount, @p.ValidityDays)"
                                  style="border:2px solid #dee2e6;border-radius:12px;background:#fff;padding:12px 16px;
-                                                                                        cursor:pointer;min-width:170px;flex:1;max-width:230px;transition:all .2s;text-align:right;
-                                                                                        box-shadow:0 1px 4px rgba(0,0,0,.06);">
+                                                                                            cursor:pointer;min-width:170px;flex:1;max-width:230px;transition:all .2s;text-align:right;
+                                                                                            box-shadow:0 1px 4px rgba(0,0,0,.06);">
                                 <div style="font-weight:700;font-size:13px;color:#1a6fc4;margin-bottom:6px;">
                                     <i class="fas fa-box-open me-1"></i>@p.NameAr
                                 </div>
@@ -1281,18 +1310,18 @@
 
             @if (isEmployee && linkedEmpId.HasValue)
             {
-                                                                                <text>
-                                                                                document.querySelectorAll('.emp-item').forEach(function(el) {
-                                                                                    el.style.cursor = 'default';
-                                                                                    el.onclick = null;
-                                                                                });
-                                                                                </text>
+                                                                                    <text>
+                                                                                    document.querySelectorAll('.emp-item').forEach(function(el) {
+                                                                                        el.style.cursor = 'default';
+                                                                                        el.onclick = null;
+                                                                                    });
+                                                                                    </text>
             }
 
             function selectEmployee(id, el) {
                 @if (isEmployee)
                 {
-                                                                                <text>return;</text>
+                                                                                    <text>return;</text>
                 }
                 document.querySelectorAll('.emp-item').forEach(function(e) { e.classList.remove('emp-selected'); });
                 el.classList.add('emp-selected');
@@ -1377,6 +1406,7 @@
                     document.getElementById('cashSection').style.display !== 'none') {
                     onCashPaidInput();
                 }
+                updateCustomerWarning();
             }
             function filterItems(q) {
                 q = q.toLowerCase();
@@ -1391,13 +1421,27 @@
                 updateSaveBtn();
                 onPaymentChange();
             }
+            function needsCustomer() {
+                var pm = document.getElementById('paymentMethodSelect').value;
+                var discount = parseFloat(document.getElementById('discountInput').value) || 0;
+                var hadiya   = parseFloat(document.getElementById('hadiyaInput').value)   || 0;
+                return (pm === 'دين على العميل' || pm === 'دين على الموظف' || pm === 'دين على صاحب المكان' || discount > 0 || hadiya > 0);
+            }
+            function updateCustomerWarning() {
+                var warn = document.getElementById('customerDebtWarning');
+                var customerVal = document.getElementById('customerSelect').value;
+                if (needsCustomer() && !customerVal) {
+                    warn.style.display = '';
+                } else {
+                    warn.style.display = 'none';
+                }
+            }
             function onPaymentChange() {
                 var pm = document.getElementById('paymentMethodSelect').value;
                 var extraBar        = document.getElementById('extraPaymentBar');
                 var splitSection    = document.getElementById('splitSection');
                 var cashSection     = document.getElementById('cashSection');
                 var debtEmpSection  = document.getElementById('debtEmpSection');
-                var customerWarning = document.getElementById('customerDebtWarning');
                 var customerSelect  = document.getElementById('customerSelect');
                 var splitCashRow    = document.getElementById('splitCashRow');
                 var splitKnetRow    = document.getElementById('splitKnetRow');
@@ -1405,7 +1449,6 @@
                 cashSection.style.display  = 'none';
                 splitCashRow.style.display = splitKnetRow.style.display = 'none';
                 debtEmpSection.style.display = extraBar.style.display = 'none';
-                customerWarning.style.display = 'none';
                 customerSelect.required = false;
                 // مسح قيم الكاش المحفوظة عند تغيير طريقة الدفع
                 document.getElementById('paidAmountInput').value = '';
@@ -1423,8 +1466,8 @@
                     document.getElementById('linkAmountInput').value = '';
                     updateSplitDisplay(0, 0, getNet());
                 }
-                else if (pm === 'دين على العميل') { customerWarning.style.display = ''; customerSelect.required = true; }
                 else if (pm === 'دين على الموظف') { extraBar.style.display = ''; debtEmpSection.style.display = ''; }
+                updateCustomerWarning();
             }
             function onCashPaidInput() {
                 var net   = getNet();
@@ -1511,9 +1554,28 @@
                 if (!empId) { alert('يرجى اختيار الحلاق أولاً'); return; }
                 var pm = document.getElementById('paymentMethodSelect').value;
                 if (!pm) { alert('يرجى اختيار طريقة الدفع'); return; }
-                if (pm === 'دين على العميل') {
+                if (needsCustomer()) {
                     if (!document.getElementById('customerSelect').value) {
-                        alert('طريقة الدفع "دين على العميل" تتطلب اختيار عميل مسجل'); return;
+                        var discount3 = parseFloat(document.getElementById('discountInput').value) || 0;
+                        var hadiya3   = parseFloat(document.getElementById('hadiyaInput').value)   || 0;
+                        var reasons = [];
+                        if (pm === 'دين على العميل' || pm === 'دين على الموظف' || pm === 'دين على صاحب المكان')
+                            reasons.push({ icon: 'fa-hand-holding-usd', color: '#c0392b', text: 'طريقة الدفع: <strong>' + pm + '</strong>' });
+                        if (discount3 > 0)
+                            reasons.push({ icon: 'fa-percent', color: '#e67e22', text: 'تم إدخال <strong>خصم</strong> على الفاتورة' });
+                        if (hadiya3 > 0)
+                            reasons.push({ icon: 'fa-gift', color: '#8e44ad', text: 'تم إدخال <strong>هدية للموظف</strong>' });
+                        var reasonsHtml = reasons.map(function(r) {
+                            return '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#fff;border-radius:10px;border:1px solid #f0d0d0;">' +
+                                '<div style="width:36px;height:36px;background:' + r.color + '22;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+                                '<i class="fas ' + r.icon + '" style="color:' + r.color + ';font-size:15px;"></i></div>' +
+                                '<span style="font-size:14px;color:#333;">' + r.text + '</span></div>';
+                        }).join('');
+                        document.getElementById('customerRequiredReasons').innerHTML = reasonsHtml;
+                        var modal = new bootstrap.Modal(document.getElementById('customerRequiredModal'));
+                        modal.show();
+                        updateCustomerWarning();
+                        return;
                     }
                 }
                 if (pm === 'دين على الموظف') {
@@ -1900,7 +1962,7 @@
         var schedEmployees = [
             @foreach (var emp in employees)
             {
-                                        <text>{ id: @emp.Id, name: '@Html.Raw(emp.FullName.Replace("'", "\\'"))' },</text>
+                                            <text>{ id: @emp.Id, name: '@Html.Raw(emp.FullName.Replace("'", "\\'"))' },</text>
             }
         ];
 
@@ -2076,6 +2138,7 @@
             }
             // 3. تحميل باقات العميل
             onCustomerChange(id);
+            updateCustomerWarning();
         }
 
         function clearCustomerSelection() {
@@ -2085,6 +2148,7 @@
             nameEl.style.color = '#6c757d';
             if (_custModalInstance) _custModalInstance.hide();
             onCustomerChange('');
+            updateCustomerWarning();
         }
 
         function _resetQuickForm() {
