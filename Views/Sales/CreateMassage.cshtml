@@ -1548,12 +1548,17 @@
                         var discount3 = parseFloat(document.getElementById('discountInput').value) || 0;
                         var hadiya3   = parseFloat(document.getElementById('hadiyaInput').value)   || 0;
                         var reasons = [];
+                        var pmDisplayNames = {
+                            'دين على العميل': _t('دين على العميل','Customer Debit'),
+                            'دين على الموظف': _t('دين على الموظف','Employee Debit'),
+                            'دين على الإدارة': _t('دين على الإدارة','Department Debit')
+                        };
                         if (pm === 'دين على العميل' || pm === 'دين على الموظف' || pm === 'دين على الإدارة')
-                            reasons.push({ icon: 'fa-hand-holding-usd', color: '#c0392b', text: 'طريقة الدفع: <strong>' + pm + '</strong>' });
+                            reasons.push({ icon: 'fa-hand-holding-usd', color: '#c0392b', text: _t('طريقة الدفع: ','Payment Method: ') + '<strong>' + (pmDisplayNames[pm] || pm) + '</strong>' });
                         if (discount3 > 0)
-                            reasons.push({ icon: 'fa-percent', color: '#e67e22', text: 'تم إدخال <strong>خصم</strong> على الفاتورة' });
+                            reasons.push({ icon: 'fa-percent', color: '#e67e22', text: _t('تم إدخال <strong>خصم</strong> على الفاتورة','A <strong>discount</strong> has been applied to the invoice') });
                         if (hadiya3 > 0)
-                            reasons.push({ icon: 'fa-gift', color: '#8e44ad', text: 'تم إدخال <strong>هدية للموظف</strong>' });
+                            reasons.push({ icon: 'fa-gift', color: '#8e44ad', text: _t('تم إدخال <strong>هدية للموظف</strong>','An <strong>employee gift</strong> has been entered') });
                         var reasonsHtml = reasons.map(function(r) {
                             return '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#fff;border-radius:10px;border:1px solid #f0d0d0;">' +
                                 '<div style="width:36px;height:36px;background:' + r.color + '22;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
