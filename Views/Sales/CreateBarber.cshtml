@@ -2101,7 +2101,7 @@
             var emptyEl = document.getElementById('custSearchEmpty');
             resultsEl.innerHTML = '<div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin fa-lg"></i></div>';
             emptyEl.style.display = 'none';
-            fetch('/Customers/SearchJson?q=&dept=')
+            fetch('/Customers/SearchJson?q=&dept=حلاقة')
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (!data.length) { resultsEl.innerHTML = ''; emptyEl.style.display = ''; return; }
