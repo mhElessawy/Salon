@@ -1713,7 +1713,9 @@
                         pkgs.forEach(function(p) {
                             var unpaid = (parseFloat(p.packagePrice) - parseFloat(p.pricePaid)) > 0.001;
                             var badgeColor = unpaid ? '#dc3545' : '#1a6fc4';
-                            html += '<button type="button" class="customer-pkg-btn" id="cpbtn-' + p.id + '" ' +
+                            var canDelete = p.remaining === p.total && parseFloat(p.pricePaid) === 0;
+                            html += '<div style="display:inline-flex;align-items:flex-start;gap:3px;">' +
+                                    '<button type="button" class="customer-pkg-btn" id="cpbtn-' + p.id + '" ' +
                                     'onclick="selectPackage(' + p.id + ',\'' + p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',' + p.remaining + ',' + p.total + ',' + p.pricePaid + ',' + p.packagePrice + ')" ' +
                                     'style="border:1.5px solid ' + badgeColor + ';border-radius:7px;background:#fff;color:' + badgeColor + ';' +
                                     'padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;text-align:right;">' +
@@ -1722,7 +1724,11 @@
                                     p.remaining + '/' + p.total + '</span>' +
                                     (unpaid ? ' <span style="background:#fff3cd;color:#856404;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;border:1px solid #ffc107;"><i class="fas fa-exclamation-triangle me-1"></i>غير مدفوعة</span>' : '') +
                                     '<br><small style="opacity:.65;font-size:10px;font-weight:400;">ينتهي: ' + p.expiry + '</small>' +
-                                    '</button>';
+                                    '</button>' +
+                                    (canDelete ? '<button type="button" title="حذف الباقة" onclick="deleteCustomerPackage(' + p.id + ',\'' + p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\')" ' +
+                                    'style="border:1.5px solid #dc3545;border-radius:7px;background:#fff;color:#dc3545;padding:4px 7px;font-size:12px;cursor:pointer;margin-top:1px;">' +
+                                    '<i class="fas fa-trash-alt"></i></button>' : '') +
+                                    '</div>';
                         });
                         html += '</div>';
                         area.innerHTML = html;
@@ -1744,6 +1750,26 @@
                         area.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>خطأ في تحميل الباقات: ' + err.message + '</small>';
                         pendingAutoSelectData = null;
                     });
+            }
+
+            function deleteCustomerPackage(pkgId, pkgName) {
+                if (!confirm('هل تريد حذف الباقة "' + pkgName + '"؟\nيمكن حذف الباقات غير المستخدمة وغير المدفوعة فقط.')) return;
+                var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                fetch('/Packages/DeleteCustomerPackage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: new URLSearchParams({ id: pkgId, __RequestVerificationToken: token })
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        var customerId = document.getElementById('customerSelect').value;
+                        onCustomerChange(customerId);
+                    } else {
+                        alert(data.error || 'حدث خطأ أثناء الحذف');
+                    }
+                })
+                .catch(function() { alert('حدث خطأ في الاتصال'); });
             }
 
             var currentPackageBalance = 0;
