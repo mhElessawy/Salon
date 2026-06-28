@@ -70,7 +70,8 @@ namespace Salon.Controllers
         {
             if (!string.IsNullOrEmpty(model.Phone))
             {
-                var phoneExists = await _context.Customers.AnyAsync(c => c.Phone == model.Phone);
+                var phoneExists = await _context.Customers.AnyAsync(c =>
+                    c.Phone == model.Phone && c.Department == model.Department);
                 if (phoneExists)
                     ModelState.AddModelError("Phone", "Phone number already used by another customer");
             }
@@ -101,9 +102,10 @@ namespace Salon.Controllers
 
             if (!string.IsNullOrEmpty(phone))
             {
-                var phoneExists = await _context.Customers.AnyAsync(c => c.Phone == phone);
+                var phoneExists = await _context.Customers.AnyAsync(c =>
+                    c.Phone == phone && c.Department == department);
                 if (phoneExists)
-                    return Json(new { success = false, message = "رقم الهاتف مستخدم مسبقاً لعميل آخر" });
+                    return Json(new { success = false, message = "رقم الهاتف مستخدم مسبقاً لعميل آخر في نفس القسم" });
             }
 
             int? assignedEmpId = null;
