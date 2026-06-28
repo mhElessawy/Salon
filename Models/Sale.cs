@@ -56,6 +56,9 @@ namespace Salon.Models
         [Display(Name = "مبلغ اللينك")]
         public decimal? LinkAmount { get; set; }
 
+        [Display(Name = "رقم إيصال كي نت")]
+        public string? KnetReceiptNumber { get; set; }
+
         [Display(Name = "موظف الدين")]
         public int? DebtEmployeeId { get; set; }
 
