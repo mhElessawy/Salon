@@ -210,7 +210,9 @@ namespace Salon.Controllers
 
             var query = _context.Customers.Where(c => c.IsActive);
 
-            var effectiveDept = userDept ?? dept;
+            // استخدم dept القادم من الطلب إذا كان صحيحاً، وإلا استخدم قسم المستخدم
+            var effectiveDept = (dept == "مساج" || dept == "حلاقة") ? dept
+                              : (!string.IsNullOrEmpty(userDept) ? userDept : null);
             if (effectiveDept == "مساج" || effectiveDept == "حلاقة")
                 query = query.Where(c => c.Department == effectiveDept);
 
