@@ -635,6 +635,21 @@ namespace Salon.Controllers
                 .ToListAsync();
         }
 
+        // ===== API: التحقق من تكرار رقم إيصال كي نت =====
+        [HttpGet]
+        public async Task<IActionResult> CheckKnetReceipt(string receipt, int? excludeSaleId)
+        {
+            if (string.IsNullOrWhiteSpace(receipt))
+                return Json(new { duplicate = false });
+
+            var exists = await _context.Sales.AnyAsync(s =>
+                s.KnetReceiptNumber == receipt.Trim() &&
+                s.Status != "ملغي" &&
+                (excludeSaleId == null || s.Id != excludeSaleId));
+
+            return Json(new { duplicate = exists });
+        }
+
         // ===== API: باقات العميل النشطة للكاشير =====
         [HttpGet]
         public async Task<IActionResult> GetCustomerPackagesForSale(int customerId, string dept)

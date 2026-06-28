@@ -862,6 +862,21 @@
                 <div id="splitStatus" style="display:none;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;text-align:center;"></div>
             </div>
 
+            <!-- ══ قسم رقم إيصال كي نت ══ -->
+            <div id="knetReceiptSection" style="display:none;padding:10px 14px;background:#f0f4ff;border-top:2px solid #1a6fc4;">
+                <div class="d-flex align-items-end gap-3 flex-wrap">
+                    <div style="flex:1;min-width:180px;">
+                        <label class="form-label mb-1 fw-semibold" style="font-size:12px;color:#1a6fc4;" data-i18n-en="K-Net Receipt Number *">
+                            <i class="fas fa-receipt me-1"></i>رقم إيصال كي نت <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" id="knetReceiptInput" name="KnetReceiptNumber"
+                               class="form-control form-control-sm" placeholder="أدخل رقم الإيصال"
+                               oninput="onKnetReceiptInput()" autocomplete="off" style="font-weight:600;letter-spacing:1px;" />
+                    </div>
+                    <div id="knetReceiptStatus" style="font-size:12px;font-weight:600;padding-bottom:6px;"></div>
+                </div>
+            </div>
+
             <!-- ══ قسم الكاش: المبلغ المدفوع والباقي ══ -->
             <div id="cashSection" style="display:none;padding:10px 14px;background:#f0faf4;border-top:2px solid #28a745;">
                 <p class="mb-2 fw-semibold" style="font-size:13px;color:#155724;">
@@ -1455,6 +1470,9 @@
                 cashSection.style.display  = 'none';
                 splitCashRow.style.display = splitKnetRow.style.display = 'none';
                 debtEmpSection.style.display = extraBar.style.display = 'none';
+                document.getElementById('knetReceiptSection').style.display = 'none';
+                document.getElementById('knetReceiptInput').value = '';
+                document.getElementById('knetReceiptStatus').innerHTML = '';
                 customerSelect.required = false;
                 // مسح قيم الكاش المحفوظة عند تغيير طريقة الدفع
                 document.getElementById('paidAmountInput').value = '';
@@ -1465,15 +1483,39 @@
                     document.getElementById('cashChangeDisplay').textContent = '0.000 د.ك';
                     document.getElementById('cashPaidStatus').style.display = 'none';
                 }
+                else if (pm === 'كي نت') {
+                    document.getElementById('knetReceiptSection').style.display = '';
+                }
                 else if (pm === 'كي نت و كاش') {
                     splitSection.style.display = '';
                     splitCashRow.style.display = splitKnetRow.style.display = '';
                     document.getElementById('cashAmountInput').value = '';
                     document.getElementById('linkAmountInput').value = '';
                     updateSplitDisplay(0, 0, getNet());
+                    document.getElementById('knetReceiptSection').style.display = '';
                 }
                 else if (pm === 'دين على الموظف') { extraBar.style.display = ''; debtEmpSection.style.display = ''; }
                 updateCustomerWarning();
+            }
+            var _knetCheckTimer = null;
+            function onKnetReceiptInput() {
+                var val = document.getElementById('knetReceiptInput').value.trim();
+                var st = document.getElementById('knetReceiptStatus');
+                clearTimeout(_knetCheckTimer);
+                if (!val) { st.innerHTML = ''; return; }
+                st.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                _knetCheckTimer = setTimeout(function() {
+                    fetch('/Sales/CheckKnetReceipt?receipt=' + encodeURIComponent(val))
+                        .then(function(r) { return r.json(); })
+                        .then(function(d) {
+                            if (d.duplicate) {
+                                st.innerHTML = '<span style="color:#c0392b"><i class="fas fa-times-circle me-1"></i>' + _t('رقم الإيصال مستخدم مسبقاً','Receipt number already used') + '</span>';
+                            } else {
+                                st.innerHTML = '<span style="color:#27ae60"><i class="fas fa-check-circle me-1"></i>' + _t('رقم الإيصال صحيح','Receipt number is valid') + '</span>';
+                            }
+                        })
+                        .catch(function() { st.innerHTML = ''; });
+                }, 500);
             }
             function onCashPaidInput() {
                 var net   = getNet();
@@ -1603,6 +1645,20 @@
                     }
                     if (Math.abs(cash2 + link2 - net2) > 0.005) {
                         alert(_t('مبلغ الكاش + مبلغ كي نت (' + (cash2+link2).toFixed(3) + ' د.ك) يجب أن يساوي إجمالي الفاتورة (' + net2.toFixed(3) + ' د.ك)', 'Cash + K-Net (' + (cash2+link2).toFixed(3) + ' K.D.) must equal invoice total (' + net2.toFixed(3) + ' K.D.)'));
+                        return;
+                    }
+                }
+                if (pm === 'كي نت' || pm === 'كي نت و كاش') {
+                    var receiptVal = document.getElementById('knetReceiptInput').value.trim();
+                    if (!receiptVal) {
+                        alert(_t('يرجى إدخال رقم إيصال كي نت','Please enter the K-Net receipt number'));
+                        document.getElementById('knetReceiptInput').focus();
+                        return;
+                    }
+                    var statusHtml = document.getElementById('knetReceiptStatus').innerHTML;
+                    if (statusHtml.indexOf('fa-times-circle') !== -1) {
+                        alert(_t('رقم إيصال كي نت مستخدم مسبقاً، يرجى إدخال رقم آخر','K-Net receipt number already used, please enter another'));
+                        document.getElementById('knetReceiptInput').focus();
                         return;
                     }
                 }

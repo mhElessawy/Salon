@@ -111,6 +111,7 @@ using (var scope = app.Services.CreateScope())
             TryExec("ALTER TABLE Products ADD COLUMN SupplierId INTEGER NULL");
             TryExec("ALTER TABLE Products ADD COLUMN OpeningQuantity INTEGER NOT NULL DEFAULT 0");
             TryExec("ALTER TABLE Attendances ADD COLUMN QueuePosition INTEGER NULL");
+            TryExec("ALTER TABLE Sales ADD COLUMN KnetReceiptNumber TEXT NULL");
             TryExec("ALTER TABLE Sales ADD COLUMN EmployeeGift REAL NULL");
             TryExec("ALTER TABLE Sales ADD COLUMN GiftForEmployee REAL NULL");
             TryExec("ALTER TABLE Sales ADD COLUMN PaidAmount REAL NULL");
