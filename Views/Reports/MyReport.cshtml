@@ -44,7 +44,7 @@
         knetMethodsV.Contains(s.PaymentMethod) ? s.NetAmount :
         mixedMethodsV.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
     decimal empDebtTotal = activeModel.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
-    decimal ownerDebtTotal = activeModel.Where(s => s.PaymentMethod == "دين على صاحب المكان").Sum(s => s.NetAmount);
+    decimal ownerDebtTotal = activeModel.Where(s => s.PaymentMethod == "دين على الإدارة").Sum(s => s.NetAmount);
     decimal debtTotal = empDebtTotal + ownerDebtTotal;
     decimal totalGiftsToday = activeModel.Sum(s => s.EmployeeGift ?? 0);
     decimal totalHadiyaToday = activeModel.Sum(s => s.GiftForEmployee ?? 0);
@@ -546,7 +546,7 @@
             <option value="كي نت و كاش" selected="@(selectedPayment == "كي نت و كاش")" data-i18n-en="↔ Cash + K-Net">↔ كاش + كي نت</option>
             <option value="دين على العميل" selected="@(selectedPayment == "دين على العميل")" data-i18n-en="👤 Customer Debt">👤 دين / عميل</option>
             <option value="دين على الموظف" selected="@(selectedPayment == "دين على الموظف")" data-i18n-en="👷 Employee Debt">👷 دين / موظف</option>
-            <option value="دين على صاحب المكان" selected="@(selectedPayment == "دين على صاحب المكان")" data-i18n-en="🏠 Owner Debt">🏠 دين / صاحب المكان</option>
+            <option value="دين على الإدارة" selected="@(selectedPayment == "دين على الإدارة")" data-i18n-en="🏠 Owner Debt">🏠 دين / صاحب المكان</option>
         </select>
         @if (employees.Any())
         {
