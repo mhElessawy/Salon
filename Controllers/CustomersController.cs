@@ -214,7 +214,7 @@ namespace Salon.Controllers
             var effectiveDept = (dept == "مساج" || dept == "حلاقة") ? dept
                               : (!string.IsNullOrEmpty(userDept) ? userDept : null);
             if (effectiveDept == "مساج" || effectiveDept == "حلاقة")
-                query = query.Where(c => c.Department == effectiveDept);
+                query = query.Where(c => c.Department == effectiveDept || c.Department == "الكل");
 
             if (user?.LinkedEmployeeId.HasValue == true)
                 query = query.Where(c => c.AssignedEmployeeId == user.LinkedEmployeeId);

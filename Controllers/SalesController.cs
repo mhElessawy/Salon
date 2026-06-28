@@ -491,7 +491,7 @@ namespace Salon.Controllers
             // العملاء - فلتر حسب القسم ثم حسب الموظف إن كان المستخدم موظفاً
             var customersQuery = _context.Customers.Where(c => c.IsActive);
             if (dept == "مساج" || dept == "حلاقة")
-                customersQuery = customersQuery.Where(c => c.Department == dept);
+                customersQuery = customersQuery.Where(c => c.Department == dept || c.Department == "الكل");
             if (user?.LinkedEmployeeId.HasValue == true)
                 customersQuery = customersQuery.Where(c => c.AssignedEmployeeId == user.LinkedEmployeeId);
             var customerList = await customersQuery.OrderBy(c => c.FullName).ToListAsync();
