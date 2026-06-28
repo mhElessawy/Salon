@@ -83,8 +83,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                                                                       COLUMN 1 (RIGHT in RTL) — Employees
-                                                                                                                                                    ════════════════════════════════════════ */
+                                                                                                                                                               COLUMN 1 (RIGHT in RTL) — Employees
+                                                                                                                                                            ════════════════════════════════════════ */
         .pos-employees-panel {
             background: var(--emp-dark);
             border-radius: 12px;
@@ -207,8 +207,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                                                                       COLUMN 2 (MIDDLE) — Services
-                                                                                                                                                    ════════════════════════════════════════ */
+                                                                                                                                                               COLUMN 2 (MIDDLE) — Services
+                                                                                                                                                            ════════════════════════════════════════ */
         .pos-services-panel {
             background: #fff;
             border-radius: 12px;
@@ -307,8 +307,8 @@
         }
 
         /* ════════════════════════════════════════
-                                                                                                                                                       COLUMN 3 (LEFT in RTL) — Cart / Invoice
-                                                                                                                                                    ════════════════════════════════════════ */
+                                                                                                                                                               COLUMN 3 (LEFT in RTL) — Cart / Invoice
+                                                                                                                                                            ════════════════════════════════════════ */
         .pos-cart-panel {
             background: #fff;
             border-radius: 12px;
@@ -555,7 +555,7 @@
 <form asp-action="CreateMassage" method="post" id="posForm">
     @Html.AntiForgeryToken()
     <input asp-for="InvoiceNumber" type="hidden" />
-    <input asp-for="SaleType" type="hidden" value="حلاقة" />
+    <input asp-for="SaleType" type="hidden" value="مساج" />
     <input type="hidden" id="selectedEmployeeId" name="EmployeeId" value="@(autoSelectEmpId > 0 ? autoSelectEmpId.ToString() : "")" />
     <input type="hidden" id="customerPackageId" name="customerPackageId" value="" />
     <input type="hidden" id="packagePaymentAmount" name="packagePaymentAmount" value="0" />
@@ -834,7 +834,7 @@
                         <i class="fas fa-user-tag"></i> دين على الموظف
                     </button>
                     <button type="button" class="pay-btn" data-value="دين على الإدارة" onclick="selectPayment(this)">
-                        <i class="fas fa-building"></i> دين على الإدارة
+                        <i class="fas fa-building"></i> <span data-i18n-en="Department Debit">دين على الإدارة</span>
                     </button>
                     <button type="button" class="pay-btn pay-btn-package" id="packagePayBtn"
                             data-value="باقة" onclick="selectPayment(this)" style="display:none;border-color:#1a6fc4;color:#1a6fc4;">
@@ -901,21 +901,21 @@
                 <div style="width:72px;height:72px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
                     <i class="fas fa-user-times" style="font-size:32px;color:#fff;"></i>
                 </div>
-                <h4 style="color:#fff;font-weight:700;margin:0;font-size:20px;">يجب اختيار عميل مسجل</h4>
-                <p style="color:rgba(255,255,255,.85);margin:8px 0 0;font-size:13px;">لا يمكن إتمام الفاتورة كـ "زائر" في هذه الحالة</p>
+                <h4 style="color:#fff;font-weight:700;margin:0;font-size:20px;" data-i18n-en="A registered customer must be selected">يجب اختيار عميل مسجل</h4>
+                <p style="color:rgba(255,255,255,.85);margin:8px 0 0;font-size:13px;" data-i18n-en='Invoice cannot be completed as "Walk-in" in this case'>لا يمكن إتمام الفاتورة كـ "زائر" في هذه الحالة</p>
             </div>
             <div class="modal-body" style="padding:24px;">
                 <div id="customerRequiredReasons" style="display:flex;flex-direction:column;gap:10px;"></div>
                 <div style="margin-top:20px;padding:12px 14px;background:#fdf2f2;border-radius:10px;border:1px solid #f5c2c7;">
                     <p style="margin:0;font-size:13px;color:#842029;">
-                        <i class="fas fa-info-circle me-2"></i>اضغط على حقل العميل في أعلى الصفحة لاختيار عميل مسجل أو إضافة عميل جديد.
+                        <i class="fas fa-info-circle me-2"></i><span data-i18n-en="Click the customer field at the top of the page to select a registered customer or add a new one.">اضغط على حقل العميل في أعلى الصفحة لاختيار عميل مسجل أو إضافة عميل جديد.</span>
                     </p>
                 </div>
             </div>
             <div class="modal-footer border-0" style="padding:0 24px 20px;justify-content:center;">
                 <button type="button" class="btn btn-danger btn-lg px-5" data-bs-dismiss="modal" onclick="openCustomerSearchModal()"
                         style="border-radius:10px;font-weight:600;font-size:15px;">
-                    <i class="fas fa-user-search me-2"></i>اختيار العميل الآن
+                    <i class="fas fa-user-search me-2"></i><span data-i18n-en="Select Customer Now">اختيار العميل الآن</span>
                 </button>
             </div>
         </div>
@@ -1003,42 +1003,48 @@
     <div class="modal-dialog modal-dialog-centered modal-lg" style="max-width:760px;">
         <div class="modal-content" style="border-radius:16px;overflow:hidden;">
             <div class="modal-header border-0 pb-0 px-4 pt-3">
-                <h6 class="modal-title fw-bold fs-6">البحث عن العميل</h6>
+                <h6 class="modal-title fw-bold fs-6" data-i18n-en="Search Customer">البحث عن العميل</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-0">
                 <div class="d-flex border-bottom px-4 mb-0" id="custModalTabs">
-                    <button type="button" class="cust-tab active" id="tabSearch" onclick="switchCustTab('search')">البحث</button>
-                    <button type="button" class="cust-tab" id="tabRegister" onclick="switchCustTab('register')">تسجيل عميل جديد</button>
+                    <button type="button" class="cust-tab active" id="tabSearch" onclick="switchCustTab('search')" data-i18n-en="Search">البحث</button>
+                    <button type="button" class="cust-tab" id="tabRegister" onclick="switchCustTab('register')" data-i18n-en="Register New Customer">تسجيل عميل جديد</button>
                 </div>
                 <div class="row g-0" style="min-height:420px;">
                     <div class="col-md-6 border-start p-3" id="custSearchPanel">
-                        <div class="input-group mb-3" style="direction:rtl;">
+                        <div class="input-group mb-2" style="direction:rtl;">
                             <input type="text" id="custSearchInput" class="form-control"
                                    placeholder="اكتب الاسم أو رقم الهاتف" autocomplete="off"
                                    oninput="doCustomerSearch(this.value)" />
                             <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
                         </div>
-                        <div id="custSearchResults" style="max-height:320px;overflow-y:auto;"></div>
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-sm btn-outline-secondary w-100"
+                                    onclick="showAllCustomers()" style="font-size:12px;">
+                                <i class="fas fa-users me-1"></i><span data-i18n-en="Load All Customers">جلب كل العملاء</span>
+                            </button>
+                        </div>
+                        <div id="custSearchResults" style="max-height:280px;overflow-y:auto;"></div>
                         <div id="custSearchEmpty" class="text-center text-muted py-5" style="display:none;">
-                            <i class="fas fa-user-slash fa-2x mb-2 d-block"></i>لا توجد نتائج
+                            <i class="fas fa-user-slash fa-2x mb-2 d-block"></i><span data-i18n-en="No results found">لا توجد نتائج</span>
                         </div>
                     </div>
                     <div class="col-md-6 p-4" id="custRegisterPanel">
-                        <p class="text-warning fw-semibold mb-3" style="font-size:13px;">تسجيل عميل جديد (سريع)</p>
+                        <p class="text-warning fw-semibold mb-3" style="font-size:13px;" data-i18n-en="Quick Customer Registration">تسجيل عميل جديد (سريع)</p>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold" style="font-size:13px;">الاسم <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold" style="font-size:13px;" data-i18n-en="Full Name *">الاسم <span class="text-danger">*</span></label>
                             <input type="text" id="qCustName" class="form-control form-control-sm" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold" style="font-size:13px;">رقم الهاتف <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold" style="font-size:13px;" data-i18n-en="Phone Number *">رقم الهاتف <span class="text-danger">*</span></label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text"><i class="fas fa-phone"></i></span>
                                 <input type="text" id="qCustPhone" class="form-control" />
                             </div>
                         </div>
                         <div class="mb-3 d-flex align-items-center justify-content-between">
-                            <label class="form-label mb-0 fw-semibold" style="font-size:13px;">إكمال البيانات لاحقاً</label>
+                            <label class="form-label mb-0 fw-semibold" style="font-size:13px;" data-i18n-en="Complete details later">إكمال البيانات لاحقاً</label>
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input" type="checkbox" id="qCustLater" checked
                                        style="width:2.5rem;height:1.3rem;cursor:pointer;" />
@@ -1052,12 +1058,12 @@
                         </div>
                         <div id="qCustSavedHint" class="rounded p-2 mb-3 text-center" style="display:none;background:#f0faf0;border:1px solid #c3e6c3;font-size:12px;">
                             <i class="fas fa-check-circle text-success me-1"></i>
-                            سيتم حفظ العميل ويمكنك تعديل تفاصيله لاحقاً من صفحة العملاء
+                            <span data-i18n-en="Customer will be saved. You can edit details later from the Customers page.">سيتم حفظ العميل ويمكنك تعديل تفاصيله لاحقاً من صفحة العملاء</span>
                         </div>
                         <div id="qCustError" class="alert alert-danger py-2 d-none" style="font-size:12px;"></div>
                         <button type="button" class="btn w-100 fw-bold" onclick="submitQuickCustomer()"
                                 style="background:#e07b00;color:#fff;border-radius:8px;">
-                            <i class="fas fa-save me-1"></i> حفظ واختيار العميل
+                            <i class="fas fa-save me-1"></i> <span data-i18n-en="Save &amp; Select Customer">حفظ واختيار العميل</span>
                         </button>
                     </div>
                 </div>
@@ -1198,8 +1204,8 @@
                             <div class="assign-pkg-card" id="apc-@p.Id"
                                  onclick="selectAssignCard(@p.Id, '@Html.Raw(p.NameAr.Replace("'", "\\\'"))', @p.Price.ToString(System.Globalization.CultureInfo.InvariantCulture), @p.SessionCount, @p.ValidityDays)"
                                  style="border:2px solid #dee2e6;border-radius:12px;background:#fff;padding:12px 16px;
-                                                                                                cursor:pointer;min-width:170px;flex:1;max-width:230px;transition:all .2s;text-align:right;
-                                                                                                box-shadow:0 1px 4px rgba(0,0,0,.06);">
+                                                                                                    cursor:pointer;min-width:170px;flex:1;max-width:230px;transition:all .2s;text-align:right;
+                                                                                                    box-shadow:0 1px 4px rgba(0,0,0,.06);">
                                 <div style="font-weight:700;font-size:13px;color:#1a6fc4;margin-bottom:6px;">
                                     <i class="fas fa-box-open me-1"></i>@p.NameAr
                                 </div>
@@ -1295,18 +1301,18 @@
 
             @if (isEmployee && linkedEmpId.HasValue)
             {
-                                                                                        <text>
-                                                                                        document.querySelectorAll('.emp-item').forEach(function(el) {
-                                                                                            el.style.cursor = 'default';
-                                                                                            el.onclick = null;
-                                                                                        });
-                                                                                        </text>
+                                                                                            <text>
+                                                                                            document.querySelectorAll('.emp-item').forEach(function(el) {
+                                                                                                el.style.cursor = 'default';
+                                                                                                el.onclick = null;
+                                                                                            });
+                                                                                            </text>
             }
 
             function selectEmployee(id, el) {
                 @if (isEmployee)
                 {
-                                                                                        <text>return;</text>
+                                                                                            <text>return;</text>
                 }
                 document.querySelectorAll('.emp-item').forEach(function(e) { e.classList.remove('emp-selected'); });
                 el.classList.add('emp-selected');
@@ -1534,20 +1540,25 @@
                 e.preventDefault();
                 if (!items.length) return;
                 var empId = document.getElementById('selectedEmployeeId').value;
-                if (!empId) { alert('يرجى اختيار الحلاق أولاً'); return; }
+                if (!empId) { alert(_t('يرجى اختيار الحلاق أولاً','Please select a therapist first')); return; }
                 var pm = document.getElementById('paymentMethodSelect').value;
-                if (!pm) { alert('يرجى اختيار طريقة الدفع'); return; }
+                if (!pm) { alert(_t('يرجى اختيار طريقة الدفع','Please select a payment method')); return; }
                 if (needsCustomer()) {
                     if (!document.getElementById('customerSelect').value) {
                         var discount3 = parseFloat(document.getElementById('discountInput').value) || 0;
                         var hadiya3   = parseFloat(document.getElementById('hadiyaInput').value)   || 0;
                         var reasons = [];
+                        var pmDisplayNames = {
+                            'دين على العميل': _t('دين على العميل','Customer Debit'),
+                            'دين على الموظف': _t('دين على الموظف','Employee Debit'),
+                            'دين على الإدارة': _t('دين على الإدارة','Department Debit')
+                        };
                         if (pm === 'دين على العميل' || pm === 'دين على الموظف' || pm === 'دين على الإدارة')
-                            reasons.push({ icon: 'fa-hand-holding-usd', color: '#c0392b', text: 'طريقة الدفع: <strong>' + pm + '</strong>' });
+                            reasons.push({ icon: 'fa-hand-holding-usd', color: '#c0392b', text: _t('طريقة الدفع: ','Payment Method: ') + '<strong>' + (pmDisplayNames[pm] || pm) + '</strong>' });
                         if (discount3 > 0)
-                            reasons.push({ icon: 'fa-percent', color: '#e67e22', text: 'تم إدخال <strong>خصم</strong> على الفاتورة' });
+                            reasons.push({ icon: 'fa-percent', color: '#e67e22', text: _t('تم إدخال <strong>خصم</strong> على الفاتورة','A <strong>discount</strong> has been applied to the invoice') });
                         if (hadiya3 > 0)
-                            reasons.push({ icon: 'fa-gift', color: '#8e44ad', text: 'تم إدخال <strong>هدية للموظف</strong>' });
+                            reasons.push({ icon: 'fa-gift', color: '#8e44ad', text: _t('تم إدخال <strong>هدية للموظف</strong>','An <strong>employee gift</strong> has been entered') });
                         var reasonsHtml = reasons.map(function(r) {
                             return '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#fff;border-radius:10px;border:1px solid #f0d0d0;">' +
                                 '<div style="width:36px;height:36px;background:' + r.color + '22;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
@@ -1563,18 +1574,18 @@
                 }
                 if (pm === 'دين على الموظف') {
                     var sel = document.getElementById('debtEmployeeSelect');
-                    if (!sel || !sel.value) { alert('يرجى اختيار الموظف المدين'); return; }
+                    if (!sel || !sel.value) { alert(_t('يرجى اختيار الموظف المدين','Please select the responsible employee')); return; }
                 }
                 if (pm === 'كي نت و كاش') {
                     var cash2 = parseFloat(document.getElementById('cashAmountInput').value) || 0;
                     var link2 = parseFloat(document.getElementById('linkAmountInput').value) || 0;
                     var net2  = getNet();
                     if (cash2 <= 0 || link2 <= 0) {
-                        alert('يجب أن يكون مبلغ الكاش ومبلغ الكي نت أكبر من صفر');
+                        alert(_t('يجب أن يكون مبلغ الكاش ومبلغ الكي نت أكبر من صفر','Cash and K-Net amounts must be greater than zero'));
                         return;
                     }
                     if (Math.abs(cash2 + link2 - net2) > 0.005) {
-                        alert('مبلغ الكاش + مبلغ كي نت (' + (cash2+link2).toFixed(3) + ' د.ك) يجب أن يساوي إجمالي الفاتورة (' + net2.toFixed(3) + ' د.ك)');
+                        alert(_t('مبلغ الكاش + مبلغ كي نت (' + (cash2+link2).toFixed(3) + ' د.ك) يجب أن يساوي إجمالي الفاتورة (' + net2.toFixed(3) + ' د.ك)', 'Cash + K-Net (' + (cash2+link2).toFixed(3) + ' K.D.) must equal invoice total (' + net2.toFixed(3) + ' K.D.)'));
                         return;
                     }
                 }
@@ -1635,15 +1646,15 @@
                             }, { once: true });
                         }
                     } else {
-                        alert('خطأ: ' + (data.message || 'حدث خطأ أثناء الحفظ'));
+                        alert(_t('خطأ: ','Error: ') + (data.message || _t('حدث خطأ أثناء الحفظ','An error occurred while saving')));
                         saveBtn.disabled = false;
-                        saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> حفظ فاتورة الحلاقة';
+                        saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> ' + _t('حفظ فاتورة المساج','Save Massage Invoice');
                     }
                 })
                 .catch(function(err) {
-                    alert('حدث خطأ أثناء الحفظ: ' + (err.message || 'يرجى المحاولة مرة أخرى'));
+                    alert(_t('حدث خطأ أثناء الحفظ: ','Error while saving: ') + (err.message || _t('يرجى المحاولة مرة أخرى','Please try again')));
                     saveBtn.disabled = false;
-                    saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> حفظ فاتورة الحلاقة';
+                    saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> ' + _t('حفظ فاتورة المساج','Save Massage Invoice');
                 });
             });
 
@@ -1674,7 +1685,7 @@
                 area.innerHTML = '<small class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>جاري التحميل...</small>';
                 area.style.display = '';
 
-                fetch('/Sales/GetCustomerPackagesForSale?customerId=' + encodeURIComponent(customerId) + '&dept=' + encodeURIComponent('حلاقة'))
+                fetch('/Sales/GetCustomerPackagesForSale?customerId=' + encodeURIComponent(customerId) + '&dept=' + encodeURIComponent('مساج'))
                     .then(function(r) {
                         if (!r.ok) throw new Error('HTTP ' + r.status);
                         return r.json();
@@ -1696,7 +1707,9 @@
                         pkgs.forEach(function(p) {
                             var unpaid = (parseFloat(p.packagePrice) - parseFloat(p.pricePaid)) > 0.001;
                             var badgeColor = unpaid ? '#dc3545' : '#1a6fc4';
-                            html += '<button type="button" class="customer-pkg-btn" id="cpbtn-' + p.id + '" ' +
+                            var canDelete = p.remaining === p.total && parseFloat(p.pricePaid) === 0;
+                            html += '<div style="display:inline-flex;align-items:flex-start;gap:3px;">' +
+                                    '<button type="button" class="customer-pkg-btn" id="cpbtn-' + p.id + '" ' +
                                     'onclick="selectPackage(' + p.id + ',\'' + p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',' + p.remaining + ',' + p.total + ',' + p.pricePaid + ',' + p.packagePrice + ')" ' +
                                     'style="border:1.5px solid ' + badgeColor + ';border-radius:7px;background:#fff;color:' + badgeColor + ';' +
                                     'padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;text-align:right;">' +
@@ -1705,7 +1718,11 @@
                                     p.remaining + '/' + p.total + '</span>' +
                                     (unpaid ? ' <span style="background:#fff3cd;color:#856404;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;border:1px solid #ffc107;"><i class="fas fa-exclamation-triangle me-1"></i>غير مدفوعة</span>' : '') +
                                     '<br><small style="opacity:.65;font-size:10px;font-weight:400;">ينتهي: ' + p.expiry + '</small>' +
-                                    '</button>';
+                                    '</button>' +
+                                    (canDelete ? '<button type="button" title="حذف الباقة" onclick="deleteCustomerPackage(' + p.id + ',\'' + p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\')" ' +
+                                    'style="border:1.5px solid #dc3545;border-radius:7px;background:#fff;color:#dc3545;padding:4px 7px;font-size:12px;cursor:pointer;margin-top:1px;">' +
+                                    '<i class="fas fa-trash-alt"></i></button>' : '') +
+                                    '</div>';
                         });
                         html += '</div>';
                         area.innerHTML = html;
@@ -1727,6 +1744,26 @@
                         area.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>خطأ في تحميل الباقات: ' + err.message + '</small>';
                         pendingAutoSelectData = null;
                     });
+            }
+
+            function deleteCustomerPackage(pkgId, pkgName) {
+                if (!confirm(_t('هل تريد حذف الباقة "' + pkgName + '"؟\nيمكن حذف الباقات غير المستخدمة وغير المدفوعة فقط.', 'Delete package "' + pkgName + '"?\nOnly unused and unpaid packages can be deleted.'))) return;
+                var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                fetch('/Packages/DeleteCustomerPackage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: new URLSearchParams({ id: pkgId, __RequestVerificationToken: token })
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        var customerId = document.getElementById('customerSelect').value;
+                        onCustomerChange(customerId);
+                    } else {
+                        alert(data.error || 'حدث خطأ أثناء الحذف');
+                    }
+                })
+                .catch(function() { alert(_t('حدث خطأ في الاتصال','Connection error')); });
             }
 
             var currentPackageBalance = 0;
@@ -1818,8 +1855,8 @@
             function openAssignPackageModal() {
                 var sel = document.getElementById('customerSelect');
                 var customerId = sel.value;
-                var customerName = sel.options[sel.selectedIndex]?.text || '';
-                if (!customerId) { alert('اختر عميلاً أولاً'); return; }
+                var customerName = document.getElementById('customerDisplayName').textContent || '';
+                if (!customerId) { alert(_t('اختر عميلاً أولاً','Please select a customer first')); return; }
                 document.getElementById('assignCustomerId').value = customerId;
                 document.getElementById('assignCustomerName').value = customerName;
                 // إعادة تعيين اختيار الكارت
@@ -1945,7 +1982,7 @@
         var schedEmployees = [
             @foreach (var emp in employees)
             {
-                                                <text>{ id: @emp.Id, name: '@Html.Raw(emp.FullName.Replace("'", "\\'"))' },</text>
+                                                    <text>{ id: @emp.Id, name: '@Html.Raw(emp.FullName.Replace("'", "\\'"))' },</text>
             }
         ];
 
@@ -2046,6 +2083,35 @@
             }
         }
         function switchCustTab(tab) { _switchCustTab(tab); }
+
+        function showAllCustomers() {
+            var resultsEl = document.getElementById('custSearchResults');
+            var emptyEl = document.getElementById('custSearchEmpty');
+            resultsEl.innerHTML = '<div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin fa-lg"></i></div>';
+            emptyEl.style.display = 'none';
+            fetch('/Customers/SearchJson?q=&dept=مساج')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (!data.length) { resultsEl.innerHTML = ''; emptyEl.style.display = ''; return; }
+                    var html = '';
+                    data.forEach(function(c) {
+                        html += '<div class="cust-card d-flex align-items-center gap-2"'
+                              + ' data-cust-id="' + c.id + '"'
+                              + ' data-cust-name="' + _escAttr(c.displayName) + '">'
+                              + '<div style="flex:1;min-width:0;">'
+                              + '<div class="cust-name">' + _escHtml(c.fullName) + '</div>'
+                              + '<div class="cust-phone">' + _escHtml(c.phone) + '</div>'
+                              + '<div class="cust-meta">'
+                              + (c.lastVisit ? 'آخر خدمة: ' + c.lastVisit + ' &nbsp;|&nbsp; ' : '')
+                              + 'نقاط الولاء: ' + c.visitCount
+                              + '</div></div>'
+                              + '<span class="cust-select-btn">اختيار</span>'
+                              + '</div>';
+                    });
+                    resultsEl.innerHTML = html;
+                })
+                .catch(function() { resultsEl.innerHTML = '<small class="text-danger">حدث خطأ</small>'; });
+        }
 
         function doCustomerSearch(val) {
             clearTimeout(_custSearchTimer);
@@ -2218,7 +2284,7 @@
                 gender: gender,
                 assignedEmployeeIdStr: assignedEmp,
                 notes: notes,
-                department: 'حلاقة',
+                department: 'مساج',
                 __RequestVerificationToken: token
             });
 

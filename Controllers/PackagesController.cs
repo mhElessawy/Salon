@@ -167,6 +167,30 @@ namespace Salon.Controllers
             return RedirectToAction(nameof(Index), new { tab = "balances" });
         }
 
+        // ─── حذف باقة غير مستخدمة وغير مدفوعة ───────────────────────
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteCustomerPackage(int id)
+        {
+            var cp = await _context.CustomerPackages
+                .Include(x => x.ServicePackage)
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (cp == null)
+                return Json(new { success = false, error = "الباقة غير موجودة" });
+
+            if (cp.RemainingSessions != cp.TotalSessions)
+                return Json(new { success = false, error = "لا يمكن حذف باقة تم استخدامها" });
+
+            if (cp.PricePaid > 0)
+                return Json(new { success = false, error = "لا يمكن حذف باقة تم دفعها" });
+
+            _context.CustomerPackages.Remove(cp);
+            await _context.SaveChangesAsync();
+            await _audit.LogAsync("Delete", "Packages", $"Delete unregistered customer package ID {id}: {cp.ServicePackage?.NameAr}", id);
+
+            return Json(new { success = true });
+        }
+
         // ─── استخدام جلسة ────────────────────────────────────────────
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> UseSession(int customerPackageId, int? employeeId, string? notes)

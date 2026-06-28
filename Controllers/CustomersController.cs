@@ -70,7 +70,8 @@ namespace Salon.Controllers
         {
             if (!string.IsNullOrEmpty(model.Phone))
             {
-                var phoneExists = await _context.Customers.AnyAsync(c => c.Phone == model.Phone);
+                var phoneExists = await _context.Customers.AnyAsync(c =>
+                    c.Phone == model.Phone && c.Department == model.Department && c.IsActive);
                 if (phoneExists)
                     ModelState.AddModelError("Phone", "Phone number already used by another customer");
             }
@@ -101,9 +102,10 @@ namespace Salon.Controllers
 
             if (!string.IsNullOrEmpty(phone))
             {
-                var phoneExists = await _context.Customers.AnyAsync(c => c.Phone == phone);
+                var phoneExists = await _context.Customers.AnyAsync(c =>
+                    c.Phone == phone && c.Department == department && c.IsActive);
                 if (phoneExists)
-                    return Json(new { success = false, message = "رقم الهاتف مستخدم مسبقاً لعميل آخر" });
+                    return Json(new { success = false, message = "رقم الهاتف مستخدم مسبقاً لعميل آخر في نفس القسم" });
             }
 
             int? assignedEmpId = null;
@@ -210,9 +212,14 @@ namespace Salon.Controllers
 
             var query = _context.Customers.Where(c => c.IsActive);
 
-            var effectiveDept = userDept ?? dept;
+            // استخدم dept القادم من الطلب إذا كان صحيحاً، وإلا استخدم قسم المستخدم
+            var effectiveDept = (dept == "مساج" || dept == "حلاقة") ? dept
+                              : (!string.IsNullOrEmpty(userDept) ? userDept : null);
             if (effectiveDept == "مساج" || effectiveDept == "حلاقة")
-                query = query.Where(c => c.Department == effectiveDept);
+                query = query.Where(c => c.Department == effectiveDept || c.Department == "الكل");
+
+            if (user?.LinkedEmployeeId.HasValue == true)
+                query = query.Where(c => c.AssignedEmployeeId == user.LinkedEmployeeId);
 
             if (!string.IsNullOrEmpty(q))
                 query = query.Where(c =>
