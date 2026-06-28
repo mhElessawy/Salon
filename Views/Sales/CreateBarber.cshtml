@@ -1377,6 +1377,7 @@
                     document.getElementById('cashSection').style.display !== 'none') {
                     onCashPaidInput();
                 }
+                updateCustomerWarning();
             }
             function filterItems(q) {
                 q = q.toLowerCase();
@@ -1391,13 +1392,27 @@
                 updateSaveBtn();
                 onPaymentChange();
             }
+            function needsCustomer() {
+                var pm = document.getElementById('paymentMethodSelect').value;
+                var discount = parseFloat(document.getElementById('discountInput').value) || 0;
+                var hadiya   = parseFloat(document.getElementById('hadiyaInput').value)   || 0;
+                return (pm === 'دين على العميل' || pm === 'دين على الموظف' || pm === 'دين على صاحب المكان' || discount > 0 || hadiya > 0);
+            }
+            function updateCustomerWarning() {
+                var warn = document.getElementById('customerDebtWarning');
+                var customerVal = document.getElementById('customerSelect').value;
+                if (needsCustomer() && !customerVal) {
+                    warn.style.display = '';
+                } else {
+                    warn.style.display = 'none';
+                }
+            }
             function onPaymentChange() {
                 var pm = document.getElementById('paymentMethodSelect').value;
                 var extraBar        = document.getElementById('extraPaymentBar');
                 var splitSection    = document.getElementById('splitSection');
                 var cashSection     = document.getElementById('cashSection');
                 var debtEmpSection  = document.getElementById('debtEmpSection');
-                var customerWarning = document.getElementById('customerDebtWarning');
                 var customerSelect  = document.getElementById('customerSelect');
                 var splitCashRow    = document.getElementById('splitCashRow');
                 var splitKnetRow    = document.getElementById('splitKnetRow');
@@ -1405,7 +1420,6 @@
                 cashSection.style.display  = 'none';
                 splitCashRow.style.display = splitKnetRow.style.display = 'none';
                 debtEmpSection.style.display = extraBar.style.display = 'none';
-                customerWarning.style.display = 'none';
                 customerSelect.required = false;
                 // مسح قيم الكاش المحفوظة عند تغيير طريقة الدفع
                 document.getElementById('paidAmountInput').value = '';
@@ -1423,8 +1437,8 @@
                     document.getElementById('linkAmountInput').value = '';
                     updateSplitDisplay(0, 0, getNet());
                 }
-                else if (pm === 'دين على العميل') { customerWarning.style.display = ''; customerSelect.required = true; }
                 else if (pm === 'دين على الموظف') { extraBar.style.display = ''; debtEmpSection.style.display = ''; }
+                updateCustomerWarning();
             }
             function onCashPaidInput() {
                 var net   = getNet();
@@ -1511,9 +1525,17 @@
                 if (!empId) { alert('يرجى اختيار الحلاق أولاً'); return; }
                 var pm = document.getElementById('paymentMethodSelect').value;
                 if (!pm) { alert('يرجى اختيار طريقة الدفع'); return; }
-                if (pm === 'دين على العميل') {
+                if (needsCustomer()) {
                     if (!document.getElementById('customerSelect').value) {
-                        alert('طريقة الدفع "دين على العميل" تتطلب اختيار عميل مسجل'); return;
+                        var discount3 = parseFloat(document.getElementById('discountInput').value) || 0;
+                        var hadiya3   = parseFloat(document.getElementById('hadiyaInput').value)   || 0;
+                        var msg = 'يرجى اختيار عميل مسجل (ليس زائر) في الحالات التالية:\n';
+                        if (pm === 'دين على العميل' || pm === 'دين على الموظف' || pm === 'دين على صاحب المكان') msg += '• طريقة الدفع: ' + pm + '\n';
+                        if (discount3 > 0) msg += '• تم إدخال خصم\n';
+                        if (hadiya3 > 0)   msg += '• تم إدخال هدية للموظف\n';
+                        alert(msg);
+                        updateCustomerWarning();
+                        return;
                     }
                 }
                 if (pm === 'دين على الموظف') {
@@ -2076,6 +2098,7 @@
             }
             // 3. تحميل باقات العميل
             onCustomerChange(id);
+            updateCustomerWarning();
         }
 
         function clearCustomerSelection() {
@@ -2085,6 +2108,7 @@
             nameEl.style.color = '#6c757d';
             if (_custModalInstance) _custModalInstance.hide();
             onCustomerChange('');
+            updateCustomerWarning();
         }
 
         function _resetQuickForm() {
