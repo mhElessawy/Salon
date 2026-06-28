@@ -1334,6 +1334,58 @@ window.PAGE_TRANSLATIONS = {
     'يرجى كتابة سبب الإلغاء': 'Please write the cancellation reason',
     'سحب': 'Withdrawal',
 
+    // ── Dynamic JS messages ───────────────────────────────
+    'يرجى اختيار الحلاق أولاً': 'Please select a barber first',
+    'يرجى اختيار المعالج أولاً': 'Please select a therapist first',
+    'يرجى اختيار طريقة الدفع': 'Please select a payment method',
+    'يرجى اختيار الموظف المدين': 'Please select the responsible employee',
+    'يجب أن يكون مبلغ الكاش ومبلغ الكي نت أكبر من صفر': 'Cash and K-Net amounts must be greater than zero',
+    'جاري الحفظ...': 'Saving...',
+    'جاري التحميل...': 'Loading...',
+    'لا توجد باقات نشطة لهذا العميل': 'No active packages for this customer',
+    'خطأ في تحميل الباقات': 'Error loading packages',
+    'اختر عميلاً أولاً': 'Please select a customer first',
+    'حدث خطأ أثناء الحفظ': 'An error occurred while saving',
+    'حدث خطأ في الاتصال': 'Connection error',
+    'حدث خطأ أثناء الحذف': 'An error occurred while deleting',
+    'حدث خطأ': 'An error occurred',
+    'المبلغ المدفوع أقل من الإجمالي': 'Amount paid is less than total',
+    'الباقي للعميل': 'Change for customer',
+    'يجب أن يكون مبلغ الكاش ومبلغ الكي نت أكبر من صفر': 'Cash and K-Net amounts must be greater than zero',
+    'مجموع الكاش والكي نت': 'Total cash and K-Net',
+    'لا يساوي إجمالي الفاتورة': 'does not equal invoice total',
+    'صحيح — الكاش + الكي نت': 'Correct — Cash + K-Net',
+    'حفظ فاتورة الحلاقة': 'Save Barber Invoice',
+    'حفظ فاتورة المساج': 'Save Massage Invoice',
+    'جاري الحفظ': 'Saving',
+    'تعيين الباقة': 'Assign Package',
+    'إتمام العملية': 'Complete Transaction',
+    'حفظ العميل': 'Save Customer',
+    'الباقات النشطة — اختر للخصم:': 'Active Packages — Select to Apply:',
+    'ينتهي:': 'Expires:',
+    'غير مدفوعة': 'Unpaid',
+    'باقة:': 'Package:',
+    'لا توجد نتائج': 'No results found',
+    'اكتب الاسم أو رقم الهاتف': 'Type name or phone number',
+    'جلب كل العملاء': 'Load All Customers',
+    'البحث عن العميل': 'Search Customer',
+    'البحث': 'Search',
+    'تسجيل عميل جديد': 'Register New Customer',
+    'تسجيل عميل جديد (سريع)': 'Quick Customer Registration',
+    'إكمال البيانات لاحقاً': 'Complete details later',
+    'الاسم': 'Full Name',
+    'رقم الهاتف': 'Phone Number',
+    'اختيار': 'Select',
+    'آخر خدمة:': 'Last visit:',
+    'نقاط الولاء:': 'Loyalty points:',
+    'هل تريد حذف الباقة': 'Do you want to delete the package',
+    'يمكن حذف الباقات غير المستخدمة وغير المدفوعة فقط.': 'Only unused and unpaid packages can be deleted.',
+    'اختر الباقة أولاً': 'Please select a package first',
+    'حفظ فاتورة الحلاقة': 'Save Barber Invoice',
+    'حفظ فاتورة المساج': 'Save Massage Invoice',
+    'تم حفظ': 'Successfully saved',
+    'موعد بنجاح': 'appointment(s)',
+
 };
 
 // ── Translation engine ───────────────────────────────────────────────────────
@@ -1357,6 +1409,33 @@ function _walkTranslate(node, dict) {
         }
     }
 }
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Return English text when page is in English mode, Arabic otherwise */
+window._t = function(ar, en) {
+    return localStorage.getItem('lang') === 'en' ? en : ar;
+};
+
+/** Translate a specific DOM element and its subtree (for dynamically injected content) */
+window._translateEl = function(el) {
+    if (!el || localStorage.getItem('lang') !== 'en') return;
+    _walkTranslate(el, window.PAGE_TRANSLATIONS);
+    el.querySelectorAll('option').forEach(function(opt) {
+        var text = opt.textContent.trim();
+        if (window.PAGE_TRANSLATIONS[text] && !opt.hasAttribute('data-opt-orig')) {
+            opt.setAttribute('data-opt-orig', opt.textContent);
+            opt.textContent = window.PAGE_TRANSLATIONS[text];
+        }
+    });
+    el.querySelectorAll('[placeholder]').forEach(function(inp) {
+        var ph = inp.getAttribute('placeholder').trim();
+        if (window.PAGE_TRANSLATIONS[ph] && !inp.hasAttribute('data-ph-orig')) {
+            inp.setAttribute('data-ph-orig', ph);
+            inp.setAttribute('placeholder', window.PAGE_TRANSLATIONS[ph]);
+        }
+    });
+};
 
 function translatePageContent(lang) {
     var content = document.querySelector('.page-content');
@@ -1428,3 +1507,29 @@ function translatePageContent(lang) {
         });
     }
 }
+
+// ── MutationObserver: auto-translate dynamically injected content ─────────────
+(function() {
+    function onMutations(mutations) {
+        if (localStorage.getItem('lang') !== 'en') return;
+        mutations.forEach(function(m) {
+            m.addedNodes.forEach(function(node) {
+                if (node.nodeType === 1) window._translateEl(node);
+                else if (node.nodeType === 3) {
+                    var text = node.textContent.trim();
+                    if (text && window.PAGE_TRANSLATIONS[text])
+                        node.textContent = node.textContent.replace(text, window.PAGE_TRANSLATIONS[text]);
+                }
+            });
+        });
+    }
+
+    function startObserver() {
+        var content = document.querySelector('.page-content');
+        if (!content) { setTimeout(startObserver, 300); return; }
+        new MutationObserver(onMutations).observe(content, { childList: true, subtree: true });
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startObserver);
+    else startObserver();
+})();

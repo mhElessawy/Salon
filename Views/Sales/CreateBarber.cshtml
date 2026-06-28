@@ -1557,9 +1557,9 @@
                 e.preventDefault();
                 if (!items.length) return;
                 var empId = document.getElementById('selectedEmployeeId').value;
-                if (!empId) { alert('يرجى اختيار الحلاق أولاً'); return; }
+                if (!empId) { alert(_t('يرجى اختيار الحلاق أولاً','Please select a barber first')); return; }
                 var pm = document.getElementById('paymentMethodSelect').value;
-                if (!pm) { alert('يرجى اختيار طريقة الدفع'); return; }
+                if (!pm) { alert(_t('يرجى اختيار طريقة الدفع','Please select a payment method')); return; }
                 if (needsCustomer()) {
                     if (!document.getElementById('customerSelect').value) {
                         var discount3 = parseFloat(document.getElementById('discountInput').value) || 0;
@@ -1586,18 +1586,18 @@
                 }
                 if (pm === 'دين على الموظف') {
                     var sel = document.getElementById('debtEmployeeSelect');
-                    if (!sel || !sel.value) { alert('يرجى اختيار الموظف المدين'); return; }
+                    if (!sel || !sel.value) { alert(_t('يرجى اختيار الموظف المدين','Please select the responsible employee')); return; }
                 }
                 if (pm === 'كي نت و كاش') {
                     var cash2 = parseFloat(document.getElementById('cashAmountInput').value) || 0;
                     var link2 = parseFloat(document.getElementById('linkAmountInput').value) || 0;
                     var net2  = getNet();
                     if (cash2 <= 0 || link2 <= 0) {
-                        alert('يجب أن يكون مبلغ الكاش ومبلغ الكي نت أكبر من صفر');
+                        alert(_t('يجب أن يكون مبلغ الكاش ومبلغ الكي نت أكبر من صفر','Cash and K-Net amounts must be greater than zero'));
                         return;
                     }
                     if (Math.abs(cash2 + link2 - net2) > 0.005) {
-                        alert('مبلغ الكاش + مبلغ كي نت (' + (cash2+link2).toFixed(3) + ' د.ك) يجب أن يساوي إجمالي الفاتورة (' + net2.toFixed(3) + ' د.ك)');
+                        alert(_t('مبلغ الكاش + مبلغ كي نت (' + (cash2+link2).toFixed(3) + ' د.ك) يجب أن يساوي إجمالي الفاتورة (' + net2.toFixed(3) + ' د.ك)', 'Cash + K-Net (' + (cash2+link2).toFixed(3) + ' K.D.) must equal invoice total (' + net2.toFixed(3) + ' K.D.)'));
                         return;
                     }
                 }
@@ -1658,15 +1658,15 @@
                             }, { once: true });
                         }
                     } else {
-                        alert('خطأ: ' + (data.message || 'حدث خطأ أثناء الحفظ'));
+                        alert(_t('خطأ: ','Error: ') + (data.message || _t('حدث خطأ أثناء الحفظ','An error occurred while saving')));
                         saveBtn.disabled = false;
-                        saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> حفظ فاتورة الحلاقة';
+                        saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> ' + _t('حفظ فاتورة الحلاقة','Save Barber Invoice');
                     }
                 })
                 .catch(function(err) {
-                    alert('حدث خطأ أثناء الحفظ: ' + (err.message || 'يرجى المحاولة مرة أخرى'));
+                    alert(_t('حدث خطأ أثناء الحفظ: ','Error while saving: ') + (err.message || _t('يرجى المحاولة مرة أخرى','Please try again')));
                     saveBtn.disabled = false;
-                    saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> حفظ فاتورة الحلاقة';
+                    saveBtn.innerHTML = '<i class="fas fa-print me-2"></i> ' + _t('حفظ فاتورة الحلاقة','Save Barber Invoice');
                 });
             });
 
@@ -1759,7 +1759,7 @@
             }
 
             function deleteCustomerPackage(pkgId, pkgName) {
-                if (!confirm('هل تريد حذف الباقة "' + pkgName + '"؟\nيمكن حذف الباقات غير المستخدمة وغير المدفوعة فقط.')) return;
+                if (!confirm(_t('هل تريد حذف الباقة "' + pkgName + '"؟\nيمكن حذف الباقات غير المستخدمة وغير المدفوعة فقط.', 'Delete package "' + pkgName + '"?\nOnly unused and unpaid packages can be deleted.'))) return;
                 var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
                 fetch('/Packages/DeleteCustomerPackage', {
                     method: 'POST',
@@ -1775,7 +1775,7 @@
                         alert(data.error || 'حدث خطأ أثناء الحذف');
                     }
                 })
-                .catch(function() { alert('حدث خطأ في الاتصال'); });
+                .catch(function() { alert(_t('حدث خطأ في الاتصال','Connection error')); });
             }
 
             var currentPackageBalance = 0;
@@ -1868,7 +1868,7 @@
                 var sel = document.getElementById('customerSelect');
                 var customerId = sel.value;
                 var customerName = document.getElementById('customerDisplayName').textContent || '';
-                if (!customerId) { alert('اختر عميلاً أولاً'); return; }
+                if (!customerId) { alert(_t('اختر عميلاً أولاً','Please select a customer first')); return; }
                 document.getElementById('assignCustomerId').value = customerId;
                 document.getElementById('assignCustomerName').value = customerName;
                 // إعادة تعيين اختيار الكارت
