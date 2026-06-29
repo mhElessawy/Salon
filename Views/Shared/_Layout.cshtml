@@ -462,6 +462,89 @@
                 });
         }
 
+        // ===== Appointment Audio Alert System =====
+        (function appointmentAlertSystem() {
+            var alertedIds = {};
+
+            function playAlertSound() {
+                try {
+                    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    function beep(freq, start, duration) {
+                        var o = ctx.createOscillator();
+                        var g = ctx.createGain();
+                        o.connect(g);
+                        g.connect(ctx.destination);
+                        o.type = 'sine';
+                        o.frequency.value = freq;
+                        g.gain.setValueAtTime(0, ctx.currentTime + start);
+                        g.gain.linearRampToValueAtTime(0.6, ctx.currentTime + start + 0.05);
+                        g.gain.linearRampToValueAtTime(0, ctx.currentTime + start + duration);
+                        o.start(ctx.currentTime + start);
+                        o.stop(ctx.currentTime + start + duration + 0.1);
+                    }
+                    beep(880, 0, 0.3);
+                    beep(1100, 0.4, 0.3);
+                    beep(880, 0.8, 0.5);
+                } catch (e) { }
+            }
+
+            function showAppointmentAlert(appt) {
+                var existing = document.getElementById('appt-alert-overlay');
+                if (existing) existing.remove();
+
+                var overlay = document.createElement('div');
+                overlay.id = 'appt-alert-overlay';
+                overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;animation:apptFadeIn 0.4s ease;';
+
+                var card = document.createElement('div');
+                card.style.cssText = 'background:#fff;border-radius:20px;padding:48px 56px;text-align:center;max-width:520px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.4);animation:apptSlideUp 0.4s ease;position:relative;';
+
+                card.innerHTML =
+                    '<div style="width:80px;height:80px;background:linear-gradient(135deg,#F7941D,#e07b10);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;">' +
+                    '<i class="fas fa-calendar-check" style="font-size:36px;color:#fff;"></i></div>' +
+                    '<h2 style="font-size:1.9rem;font-weight:800;color:#1a1a2e;margin-bottom:8px;">تنبيه موعد قادم</h2>' +
+                    '<div style="background:#fff8f0;border:2px solid #F7941D;border-radius:12px;padding:20px;margin:20px 0;">' +
+                    '<p style="font-size:1.6rem;font-weight:700;color:#c0392b;margin:0 0 12px;">⏰ بعد ' + appt.minutesLeft + ' دقائق</p>' +
+                    '<p style="font-size:1.3rem;color:#333;margin:6px 0;"><strong>العميل:</strong> ' + appt.customerName + '</p>' +
+                    '<p style="font-size:1.3rem;color:#333;margin:6px 0;"><strong>الموظف:</strong> ' + appt.employeeName + '</p>' +
+                    '<p style="font-size:1.4rem;font-weight:700;color:#155724;margin:10px 0 0;">🕐 الوقت: ' + appt.time + '</p>' +
+                    '</div>' +
+                    '<button onclick="document.getElementById(\'appt-alert-overlay\').remove()" ' +
+                    'style="background:linear-gradient(135deg,#F7941D,#e07b10);color:#fff;border:none;padding:14px 48px;font-size:1.1rem;font-weight:700;border-radius:50px;cursor:pointer;box-shadow:0 4px 15px rgba(247,148,29,0.4);">حسناً</button>';
+
+                overlay.appendChild(card);
+                document.body.appendChild(overlay);
+
+                if (!document.getElementById('appt-alert-style')) {
+                    var style = document.createElement('style');
+                    style.id = 'appt-alert-style';
+                    style.textContent = '@keyframes apptFadeIn{from{opacity:0}to{opacity:1}}@keyframes apptSlideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}';
+                    document.head.appendChild(style);
+                }
+
+                playAlertSound();
+                setTimeout(function () { playAlertSound(); }, 1500);
+            }
+
+            function checkUpcomingAppointments() {
+                fetch('/Appointments/GetUpcomingAlerts', { credentials: 'same-origin' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (list) {
+                        list.forEach(function (appt) {
+                            if (!alertedIds[appt.id]) {
+                                alertedIds[appt.id] = true;
+                                showAppointmentAlert(appt);
+                            }
+                        });
+                    })
+                    .catch(function () { });
+            }
+
+            checkUpcomingAppointments();
+            setInterval(checkUpcomingAppointments, 60000);
+        })();
+        // ===== End Appointment Alert System =====
+
         // Load notification count on page load
         (function loadNotifCount() {
             fetch('/Notifications/Count', { credentials: 'same-origin' })
