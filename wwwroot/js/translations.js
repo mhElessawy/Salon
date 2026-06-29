@@ -183,6 +183,7 @@ window.PAGE_TRANSLATIONS = {
     'دين على الموظف': 'Employee Debt',
     'دين على الإدارة': 'Owner Debt',
     'تفاصيل الدفع المختلط': 'Mixed Payment Details',
+    'تفاصيل الدفع نقداً': 'Cash Payment Details',
     'مبلغ الكاش': 'Cash Amount',
     'مبلغ اللينك': 'Link Amount',
     'بيانات الدين': 'Debt Information',
@@ -1201,6 +1202,7 @@ window.PAGE_TRANSLATIONS = {
     'سلف موظفين': 'Employee Advances',
     'فواتير': 'Invoices',
     'فواتير ملغاة': 'Cancelled Invoices',
+    'فواتير ملغاة اليوم': 'Cancelled Invoices Today',
     'فواتير يوم': "Day's Invoices",
     'بنود المصروفات': 'Expense Items',
     'بند': 'Item',
@@ -1326,6 +1328,8 @@ window.PAGE_TRANSLATIONS = {
     // ── Placeholders ──────────────────────────────────────
     'مثال: سحب نقدي من الصندوق': 'Example: Cash withdrawal from safe',
     'اكتب سبب إلغاء الفاتورة...': 'Enter invoice cancellation reason...',
+    'رقم الفاتورة...': 'Invoice No....',
+    'أدخل رقم الإيصال': 'Enter receipt number',
 
     // ── Common short variants / Sales ─────────────────────
     'نظرة عامة على أداء القسم اليوم': "Today's Department Performance Overview",
