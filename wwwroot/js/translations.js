@@ -1109,6 +1109,7 @@ window.PAGE_TRANSLATIONS = {
     'الشفت الصباحي / المسائي': 'Morning / Evening Shift',
     'بحث باسم الموظف...': 'Search by employee name...',
     'بحث بالاسم أو الهاتف...': 'Search by name or phone...',
+    'اكتب الاسم أو رقم الهاتف': 'Type name or phone number',
     'بحث بالاسم...': 'Search by name...',
     'بحث في الخدمات...': 'Search services...',
     'بحث في المنتجات...': 'Search products...',
