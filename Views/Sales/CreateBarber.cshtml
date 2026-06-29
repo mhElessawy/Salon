@@ -1420,8 +1420,15 @@
             }
             function updateSaveBtn() {
                 var hasItems = items.length > 0;
-                var hasPm = !!document.getElementById('paymentMethodSelect').value;
-                document.getElementById('saveBtn').disabled = !(hasItems && hasPm);
+                var pm = document.getElementById('paymentMethodSelect').value;
+                var hasPm = !!pm;
+                var cashOk = true;
+                if (pm === 'كاش' && document.getElementById('cashSection').style.display !== 'none') {
+                    var paid = parseFloat(document.getElementById('cashPaidInput').value) || 0;
+                    var net  = getNet();
+                    cashOk = paid > 0 && paid >= net;
+                }
+                document.getElementById('saveBtn').disabled = !(hasItems && hasPm && cashOk);
             }
             function recalc() {
                 var s = items.reduce(function(a,i) { return a + i.total; }, 0);
@@ -1564,6 +1571,7 @@
                     st.style.background = '#d1e7dd'; st.style.color = '#0f5132'; st.style.border = '1.5px solid #badbcc';
                     st.innerHTML = '<i class="fas fa-check-circle me-1"></i>الباقي للعميل: ' + change.toFixed(3) + ' د.ك';
                 }
+                updateSaveBtn();
             }
             function getNet() {
                 var s = items.reduce(function(a,i) { return a + i.total; }, 0);
