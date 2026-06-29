@@ -327,6 +327,7 @@
             flex: 1;
             overflow-y: auto;
             padding: 12px 14px;
+            position: relative;
         }
 
         .detail-info-row {
@@ -716,21 +717,21 @@
 
         /* add service dropdown */
         .add-svc-wrap {
-            position: relative;
+            position: static;
         }
 
         .svc-dropdown {
             display: none;
             position: absolute;
-            bottom: calc(100% + 6px);
-            right: 0;
+            top: calc(100% + 4px);
             left: 0;
+            right: 0;
             background: #fff;
-            border: 1px solid #dee2e6;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,.12);
-            z-index: 100;
-            max-height: 200px;
+            border: 1.5px solid #c5d5f5;
+            border-radius: 12px;
+            box-shadow: 0 8px 28px rgba(0,0,0,.15);
+            z-index: 200;
+            max-height: 280px;
             overflow-y: auto;
         }
 
@@ -979,10 +980,10 @@
                     </div>
 
                     <!-- Services -->
-                    <div class="panel-section-title">
+                    <div class="panel-section-title" style="position:relative;">
                         <span data-i18n-en="Services">الخدمات</span>
                         <div class="add-svc-wrap">
-                            <button type="button" id="btnAddService" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size:11px;">
+                            <button type="button" id="btnAddService" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size:12px;font-weight:700;">
                                 <i class="fas fa-plus"></i> <span data-i18n-en="Add">إضافة</span>
                             </button>
                             <div id="svcDropdown" class="svc-dropdown"></div>
