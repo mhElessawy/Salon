@@ -4,6 +4,8 @@ namespace Salon.Models
     {
         public bool HasAccess { get; set; } = true;
         public decimal SalesToday { get; set; }
+        public decimal CancelledSalesToday { get; set; }
+        public int CancelledSalesCountToday { get; set; }
         public int CustomersToday { get; set; }
         public decimal ExpensesToday { get; set; }
         public decimal AdvancesToday { get; set; }

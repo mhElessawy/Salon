@@ -46,9 +46,14 @@ namespace Salon.Controllers
             else if (userDept == "مساج")
                 salesBase = salesBase.Where(s => s.SaleType != "حلاقة");
 
-            var salesToday = (await salesBase.Select(s => s.NetAmount).ToListAsync()).Sum();
+            var activeSales = salesBase.Where(s => s.Status != "ملغي");
+            var cancelledSales = salesBase.Where(s => s.Status == "ملغي");
 
-            var customersToday = await salesBase
+            var salesToday = (await activeSales.Select(s => s.NetAmount).ToListAsync()).Sum();
+            var cancelledSalesToday = (await cancelledSales.Select(s => s.NetAmount).ToListAsync()).Sum();
+            var cancelledSalesCountToday = await cancelledSales.CountAsync();
+
+            var customersToday = await activeSales
                 .Where(s => s.CustomerId != null)
                 .Select(s => s.CustomerId)
                 .Distinct()
@@ -127,6 +132,8 @@ namespace Salon.Controllers
             var vm = new DashboardViewModel
             {
                 SalesToday = salesToday,
+                CancelledSalesToday = cancelledSalesToday,
+                CancelledSalesCountToday = cancelledSalesCountToday,
                 CustomersToday = customersToday,
                 ExpensesToday = expensesToday,
                 AdvancesToday = advancesToday,
