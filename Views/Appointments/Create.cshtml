@@ -146,10 +146,12 @@
             overflow: auto;
             background: #f4f5f7;
             min-width: 0;
+            -webkit-overflow-scrolling: touch;
         }
 
         .calendar-wrapper {
-            min-width: max-content;
+            display: inline-block;
+            min-width: 100%;
             min-height: 100%;
             position: relative;
         }
@@ -163,7 +165,8 @@
         /* ─── calendar table ──────────────────────────── */
         .cal-table {
             border-collapse: collapse;
-            width: 100%;
+            width: max-content;
+            min-width: 100%;
             background: #fff;
         }
 
