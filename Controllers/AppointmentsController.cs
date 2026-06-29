@@ -529,6 +529,32 @@ namespace Salon.Controllers
             }
             return Json(new { success = true, count = savedCount });
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetUpcomingAlerts()
+        {
+            var now = DateTime.Now;
+            var alertWindow = now.AddMinutes(6);
+            var minWindow = now.AddMinutes(4);
+
+            var appointments = await _context.Appointments
+                .Include(a => a.Customer)
+                .Include(a => a.Employee)
+                .Where(a => a.Status == "مجدول"
+                         && a.AppointmentDate >= minWindow
+                         && a.AppointmentDate <= alertWindow)
+                .Select(a => new
+                {
+                    a.Id,
+                    CustomerName = a.Customer != null ? a.Customer.FullName : "—",
+                    EmployeeName = a.Employee != null ? a.Employee.FullName : "—",
+                    Time = a.AppointmentDate.ToString("hh:mm tt"),
+                    MinutesLeft = (int)Math.Round((a.AppointmentDate - now).TotalMinutes)
+                })
+                .ToListAsync();
+
+            return Json(appointments);
+        }
     }
 
     public class BulkAppointmentItem
