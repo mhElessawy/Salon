@@ -381,6 +381,7 @@ namespace Salon.Controllers
                 paymentMethod = sale.PaymentMethod,
                 cashAmount = sale.CashAmount,
                 linkAmount = sale.LinkAmount,
+                knetReceiptNumber = sale.KnetReceiptNumber,
                 status = sale.Status,
                 totalAmount = sale.TotalAmount,
                 discount = sale.Discount,

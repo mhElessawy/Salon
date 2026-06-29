@@ -176,6 +176,22 @@
                                     <div class="small" style="color:#0d6efd;white-space:nowrap;">
                                         <i class="fas fa-credit-card me-1"></i>كي نت: @((s.NetAmount - (s.CashAmount ?? 0)).ToString("N3")) د.ك
                                     </div>
+                                    @if (!string.IsNullOrEmpty(s.KnetReceiptNumber))
+                                    {
+                                        <div class="small" style="color:#6c757d;white-space:nowrap;">
+                                            <i class="fas fa-receipt me-1"></i>وصل: <strong>@s.KnetReceiptNumber</strong>
+                                        </div>
+                                    }
+                                }
+                                else if (s.PaymentMethod == "كي نت")
+                                {
+                                    <div><i class="fas fa-credit-card me-1" style="color:#0d6efd;"></i>كي نت</div>
+                                    @if (!string.IsNullOrEmpty(s.KnetReceiptNumber))
+                                    {
+                                        <div class="small" style="color:#6c757d;white-space:nowrap;">
+                                            <i class="fas fa-receipt me-1"></i>وصل: <strong>@s.KnetReceiptNumber</strong>
+                                        </div>
+                                    }
                                 }
                                 else if (s.PaymentMethod == "كاش" && s.PaidAmount.HasValue && s.PaidAmount > 0)
                                 {
