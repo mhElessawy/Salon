@@ -1407,7 +1407,7 @@
                 var pm = document.getElementById('paymentMethodSelect').value;
                 var hasPm = !!pm;
                 var cashOk = true;
-                if (pm === 'كاش' && document.getElementById('cashSection').style.display !== 'none') {
+                if (pm === 'كاش') {
                     var paid = parseFloat(document.getElementById('cashPaidInput').value) || 0;
                     var net  = getNet();
                     cashOk = paid > 0 && paid >= net;
