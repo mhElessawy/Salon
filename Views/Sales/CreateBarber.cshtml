@@ -1569,7 +1569,8 @@
                 var s = items.reduce(function(a,i) { return a + i.total; }, 0);
                 var d = parseFloat(document.getElementById('discountInput').value) || 0;
                 var pkgPay = parseFloat(document.getElementById('packagePaymentAmount').value) || 0;
-                return Math.max(0, s + pkgPay - d);
+                var hadiya = parseFloat(document.getElementById('hadiyaInput').value) || 0;
+                return Math.max(0, s + pkgPay - d + hadiya);
             }
             function updateSplitDisplay(cash, link, net) {
                 var el = document.getElementById('splitStatus');
