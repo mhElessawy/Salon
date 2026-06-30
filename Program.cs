@@ -68,6 +68,7 @@ var emailSettings = builder.Configuration.GetSection("EmailSettings").Get<Salon.
     ?? new Salon.Services.EmailSettings();
 builder.Services.AddSingleton(emailSettings);
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddHostedService<Salon.Services.ReminderWorker>();
 
 builder.Services.AddMemoryCache();
 builder.Services.AddControllersWithViews();
@@ -212,6 +213,14 @@ using (var scope = app.Services.CreateScope())
             TryExec(@"CREATE TABLE IF NOT EXISTS AppSettings (
                 Key TEXT PRIMARY KEY,
                 Value TEXT NOT NULL DEFAULT '')");
+            TryExec(@"CREATE TABLE IF NOT EXISTS AppointmentReminders (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                AppointmentId INTEGER NOT NULL,
+                MinutesBefore INTEGER NOT NULL DEFAULT 60,
+                IsSent INTEGER NOT NULL DEFAULT 0,
+                SentAt TEXT NULL,
+                CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+                FOREIGN KEY (AppointmentId) REFERENCES Appointments(Id) ON DELETE CASCADE)");
         }
         else
         {
@@ -300,6 +309,13 @@ using (var scope = app.Services.CreateScope())
                     REFERENCES CustomerPackages(Id) ON DELETE CASCADE,
                 CONSTRAINT FK_CustPkgTrans_Employees FOREIGN KEY (EmployeeId)
                     REFERENCES Employees(Id) ON DELETE SET NULL)");
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='AppointmentReminders')
+                CREATE TABLE AppointmentReminders (Id INT IDENTITY PRIMARY KEY,
+                AppointmentId INT NOT NULL, MinutesBefore INT NOT NULL DEFAULT 60,
+                IsSent BIT NOT NULL DEFAULT 0, SentAt DATETIME NULL,
+                CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                CONSTRAINT FK_ApptReminder_Appointments FOREIGN KEY (AppointmentId)
+                    REFERENCES Appointments(Id) ON DELETE CASCADE)");
         }
 
         await SeedData.InitializeAsync(services);
