@@ -209,6 +209,9 @@ using (var scope = app.Services.CreateScope())
                 Department TEXT NULL,
                 CreatedAt TEXT NOT NULL DEFAULT (datetime('now')))");
             TryExec("ALTER TABLE Withdrawals ADD COLUMN Department TEXT NULL");
+            TryExec(@"CREATE TABLE IF NOT EXISTS AppSettings (
+                Key TEXT PRIMARY KEY,
+                Value TEXT NOT NULL DEFAULT '')");
         }
         else
         {
@@ -286,6 +289,8 @@ using (var scope = app.Services.CreateScope())
                 Department NVARCHAR(100) NULL,
                 CreatedAt DATETIME NOT NULL DEFAULT GETDATE())");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Withdrawals' AND COLUMN_NAME='Department') ALTER TABLE Withdrawals ADD Department NVARCHAR(100) NULL");
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='AppSettings')
+                CREATE TABLE AppSettings ([Key] NVARCHAR(100) PRIMARY KEY, Value NVARCHAR(MAX) NOT NULL DEFAULT N'')");
             TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='CustomerPackageTransactions')
                 CREATE TABLE CustomerPackageTransactions (Id INT IDENTITY PRIMARY KEY,
                 CustomerPackageId INT NOT NULL, UsedDate DATETIME NOT NULL DEFAULT GETDATE(),
