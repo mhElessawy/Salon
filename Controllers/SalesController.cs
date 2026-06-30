@@ -412,6 +412,42 @@ namespace Salon.Controllers
             return View(sale);
         }
 
+        public async Task<IActionResult> PrintAllCompleted(string? from, string? to, string? type)
+        {
+            DateTime dateFrom = string.IsNullOrEmpty(from) ? KuwaitToday : DateTime.Parse(from);
+            DateTime dateTo = string.IsNullOrEmpty(to) ? KuwaitToday.AddDays(1) : DateTime.Parse(to).AddDays(1);
+
+            var user = await _userManager.GetUserAsync(User);
+            var userDept = user?.UserDepartment;
+            var roles = await _userManager.GetRolesAsync(user!);
+            var isEmployee = roles.Contains("Employee");
+
+            var query = _context.Sales
+                .Include(s => s.Customer)
+                .Include(s => s.Employee)
+                .Include(s => s.DebtEmployee)
+                .Include(s => s.SaleItems).ThenInclude(i => i.Service)
+                .Include(s => s.SaleItems).ThenInclude(i => i.Product)
+                .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
+
+            if (userDept == "مساج")
+                query = query.Where(s => s.SaleType == "مساج");
+            else if (userDept == "حلاقة")
+                query = query.Where(s => s.SaleType == "حلاقة");
+
+            if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
+                query = query.Where(s => s.EmployeeId == user.LinkedEmployeeId!.Value);
+
+            if (!string.IsNullOrEmpty(type))
+                query = query.Where(s => s.SaleType == type);
+
+            var sales = await query.OrderBy(s => s.SaleDate).ToListAsync();
+
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
+            return View(sales);
+        }
+
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id, string? reason)
         {

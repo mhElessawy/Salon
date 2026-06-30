@@ -1,0 +1,280 @@
+@model IEnumerable<Salon.Models.Sale>
+@{
+    Layout = null;
+    var list = Model.ToList();
+}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>طباعة الفواتير المكتملة — @ViewBag.From إلى @ViewBag.To</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            background: #f0f2f5;
+            direction: rtl;
+        }
+
+        .page-actions {
+            max-width: 900px;
+            margin: 20px auto 0;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .summary-header {
+            max-width: 900px;
+            margin: 16px auto;
+            background: #1a1a2e;
+            color: #fff;
+            border-radius: 12px;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .summary-header .sh-title { font-size: 1.2rem; font-weight: 700; }
+        .summary-header .sh-meta { font-size: 0.85rem; opacity: 0.75; }
+        .summary-header .sh-count {
+            background: rgba(255,255,255,0.15);
+            border-radius: 8px;
+            padding: 6px 16px;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .invoice-page {
+            max-width: 900px;
+            margin: 16px auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+            overflow: hidden;
+            page-break-after: always;
+        }
+
+        .invoice-page:last-of-type { page-break-after: avoid; }
+
+        .invoice-header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+            color: #fff;
+            padding: 18px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .salon-name { font-size: 1.4rem; font-weight: 700; }
+        .salon-sub { font-size: 0.8rem; opacity: 0.75; }
+
+        .inv-badge {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            padding: 6px 14px;
+            text-align: center;
+        }
+        .inv-badge .num { font-size: 1rem; font-weight: 700; letter-spacing: 1px; }
+        .inv-badge .lbl { font-size: 0.7rem; opacity: 0.8; display: block; }
+
+        .invoice-body { padding: 16px 24px; }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px 16px;
+            margin-bottom: 14px;
+        }
+
+        .info-item .lbl { font-size: 0.7rem; color: #888; margin-bottom: 1px; }
+        .info-item .val { font-size: 0.88rem; font-weight: 600; color: #1a1a2e; }
+
+        .divider { border: none; border-top: 2px dashed #e0e0e0; margin: 10px 0; }
+
+        .items-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .items-table thead tr { background: #1a1a2e; color: #fff; }
+        .items-table thead th { padding: 7px 10px; font-weight: 600; text-align: right; }
+        .items-table tbody tr:nth-child(even) { background: #f7f8fa; }
+        .items-table tbody td { padding: 6px 10px; border-bottom: 1px solid #eee; color: #333; }
+
+        .totals-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 20px;
+            margin-top: 10px;
+            font-size: 0.88rem;
+        }
+
+        .net-amount {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #198754;
+        }
+
+        .payment-chip {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 20px;
+            padding: 2px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1px solid #a5d6a7;
+            margin-top: 8px;
+        }
+
+        .invoice-footer {
+            background: #f7f8fa;
+            border-top: 1px solid #eee;
+            padding: 8px 24px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #aaa;
+        }
+
+        .empty-state {
+            max-width: 900px;
+            margin: 60px auto;
+            text-align: center;
+            color: #888;
+        }
+
+        @@media print {
+            body { background: #fff; }
+            .page-actions, .summary-header { display: none !important; }
+            .invoice-page {
+                box-shadow: none;
+                border-radius: 0;
+                margin: 0;
+                max-width: 100%;
+            }
+            .invoice-footer { background: #fff; }
+        }
+    </style>
+</head>
+<body>
+
+    @if (!list.Any())
+    {
+        <div class="empty-state">
+            <i class="fas fa-file-invoice" style="font-size:3rem;opacity:.3;display:block;margin-bottom:12px;"></i>
+            <h5>لا توجد فواتير مكتملة في هذه الفترة</h5>
+            <p>@ViewBag.From — @ViewBag.To</p>
+            <button onclick="window.close()" class="btn btn-outline-secondary btn-sm mt-2">إغلاق</button>
+        </div>
+    }
+    else
+    {
+        <div class="page-actions">
+            <button onclick="window.print()" class="btn btn-dark btn-sm">
+                <i class="fas fa-print me-1"></i> طباعة الكل (@list.Count فاتورة)
+            </button>
+            <button onclick="window.close()" class="btn btn-outline-secondary btn-sm">إغلاق</button>
+        </div>
+
+        <div class="summary-header">
+            <div>
+                <div class="sh-title"><i class="fas fa-file-invoice me-2"></i>الفواتير المكتملة</div>
+                <div class="sh-meta">الفترة: @ViewBag.From — @ViewBag.To</div>
+            </div>
+            <div class="sh-count">@list.Count فاتورة | @list.Sum(s => s.NetAmount).ToString("N3") د.ك</div>
+        </div>
+
+        @foreach (var sale in list)
+        {
+            var saleTypeIcon = sale.SaleType switch { "حلاقة" => "✂", "مساج" => "💆", "منتجات" => "🛍", _ => "📄" };
+
+            <div class="invoice-page">
+                <div class="invoice-header">
+                    <div>
+                        <div class="salon-name">معهد موس</div>
+                        <div class="salon-sub">@saleTypeIcon فاتورة @sale.SaleType</div>
+                    </div>
+                    <div class="inv-badge">
+                        <span class="lbl">رقم الفاتورة</span>
+                        <div class="num">@sale.InvoiceNumber</div>
+                    </div>
+                </div>
+
+                <div class="invoice-body">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="lbl">التاريخ والوقت</span>
+                            <span class="val">@sale.SaleDate.ToString("yyyy/MM/dd hh:mm tt")</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="lbl">العميل</span>
+                            <span class="val">@(sale.Customer?.FullName ?? "زائر")</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="lbl">الموظف</span>
+                            <span class="val">@(sale.Employee?.FullName ?? "-")</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="lbl">طريقة الدفع</span>
+                            <span class="val">@sale.PaymentMethod</span>
+                        </div>
+                    </div>
+
+                    <hr class="divider" />
+
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>البيان</th>
+                                <th class="text-center">الكمية</th>
+                                <th class="text-center">السعر</th>
+                                <th class="text-center">الإجمالي</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int rowNum = 1; }
+                            @foreach (var item in sale.SaleItems)
+                            {
+                                <tr>
+                                    <td>@(rowNum++)</td>
+                                    <td>@item.ItemName</td>
+                                    <td class="text-center">@item.Quantity</td>
+                                    <td class="text-center">@item.Price.ToString("N3")</td>
+                                    <td class="text-center">@item.Total.ToString("N3") د.ك</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    <div class="totals-row">
+                        @if (sale.Discount > 0)
+                        {
+                            <span style="color:#c0392b;">خصم: @sale.Discount.ToString("N3") د.ك</span>
+                        }
+                        <span class="net-amount">الصافي: @sale.NetAmount.ToString("N3") د.ك</span>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(sale.Notes))
+                    {
+                        <div style="background:#fffde7;border-right:4px solid #ffd600;border-radius:6px;padding:7px 12px;margin-top:10px;font-size:0.82rem;color:#5d4037;">
+                            <strong>ملاحظات: </strong>@sale.Notes
+                        </div>
+                    }
+                </div>
+
+                <div class="invoice-footer">
+                    <span>نظام معهد موس</span>
+                    <span>شكراً لزيارتكم</span>
+                </div>
+            </div>
+        }
+    }
+
+    <script>
+        // auto-print on load (optional — uncomment if desired)
+        // window.onload = () => window.print();
+    </script>
+</body>
+</html>

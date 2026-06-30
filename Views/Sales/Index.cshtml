@@ -34,6 +34,10 @@
                 <i class="fas fa-box me-1"></i> فاتورة منتجات
             </a>
         }
+        <a href="@Url.Action("PrintAllCompleted", new { from = ViewBag.From, to = ViewBag.To, type = ViewBag.FilterType })"
+           class="btn btn-success btn-sm no-print" target="_blank">
+            <i class="fas fa-print me-1"></i> طباعة الفواتير المكتملة
+        </a>
         <button onclick="window.print()" class="btn btn-dark btn-sm no-print">
             <i class="fas fa-print me-1"></i> طباعة
         </button>
