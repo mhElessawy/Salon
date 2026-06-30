@@ -40,7 +40,8 @@ namespace Salon.Controllers
         }
 
         // ===== قائمة الفواتير =====
-        public async Task<IActionResult> Index(string? from, string? to, string? type)
+        public async Task<IActionResult> Index(string? from, string? to, string? type,
+            string? paymentMethod, int? employeeId, string? status, string? customerName, string? invoiceNumber2)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? KuwaitToday : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? KuwaitToday.AddDays(1) : DateTime.Parse(to).AddDays(1);
@@ -56,18 +57,26 @@ namespace Salon.Controllers
                 .Include(s => s.SaleItems)
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo);
 
-            // Department users see only their own department's invoices
             if (userDept == "مساج")
                 query = query.Where(s => s.SaleType == "مساج");
             else if (userDept == "حلاقة")
                 query = query.Where(s => s.SaleType == "حلاقة");
 
-            // Employees see only their own invoices
             if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
                 query = query.Where(s => s.EmployeeId == user.LinkedEmployeeId!.Value);
 
             if (!string.IsNullOrEmpty(type))
                 query = query.Where(s => s.SaleType == type);
+            if (!string.IsNullOrEmpty(paymentMethod))
+                query = query.Where(s => s.PaymentMethod == paymentMethod);
+            if (employeeId.HasValue)
+                query = query.Where(s => s.EmployeeId == employeeId);
+            if (!string.IsNullOrEmpty(status))
+                query = query.Where(s => s.Status == status);
+            if (!string.IsNullOrEmpty(customerName))
+                query = query.Where(s => s.Customer != null && s.Customer.FullName.Contains(customerName));
+            if (!string.IsNullOrEmpty(invoiceNumber2))
+                query = query.Where(s => s.InvoiceNumber.Contains(invoiceNumber2));
 
             var sales = await query.OrderByDescending(s => s.SaleDate).ToListAsync();
 
@@ -77,6 +86,11 @@ namespace Salon.Controllers
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
             ViewBag.FilterType = type;
+            ViewBag.FilterPayment = paymentMethod;
+            ViewBag.FilterEmployeeId = employeeId;
+            ViewBag.FilterStatus = status;
+            ViewBag.FilterCustomer = customerName;
+            ViewBag.InvoiceNumber = invoiceNumber2;
             ViewBag.TotalSales = activeSales.Sum(s => s.NetAmount);
             ViewBag.TotalCancelled = cancelledSales.Sum(s => s.NetAmount);
 
@@ -107,6 +121,13 @@ namespace Salon.Controllers
             ViewBag.CanDeleteBarber = await _perms.HasAccessAsync("BarberInvoiceDelete");
             ViewBag.CanDeleteMassage = await _perms.HasAccessAsync("MassageInvoiceDelete");
             ViewBag.CanDeleteProduct = await _perms.HasAccessAsync("ProductInvoiceDelete");
+
+            // قوائم الفلاتر
+            var empQuery = _context.Employees.Where(e => e.IsActive);
+            if (userDept == "حلاقة" || userDept == "مساج")
+                empQuery = empQuery.Where(e => e.DepartmentNav != null && e.DepartmentNav.Name == userDept);
+            ViewBag.Employees = await empQuery.OrderBy(e => e.FullName).Select(e => new { e.Id, e.FullName }).ToListAsync();
+
             return View(sales);
         }
 
