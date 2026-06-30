@@ -179,7 +179,15 @@
                                     @if (!string.IsNullOrEmpty(s.KnetReceiptNumber))
                                     {
                                         <div class="small" style="color:#6c757d;white-space:nowrap;">
-                                            <i class="fas fa-receipt me-1"></i><span data-i18n-en="Receipt No:">رقم:</span> <strong>@s.KnetReceiptNumber</strong>
+                                            <i class="fas fa-receipt me-1"></i><span data-i18n-en="Receipt No:">رقم:</span> <strong id="knet-receipt-text-@s.Id">@s.KnetReceiptNumber</strong>
+                                            <button type="button" class="btn btn-sm p-0 ms-1" style="font-size:11px;opacity:.6;" title="تعديل رقم الإيصال" onclick="openKnetModal(@s.Id, '@Html.Raw((s.KnetReceiptNumber ?? "").Replace("'", "\\'"))')"><i class="fas fa-pen"></i></button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="small mt-1">
+                                            <span class="badge bg-warning text-dark" style="font-size:10px;"><i class="fas fa-exclamation-triangle me-1"></i>غير موثقة</span>
+                                            <button type="button" class="btn btn-sm p-0 ms-1 text-primary" style="font-size:11px;" title="إضافة رقم الإيصال" onclick="openKnetModal(@s.Id, '')"><i class="fas fa-plus-circle"></i> إضافة رقم الإيصال</button>
                                         </div>
                                     }
                                 }
@@ -189,7 +197,15 @@
                                     @if (!string.IsNullOrEmpty(s.KnetReceiptNumber))
                                     {
                                         <div class="small" style="color:#6c757d;white-space:nowrap;">
-                                            <i class="fas fa-receipt me-1"></i><span data-i18n-en="Receipt No:">رقم:</span> <strong>@s.KnetReceiptNumber</strong>
+                                            <i class="fas fa-receipt me-1"></i><span data-i18n-en="Receipt No:">رقم:</span> <strong id="knet-receipt-text-@s.Id">@s.KnetReceiptNumber</strong>
+                                            <button type="button" class="btn btn-sm p-0 ms-1" style="font-size:11px;opacity:.6;" title="تعديل رقم الإيصال" onclick="openKnetModal(@s.Id, '@Html.Raw((s.KnetReceiptNumber ?? "").Replace("'", "\\'"))')"><i class="fas fa-pen"></i></button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="small mt-1">
+                                            <span class="badge bg-warning text-dark" style="font-size:10px;"><i class="fas fa-exclamation-triangle me-1"></i>غير موثقة</span>
+                                            <button type="button" class="btn btn-sm p-0 ms-1 text-primary" style="font-size:11px;" title="إضافة رقم الإيصال" onclick="openKnetModal(@s.Id, '')"><i class="fas fa-plus-circle"></i> إضافة رقم الإيصال</button>
                                         </div>
                                     }
                                 }
@@ -247,6 +263,31 @@
                     }
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- K-Net Receipt Modal -->
+<div class="modal fade" id="knetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0" style="background:#f0f4ff;">
+                <h6 class="modal-title fw-bold"><i class="fas fa-receipt me-2 text-primary"></i>رقم إيصال كي نت</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="knetModalInput" class="form-control fw-bold"
+                       placeholder="أدخل رقم الإيصال..." maxlength="100"
+                       style="letter-spacing:1px;font-size:15px;" />
+                <div id="knetModalStatus" class="small mt-2" style="min-height:18px;"></div>
+                <div id="knetModalError" class="text-danger small mt-1" style="display:none;"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary btn-sm fw-bold px-4" onclick="saveKnetReceipt()">
+                    <i class="fas fa-save me-1"></i> حفظ
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -334,6 +375,65 @@
             document.getElementById('deleteReasonInput').value = reason;
             return true;
         }
+        // ── K-Net Receipt ────────────────────────────────────────────
+        var _knetSaleId = null;
+        var _knetModalInstance = null;
+        var _knetCheckTimer = null;
+        function openKnetModal(saleId, current) {
+            _knetSaleId = saleId;
+            var inp = document.getElementById('knetModalInput');
+            inp.value = current || '';
+            document.getElementById('knetModalStatus').innerHTML = '';
+            document.getElementById('knetModalError').style.display = 'none';
+            _knetModalInstance = new bootstrap.Modal(document.getElementById('knetModal'));
+            _knetModalInstance.show();
+            setTimeout(function() { inp.focus(); inp.select(); }, 350);
+        }
+        document.getElementById('knetModalInput').addEventListener('input', function() {
+            var val = this.value.trim();
+            var st = document.getElementById('knetModalStatus');
+            clearTimeout(_knetCheckTimer);
+            if (!val) { st.innerHTML = ''; return; }
+            st.innerHTML = '<i class="fas fa-spinner fa-spin text-muted"></i>';
+            _knetCheckTimer = setTimeout(function() {
+                fetch('/Sales/CheckKnetReceipt?receipt=' + encodeURIComponent(val) + '&excludeSaleId=' + _knetSaleId)
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        st.innerHTML = d.duplicate
+                            ? '<i class="fas fa-times-circle text-danger me-1"></i><span class="text-danger">مستخدم مسبقاً</span>'
+                            : '<i class="fas fa-check-circle text-success me-1"></i><span class="text-success">متاح</span>';
+                    }).catch(function() { st.innerHTML = ''; });
+            }, 500);
+        });
+        function saveKnetReceipt() {
+            var receipt = document.getElementById('knetModalInput').value.trim();
+            var statusHtml = document.getElementById('knetModalStatus').innerHTML;
+            var errEl = document.getElementById('knetModalError');
+            errEl.style.display = 'none';
+            if (receipt && statusHtml.indexOf('fa-times-circle') !== -1) {
+                errEl.textContent = 'رقم الإيصال مستخدم مسبقاً، يرجى إدخال رقم آخر';
+                errEl.style.display = 'block';
+                return;
+            }
+            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            fetch('@Url.Action("UpdateKnetReceipt", "Sales")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                body: new URLSearchParams({ id: _knetSaleId, receipt: receipt, __RequestVerificationToken: token })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    if (_knetModalInstance) _knetModalInstance.hide();
+                    location.reload();
+                } else {
+                    errEl.textContent = data.message || 'حدث خطأ';
+                    errEl.style.display = 'block';
+                }
+            })
+            .catch(function() { errEl.textContent = 'تعذّر الاتصال بالخادم'; errEl.style.display = 'block'; });
+        }
+
         var _notesSaleId = null;
         var _notesModalInstance = null;
         function openNotesModal(saleId, currentNotes) {

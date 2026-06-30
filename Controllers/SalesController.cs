@@ -467,6 +467,27 @@ namespace Salon.Controllers
             return Json(new { success = true, notes = sale.Notes ?? "" });
         }
 
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateKnetReceipt(int id, string? receipt)
+        {
+            var sale = await _context.Sales.FindAsync(id);
+            if (sale == null) return Json(new { success = false, message = "الفاتورة غير موجودة" });
+
+            var trimmed = receipt?.Trim();
+            if (!string.IsNullOrEmpty(trimmed))
+            {
+                var duplicate = await _context.Sales.AnyAsync(s =>
+                    s.KnetReceiptNumber == trimmed && s.Status != "ملغي" && s.Id != id);
+                if (duplicate)
+                    return Json(new { success = false, message = "رقم الإيصال مستخدم مسبقاً في فاتورة أخرى" });
+            }
+
+            sale.KnetReceiptNumber = trimmed;
+            await _context.SaveChangesAsync();
+            await _audit.LogAsync("Edit", "المبيعات", $"تسجيل رقم إيصال كي نت للفاتورة {sale.InvoiceNumber}", sale.Id);
+            return Json(new { success = true, receipt = sale.KnetReceiptNumber ?? "" });
+        }
+
         // ===== Helpers =====
 
         private async Task<string> GenerateInvoiceNumber(string prefix)
