@@ -2,12 +2,11 @@
 @{
     Layout = null;
 
-    // ── بيانات الصالون — عدّل هنا ──────────────────────────────
-    const string SalonNameAr  = "معهد موس";
-    const string SalonNameEn  = "Mos Institute";
-    const string SalonPhone   = "+965 XXXX XXXX";
-    const string SalonAddress = "الكويت";
-    // ────────────────────────────────────────────────────────────
+    // بيانات الصالون من الإعدادات
+    string SalonNameAr  = ViewBag.SalonName    ?? "معهد موس";
+    string SalonNameEn  = ViewBag.SalonNameEn  ?? "Mos Institute";
+    string SalonPhone   = ViewBag.SalonPhone   ?? "";
+    string SalonAddress = ViewBag.SalonAddress ?? "";
 
     var saleTypeAr = Model.SaleType;
     var saleTypeEn = Model.SaleType switch {

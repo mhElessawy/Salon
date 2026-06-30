@@ -2,6 +2,10 @@
 @{
     Layout = null;
     var list = Model.ToList();
+    string SalonNameAr  = ViewBag.SalonName    ?? "معهد موس";
+    string SalonNameEn  = ViewBag.SalonNameEn  ?? "Mos Institute";
+    string SalonPhone   = ViewBag.SalonPhone   ?? "";
+    string SalonAddress = ViewBag.SalonAddress ?? "";
 }
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -192,7 +196,7 @@
             <div class="invoice-page">
                 <div class="invoice-header">
                     <div>
-                        <div class="salon-name">معهد موس</div>
+                        <div class="salon-name">@SalonNameAr</div>
                         <div class="salon-sub">@saleTypeIcon فاتورة @sale.SaleType</div>
                     </div>
                     <div class="inv-badge">
@@ -265,7 +269,7 @@
                 </div>
 
                 <div class="invoice-footer">
-                    <span>نظام معهد موس</span>
+                    <span>@SalonNameAr · @SalonNameEn</span>
                     <span>شكراً لزيارتكم</span>
                 </div>
             </div>

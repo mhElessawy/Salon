@@ -409,6 +409,7 @@ namespace Salon.Controllers
                 .Include(s => s.SaleItems).ThenInclude(i => i.Product)
                 .FirstOrDefaultAsync(s => s.Id == id);
             if (sale == null) return NotFound();
+            await LoadSalonSettings();
             return View(sale);
         }
 
@@ -445,6 +446,7 @@ namespace Salon.Controllers
 
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
+            await LoadSalonSettings();
             return View(sales);
         }
 
@@ -542,6 +544,15 @@ namespace Salon.Controllers
                     if (n > maxSeq) maxSeq = n;
             }
             return $"{prefix}-{(maxSeq + 1):D4}";
+        }
+
+        private async Task LoadSalonSettings()
+        {
+            var settings = await _context.AppSettings.ToDictionaryAsync(s => s.Key, s => s.Value);
+            ViewBag.SalonName    = settings.GetValueOrDefault("SalonName",    "معهد موس");
+            ViewBag.SalonNameEn  = settings.GetValueOrDefault("SalonNameEn",  "Mos Institute");
+            ViewBag.SalonPhone   = settings.GetValueOrDefault("SalonPhone",   "");
+            ViewBag.SalonAddress = settings.GetValueOrDefault("SalonAddress", "");
         }
 
         private async Task PopulateDeptDropdowns(string dept, ApplicationUser? user, string role)
