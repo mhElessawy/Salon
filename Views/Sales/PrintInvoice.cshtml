@@ -428,6 +428,7 @@
                 }
                 @if (Model.GiftForEmployee.HasValue && Model.GiftForEmployee > 0)
                 {
+                    var totalCollect = Model.NetAmount + (Model.GiftForEmployee ?? 0);
                     <div class="totals-row" style="color:#c0392b;border-top:1px dashed #fca5a5;margin-top:8px;padding-top:8px;">
                         <div class="tr-label">
                             <span>هدية للموظف</span>
@@ -435,9 +436,6 @@
                         </div>
                         <span style="font-weight:700;">@Model.GiftForEmployee.Value.ToString("N3") د.ك</span>
                     </div>
-                    @{
-                        var totalCollect = Model.NetAmount + (Model.GiftForEmployee ?? 0);
-                    }
                     <div class="totals-row" style="font-size:1rem;font-weight:800;color:#c0392b;background:#fef2f2;border-radius:6px;padding:6px 8px;margin-top:6px;">
                         <div class="tr-label">
                             <span>إجمالي التحصيل من العميل</span>
