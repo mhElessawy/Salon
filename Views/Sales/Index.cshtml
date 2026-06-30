@@ -195,7 +195,10 @@
                             </td>
                             <td>@(s.Customer?.FullName ?? "زائر")</td>
                             <td>@(s.Employee?.FullName ?? "-")</td>
-                            <td>@s.SaleDate.ToString("yyyy/MM/dd hh:mm tt")</td>
+                            <td>
+                                <div>@s.SaleDate.ToString("yyyy/MM/dd")</div>
+                                <div class="text-muted small">@s.SaleDate.ToString("hh:mm tt")</div>
+                            </td>
                             <td><strong>@s.NetAmount.ToString("N3") د.ك</strong></td>
                             <td>
                                 @if (s.PaymentMethod == "كي نت و كاش")
