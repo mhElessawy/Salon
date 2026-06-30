@@ -7,33 +7,38 @@
     <p>إعدادات النظام العامة</p>
 </div>
 
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-1"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
 <div class="row g-3">
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">إعدادات الصالون</div>
             <div class="card-body">
-                <form>
+                <form method="post" asp-action="Index">
+                    @Html.AntiForgeryToken()
                     <div class="mb-3">
-                        <label class="form-label">اسم الصالون</label>
-                        <input type="text" class="form-control" value="نظام معهد موس" />
+                        <label class="form-label">اسم الصالون (عربي)</label>
+                        <input type="text" name="salonName" class="form-control" value="@ViewBag.SalonName" placeholder="معهد موس" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">العملة</label>
-                        <select class="form-select">
-                            <option selected>دينار كويتي (د.ك)</option>
-                            <option>ريال سعودي (ر.س)</option>
-                            <option>درهم إماراتي (د.إ)</option>
-                        </select>
+                        <label class="form-label">اسم الصالون (إنجليزي)</label>
+                        <input type="text" name="salonNameEn" class="form-control" value="@ViewBag.SalonNameEn" placeholder="Mos Institute" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">رقم الهاتف</label>
-                        <input type="tel" class="form-control" />
+                        <input type="tel" name="salonPhone" class="form-control" value="@ViewBag.SalonPhone" placeholder="+965 XXXX XXXX" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">العنوان</label>
-                        <textarea class="form-control" rows="2"></textarea>
+                        <textarea name="salonAddress" class="form-control" rows="2" placeholder="الكويت">@ViewBag.SalonAddress</textarea>
                     </div>
-                    <button type="button" class="btn btn-primary" onclick="alert('تم حفظ الإعدادات')">
+                    <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save me-1"></i> حفظ
                     </button>
                 </form>

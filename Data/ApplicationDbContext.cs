@@ -37,6 +37,7 @@ namespace Salon.Data
         public DbSet<ServicePackage> ServicePackages { get; set; }
         public DbSet<CustomerPackage> CustomerPackages { get; set; }
         public DbSet<CustomerPackageTransaction> CustomerPackageTransactions { get; set; }
+        public DbSet<AppSetting> AppSettings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

@@ -1,72 +1,956 @@
 @model Salon.Models.Appointment
 @{
     ViewData["Title"] = "تعديل الموعد";
+    string initialDateStr = Model.AppointmentDate.ToString("yyyy-MM-dd");
+    string initialTimeStr = Model.AppointmentDate.ToString("HH:mm");
+    int initialEmployeeId = Model.EmployeeId ?? 0;
+    int initialCustomerId = Model.CustomerId;
+    string initialStatus = Model.Status ?? "مجدول";
+    string initialNotes = Model.Notes ?? "";
+    var initialServiceIds = Model.AppointmentServices.Select(s => s.ServiceId).ToArray();
 }
 
-<div class="page-header">
-    <h1><i class="fas fa-calendar-edit me-2"></i>تعديل الموعد</h1>
-</div>
+@section Styles {
+    <style>
+        .appt-page {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 70px);
+            overflow: hidden;
+        }
 
-<div class="card">
-    <div class="card-body">
-        <form asp-action="Edit" method="post">
-            @Html.AntiForgeryToken()
-            <input asp-for="Id" type="hidden" />
-            <input asp-for="CreatedAt" type="hidden" />
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">العميل</label>
-                    <select name="CustomerId" asp-items="@ViewBag.Customers" class="form-select">
-                        <option value="">-- اختر العميل --</option>
-                    </select>
+        .appt-body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            gap: 0;
+        }
+
+        .appt-filter {
+            background: #fff;
+            border-bottom: 1px solid #e9ecef;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+            .appt-filter .filter-title {
+                font-weight: 700;
+                font-size: 15px;
+                color: #333;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-inline-end: auto;
+            }
+
+        .date-nav {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+            .date-nav input[type=date] {
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 5px 10px;
+                font-size: 13px;
+                font-weight: 600;
+                width: 130px;
+                cursor: pointer;
+            }
+
+        .btn-nav {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 15px;
+            color: #555;
+            transition: all .15s;
+        }
+
+            .btn-nav:hover { background: #f0f0f0; }
+
+        .filter-select {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 5px 10px;
+            font-size: 13px;
+            min-width: 120px;
+            cursor: pointer;
+        }
+
+        .legend-bar {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            padding: 6px 16px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .calendar-section {
+            flex: 1;
+            overflow: auto;
+            background: #f4f5f7;
+            min-width: 0;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .calendar-wrapper { position: relative; }
+
+        .calendar-loading {
+            padding: 60px 20px;
+            text-align: center;
+            color: #aaa;
+        }
+
+        .cal-table {
+            border-collapse: collapse;
+            width: max-content;
+            min-width: 100%;
+            background: #fff;
+        }
+
+            .cal-table thead tr th {
+                position: sticky;
+                top: 0;
+                z-index: 10;
+                background: #f8f9fa;
+                padding: 10px 8px;
+                text-align: center;
+                border: 1px solid #dee2e6;
+                font-size: 13px;
+                font-weight: 700;
+                white-space: nowrap;
+            }
+
+                .cal-table thead tr th.time-th {
+                    position: sticky;
+                    top: 0;
+                    right: 0;
+                    z-index: 20;
+                    min-width: 80px;
+                    background: #e9ecef;
+                    color: #555;
+                }
+
+                .cal-table thead tr th.emp-th { min-width: 120px; }
+
+        .emp-th-name { font-size: 13px; font-weight: 700; }
+        .emp-th-job { font-size: 11px; color: #888; font-weight: 400; }
+
+        .cal-table tbody tr:hover { background: rgba(0,0,0,.01); }
+
+        .cal-table td.time-cell {
+            position: sticky;
+            right: 0;
+            z-index: 5;
+            background: #f8f9fa;
+            padding: 6px 10px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #444;
+            border: 1px solid #dee2e6;
+            white-space: nowrap;
+            min-width: 80px;
+        }
+
+        .cal-table td.slot-cell {
+            padding: 4px 6px;
+            border: 1px solid #e9ecef;
+            text-align: center;
+            min-width: 120px;
+            height: 46px;
+            vertical-align: middle;
+            font-size: 11px;
+            transition: background .12s;
+            cursor: default;
+        }
+
+        .slot-available {
+            background: #fff;
+            cursor: pointer;
+            color: #555;
+        }
+
+            .slot-available:hover { background: #e8f5e9; }
+
+            .slot-available.slot-selected {
+                background: #c3f0d0 !important;
+                border: 2px solid #28a745 !important;
+                font-weight: 700;
+            }
+
+        .slot-booked { background: #fdecea; color: #c0392b; font-size: 11px; font-weight: 600; }
+        .slot-booked-name { display: flex; align-items: center; justify-content: center; gap: 3px; }
+        .slot-break { background: #fff8e1; color: #856404; }
+        .slot-outside { background: #f5f5f5; color: #bbb; }
+
+        .avail-text { color: #28a745; font-size: 11px; }
+        .slot-selected .avail-text { color: #155724; font-weight: 700; }
+
+        .details-panel {
+            width: 320px;
+            min-width: 290px;
+            max-width: 340px;
+            flex-shrink: 0;
+            background: #fff;
+            border-inline-start: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .details-header {
+            padding: 12px 16px;
+            background: #fff;
+            border-bottom: 1px solid #e9ecef;
+            font-weight: 700;
+            font-size: 14px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+            .details-header .cal-icon {
+                width: 30px;
+                height: 30px;
+                background: linear-gradient(135deg, #3f8ff6, #1a5fc8);
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                font-size: 14px;
+            }
+
+        .details-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 14px;
+            position: relative;
+        }
+
+        .detail-info-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 0;
+            font-size: 13px;
+            color: #444;
+        }
+
+            .detail-info-row .di-icon {
+                width: 28px;
+                height: 28px;
+                background: #f0f4ff;
+                border-radius: 7px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #0d6efd;
+                font-size: 12px;
+                flex-shrink: 0;
+            }
+
+        .di-value { font-weight: 600; }
+        .di-label { font-size: 11px; color: #888; }
+
+        .section-divider { border: none; border-top: 1px solid #f0f0f0; margin: 10px 0; }
+
+        .panel-section-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .customer-search-wrap { position: relative; }
+
+            .customer-search-wrap .search-icon {
+                position: absolute;
+                top: 50%;
+                transform: translateY(-50%);
+                right: 10px;
+                color: #aaa;
+                font-size: 13px;
+                pointer-events: none;
+                z-index: 1;
+            }
+
+            .customer-search-wrap select {
+                padding-right: 32px;
+                border-radius: 8px;
+                border: 1px solid #dee2e6;
+                font-size: 13px;
+            }
+
+        .add-svc-wrap { position: static; }
+
+        .svc-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 1.5px solid #c5d5f5;
+            border-radius: 12px;
+            box-shadow: 0 8px 28px rgba(0,0,0,.15);
+            z-index: 200;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+            .svc-dropdown.open { display: block; }
+
+        .svc-dropdown-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f5f5f5;
+            transition: background .1s;
+        }
+
+            .svc-dropdown-item:last-child { border-bottom: none; }
+            .svc-dropdown-item:hover { background: #f0f6ff; }
+            .svc-dropdown-item .svc-ddi-price { color: #198754; font-weight: 700; font-size: 13px; }
+
+        .svc-card {
+            background: #fff;
+            border: 1.5px solid #e9ecef;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: border-color .15s, box-shadow .15s;
+        }
+
+            .svc-card:hover { border-color: #c8d0dd; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+
+        .svc-card-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 16px;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .svc-card-body { flex: 1; min-width: 0; }
+
+        .svc-card-name {
+            font-weight: 700;
+            font-size: 14px;
+            color: #222;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .svc-card-emp { font-size: 12px; color: #777; margin-top: 4px; display: flex; align-items: center; gap: 5px; }
+
+        .emp-chip {
+            background: #f0f2f5;
+            border-radius: 5px;
+            padding: 2px 8px;
+            font-size: 11px;
+            color: #555;
+            border: 1px solid #e0e4ea;
+        }
+
+        .svc-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+        .svc-card-price { font-weight: 700; color: #198754; font-size: 15px; white-space: nowrap; }
+
+        .svc-card-del {
+            width: 26px;
+            height: 26px;
+            background: #fce4e4;
+            border: none;
+            border-radius: 50%;
+            color: #dc3545;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            transition: background .1s;
+            flex-shrink: 0;
+        }
+
+            .svc-card-del:hover { background: #f5b5b5; }
+
+        .panel-dt-row { display: flex; align-items: center; gap: 9px; padding: 5px 0; }
+            .panel-dt-row .di-icon { flex-shrink: 0; }
+            .panel-dt-row .panel-dt-inner { flex: 1; }
+            .panel-dt-row .di-label { font-size: 11px; color: #aaa; margin-bottom: 3px; }
+
+            .panel-dt-row input[type=date], .panel-dt-row input[type=time] {
+                width: 100%;
+                font-size: 13px;
+                font-weight: 600;
+                border: 1.5px solid #dee2e6;
+                border-radius: 8px;
+                padding: 5px 8px;
+                color: #333;
+                background: #fff;
+                transition: border-color .15s;
+                cursor: pointer;
+            }
+
+            .panel-dt-row input:focus { border-color: #0d6efd; outline: none; }
+
+        .total-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 8px;
+            font-size: 13px;
+            border: 1px solid #e9ecef;
+        }
+
+            .total-bar .total-label { font-weight: 600; color: #555; }
+            .total-bar .total-value { font-weight: 700; color: #198754; font-size: 14px; }
+
+        .details-footer {
+            padding: 12px 14px;
+            border-top: 1px solid #e9ecef;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-save-appt {
+            background: linear-gradient(135deg, #3f8ff6, #1a5fc8);
+            border: none;
+            color: #fff;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 10px;
+            border-radius: 10px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: opacity .2s;
+        }
+
+            .btn-save-appt:hover { opacity: .9; }
+
+        .btn-cancel-row { display: flex; gap: 8px; }
+            .btn-cancel-row .btn { flex: 1; font-size: 13px; border-radius: 8px; }
+
+        @@media (max-width: 768px) {
+            .appt-body { flex-direction: column; }
+            .calendar-section { order: 1; min-height: 280px; }
+            .details-panel { order: 2; width: 100%; max-width: 100%; border-inline-start: none; border-top: 1px solid #e9ecef; }
+        }
+    </style>
+}
+
+<form id="editForm" asp-action="Edit" method="post" autocomplete="off">
+    @Html.AntiForgeryToken()
+    <input asp-for="Id" type="hidden" />
+    <input asp-for="CreatedAt" type="hidden" />
+    <input type="hidden" id="hdnAppointmentDate" name="AppointmentDate" value="@Model.AppointmentDate.ToString("yyyy-MM-ddTHH:mm:ss")" />
+    <input type="hidden" id="hdnEndTime" name="EndTime" value="@(Model.EndTime.HasValue ? Model.EndTime.Value.ToString(@"hh\:mm\:ss") : "")" />
+    <input type="hidden" id="hdnEmployeeId" name="EmployeeId" value="@Model.EmployeeId" />
+    <input type="hidden" id="hdnCustomerId" name="CustomerId" value="@Model.CustomerId" />
+    <input type="hidden" name="CustomerPackageId" value="@Model.CustomerPackageId" />
+
+    <div class="appt-page">
+
+        <!-- Filter Bar -->
+        <div class="appt-filter">
+            <span class="filter-title">
+                <i class="fas fa-calendar-edit text-primary"></i>
+                تعديل الموعد #@Model.Id
+            </span>
+
+            <div class="date-nav">
+                <button type="button" class="btn-nav" id="btnPrevDate"><i class="fas fa-chevron-right"></i></button>
+                <input type="date" id="dateSelect" value="@initialDateStr" />
+                <button type="button" class="btn-nav" id="btnNextDate"><i class="fas fa-chevron-left"></i></button>
+            </div>
+
+            <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm ms-auto" style="font-size:12px;">
+                <i class="fas fa-arrow-right me-1"></i>المواعيد
+            </a>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend-bar">
+            <div class="legend-item"><span class="legend-dot" style="background:#28a745;"></span> متاح</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#e74c3c;"></span> محجوز</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#f39c12;"></span> استراحة</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#adb5bd;"></span> خارج الدوام</div>
+        </div>
+
+        <!-- Body -->
+        <div class="appt-body">
+
+            <!-- Details Panel -->
+            <div class="details-panel">
+                <div class="details-header">
+                    <div class="cal-icon"><i class="fas fa-calendar-edit"></i></div>
+                    <span>تفاصيل الموعد</span>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">الموظف</label>
-                    <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select">
-                        <option value="">-- اختر الموظف --</option>
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="AppointmentDate" class="form-label"></label>
-                    <input asp-for="AppointmentDate" type="datetime-local" class="form-control" />
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="Status" class="form-label"></label>
-                    <select asp-for="Status" class="form-select">
-                        <option>مجدول</option>
-                        <option>مؤكد</option>
-                        <option>مكتمل</option>
-                        <option>ملغي</option>
-                    </select>
-                </div>
-                <div class="col-12">
-                    <label class="form-label">الخدمات</label>
-                    <div class="row g-2">
-                        @foreach (var service in ViewBag.Services as List<Salon.Models.Service> ?? new())
-                        {
-                            var isSelected = Model.AppointmentServices.Any(s => s.ServiceId == service.Id);
-                            <div class="col-md-4">
-                                <div class="form-check">
-                                    <input type="checkbox" name="serviceIds" value="@service.Id"
-                                           class="form-check-input" id="svc@(service.Id)"
-                                           @(isSelected ? "checked" : "") />
-                                    <label class="form-check-label" for="svc@(service.Id)">
-                                        @service.Name
-                                    </label>
-                                </div>
+
+                <div class="details-body">
+
+                    <!-- Date -->
+                    <div class="panel-dt-row">
+                        <div class="di-icon"><i class="fas fa-calendar"></i></div>
+                        <div class="panel-dt-inner">
+                            <div class="di-label">التاريخ</div>
+                            <input type="date" id="panelDateInput" value="@initialDateStr" />
+                        </div>
+                    </div>
+
+                    <!-- Time -->
+                    <div class="panel-dt-row">
+                        <div class="di-icon"><i class="fas fa-clock"></i></div>
+                        <div class="panel-dt-inner">
+                            <div class="di-label">الوقت</div>
+                            <div id="displayTime" style="font-size:13px;font-weight:700;color:#333;padding:5px 0;min-height:26px;">
+                                <span id="displayTimeHint" class="text-muted" style="font-weight:400;font-size:12px;">اضغط على خلية في الجدول لتغيير الوقت</span>
                             </div>
-                        }
+                        </div>
+                    </div>
+
+                    <hr class="section-divider" />
+
+                    <!-- Customer -->
+                    <div class="panel-section-title"><span>العميل</span></div>
+                    <div class="customer-search-wrap mb-2">
+                        <i class="fas fa-search search-icon"></i>
+                        <select id="customerSelect" class="form-select form-select-sm w-100">
+                            <option value="">-- اختر العميل --</option>
+                        </select>
+                    </div>
+
+                    <hr class="section-divider" />
+
+                    <!-- Status -->
+                    <div class="panel-section-title"><span>الحالة</span></div>
+                    <select name="Status" id="statusSelect" class="form-select form-select-sm mb-2">
+                        <option value="مجدول" @@(initialStatus == "مجدول" ? "selected" : "")>مجدول</option>
+                        <option value="مؤكد" @@(initialStatus == "مؤكد" ? "selected" : "")>مؤكد</option>
+                        <option value="مكتمل" @@(initialStatus == "مكتمل" ? "selected" : "")>مكتمل</option>
+                        <option value="ملغي" @@(initialStatus == "ملغي" ? "selected" : "")>ملغي</option>
+                    </select>
+
+                    <hr class="section-divider" />
+
+                    <!-- Services -->
+                    <div class="panel-section-title" style="position:relative;">
+                        <span>الخدمات</span>
+                        <div class="add-svc-wrap">
+                            <button type="button" id="btnAddService" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size:12px;font-weight:700;">
+                                <i class="fas fa-plus"></i> إضافة
+                            </button>
+                            <div id="svcDropdown" class="svc-dropdown"></div>
+                        </div>
+                    </div>
+                    <div id="servicesListUI"></div>
+
+                    <!-- Total -->
+                    <div class="total-bar" id="totalBar" style="display:none;">
+                        <span class="total-label">إجمالي الخدمات</span>
+                        <span class="total-value" id="totalPriceVal">0.000 د.ك</span>
+                    </div>
+
+                    <hr class="section-divider" />
+
+                    <!-- Notes -->
+                    <div class="panel-section-title"><span>ملاحظات</span></div>
+                    <textarea name="Notes" class="form-control form-control-sm" rows="2" placeholder="ملاحظات إضافية...">@initialNotes</textarea>
+
+                </div><!-- /details-body -->
+
+                <div class="details-footer">
+                    <button type="submit" class="btn-save-appt" id="confirmBtn">
+                        <i class="fas fa-save"></i> حفظ التعديلات
+                    </button>
+                    <div class="btn-cancel-row">
+                        <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-times me-1"></i>إلغاء
+                        </a>
                     </div>
                 </div>
-                <div class="col-12">
-                    <label asp-for="Notes" class="form-label"></label>
-                    <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+            </div><!-- /details-panel -->
+
+            <!-- Calendar Section -->
+            <div class="calendar-section">
+                <div class="calendar-wrapper" id="calendarWrapper">
+                    <div class="calendar-loading">
+                        <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
+                        جاري التحميل...
+                    </div>
                 </div>
             </div>
-            <div class="mt-4">
-                <button type="submit" class="btn btn-primary me-2"><i class="fas fa-save me-1"></i> حفظ</button>
-                <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
-            </div>
-        </form>
-    </div>
-</div>
+
+        </div><!-- /appt-body -->
+    </div><!-- /appt-page -->
+</form>
+
+@section Scripts {
+    <script>
+        (function () {
+            'use strict';
+
+            // ── Initial state from server ──────────────────────────────────────
+            const INITIAL_EMP_ID    = @initialEmployeeId;
+            const INITIAL_TIME      = '@initialTimeStr';
+            const INITIAL_CUST_ID   = @initialCustomerId;
+            const INITIAL_SVC_IDS   = [@string.Join(",", initialServiceIds)];
+
+            // ── State ─────────────────────────────────────────────────────────
+            let selectedSlot  = null;
+            let allCustomers  = [];
+            let allServices   = [];
+            let addedServices = [];
+            let cachedCalendar = { employees: [], timeSlots: [] };
+
+            // ── Helpers ───────────────────────────────────────────────────────
+            function esc(str) {
+                return String(str || '')
+                    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+            }
+
+            function formatTime12(t) {
+                const parts = t.split(':');
+                let h = parseInt(parts[0]);
+                const m = parts[1] || '00';
+                const ap = h < 12 ? 'ص' : 'م';
+                const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                return String(h12).padStart(2,'0') + ':' + m + ' ' + ap;
+            }
+
+            // ── Init ──────────────────────────────────────────────────────────
+            async function init() {
+                await loadCustomers();
+                await loadServices();
+                await renderCalendar(true);
+            }
+
+            async function loadCustomers() {
+                const res = await fetch('/Appointments/GetCustomersByDepartment?dept=');
+                allCustomers = await res.json();
+                const sel = document.getElementById('customerSelect');
+                sel.innerHTML = '<option value="">-- اختر العميل --</option>';
+                allCustomers.forEach(c => {
+                    const selected = c.id === INITIAL_CUST_ID ? ' selected' : '';
+                    sel.innerHTML += `<option value="${c.id}"${selected}>${esc(c.fullName)}</option>`;
+                });
+                document.getElementById('hdnCustomerId').value = INITIAL_CUST_ID;
+            }
+
+            async function loadServices() {
+                const res = await fetch('/Appointments/GetServicesByDepartment?dept=');
+                const data = await res.json();
+                allServices = data.map(s => ({
+                    id: s.id, name: s.name,
+                    priceNum: parseFloat(s.price) || 0,
+                    price: s.price,
+                    category: s.category || ''
+                }));
+
+                // Pre-select initial services
+                addedServices = allServices.filter(s => INITIAL_SVC_IDS.includes(s.id));
+                renderServiceDropdown();
+                renderServicesList();
+            }
+
+            // ── Calendar ──────────────────────────────────────────────────────
+            async function renderCalendar(isInit) {
+                const date = document.getElementById('dateSelect').value;
+                const wrapper = document.getElementById('calendarWrapper');
+                wrapper.innerHTML = `<div class="calendar-loading"><i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>جاري التحميل...</div>`;
+
+                try {
+                    const res = await fetch(`/Appointments/GetCalendarView?date=${date}&dept=`);
+                    cachedCalendar = await res.json();
+                    buildCalendarTable(cachedCalendar.employees, cachedCalendar.timeSlots, isInit);
+                } catch(e) {
+                    wrapper.innerHTML = `<div class="calendar-loading text-danger"><i class="fas fa-exclamation-circle fa-2x mb-2 d-block"></i>خطأ في تحميل البيانات</div>`;
+                }
+            }
+
+            function buildCalendarTable(employees, timeSlots, autoSelect) {
+                if (!employees.length) {
+                    document.getElementById('calendarWrapper').innerHTML =
+                        `<div class="calendar-loading"><i class="fas fa-users fa-2x mb-2 d-block text-muted"></i>لا يوجد موظفون</div>`;
+                    return;
+                }
+
+                const now = new Date();
+                const todayStr = now.toISOString().split('T')[0];
+                const selectedDate = document.getElementById('dateSelect').value;
+                const isToday = (selectedDate === todayStr);
+                const nowMinutes = isToday ? (now.getHours() * 60 + now.getMinutes()) : -1;
+
+                let html = '<table class="cal-table"><thead><tr>';
+                html += `<th class="time-th">الوقت</th>`;
+                employees.forEach(emp => {
+                    html += `<th class="emp-th">
+                        <div class="emp-th-name">${esc(emp.name)}</div>
+                        <div class="emp-th-job">${esc(emp.jobTitle)}</div>
+                    </th>`;
+                });
+                html += '</tr></thead><tbody>';
+
+                timeSlots.forEach(slot => {
+                    const [sh, sm] = slot.startTime.split(':').map(Number);
+                    const slotMinutes = sh * 60 + sm;
+
+                    html += '<tr>';
+                    html += `<td class="time-cell">${esc(slot.timeLabel)}</td>`;
+
+                    slot.cells.forEach((cell, idx) => {
+                        const emp = employees[idx];
+                        const isSelected = selectedSlot
+                            && selectedSlot.empId === cell.empId
+                            && selectedSlot.startTime === slot.startTime;
+
+                        if (cell.status === 'محجوز' && !(autoSelect && cell.empId === INITIAL_EMP_ID && slot.startTime === INITIAL_TIME)) {
+                            html += `<td class="slot-cell slot-booked">
+                                <div class="slot-booked-name"><i class="fas fa-user" style="font-size:9px;"></i>${esc(cell.personName||'')}</div>
+                            </td>`;
+                        } else if (cell.status === 'استراحة') {
+                            html += `<td class="slot-cell slot-break"><i class="fas fa-coffee" style="font-size:10px;"></i> استراحة</td>`;
+                        } else if (cell.status === 'خارج الدوام') {
+                            html += `<td class="slot-cell slot-outside">—</td>`;
+                        } else {
+                            const selClass = isSelected ? ' slot-selected' : '';
+                            html += `<td class="slot-cell slot-available${selClass}"
+                                onclick="selectSlot(${cell.empId},'${esc(emp.name)}','${slot.startTime}','${slot.endTime}','${esc(slot.timeLabel)}')"
+                                title="${esc(emp.name)} — ${esc(slot.timeLabel)}">
+                                ${isSelected ? '<i class="fas fa-check-circle text-success"></i>' : `<span class="avail-text">متاح</span>`}
+                            </td>`;
+                        }
+                    });
+
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table>';
+                document.getElementById('calendarWrapper').innerHTML = html;
+
+                // Auto-select the current appointment slot on first load
+                if (autoSelect && INITIAL_EMP_ID) {
+                    const emp = employees.find(e => e.id === INITIAL_EMP_ID);
+                    const slot = timeSlots.find(s => s.startTime === INITIAL_TIME);
+                    if (emp && slot) {
+                        selectSlot(emp.id, emp.name, slot.startTime, slot.endTime, slot.timeLabel);
+                    }
+                }
+            }
+
+            window.selectSlot = function(empId, empName, startTime, endTime, timeLabel) {
+                selectedSlot = { empId, empName, startTime, endTime, timeLabel };
+
+                const date = document.getElementById('dateSelect').value;
+                document.getElementById('hdnAppointmentDate').value = date + 'T' + startTime + ':00';
+                document.getElementById('hdnEndTime').value = endTime === '00:00' ? '00:00:00' : endTime + ':00';
+                document.getElementById('hdnEmployeeId').value = empId;
+
+                const endLabel = endTime === '00:00' ? '12:00 ص' : formatTime12(endTime);
+                document.getElementById('displayTime').innerHTML =
+                    `<span style="color:#0d6efd;">${esc(timeLabel)}</span>
+                     <span style="color:#aaa;font-size:11px;"> — ${endLabel}</span>`;
+
+                buildCalendarTable(cachedCalendar.employees, cachedCalendar.timeSlots, false);
+                renderServicesList();
+            };
+
+            // ── Date navigation ────────────────────────────────────────────────
+            function setDate(newDate) {
+                document.getElementById('dateSelect').value = newDate;
+                document.getElementById('panelDateInput').value = newDate;
+                selectedSlot = null;
+                document.getElementById('hdnAppointmentDate').value = '';
+                document.getElementById('displayTime').innerHTML =
+                    '<span class="text-muted" style="font-weight:400;font-size:12px;">اضغط على خلية في الجدول لتغيير الوقت</span>';
+                renderCalendar(false);
+            }
+
+            document.getElementById('dateSelect').addEventListener('change', function() {
+                document.getElementById('panelDateInput').value = this.value;
+                selectedSlot = null;
+                document.getElementById('hdnAppointmentDate').value = '';
+                document.getElementById('displayTime').innerHTML =
+                    '<span class="text-muted" style="font-weight:400;font-size:12px;">اضغط على خلية في الجدول لتغيير الوقت</span>';
+                renderCalendar(false);
+            });
+
+            document.getElementById('panelDateInput').addEventListener('change', function() {
+                setDate(this.value);
+            });
+
+            document.getElementById('btnPrevDate').addEventListener('click', function() {
+                const d = new Date(document.getElementById('dateSelect').value + 'T00:00:00');
+                d.setDate(d.getDate() - 1);
+                setDate(d.toISOString().split('T')[0]);
+            });
+
+            document.getElementById('btnNextDate').addEventListener('click', function() {
+                const d = new Date(document.getElementById('dateSelect').value + 'T00:00:00');
+                d.setDate(d.getDate() + 1);
+                setDate(d.toISOString().split('T')[0]);
+            });
+
+            // ── Customer change ────────────────────────────────────────────────
+            document.getElementById('customerSelect').addEventListener('change', function() {
+                document.getElementById('hdnCustomerId').value = this.value;
+            });
+
+            // ── Services ──────────────────────────────────────────────────────
+            function renderServiceDropdown() {
+                const ddEl = document.getElementById('svcDropdown');
+                if (!allServices.length) { ddEl.innerHTML = '<div class="p-2 text-muted small">لا توجد خدمات</div>'; return; }
+                ddEl.innerHTML = allServices.map(s =>
+                    `<div class="svc-dropdown-item" onclick="addService(${s.id},'${esc(s.name)}',${s.priceNum},'${esc(s.price)}')">
+                        <span>${esc(s.name)}</span>
+                        <span class="svc-ddi-price">${s.price} د.ك</span>
+                    </div>`
+                ).join('');
+            }
+
+            document.getElementById('btnAddService').addEventListener('click', function(e) {
+                e.stopPropagation();
+                document.getElementById('svcDropdown').classList.toggle('open');
+            });
+
+            document.addEventListener('click', function() {
+                document.getElementById('svcDropdown').classList.remove('open');
+            });
+
+            window.addService = function(id, name, priceNum, price) {
+                if (addedServices.find(s => s.id === id)) { document.getElementById('svcDropdown').classList.remove('open'); return; }
+                addedServices.push({ id, name, priceNum, price });
+                document.getElementById('svcDropdown').classList.remove('open');
+                renderServicesList();
+            };
+
+            window.removeService = function(id) {
+                addedServices = addedServices.filter(s => s.id !== id);
+                renderServicesList();
+            };
+
+            const svcIcons = {
+                'حلاقة': 'fa-cut', 'شعر': 'fa-cut', 'بشرة': 'fa-leaf',
+                'مساج': 'fa-spa', 'جمال': 'fa-star', 'حمام': 'fa-shower',
+            };
+            function svcIcon(category) {
+                const k = Object.keys(svcIcons).find(k => (category || '').includes(k));
+                return svcIcons[k] || 'fa-concierge-bell';
+            }
+
+            function renderServicesList() {
+                const ul = document.getElementById('servicesListUI');
+                const empName = selectedSlot?.empName || null;
+                const empChip = empName ? `<span class="emp-chip"><i class="fas fa-user" style="font-size:9px;"></i> ${esc(empName)}</span>` : '';
+
+                let html = addedServices.map(s =>
+                    `<div class="svc-card">
+                        <div class="svc-card-icon"><i class="fas ${svcIcon(s.category)}"></i></div>
+                        <div class="svc-card-body">
+                            <div class="svc-card-name">${esc(s.name)}</div>
+                            <div class="svc-card-emp">${empChip}</div>
+                        </div>
+                        <div class="svc-card-right">
+                            <span class="svc-card-price">${s.price}</span>
+                            <span style="font-size:10px;color:#aaa;">د.ك</span>
+                        </div>
+                        <button type="button" class="svc-card-del" onclick="removeService(${s.id})" title="حذف"><i class="fas fa-times"></i></button>
+                    </div>`
+                ).join('');
+
+                if (!html) html = `<div class="text-muted small p-1 text-center" style="opacity:.6;">لم تُضَف خدمات بعد</div>`;
+                ul.innerHTML = html;
+
+                const total = addedServices.reduce((sum, s) => sum + (s.priceNum || 0), 0);
+                const totalBar = document.getElementById('totalBar');
+                if (addedServices.length) {
+                    totalBar.style.display = 'flex';
+                    document.getElementById('totalPriceVal').textContent = total.toFixed(3) + ' د.ك';
+                } else {
+                    totalBar.style.display = 'none';
+                }
+            }
+
+            // ── Form submit ────────────────────────────────────────────────────
+            document.getElementById('editForm').addEventListener('submit', function(e) {
+                const cid = document.getElementById('customerSelect').value;
+                if (!cid) {
+                    e.preventDefault();
+                    alert('يرجى اختيار العميل');
+                    document.getElementById('customerSelect').focus();
+                    return;
+                }
+                document.getElementById('hdnCustomerId').value = cid;
+
+                this.querySelectorAll('input[name="serviceIds"]').forEach(el => el.remove());
+                addedServices.forEach(s => {
+                    const inp = document.createElement('input');
+                    inp.type = 'hidden'; inp.name = 'serviceIds'; inp.value = s.id;
+                    this.appendChild(inp);
+                });
+            });
+
+            // ── Start ─────────────────────────────────────────────────────────
+            init();
+        })();
+    </script>
+}

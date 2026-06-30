@@ -1,12 +1,26 @@
-﻿@model   Salon.Models.Sale
+﻿@model Salon.Models.Sale
 @{
     Layout = null;
-    var saleTypeIcon = Model.SaleType switch
+
+    // بيانات الصالون من الإعدادات
+    string SalonNameAr = ViewBag.SalonName ?? "معهد موس";
+    string SalonNameEn = ViewBag.SalonNameEn ?? "Mos Institute";
+    string SalonPhone = ViewBag.SalonPhone ?? "";
+    string SalonAddress = ViewBag.SalonAddress ?? "";
+
+    var saleTypeAr = Model.SaleType;
+    var saleTypeEn = Model.SaleType switch
     {
-        "حلاقة" => "✂",
-        "مساج" => "💆",
-        "منتجات" => "🛍",
-        _ => "📄"
+        "حلاقة" => "Barbering",
+        "مساج" => "Massage",
+        "منتجات" => "Products",
+        _ => Model.SaleType
+    };
+    var accentColor = Model.SaleType switch
+    {
+        "مساج" => "#0d9488",
+        "منتجات" => "#2563eb",
+        _ => "#b45309"
     };
 }
 <!DOCTYPE html>
@@ -14,139 +28,191 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>فاتورة @Model.InvoiceNumber</title>
+    <title>@SalonNameAr — @Model.InvoiceNumber</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
-            background: #f0f2f5;
+            background: #f3f4f6;
             direction: rtl;
+            color: #1f2937;
         }
 
         .invoice-wrapper {
-            max-width: 720px;
+            max-width: 740px;
             margin: 30px auto;
             background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+            border-radius: 14px;
+            box-shadow: 0 6px 32px rgba(0,0,0,0.10);
             overflow: hidden;
+            border-top: 5px solid @accentColor;
         }
 
-        .invoice-header {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
-            color: #fff;
-            padding: 28px 32px 20px;
-            position: relative;
+        /* ─── Header ─────────────────────────────────── */
+        .inv-header {
+            background: #fff;
+            padding: 24px 32px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 1px solid #e5e7eb;
         }
 
-        .salon-name {
-            font-size: 1.8rem;
-            font-weight: 700;
+        .salon-block .salon-name-ar {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #111827;
+            letter-spacing: .5px;
+        }
+
+        .salon-block .salon-name-en {
+            font-size: 0.9rem;
+            color: #6b7280;
+            font-weight: 600;
             letter-spacing: 1px;
-            margin-bottom: 2px;
+            margin-top: 1px;
         }
 
-        .salon-subtitle {
-            font-size: 0.85rem;
-            opacity: 0.75;
-            margin-bottom: 0;
+        .salon-block .salon-contact {
+            margin-top: 8px;
+            font-size: 0.78rem;
+            color: #6b7280;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
         }
 
-        .invoice-badge {
-            position: absolute;
-            top: 28px;
-            left: 32px;
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 8px;
-            padding: 8px 16px;
+            .salon-block .salon-contact span {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+
+        .inv-number-block {
             text-align: center;
         }
 
-            .invoice-badge .inv-num {
-                font-size: 1.1rem;
+            .inv-number-block .type-badge {
+                display: inline-block;
+                background: @accentColor;
+                color: #fff;
+                border-radius: 6px;
+                padding: 3px 14px;
+                font-size: 0.75rem;
                 font-weight: 700;
+                letter-spacing: .5px;
+                margin-bottom: 8px;
+            }
+
+            .inv-number-block .inv-num {
+                font-size: 1.3rem;
+                font-weight: 800;
+                color: #111827;
                 letter-spacing: 1px;
             }
 
-            .invoice-badge .inv-label {
-                font-size: 0.72rem;
-                opacity: 0.8;
-                display: block;
+            .inv-number-block .inv-lbl {
+                font-size: 0.68rem;
+                color: #9ca3af;
+                display: flex;
+                flex-direction: column;
+                gap: 1px;
+                margin-top: 2px;
+                text-align: center;
             }
 
-        .invoice-body {
-            padding: 24px 32px;
-        }
-
-        .info-grid {
+        /* ─── Info strip ──────────────────────────────── */
+        .info-strip {
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 14px 32px;
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px 24px;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px 32px;
         }
 
-        .info-item {
-            display: flex;
-            flex-direction: column;
+        .info-cell {
         }
 
-            .info-item .lbl {
-                font-size: 0.75rem;
-                color: #888;
+            .info-cell .bi-label {
+                font-size: 0.68rem;
+                color: #9ca3af;
+                display: flex;
+                justify-content: space-between;
                 margin-bottom: 2px;
             }
 
-            .info-item .val {
-                font-size: 0.95rem;
+                .info-cell .bi-label span:last-child {
+                    font-style: italic;
+                }
+
+            .info-cell .bi-value {
+                font-size: 0.9rem;
                 font-weight: 600;
-                color: #1a1a2e;
+                color: #111827;
             }
 
-        .divider {
-            border: none;
-            border-top: 2px dashed #e0e0e0;
-            margin: 18px 0;
+        /* ─── Body ────────────────────────────────────── */
+        .inv-body {
+            padding: 20px 32px 24px;
         }
 
+        /* ─── Items Table ─────────────────────────────── */
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
+            margin-bottom: 20px;
         }
 
             .items-table thead tr {
-                background: #1a1a2e;
+                background: @accentColor;
                 color: #fff;
             }
 
             .items-table thead th {
-                padding: 10px 12px;
+                padding: 9px 12px;
                 font-weight: 600;
                 text-align: right;
             }
 
+                .items-table thead th .th-en {
+                    display: block;
+                    font-size: 0.65rem;
+                    opacity: .75;
+                    font-weight: 400;
+                    font-style: italic;
+                }
+
             .items-table tbody tr:nth-child(even) {
-                background: #f7f8fa;
+                background: #f9fafb;
             }
 
             .items-table tbody td {
                 padding: 9px 12px;
-                border-bottom: 1px solid #eee;
-                color: #333;
+                border-bottom: 1px solid #f0f0f0;
+                color: #374151;
             }
 
+        /* ─── Totals ──────────────────────────────────── */
         .totals-section {
-            margin-top: 20px;
             display: flex;
             justify-content: flex-start;
+            margin-bottom: 18px;
         }
 
         .totals-box {
-            background: #f7f8fa;
+            background: #f9fafb;
             border-radius: 10px;
-            padding: 16px 24px;
-            min-width: 280px;
+            padding: 14px 20px;
+            min-width: 290px;
+            border: 1px solid #e5e7eb;
         }
 
         .totals-row {
@@ -154,61 +220,91 @@
             justify-content: space-between;
             align-items: center;
             padding: 5px 0;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             color: #555;
         }
 
-            .totals-row.net {
-                border-top: 2px solid #1a1a2e;
-                margin-top: 8px;
-                padding-top: 10px;
-                font-size: 1.1rem;
-                font-weight: 700;
-                color: #1a1a2e;
+            .totals-row .tr-label {
+                display: flex;
+                flex-direction: column;
             }
 
+                .totals-row .tr-label span:last-child {
+                    font-size: 0.65rem;
+                    color: #aaa;
+                    font-style: italic;
+                }
+
+            .totals-row.net {
+                border-top: 2px solid @accentColor;
+                margin-top: 8px;
+                padding-top: 10px;
+                font-size: 1.05rem;
+                font-weight: 700;
+                color: #111827;
+            }
+
+        /* ─── Payment ─────────────────────────────────── */
         .payment-section {
-            margin-top: 18px;
+            margin-bottom: 14px;
+        }
+
+        .pay-label {
+            font-size: 0.68rem;
+            color: #9ca3af;
+            display: flex;
+            gap: 6px;
+            margin-bottom: 4px;
         }
 
         .payment-chip {
-            display: inline-block;
-            background: #e8f5e9;
-            color: #2e7d32;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #ecfdf5;
+            color: #065f46;
             border-radius: 20px;
-            padding: 4px 16px;
+            padding: 5px 16px;
             font-size: 0.85rem;
             font-weight: 600;
-            border: 1px solid #a5d6a7;
+            border: 1px solid #a7f3d0;
         }
 
+        /* ─── Notes ───────────────────────────────────── */
         .notes-box {
-            background: #fffde7;
-            border-right: 4px solid #ffd600;
+            background: #fffbeb;
+            border-right: 4px solid #fbbf24;
             border-radius: 6px;
             padding: 10px 14px;
-            margin-top: 14px;
-            font-size: 0.88rem;
-            color: #5d4037;
+            font-size: 0.85rem;
+            color: #78350f;
         }
 
-        .invoice-footer {
-            background: #f7f8fa;
-            border-top: 1px solid #eee;
-            padding: 16px 32px;
+        /* ─── Footer ──────────────────────────────────── */
+        .inv-footer {
+            background: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+            padding: 14px 32px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.8rem;
-            color: #aaa;
+            font-size: 0.75rem;
+            color: #9ca3af;
         }
 
+            .inv-footer .thank-you {
+                font-weight: 700;
+                color: @accentColor;
+                font-size: 0.85rem;
+            }
+
+        /* ─── Action bar ──────────────────────────────── */
         .action-bar {
-            padding: 16px 32px;
+            padding: 14px 32px;
             display: flex;
             gap: 10px;
             justify-content: center;
-            border-top: 1px solid #eee;
+            border-top: 1px solid #e5e7eb;
         }
 
         @@media print {
@@ -227,7 +323,7 @@
                 max-width: 100%;
             }
 
-            .invoice-footer {
+            .inv-footer {
                 background: #fff;
             }
         }
@@ -237,52 +333,70 @@
 
     <div class="invoice-wrapper">
 
-        <!-- Header -->
-        <div class="invoice-header">
-            <div>
-                <div class="salon-name">معهد موس</div>
-                <div class="salon-subtitle">@saleTypeIcon فاتورة @Model.SaleType</div>
+        <!-- ─── Header ────────────────────────────────────────── -->
+        <div class="inv-header">
+            <div class="salon-block">
+                <div class="salon-name-ar">@SalonNameAr</div>
+                <div class="salon-name-en">@SalonNameEn</div>
+                <div class="salon-contact">
+                    <span>📞 @SalonPhone</span>
+                    <span>📍 @SalonAddress</span>
+                </div>
             </div>
-            <div class="invoice-badge">
-                <span class="inv-label">رقم الفاتورة</span>
+            <div class="inv-number-block">
+                <div class="type-badge">@saleTypeAr · @saleTypeEn</div>
                 <div class="inv-num">@Model.InvoiceNumber</div>
+                <div class="inv-lbl">
+                    <span>رقم الفاتورة</span>
+                    <span>Invoice No.</span>
+                </div>
             </div>
         </div>
 
-        <!-- Body -->
-        <div class="invoice-body">
-
-            <!-- Info Grid -->
-            <div class="info-grid">
-                <div class="info-item">
-                    <span class="lbl">التاريخ والوقت</span>
-                    <span class="val">@Model.SaleDate.ToString("yyyy/MM/dd  hh:mm tt")</span>
-                </div>
-                <div class="info-item">
-                    <span class="lbl">العميل</span>
-                    <span class="val">@(Model.Customer?.FullName ?? "زائر")</span>
-                </div>
-                <div class="info-item">
-                    <span class="lbl">الموظف المُنفِّذ</span>
-                    <span class="val">@(Model.Employee?.FullName ?? "-")</span>
-                </div>
-                <div class="info-item">
-                    <span class="lbl">نوع الفاتورة</span>
-                    <span class="val">@Model.SaleType</span>
-                </div>
+        <!-- ─── Info Strip ────────────────────────────────────── -->
+        <div class="info-strip">
+            <div class="info-cell">
+                <div class="bi-label"><span>التاريخ والوقت</span><span>Date &amp; Time</span></div>
+                <div class="bi-value">@Model.SaleDate.ToString("yyyy/MM/dd  hh:mm tt")</div>
             </div>
+            <div class="info-cell">
+                <div class="bi-label"><span>العميل</span><span>Customer</span></div>
+                <div class="bi-value">@(Model.Customer?.FullName ?? "زائر / Walk-in")</div>
+            </div>
+            <div class="info-cell">
+                <div class="bi-label"><span>الموظف المُنفِّذ</span><span>Served By</span></div>
+                <div class="bi-value">@(Model.Employee?.FullName ?? "—")</div>
+            </div>
+            <div class="info-cell">
+                <div class="bi-label"><span>نوع الفاتورة</span><span>Invoice Type</span></div>
+                <div class="bi-value">@saleTypeAr / @saleTypeEn</div>
+            </div>
+        </div>
 
-            <hr class="divider" />
+        <!-- ─── Body ──────────────────────────────────────────── -->
+        <div class="inv-body">
 
             <!-- Items Table -->
             <table class="items-table">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>البيان</th>
-                        <th class="text-center">الكمية</th>
-                        <th class="text-center">السعر</th>
-                        <th class="text-center">الإجمالي</th>
+                        <th style="width:36px;">#</th>
+                        <th>
+                            البيان
+                            <span class="th-en">Description</span>
+                        </th>
+                        <th class="text-center" style="width:70px;">
+                            الكمية
+                            <span class="th-en">Qty</span>
+                        </th>
+                        <th class="text-center" style="width:100px;">
+                            السعر
+                            <span class="th-en">Price</span>
+                        </th>
+                        <th class="text-center" style="width:110px;">
+                            الإجمالي
+                            <span class="th-en">Total</span>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -306,41 +420,54 @@
             <div class="totals-section">
                 <div class="totals-box">
                     <div class="totals-row">
-                        <span>المجموع الكلي</span>
+                        <div class="tr-label">
+                            <span>المجموع الكلي</span>
+                            <span>Subtotal</span>
+                        </div>
                         <span>@Model.TotalAmount.ToString("N3") د.ك</span>
                     </div>
                     @if (Model.Discount > 0)
                     {
                         <div class="totals-row" style="color:#c0392b">
-                            <span>الخصم</span>
+                            <div class="tr-label">
+                                <span>الخصم</span>
+                                <span>Discount</span>
+                            </div>
                             <span>- @Model.Discount.ToString("N3") د.ك</span>
                         </div>
                     }
                     <div class="totals-row net">
-                        <span>الصافي المستحق</span>
+                        <div class="tr-label">
+                            <span>الصافي المستحق</span>
+                            <span style="font-size:0.7rem;color:#6b7280;font-style:italic;">Amount Due</span>
+                        </div>
                         <span>@Model.NetAmount.ToString("N3") د.ك</span>
                     </div>
                     @if (Model.EmployeeGift.HasValue && Model.EmployeeGift > 0)
                     {
-                        <div class="totals-row" style="color:#e67e22;border-top:1px dashed #f0d090;margin-top:8px;padding-top:8px;">
-                            <span><i class="fas fa-hand-holding-usd me-1"></i>عمولة خدمة للموظف</span>
+                        <div class="totals-row" style="color:#d97706;border-top:1px dashed #fde68a;margin-top:8px;padding-top:8px;">
+                            <div class="tr-label">
+                                <span>عمولة خدمة للموظف</span>
+                                <span>Service Commission</span>
+                            </div>
                             <span style="font-weight:700;">@Model.EmployeeGift.Value.ToString("N3") د.ك</span>
                         </div>
                     }
                     @if (Model.GiftForEmployee.HasValue && Model.GiftForEmployee > 0)
                     {
-                        <div class="totals-row" style="color:#c0392b;border-top:1px dashed #e74c3c;margin-top:8px;padding-top:8px;">
-                            <span><i class="fas fa-gift me-1"></i>هدية للموظف</span>
+                        var totalCollect = Model.NetAmount + (Model.GiftForEmployee ?? 0);
+                        <div class="totals-row" style="color:#c0392b;border-top:1px dashed #fca5a5;margin-top:8px;padding-top:8px;">
+                            <div class="tr-label">
+                                <span>هدية للموظف</span>
+                                <span>Staff Gift</span>
+                            </div>
                             <span style="font-weight:700;">@Model.GiftForEmployee.Value.ToString("N3") د.ك</span>
                         </div>
-                    }
-                    @{
-                        var totalCollect = Model.NetAmount + (Model.GiftForEmployee ?? 0);
-                    }
-                    @if (Model.GiftForEmployee.HasValue && Model.GiftForEmployee > 0)
-                    {
-                        <div class="totals-row" style="font-size:1.05rem;font-weight:800;color:#c0392b;background:#fdf2f2;border-radius:6px;padding:6px 8px;margin-top:6px;">
-                            <span><i class="fas fa-hand-holding-usd me-1"></i>إجمالي التحصيل من العميل</span>
+                        <div class="totals-row" style="font-size:1rem;font-weight:800;color:#c0392b;background:#fef2f2;border-radius:6px;padding:6px 8px;margin-top:6px;">
+                            <div class="tr-label">
+                                <span>إجمالي التحصيل من العميل</span>
+                                <span style="font-size:0.65rem;color:#ef4444;font-style:italic;">Total to Collect</span>
+                            </div>
                             <span>@totalCollect.ToString("N3") د.ك</span>
                         </div>
                     }
@@ -349,24 +476,35 @@
 
             @if (Model.GiftForEmployee.HasValue && Model.GiftForEmployee > 0)
             {
-                <div class="notes-box" style="background:#fdf2f2;border-right-color:#c0392b;margin-top:14px;">
-                    <strong><i class="fas fa-info-circle me-1"></i>ملاحظة: </strong>
+                <div class="notes-box" style="background:#fef2f2;border-right-color:#ef4444;margin-bottom:14px;">
+                    <strong>ملاحظة / Note: </strong>
                     مبلغ الهدية <strong>@Model.GiftForEmployee.Value.ToString("N3") د.ك</strong> خاص بالموظف <strong>@(Model.Employee?.FullName ?? "")</strong> ويُصرف له مع الراتب
                 </div>
             }
 
             <!-- Payment Method -->
             <div class="payment-section">
+                <div class="pay-label">
+                    <span>طريقة الدفع</span>
+                    <span>/</span>
+                    <span>Payment Method</span>
+                </div>
                 @if (Model.PaymentMethod == "مناصفة" && (Model.CashAmount.HasValue || Model.LinkAmount.HasValue))
                 {
-                    <span class="payment-chip" style="background:#e3f2fd;color:#1565c0;border-color:#90caf9">
+                    <span class="payment-chip" style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;">
                         نقدي: @(Model.CashAmount?.ToString("N3") ?? "0.000") د.ك &nbsp;|&nbsp; رابط: @(Model.LinkAmount?.ToString("N3") ?? "0.000") د.ك
+                    </span>
+                }
+                else if (Model.PaymentMethod == "كي نت و كاش" && (Model.CashAmount.HasValue || Model.LinkAmount.HasValue))
+                {
+                    <span class="payment-chip" style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;">
+                        كاش: @(Model.CashAmount?.ToString("N3") ?? "0.000") د.ك &nbsp;|&nbsp; كي نت: @((Model.NetAmount - (Model.CashAmount ?? 0)).ToString("N3")) د.ك
                     </span>
                 }
                 else if (Model.PaymentMethod == "آجل" && Model.DebtEmployee != null)
                 {
-                    <span class="payment-chip" style="background:#fce4ec;color:#c62828;border-color:#ef9a9a">
-                        آجل — @Model.DebtEmployee.FullName
+                    <span class="payment-chip" style="background:#fef2f2;color:#c62828;border-color:#fca5a5;">
+                        آجل / Credit — @Model.DebtEmployee.FullName
                     </span>
                 }
                 else
@@ -378,19 +516,21 @@
             @if (!string.IsNullOrEmpty(Model.Notes))
             {
                 <div class="notes-box">
-                    <strong>ملاحظات: </strong>@Model.Notes
+                    <strong>ملاحظات / Notes: </strong>@Model.Notes
                 </div>
             }
 
+        </div><!-- /inv-body -->
+        <!-- ─── Footer ────────────────────────────────────────── -->
+        <div class="inv-footer">
+            <div>
+                <div>@SalonNameAr · @SalonNameEn</div>
+                <div style="margin-top:2px;">📞 @SalonPhone &nbsp;·&nbsp; 📍 @SalonAddress</div>
+            </div>
+            <div class="thank-you">شكراً لزيارتكم · Thank You</div>
         </div>
 
-        <!-- Footer -->
-        <div class="invoice-footer">
-            <span>نظام معهد موس</span>
-            <span>شكراً لزيارتكم</span>
-        </div>
-
-        <!-- Action Buttons (hidden on print, hidden in modal) -->
+        <!-- ─── Action Bar ─────────────────────────────────────── -->
         @{
             var isModal = Context.Request.Query.ContainsKey("modal");
         }
@@ -398,18 +538,17 @@
         {
             <div class="action-bar">
                 <button onclick="window.print()" class="btn btn-dark px-4">
-                    🖨 طباعة
+                    🖨 طباعة / Print
                 </button>
                 <a href="@Url.Action("Index", "Sales", new { type = Model.SaleType })" class="btn btn-outline-secondary px-4">
-                    رجوع للقائمة
+                    رجوع / Back
                 </a>
             </div>
         }
 
-    </div>
+    </div><!-- /invoice-wrapper -->
 
     <script>
-        // Auto-print only when opened directly (not inside modal iframe)
         if (!new URLSearchParams(window.location.search).get('modal')) {
             window.onload = function () { window.print(); };
         }
