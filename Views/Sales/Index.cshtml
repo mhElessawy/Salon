@@ -97,30 +97,57 @@
 
 <div class="card mb-3">
     <div class="card-body">
-        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
-            <label class="form-label mb-0">من:</label>
-            <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:170px;" />
-            <label class="form-label mb-0">إلى:</label>
-            <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:170px;" />
-            <label class="form-label mb-0">النوع:</label>
-            <select name="type" class="form-select" style="max-width:160px;">
-                <option value="">الكل</option>
-                @if (showBarber)
+        <form method="get">
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                <label class="form-label mb-0">من:</label>
+                <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:150px;" />
+                <label class="form-label mb-0">إلى:</label>
+                <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:150px;" />
+                <select name="type" class="form-select" style="max-width:150px;">
+                    <option value="">كل الأنواع</option>
+                    @if (showBarber)
+                    {
+                        <option value="حلاقة" selected="@(filterType == "حلاقة" ? "selected" : null)">حلاقة (PAR)</option>
+                    }
+                    @if (showMassage)
+                    {
+                        <option value="مساج" selected="@(filterType == "مساج" ? "selected" : null)">مساج (MAS)</option>
+                    }
+                    @if (string.IsNullOrEmpty(userDept))
+                    {
+                        <option value="منتجات" selected="@(filterType == "منتجات" ? "selected" : null)">منتجات (PRD)</option>
+                    }
+                </select>
+                <select name="status" class="form-select" style="max-width:130px;">
+                    <option value="">كل الحالات</option>
+                    <option value="مكتمل" selected="@(ViewBag.FilterStatus == "مكتمل" ? "selected" : null)">مكتمل</option>
+                    <option value="ملغي" selected="@(ViewBag.FilterStatus == "ملغي" ? "selected" : null)">ملغي</option>
+                </select>
+                <select name="paymentMethod" class="form-select" style="max-width:150px;">
+                    <option value="">كل طرق الدفع</option>
+                    <option value="كاش" selected="@(ViewBag.FilterPayment == "كاش" ? "selected" : null)">كاش</option>
+                    <option value="كي نت" selected="@(ViewBag.FilterPayment == "كي نت" ? "selected" : null)">كي نت</option>
+                    <option value="كي نت و كاش" selected="@(ViewBag.FilterPayment == "كي نت و كاش" ? "selected" : null)">كي نت و كاش</option>
+                    <option value="مناصفة" selected="@(ViewBag.FilterPayment == "مناصفة" ? "selected" : null)">مناصفة</option>
+                    <option value="آجل" selected="@(ViewBag.FilterPayment == "آجل" ? "selected" : null)">آجل</option>
+                    <option value="دين على الموظف" selected="@(ViewBag.FilterPayment == "دين على الموظف" ? "selected" : null)">دين على الموظف</option>
+                    <option value="دين على الإدارة" selected="@(ViewBag.FilterPayment == "دين على الإدارة" ? "selected" : null)">دين على الإدارة</option>
+                </select>
+                @if (ViewBag.Employees != null)
                 {
-                    <option value="حلاقة" selected="@(filterType == "حلاقة" ? "selected" : null)">فواتير حلاقة (PAR)</option>
+                    <select name="employeeId" class="form-select" style="max-width:150px;">
+                        <option value="">كل الموظفين</option>
+                        @foreach (var emp in (IEnumerable<dynamic>)ViewBag.Employees)
+                        {
+                            <option value="@emp.Id" selected="@(ViewBag.FilterEmployeeId != null && (int)ViewBag.FilterEmployeeId == (int)emp.Id ? "selected" : null)">@emp.FullName</option>
+                        }
+                    </select>
                 }
-                @if (showMassage)
-                {
-                    <option value="مساج" selected="@(filterType == "مساج" ? "selected" : null)">فواتير مساج (MAS)</option>
-                }
-                @if (string.IsNullOrEmpty(userDept))
-                {
-                    <option value="منتجات" selected="@(filterType == "منتجات" ? "selected" : null)">فواتير منتجات (PRD)</option>
-                }
-            </select>
-            <input type="text" name="invoiceNumber" value="@ViewBag.InvoiceNumber" class="form-control" style="max-width:160px;" placeholder="رقم الفاتورة..." />
-            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> بحث</button>
-            <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm"><i class="fas fa-undo"></i></a>
+                <input type="text" name="customerName" value="@ViewBag.FilterCustomer" class="form-control" style="max-width:140px;" placeholder="اسم العميل..." />
+                <input type="text" name="invoiceNumber2" value="@ViewBag.InvoiceNumber" class="form-control" style="max-width:130px;" placeholder="رقم الفاتورة..." />
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> بحث</button>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm"><i class="fas fa-undo"></i></a>
+            </div>
         </form>
     </div>
 </div>
