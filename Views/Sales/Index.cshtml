@@ -114,8 +114,8 @@
                     <option value="منتجات" selected="@(filterType == "منتجات" ? "selected" : null)">فواتير منتجات (PRD)</option>
                 }
             </select>
-            <input type="text" name="invoiceNumber" value="@ViewBag.InvoiceNumber" class="form-control" style="max-width:160px;" placeholder="رقم الفاتورة..." />
-            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> بحث</button>
+            <input type="text" name="invoiceNumber" value="@ViewBag.InvoiceNumber" class="form-control" style="max-width:160px;" placeholder="Invoice No..." />
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> Search</button>
             <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm"><i class="fas fa-undo"></i></a>
         </form>
     </div>
@@ -180,14 +180,14 @@
                                     {
                                         <div class="small" style="color:#6c757d;white-space:nowrap;">
                                             <i class="fas fa-receipt me-1"></i><span data-i18n-en="Receipt No:">رقم:</span> <strong id="knet-receipt-text-@s.Id">@s.KnetReceiptNumber</strong>
-                                            <button type="button" class="btn btn-sm p-0 ms-1" style="font-size:11px;opacity:.6;" title="تعديل رقم الإيصال" onclick="openKnetModal(@s.Id, '@Html.Raw((s.KnetReceiptNumber ?? "").Replace("'", "\\'"))')"><i class="fas fa-pen"></i></button>
+                                            <button type="button" class="btn btn-sm p-0 ms-1" style="font-size:11px;opacity:.6;" title="Edit Receipt No." onclick="openKnetModal(@s.Id, '@Html.Raw((s.KnetReceiptNumber ?? "").Replace("'", "\\'"))')"><i class="fas fa-pen"></i></button>
                                         </div>
                                     }
                                     else
                                     {
                                         <div class="small mt-1">
-                                            <span class="badge bg-warning text-dark" style="font-size:10px;"><i class="fas fa-exclamation-triangle me-1"></i>غير موثقة</span>
-                                            <button type="button" class="btn btn-sm p-0 ms-1 text-primary" style="font-size:11px;" title="إضافة رقم الإيصال" onclick="openKnetModal(@s.Id, '')"><i class="fas fa-plus-circle"></i> إضافة رقم الإيصال</button>
+                                            <span class="badge bg-warning text-dark" style="font-size:10px;"><i class="fas fa-exclamation-triangle me-1"></i>Undocumented</span>
+                                            <button type="button" class="btn btn-sm p-0 ms-1 text-primary" style="font-size:11px;" title="Add Receipt No." onclick="openKnetModal(@s.Id, '')"><i class="fas fa-plus-circle"></i> Add Receipt No.</button>
                                         </div>
                                     }
                                 }
@@ -198,14 +198,14 @@
                                     {
                                         <div class="small" style="color:#6c757d;white-space:nowrap;">
                                             <i class="fas fa-receipt me-1"></i><span data-i18n-en="Receipt No:">رقم:</span> <strong id="knet-receipt-text-@s.Id">@s.KnetReceiptNumber</strong>
-                                            <button type="button" class="btn btn-sm p-0 ms-1" style="font-size:11px;opacity:.6;" title="تعديل رقم الإيصال" onclick="openKnetModal(@s.Id, '@Html.Raw((s.KnetReceiptNumber ?? "").Replace("'", "\\'"))')"><i class="fas fa-pen"></i></button>
+                                            <button type="button" class="btn btn-sm p-0 ms-1" style="font-size:11px;opacity:.6;" title="Edit Receipt No." onclick="openKnetModal(@s.Id, '@Html.Raw((s.KnetReceiptNumber ?? "").Replace("'", "\\'"))')"><i class="fas fa-pen"></i></button>
                                         </div>
                                     }
                                     else
                                     {
                                         <div class="small mt-1">
-                                            <span class="badge bg-warning text-dark" style="font-size:10px;"><i class="fas fa-exclamation-triangle me-1"></i>غير موثقة</span>
-                                            <button type="button" class="btn btn-sm p-0 ms-1 text-primary" style="font-size:11px;" title="إضافة رقم الإيصال" onclick="openKnetModal(@s.Id, '')"><i class="fas fa-plus-circle"></i> إضافة رقم الإيصال</button>
+                                            <span class="badge bg-warning text-dark" style="font-size:10px;"><i class="fas fa-exclamation-triangle me-1"></i>Undocumented</span>
+                                            <button type="button" class="btn btn-sm p-0 ms-1 text-primary" style="font-size:11px;" title="Add Receipt No." onclick="openKnetModal(@s.Id, '')"><i class="fas fa-plus-circle"></i> Add Receipt No.</button>
                                         </div>
                                     }
                                 }
@@ -233,7 +233,7 @@
                                           style="white-space:pre-wrap;flex:1;">@s.Notes</span>
                                     <button type="button" class="btn btn-sm p-0 text-secondary"
                                             style="font-size:12px;flex-shrink:0;opacity:.6;"
-                                            title="تعديل الملاحظات"
+                                            title="Edit Notes"
                                             onclick="openNotesModal(@s.Id, document.getElementById('notes-text-@s.Id').textContent.trim())">
                                         <i class="fas fa-pen"></i>
                                     </button>
@@ -272,12 +272,12 @@
     <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
         <div class="modal-content border-0 shadow">
             <div class="modal-header border-0 pb-0" style="background:#f0f4ff;">
-                <h6 class="modal-title fw-bold"><i class="fas fa-receipt me-2 text-primary"></i>رقم إيصال كي نت</h6>
+                <h6 class="modal-title fw-bold"><i class="fas fa-receipt me-2 text-primary"></i>K-Net Receipt No.</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <input type="text" id="knetModalInput" class="form-control fw-bold"
-                       placeholder="أدخل رقم الإيصال..." maxlength="100"
+                       placeholder="Enter receipt number..." maxlength="100"
                        style="letter-spacing:1px;font-size:15px;" />
                 <div id="knetModalStatus" class="small mt-2" style="min-height:18px;"></div>
                 <div id="knetModalError" class="text-danger small mt-1" style="display:none;"></div>
@@ -297,12 +297,12 @@
     <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
         <div class="modal-content border-0 shadow">
             <div class="modal-header border-0 pb-0">
-                <h6 class="modal-title fw-bold"><i class="fas fa-pen me-2 text-warning"></i>ملاحظات الفاتورة</h6>
+                <h6 class="modal-title fw-bold"><i class="fas fa-pen me-2 text-warning"></i>Invoice Notes</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <textarea id="notesModalText" class="form-control" rows="4"
-                          placeholder="اكتب الملاحظات هنا..."
+                          placeholder="Write notes here..."
                           style="resize:none;font-size:14px;"></textarea>
                 <div id="notesModalError" class="text-danger small mt-2" style="display:none;"></div>
             </div>
@@ -333,13 +333,13 @@
                 </p>
                 <div class="mb-4 text-start">
                     <label class="form-label text-white fw-semibold mb-1" style="font-size:14px;">
-                        <i class="fas fa-pen me-1"></i> سبب الإلغاء <span class="text-warning">*</span>
+                        <i class="fas fa-pen me-1"></i> Cancellation Reason <span class="text-warning">*</span>
                     </label>
                     <textarea id="deleteReason" rows="3" class="form-control"
-                              placeholder="اكتب سبب إلغاء الفاتورة..."
+                              placeholder="Enter invoice cancellation reason..."
                               style="border-radius:8px;resize:none;font-size:13px;"></textarea>
                     <div id="deleteReasonError" class="text-warning small mt-1" style="display:none;">
-                        <i class="fas fa-exclamation-circle me-1"></i> يرجى كتابة سبب الإلغاء
+                        <i class="fas fa-exclamation-circle me-1"></i> Please enter a cancellation reason
                     </div>
                 </div>
                 <div class="d-flex justify-content-center gap-3">
@@ -400,8 +400,8 @@
                     .then(function(r) { return r.json(); })
                     .then(function(d) {
                         st.innerHTML = d.duplicate
-                            ? '<i class="fas fa-times-circle text-danger me-1"></i><span class="text-danger">مستخدم مسبقاً</span>'
-                            : '<i class="fas fa-check-circle text-success me-1"></i><span class="text-success">متاح</span>';
+                            ? '<i class="fas fa-times-circle text-danger me-1"></i><span class="text-danger">Already Used</span>'
+                            : '<i class="fas fa-check-circle text-success me-1"></i><span class="text-success">Available</span>';
                     }).catch(function() { st.innerHTML = ''; });
             }, 500);
         });
@@ -411,7 +411,7 @@
             var errEl = document.getElementById('knetModalError');
             errEl.style.display = 'none';
             if (receipt && statusHtml.indexOf('fa-times-circle') !== -1) {
-                errEl.textContent = 'رقم الإيصال مستخدم مسبقاً، يرجى إدخال رقم آخر';
+                errEl.textContent = 'Receipt number already used, please enter a different number';
                 errEl.style.display = 'block';
                 return;
             }
@@ -427,11 +427,11 @@
                     if (_knetModalInstance) _knetModalInstance.hide();
                     location.reload();
                 } else {
-                    errEl.textContent = data.message || 'حدث خطأ';
+                    errEl.textContent = data.message || 'An error occurred';
                     errEl.style.display = 'block';
                 }
             })
-            .catch(function() { errEl.textContent = 'تعذّر الاتصال بالخادم'; errEl.style.display = 'block'; });
+            .catch(function() { errEl.textContent = 'Could not connect to server'; errEl.style.display = 'block'; });
         }
 
         var _notesSaleId = null;
@@ -460,11 +460,11 @@
                     document.getElementById('notes-text-' + _notesSaleId).textContent = data.notes;
                     if (_notesModalInstance) _notesModalInstance.hide();
                 } else {
-                    errEl.textContent = data.message || 'حدث خطأ';
+                    errEl.textContent = data.message || 'An error occurred';
                     errEl.style.display = 'block';
                 }
             })
-            .catch(function() { errEl.textContent = 'تعذّر الاتصال بالخادم'; errEl.style.display = 'block'; });
+            .catch(function() { errEl.textContent = 'Could not connect to server'; errEl.style.display = 'block'; });
         }
     </script>
 }
