@@ -240,11 +240,13 @@
                                 </div>
                             </td>
                             <td>
-                                <a href="@Url.Action("Details", new { id = s.Id })" class="btn btn-sm btn-outline-primary me-1">
+                                <a href="@Url.Action("Details", new { id = s.Id })" class="btn btn-sm btn-outline-primary me-1 d-inline-flex flex-column align-items-center" style="min-width:52px;">
                                     <i class="fas fa-eye"></i>
+                                    <span style="font-size:0.65rem;line-height:1.2;margin-top:2px;">عرض</span>
                                 </a>
-                                <a href="@Url.Action("PrintInvoice", new { id = s.Id })" class="btn btn-sm btn-outline-dark me-1" title="طباعة الفاتورة" target="_blank">
+                                <a href="@Url.Action("PrintInvoice", new { id = s.Id })" class="btn btn-sm btn-outline-dark me-1 d-inline-flex flex-column align-items-center" style="min-width:52px;" title="طباعة الفاتورة" target="_blank">
                                     <i class="fas fa-print"></i>
+                                    <span style="font-size:0.65rem;line-height:1.2;margin-top:2px;">طباعة</span>
                                 </a>
                                 @{
                                     bool canDelThis = s.SaleType == "مساج" ? canDelMassage
@@ -253,9 +255,10 @@
                                 }
                                 @if (s.Status != "ملغي" && canDelThis)
                                 {
-                                    <button type="button" class="btn btn-sm btn-outline-danger" title="إلغاء الفاتورة"
+                                    <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex flex-column align-items-center" style="min-width:52px;" title="إلغاء الفاتورة"
                                             onclick="confirmDelete(@s.Id, '@Html.Raw(s.InvoiceNumber.Replace("'", "\\'"))')">
                                         <i class="fas fa-ban"></i>
+                                        <span style="font-size:0.65rem;line-height:1.2;margin-top:2px;">إلغاء</span>
                                     </button>
                                 }
                             </td>
