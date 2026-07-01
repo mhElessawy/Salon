@@ -1003,6 +1003,56 @@
                     <div class="panel-section-title"><span data-i18n-en="Notes">ملاحظات</span></div>
                     <textarea name="Notes" class="form-control form-control-sm" rows="2" placeholder="ملاحظات إضافية..." data-placeholder-ar="ملاحظات إضافية..." data-placeholder-en="Additional notes..."></textarea>
 
+                    <!-- Reminders -->
+                    <hr class="section-divider" style="margin:10px 0;" />
+                    <div class="panel-section-title"><span data-i18n-en="Reminders">تنبيهات الموعد</span></div>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+                        <label class="reminder-chip" title="قبل يوم كامل">
+                            <input type="checkbox" name="reminderMinutes" value="1440" class="reminder-cb" />
+                            <span>🔔 قبل يوم</span>
+                        </label>
+                        <label class="reminder-chip" title="قبل ساعتين">
+                            <input type="checkbox" name="reminderMinutes" value="120" class="reminder-cb" />
+                            <span>🔔 قبل ساعتين</span>
+                        </label>
+                        <label class="reminder-chip" title="قبل خمس دقائق">
+                            <input type="checkbox" name="reminderMinutes" value="5" class="reminder-cb" />
+                            <span>🔔 قبل 5 دق</span>
+                        </label>
+                        <label class="reminder-chip" id="customReminderChip" title="تنبيه مخصص">
+                            <input type="checkbox" id="enableCustomReminder" class="reminder-cb" />
+                            <span>⚙️ مخصص</span>
+                        </label>
+                    </div>
+                    <div id="customReminderRow" style="display:none;align-items:center;gap:6px;margin-top:4px;">
+                        <input type="number" id="customReminderMinutes" min="1" max="10080" placeholder="عدد الدقائق"
+                               style="width:130px;border:1px solid #dee2e6;border-radius:8px;padding:4px 8px;font-size:13px;" />
+                        <span style="font-size:12px;color:#777;">دقيقة قبل الموعد</span>
+                        <input type="hidden" name="reminderMinutes" id="hiddenCustomReminder" disabled />
+                    </div>
+                    <style>
+                        .reminder-chip { display:inline-flex;align-items:center;gap:5px;cursor:pointer;
+                            border:1.5px solid #dee2e6;border-radius:20px;padding:4px 12px;font-size:12px;
+                            font-weight:600;color:#555;background:#f8f9fa;transition:all .15s;user-select:none; }
+                        .reminder-chip:has(.reminder-cb:checked) { border-color:#F7941D;background:#fff3e0;color:#d96a00; }
+                    </style>
+                    <script>
+                        document.getElementById('enableCustomReminder').addEventListener('change', function() {
+                            var row = document.getElementById('customReminderRow');
+                            var hidden = document.getElementById('hiddenCustomReminder');
+                            if (this.checked) {
+                                row.style.display = 'flex';
+                                hidden.disabled = false;
+                            } else {
+                                row.style.display = 'none';
+                                hidden.disabled = true;
+                            }
+                        });
+                        document.getElementById('customReminderMinutes').addEventListener('input', function() {
+                            document.getElementById('hiddenCustomReminder').value = this.value;
+                        });
+                    </script>
+
                 </div><!-- /details-body -->
 
                 <div class="details-footer">

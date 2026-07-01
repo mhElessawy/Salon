@@ -75,7 +75,7 @@ namespace Salon.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Appointment model, int[]? serviceIds, string? companionNames)
+        public async Task<IActionResult> Create(Appointment model, int[]? serviceIds, string? companionNames, int[]? reminderMinutes)
         {
             // Remove navigation properties from validation
             ModelState.Remove("Customer");
@@ -141,7 +141,23 @@ namespace Salon.Controllers
                     await _context.SaveChangesAsync();
                 }
 
-                await _context.SaveChangesAsync();
+                // Save appointment reminders
+                if (reminderMinutes != null && reminderMinutes.Length > 0)
+                {
+                    foreach (var minutes in reminderMinutes.Distinct())
+                    {
+                        if (minutes > 0 && model.AppointmentDate.AddMinutes(-minutes) > DateTime.Now)
+                        {
+                            _context.AppointmentReminders.Add(new AppointmentReminder
+                            {
+                                AppointmentId = model.Id,
+                                MinutesBefore = minutes
+                            });
+                        }
+                    }
+                    await _context.SaveChangesAsync();
+                }
+
                 await _audit.LogAsync("Add", "Appointments", $"New appointment on {model.AppointmentDate:yyyy/MM/dd HH:mm}", model.Id);
                 TempData["Success"] = "تم إضافة الموعد بنجاح";
                 return RedirectToAction(nameof(Index));
