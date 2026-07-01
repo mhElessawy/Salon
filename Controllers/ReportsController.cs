@@ -1228,7 +1228,11 @@ namespace Salon.Controllers
                 decimal netForShop = totalRevenue - effectiveComm;
 
                 var services = empSales
-                    .SelectMany(s => s.SaleItems)
+                    .SelectMany(s =>
+                    {
+                        decimal ratio = s.TotalAmount > 0 ? s.NetAmount / s.TotalAmount : 1;
+                        return s.SaleItems.Select(si => new { si.ItemName, si.Quantity, Total = si.Total * ratio });
+                    })
                     .GroupBy(si => si.ItemName)
                     .Select(g => new EmployeeServiceItem
                     {
