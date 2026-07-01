@@ -1137,7 +1137,7 @@ namespace Salon.Controllers
             return View(dailyRows);
         }
 
-        public async Task<IActionResult> EmployeeRevenue(string? from, string? to, string? saleType)
+        public async Task<IActionResult> EmployeeRevenue(string? from, string? to, string? saleType, int? employeeId, string? invoiceNumber, string? cardNumber)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
@@ -1153,13 +1153,19 @@ namespace Salon.Controllers
             if (userDept == "مساج") salesQuery = salesQuery.Where(s => s.SaleType == "مساج");
             else if (userDept == "حلاقة") salesQuery = salesQuery.Where(s => s.SaleType == "حلاقة");
             if (!string.IsNullOrEmpty(saleType)) salesQuery = salesQuery.Where(s => s.SaleType == saleType);
+            if (!string.IsNullOrEmpty(invoiceNumber)) salesQuery = salesQuery.Where(s => s.InvoiceNumber.Contains(invoiceNumber));
+            if (!string.IsNullOrEmpty(cardNumber)) salesQuery = salesQuery.Where(s => s.KnetReceiptNumber != null && s.KnetReceiptNumber.Contains(cardNumber));
 
             var allSales = await salesQuery.ToListAsync();
 
             var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
             if (deptFilter == "مساج") empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "مساج");
             else if (deptFilter == "حلاقة") empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "حلاقة");
-            var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+            var dropdownEmployees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+
+            var employees = employeeId.HasValue
+                ? dropdownEmployees.Where(e => e.Id == employeeId.Value).ToList()
+                : dropdownEmployees;
 
             var advancesByEmp = (await _context.EmployeeAdvances
                 .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo
@@ -1251,6 +1257,11 @@ namespace Salon.Controllers
             ViewBag.UserDept = userDept;
             ViewBag.IsDeptUser = isDeptUser;
             ViewBag.ReportNumber = "EMP-" + dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.ReportDateTime = DateTime.Now;
+            ViewBag.Employees = dropdownEmployees;
+            ViewBag.SelectedEmployeeId = employeeId;
+            ViewBag.InvoiceNumber = invoiceNumber;
+            ViewBag.CardNumber = cardNumber;
 
             return View(rows);
         }
