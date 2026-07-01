@@ -164,6 +164,7 @@
                         <th><span data-i18n-en="Employee">الموظف</span></th>
                         <th><span data-i18n-en="Date">التاريخ</span></th>
                         <th><span data-i18n-en="Net">الصافي</span></th>
+                        <th><span data-i18n-en="Gift">هدية للموظف</span></th>
                         <th><span data-i18n-en="Payment">الدفع</span></th>
                         <th><span data-i18n-en="Status">الحالة</span></th>
                         <th><span data-i18n-en="Notes">ملاحظات</span></th>
@@ -173,7 +174,7 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="10" class="text-center text-muted py-4">لا توجد فواتير في هذا اليوم</td></tr>
+                        <tr><td colspan="11" class="text-center text-muted py-4">لا توجد فواتير في هذا اليوم</td></tr>
                     }
                     @foreach (var s in Model)
                     {
@@ -200,6 +201,16 @@
                                 <div class="text-muted small">@s.SaleDate.ToString("hh:mm tt")</div>
                             </td>
                             <td><strong>@s.NetAmount.ToString("N3") د.ك</strong></td>
+                            <td>
+                                @if (s.GiftForEmployee.HasValue && s.GiftForEmployee > 0)
+                                {
+                                    <span class="badge" style="background:#c0392b;"><i class="fas fa-gift me-1"></i>@s.GiftForEmployee.Value.ToString("N3") د.ك</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
                             <td>
                                 @if (s.PaymentMethod == "كي نت و كاش")
                                 {
