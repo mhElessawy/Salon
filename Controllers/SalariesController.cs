@@ -194,6 +194,7 @@ namespace Salon.Controllers
                 .Where(s => s.EmployeeId == employeeId
                          && s.SaleDate >= rangeStart
                          && s.SaleDate < rangeEnd
+                         && s.Status != "ملغي"
                          && s.EmployeeGift != null && s.EmployeeGift > 0)
                 .Select(s => s.EmployeeGift!.Value)
                 .SumAsync();
@@ -202,6 +203,7 @@ namespace Salon.Controllers
                 .Where(s => s.EmployeeId == employeeId
                          && s.SaleDate >= rangeStart
                          && s.SaleDate < rangeEnd
+                         && s.Status != "ملغي"
                          && s.GiftForEmployee != null && s.GiftForEmployee > 0)
                 .SumAsync(s => s.GiftForEmployee!.Value);
 
