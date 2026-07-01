@@ -1148,6 +1148,7 @@ namespace Salon.Controllers
 
             var salesQuery = _context.Sales
                 .Include(s => s.Employee)
+                .Include(s => s.SaleItems)
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
 
             if (userDept == "مساج") salesQuery = salesQuery.Where(s => s.SaleType == "مساج");
@@ -1226,10 +1227,35 @@ namespace Salon.Controllers
                 decimal netForEmployee = emp.BasicSalary + effectiveComm + gifts - advances - deductions - employeeDebt;
                 decimal netForShop = totalRevenue - effectiveComm;
 
+                var services = empSales
+                    .SelectMany(s => s.SaleItems)
+                    .GroupBy(si => si.ItemName)
+                    .Select(g => new EmployeeServiceItem
+                    {
+                        ItemName = g.Key,
+                        Quantity = g.Sum(si => si.Quantity),
+                        UnitPrice = g.Sum(si => si.Quantity) > 0 ? g.Sum(si => si.Total) / g.Sum(si => si.Quantity) : 0,
+                        Total = g.Sum(si => si.Total)
+                    })
+                    .OrderByDescending(si => si.Total)
+                    .ToList();
+
+                var invoices = empSales
+                    .OrderByDescending(s => s.SaleDate)
+                    .Select(s => new EmployeeInvoiceItem
+                    {
+                        InvoiceNumber = s.InvoiceNumber,
+                        SaleType = s.SaleType,
+                        SaleDate = s.SaleDate,
+                        Amount = s.NetAmount
+                    })
+                    .ToList();
+
                 return new EmployeeRevenueRow
                 {
                     EmployeeId = emp.Id,
                     EmployeeName = emp.FullName,
+                    DepartmentName = emp.DepartmentNav?.Name,
                     TotalRevenue = totalRevenue,
                     Cash = cash,
                     Knet = knet,
@@ -1246,7 +1272,9 @@ namespace Salon.Controllers
                     Deductions = deductions,
                     NetForEmployee = netForEmployee,
                     NetForShop = netForShop,
-                    Count = empSales.Count
+                    Count = empSales.Count,
+                    Services = services,
+                    Invoices = invoices
                 };
             }).ToList();
 
