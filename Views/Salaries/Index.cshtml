@@ -121,9 +121,9 @@
                                 {
                                     <span class="badge bg-info text-dark"><i class="fas fa-credit-card me-1"></i>كي نت</span>
                                 }
-                                else if (s.PaymentMethod == "تحويل بنكي")
+                                else if (s.PaymentMethod != null && s.PaymentMethod.Contains("تحويل بنكي"))
                                 {
-                                    <span class="badge bg-primary"><i class="fas fa-university me-1"></i>تحويل بنكي</span>
+                                    <span class="badge bg-primary"><i class="fas fa-university me-1"></i>@s.PaymentMethod</span>
                                 }
                                 else
                                 {
