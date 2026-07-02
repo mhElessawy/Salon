@@ -9,7 +9,7 @@
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
         <h1><i class="fas fa-dollar-sign me-2"></i>المصروفات</h1>
-        <p>إجمالي اليوم: <strong>@ViewBag.Total?.ToString("N3") د.ك</strong></p>
+        <p>إجمالي الفترة: <strong>@ViewBag.Total?.ToString("N3") د.ك</strong></p>
     </div>
     <a href="@Url.Action("Create")" class="btn btn-primary">
         <i class="fas fa-plus me-1"></i> إضافة مصروف
@@ -18,9 +18,11 @@
 
 <div class="card mb-3">
     <div class="card-body">
-        <form method="get" class="d-flex gap-2 align-items-center">
-            <label class="form-label mb-0">التاريخ:</label>
-            <input type="date" name="date" value="@ViewBag.FilterDate" class="form-control" style="max-width:200px;" />
+        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+            <label class="form-label mb-0">من تاريخ:</label>
+            <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:200px;" />
+            <label class="form-label mb-0">إلى تاريخ:</label>
+            <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:200px;" />
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
         </form>
     </div>
@@ -48,7 +50,7 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="@(string.IsNullOrEmpty(userDept) ? 8 : 7)" class="text-center text-muted py-4">لا توجد مصروفات في هذا اليوم</td></tr>
+                        <tr><td colspan="@(string.IsNullOrEmpty(userDept) ? 8 : 7)" class="text-center text-muted py-4">لا توجد مصروفات في هذه الفترة</td></tr>
                     }
                     @foreach (var e in Model)
                     {

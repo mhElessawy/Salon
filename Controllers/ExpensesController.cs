@@ -22,16 +22,17 @@ namespace Salon.Controllers
             _audit = audit;
         }
 
-        public async Task<IActionResult> Index(string? date)
+        public async Task<IActionResult> Index(string? from, string? to)
         {
-            DateTime filterDate = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
-            var nextDay = filterDate.AddDays(1);
+            DateTime dateFrom = string.IsNullOrEmpty(from) ? DateTime.Today : DateTime.Parse(from);
+            DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today : DateTime.Parse(to);
+            var rangeEnd = dateTo.AddDays(1);
 
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
 
             var query = _context.Expenses
-                .Where(e => e.ExpenseDate >= filterDate && e.ExpenseDate < nextDay);
+                .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < rangeEnd);
 
             // فلترة حسب قسم المستخدم
             if (userDept == "حلاقة")
@@ -44,7 +45,8 @@ namespace Salon.Controllers
                 .OrderByDescending(e => e.CreatedAt)
                 .ToListAsync();
 
-            ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.ToString("yyyy-MM-dd");
             ViewBag.Total = expenses.Sum(e => e.Amount);
             ViewBag.UserDept = userDept;
             return View(expenses);
