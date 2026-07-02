@@ -252,7 +252,10 @@ namespace Salon.Controllers
                 model.NetSalary = model.BasicSalary + model.CommissionAmount + model.Allowances + (model.GiftAmount ?? 0) + (model.HadiyaAmount ?? 0) - model.Deductions - model.AdvanceDeducted - model.EmployeeDebtDeducted;
                 model.CreatedAt = DateTime.Now;
                 if (model.PaidDate.HasValue)
+                {
                     model.Status = "مصروف";
+                    await ReconcileAdvancesAsync(model.EmployeeId, model.AdvanceDeducted);
+                }
                 _context.Salaries.Add(model);
                 await _context.SaveChangesAsync();
 
@@ -281,33 +284,7 @@ namespace Salon.Controllers
                 salary.Status = "مصروف";
                 salary.PaidDate = DateTime.Today;
 
-                if (salary.AdvanceDeducted > 0)
-                {
-                    var advances = await _context.EmployeeAdvances
-                        .Where(a => a.EmployeeId == salary.EmployeeId && a.Status == "موافق عليها" && a.PaidDate == null)
-                        .OrderBy(a => a.AdvanceDate)
-                        .ToListAsync();
-
-                    decimal remaining = salary.AdvanceDeducted;
-                    foreach (var advance in advances)
-                    {
-                        if (remaining <= 0) break;
-
-                        decimal advanceRemaining = advance.Amount - advance.DeductedAmount;
-                        if (advanceRemaining <= remaining)
-                        {
-                            remaining -= advanceRemaining;
-                            advance.DeductedAmount = advance.Amount;
-                            advance.PaidDate = DateTime.Today;
-                            advance.Status = "مسددة";
-                        }
-                        else
-                        {
-                            advance.DeductedAmount += remaining;
-                            remaining = 0;
-                        }
-                    }
-                }
+                await ReconcileAdvancesAsync(salary.EmployeeId, salary.AdvanceDeducted);
 
                 await _context.SaveChangesAsync();
 
@@ -318,6 +295,36 @@ namespace Salon.Controllers
                 TempData["Success"] = "Salary paid created successfully";
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        private async Task ReconcileAdvancesAsync(int employeeId, decimal advanceDeducted)
+        {
+            if (advanceDeducted <= 0) return;
+
+            var advances = await _context.EmployeeAdvances
+                .Where(a => a.EmployeeId == employeeId && a.Status == "موافق عليها" && a.PaidDate == null)
+                .OrderBy(a => a.AdvanceDate)
+                .ToListAsync();
+
+            decimal remaining = advanceDeducted;
+            foreach (var advance in advances)
+            {
+                if (remaining <= 0) break;
+
+                decimal advanceRemaining = advance.Amount - advance.DeductedAmount;
+                if (advanceRemaining <= remaining)
+                {
+                    remaining -= advanceRemaining;
+                    advance.DeductedAmount = advance.Amount;
+                    advance.PaidDate = DateTime.Today;
+                    advance.Status = "مسددة";
+                }
+                else
+                {
+                    advance.DeductedAmount += remaining;
+                    remaining = 0;
+                }
+            }
         }
 
         [HttpPost, ValidateAntiForgeryToken]
