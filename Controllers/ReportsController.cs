@@ -1179,9 +1179,30 @@ namespace Salon.Controllers
                 else if (effectiveDept == "حلاقة") salQ = salQ.Where(s => s.Employee!.DepartmentNav!.Name == "حلاقة");
                 var periodSalaries = await salQ.ToListAsync();
                 decimal pSalaries = periodSalaries.Sum(s => s.NetSalary);
-                // عمولات الموظفين تُحسب من العمولة + الراتب الأساسي (حق الموظف الفعلي مقابل عمله)
-                decimal pCommissions = periodSalaries.Sum(s => s.CommissionAmount + s.BasicSalary);
                 decimal pCashSalaries = periodSalaries.Where(s => s.PaymentMethod == "نقدي" || s.PaymentMethod == "كاش").Sum(s => s.NetSalary);
+
+                // عمولات الموظفين تُحسب مباشرة من نسبة عمولة كل موظف على مبيعاته (مع مراعاة التارجت) + راتبه الأساسي،
+                // لكل الموظفين النشطين في القسم - بغض النظر عن وجود سجل راتب مصروف لهذه الفترة أم لا
+                var empQ = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+                if (effectiveDept == "مساج") empQ = empQ.Where(e => e.DepartmentNav!.Name == "مساج");
+                else if (effectiveDept == "حلاقة") empQ = empQ.Where(e => e.DepartmentNav!.Name == "حلاقة");
+                var periodEmployees = await empQ.ToListAsync();
+
+                var empRevenue = periodSales
+                    .Where(s => s.EmployeeId.HasValue)
+                    .GroupBy(s => s.EmployeeId!.Value)
+                    .ToDictionary(g => g.Key, g => g.Sum(s => s.NetAmount));
+
+                decimal pCommissions = periodEmployees.Sum(emp =>
+                {
+                    decimal revenue = empRevenue.TryGetValue(emp.Id, out var r) ? r : 0;
+                    decimal target = emp.SalesTarget ?? 0;
+                    decimal commAfterRate = emp.CommissionAfterTarget ?? 0;
+                    decimal effectiveComm = (target > 0 && revenue >= target && commAfterRate > 0)
+                        ? revenue * commAfterRate / 100
+                        : revenue * emp.Commission / 100;
+                    return emp.BasicSalary + effectiveComm;
+                });
 
                 var depQ = _context.Deposits.Where(d => d.DepositDate >= periodFrom && d.DepositDate < periodTo);
                 if (effectiveDept == "مساج") depQ = depQ.Where(d => d.Department == "مساج");
