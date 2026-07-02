@@ -15,6 +15,7 @@
     decimal totalExpenses = (decimal)ViewBag.TotalExpenses;
     decimal totalSalaries = (decimal)ViewBag.TotalSalaries;
     decimal totalCommissions = (decimal)ViewBag.TotalCommissions;
+    decimal totalBasicSalaries = (decimal)ViewBag.TotalBasicSalaries;
     decimal totalCosts = (decimal)ViewBag.TotalCosts;
     decimal netProfit = (decimal)ViewBag.NetProfit;
     decimal profitCashPortion = (decimal)ViewBag.ProfitCashPortion;
@@ -23,6 +24,7 @@
 
     decimal salariesPct = totalSales > 0 ? Math.Round(totalSalaries / totalSales * 100, 1) : 0;
     decimal commissionsPct = totalSales > 0 ? Math.Round(totalCommissions / totalSales * 100, 1) : 0;
+    decimal basicSalariesPct = totalSales > 0 ? Math.Round(totalBasicSalaries / totalSales * 100, 1) : 0;
     decimal expensesPct = totalSales > 0 ? Math.Round(totalExpenses / totalSales * 100, 1) : 0;
     decimal netProfitPct = totalSales > 0 ? Math.Round(netProfit / totalSales * 100, 1) : 0;
     decimal cashSalesPct = totalSales > 0 ? Math.Round(cashSales / totalSales * 100, 1) : 0;
@@ -170,7 +172,14 @@
             <div class="pl-stat-label">عمولات الموظفين <span class="text-muted" style="font-weight:400;">(متوقعة)</span></div>
             <div class="pl-stat-value" style="color:#ea580c;">@totalCommissions.ToString("N3")</div>
             <div class="pl-stat-sub">د.ك &middot; @commissionsPct% من المبيعات</div>
-            <div class="pl-stat-sub">= العمولة الفعلية على المبيعات + الراتب الأساسي لكل موظف نشط</div>
+        </div>
+    </div>
+    <div class="pl-stat" style="border-top-color:#0891b2;">
+        <div class="pl-stat-icon" style="background:#cffafe;color:#0891b2;"><i class="fas fa-money-check-dollar"></i></div>
+        <div>
+            <div class="pl-stat-label">مرتبات الموظفين <span class="text-muted" style="font-weight:400;">(الأساسية)</span></div>
+            <div class="pl-stat-value" style="color:#0891b2;">@totalBasicSalaries.ToString("N3")</div>
+            <div class="pl-stat-sub">د.ك &middot; @basicSalariesPct% من المبيعات</div>
         </div>
     </div>
     <div class="pl-stat" style="border-top-color:#dc2626;">
@@ -234,9 +243,9 @@
                     <i class="fas fa-circle-info me-1"></i>
                     صافي الربح = إجمالي المبيعات − (رواتب وعمولات الموظفين المصروفة فعلياً) − (المصروفات التشغيلية).
                     <br />
-                    ملاحظة: بطاقة "عمولات الموظفين" أعلى الصفحة محسوبة مباشرة من نسبة عمولة كل موظف على مبيعاته + راتبه الأساسي
-                    (بغض النظر عن صرف الراتب رسمياً بعد أم لا)، لذلك قد تختلف عن "رواتب وعمولات الموظفين" هنا إذا لم تُصرف/تُسجَّل
-                    رواتب بعض الموظفين لهذه الفترة بعد.
+                    ملاحظة: بطاقتا "عمولات الموظفين" و"مرتبات الموظفين" أعلى الصفحة محسوبتان مباشرة من نسبة عمولة كل موظف على
+                    مبيعاته وراتبه الأساسي المسجل (بغض النظر عن صرف الراتب رسمياً بعد أم لا)، لذلك قد يختلف مجموعهما عن
+                    "رواتب وعمولات الموظفين" هنا إذا لم تُصرف/تُسجَّل رواتب بعض الموظفين لهذه الفترة بعد.
                 </div>
             </div>
         </div>
@@ -354,6 +363,7 @@
                 <ul class="pl-note-list">
                     <li class="d-flex justify-content-between"><span>نسبة الرواتب والعمولات من المبيعات</span><strong>@salariesPct%</strong></li>
                     <li class="d-flex justify-content-between"><span>نسبة عمولات الموظفين من المبيعات</span><strong>@commissionsPct%</strong></li>
+                    <li class="d-flex justify-content-between"><span>نسبة مرتبات الموظفين الأساسية من المبيعات</span><strong>@basicSalariesPct%</strong></li>
                     <li class="d-flex justify-content-between"><span>نسبة المصروفات التشغيلية من المبيعات</span><strong>@expensesPct%</strong></li>
                     <li class="d-flex justify-content-between"><span>نسبة صافي الربح من المبيعات</span><strong>@netProfitPct%</strong></li>
                     <li class="d-flex justify-content-between"><span>إجمالي المبيعات</span><strong>@totalSales.ToString("N3") د.ك</strong></li>

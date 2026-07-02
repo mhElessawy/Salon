@@ -1152,7 +1152,7 @@ namespace Salon.Controllers
             string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
 
             async Task<(decimal sales, decimal cashSales, decimal knetSales, decimal expenses, decimal cashExpenses,
-                decimal salaries, decimal commissions, decimal cashSalaries, decimal deposits, decimal withdrawals, decimal cashAdvances)>
+                decimal salaries, decimal commissions, decimal basicSalaries, decimal cashSalaries, decimal deposits, decimal withdrawals, decimal cashAdvances)>
                 LoadPeriodAsync(DateTime periodFrom, DateTime periodTo)
             {
                 var salesQ = _context.Sales.Where(s => s.SaleDate >= periodFrom && s.SaleDate < periodTo && s.Status != "ملغي");
@@ -1181,8 +1181,8 @@ namespace Salon.Controllers
                 decimal pSalaries = periodSalaries.Sum(s => s.NetSalary);
                 decimal pCashSalaries = periodSalaries.Where(s => s.PaymentMethod == "نقدي" || s.PaymentMethod == "كاش").Sum(s => s.NetSalary);
 
-                // عمولات الموظفين تُحسب مباشرة من نسبة عمولة كل موظف على مبيعاته (مع مراعاة التارجت) + راتبه الأساسي،
-                // لكل الموظفين النشطين في القسم - بغض النظر عن وجود سجل راتب مصروف لهذه الفترة أم لا
+                // عمولات الموظفين والرواتب الأساسية تُحسب مباشرة من بيانات كل موظف نشط في القسم (نسبة العمولة على مبيعاته
+                // مع مراعاة التارجت + راتبه الأساسي المسجل) - بغض النظر عن وجود سجل راتب مصروف لهذه الفترة أم لا
                 var empQ = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
                 if (effectiveDept == "مساج") empQ = empQ.Where(e => e.DepartmentNav!.Name == "مساج");
                 else if (effectiveDept == "حلاقة") empQ = empQ.Where(e => e.DepartmentNav!.Name == "حلاقة");
@@ -1198,11 +1198,11 @@ namespace Salon.Controllers
                     decimal revenue = empRevenue.TryGetValue(emp.Id, out var r) ? r : 0;
                     decimal target = emp.SalesTarget ?? 0;
                     decimal commAfterRate = emp.CommissionAfterTarget ?? 0;
-                    decimal effectiveComm = (target > 0 && revenue >= target && commAfterRate > 0)
+                    return (target > 0 && revenue >= target && commAfterRate > 0)
                         ? revenue * commAfterRate / 100
                         : revenue * emp.Commission / 100;
-                    return emp.BasicSalary + effectiveComm;
                 });
+                decimal pBasicSalaries = periodEmployees.Sum(emp => emp.BasicSalary);
 
                 var depQ = _context.Deposits.Where(d => d.DepositDate >= periodFrom && d.DepositDate < periodTo);
                 if (effectiveDept == "مساج") depQ = depQ.Where(d => d.Department == "مساج");
@@ -1222,7 +1222,7 @@ namespace Salon.Controllers
                 else if (effectiveDept == "حلاقة") advQ = advQ.Where(a => a.Employee!.DepartmentNav!.Name == "حلاقة");
                 decimal pCashAdvances = await advQ.SumAsync(a => a.Amount);
 
-                return (pSales, pCashSales, pKnetSales, pExpenses, pCashExpenses, pSalaries, pCommissions, pCashSalaries, pDeposits, pWithdrawals, pCashAdvances);
+                return (pSales, pCashSales, pKnetSales, pExpenses, pCashExpenses, pSalaries, pCommissions, pBasicSalaries, pCashSalaries, pDeposits, pWithdrawals, pCashAdvances);
             }
 
             var current = await LoadPeriodAsync(dateFrom, dateTo);
@@ -1269,6 +1269,7 @@ namespace Salon.Controllers
             ViewBag.TotalExpenses = current.expenses;
             ViewBag.TotalSalaries = current.salaries;
             ViewBag.TotalCommissions = current.commissions;
+            ViewBag.TotalBasicSalaries = current.basicSalaries;
             ViewBag.TotalCosts = totalCosts;
             ViewBag.NetProfit = netProfit;
             ViewBag.ProfitCashPortion = profitCashPortion;
