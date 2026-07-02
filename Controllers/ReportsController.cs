@@ -1137,10 +1137,12 @@ namespace Salon.Controllers
             return View(dailyRows);
         }
 
-        public async Task<IActionResult> ProfitLoss(string? from, string? to, string? dept)
+        public async Task<IActionResult> ProfitLoss(int? month, int? year, string? dept)
         {
-            DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
-            DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
+            int selectedYear = year ?? DateTime.Today.Year;
+            int selectedMonth = month is >= 1 and <= 12 ? month.Value : DateTime.Today.Month;
+            DateTime dateFrom = new DateTime(selectedYear, selectedMonth, 1);
+            DateTime dateTo = dateFrom.AddMonths(1);
 
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
@@ -1260,6 +1262,9 @@ namespace Salon.Controllers
 
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
+            ViewBag.Month = selectedMonth;
+            ViewBag.Year = selectedYear;
+            ViewBag.Years = Enumerable.Range(DateTime.Today.Year - 3, 5).Reverse().ToList();
             ViewBag.UserDept = userDept;
             ViewBag.IsDeptUser = isDeptUser;
             ViewBag.SelectedDept = effectiveDept;
