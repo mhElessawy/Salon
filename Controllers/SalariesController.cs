@@ -307,6 +307,8 @@ namespace Salon.Controllers
                 int month = salary.Month;
                 int year = salary.Year;
 
+                await AdvanceReconciliationHelper.UnreconcileAsync(_context, salary.EmployeeId, salary.AdvanceDeducted);
+
                 _context.Salaries.Remove(salary);
                 await _context.SaveChangesAsync();
 
