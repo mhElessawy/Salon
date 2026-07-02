@@ -158,18 +158,10 @@
             <div class="pl-stat-sub">د.ك &middot; 100%</div>
         </div>
     </div>
-    <div class="pl-stat" style="border-top-color:#d97706;">
-        <div class="pl-stat-icon" style="background:#fef3c7;color:#d97706;"><i class="fas fa-users"></i></div>
-        <div>
-            <div class="pl-stat-label">رواتب وعمولات الموظفين <span class="text-muted" style="font-weight:400;">(مصروفة فعلياً)</span></div>
-            <div class="pl-stat-value" style="color:#d97706;">@totalSalaries.ToString("N3")</div>
-            <div class="pl-stat-sub">د.ك &middot; @salariesPct% من المبيعات</div>
-        </div>
-    </div>
     <div class="pl-stat" style="border-top-color:#ea580c;">
         <div class="pl-stat-icon" style="background:#ffedd5;color:#ea580c;"><i class="fas fa-percent"></i></div>
         <div>
-            <div class="pl-stat-label">عمولات الموظفين <span class="text-muted" style="font-weight:400;">(متوقعة)</span></div>
+            <div class="pl-stat-label">عمولات الموظفين</div>
             <div class="pl-stat-value" style="color:#ea580c;">@totalCommissions.ToString("N3")</div>
             <div class="pl-stat-sub">د.ك &middot; @commissionsPct% من المبيعات</div>
         </div>
@@ -198,6 +190,14 @@
             <div class="pl-stat-sub">د.ك &middot; @netProfitPct% من المبيعات</div>
         </div>
     </div>
+    <div class="pl-stat" style="border-top-color:#94a3b8;">
+        <div class="pl-stat-icon" style="background:#f1f5f9;color:#64748b;"><i class="fas fa-users"></i></div>
+        <div>
+            <div class="pl-stat-label">رواتب مصروفة فعلياً <span class="text-muted" style="font-weight:400;">(للمقارنة)</span></div>
+            <div class="pl-stat-value" style="color:#64748b;">@totalSalaries.ToString("N3")</div>
+            <div class="pl-stat-sub">د.ك &middot; @salariesPct% من المبيعات &middot; لا تدخل في حساب صافي الربح</div>
+        </div>
+    </div>
 </div>
 
 <div class="row g-3 mb-3">
@@ -222,9 +222,14 @@
                                 <td>100%</td>
                             </tr>
                             <tr>
-                                <td style="text-align:right;">رواتب وعمولات الموظفين (المصروفة فعلياً)</td>
-                                <td class="text-danger">(@totalSalaries.ToString("N3"))</td>
-                                <td>@salariesPct%</td>
+                                <td style="text-align:right;">عمولات الموظفين</td>
+                                <td class="text-danger">(@totalCommissions.ToString("N3"))</td>
+                                <td>@commissionsPct%</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align:right;">مرتبات الموظفين (الأساسية)</td>
+                                <td class="text-danger">(@totalBasicSalaries.ToString("N3"))</td>
+                                <td>@basicSalariesPct%</td>
                             </tr>
                             <tr>
                                 <td style="text-align:right;">المصروفات التشغيلية</td>
@@ -241,11 +246,13 @@
                 </div>
                 <div class="p-2 border-top small text-muted">
                     <i class="fas fa-circle-info me-1"></i>
-                    صافي الربح = إجمالي المبيعات − (رواتب وعمولات الموظفين المصروفة فعلياً) − (المصروفات التشغيلية).
+                    صافي الربح = إجمالي المبيعات − (عمولات الموظفين + مرتبات الموظفين الأساسية + المصروفات التشغيلية).
                     <br />
-                    ملاحظة: بطاقتا "عمولات الموظفين" و"مرتبات الموظفين" أعلى الصفحة محسوبتان مباشرة من نسبة عمولة كل موظف على
-                    مبيعاته وراتبه الأساسي المسجل (بغض النظر عن صرف الراتب رسمياً بعد أم لا)، لذلك قد يختلف مجموعهما عن
-                    "رواتب وعمولات الموظفين" هنا إذا لم تُصرف/تُسجَّل رواتب بعض الموظفين لهذه الفترة بعد.
+                    عمولات الموظفين ومرتباتهم الأساسية محسوبتان مباشرة من نسبة عمولة كل موظف على مبيعاته وراتبه الأساسي
+                    المسجل (بغض النظر عن صرف الراتب رسمياً في شاشة الرواتب أم لا).
+                    <br />
+                    <span class="fw-bold">للمقارنة فقط</span> (لا تدخل في حساب صافي الربح): إجمالي الرواتب المصروفة فعلياً
+                    (المسجَّلة في شاشة الرواتب لهذه الفترة) = <strong>@totalSalaries.ToString("N3")</strong> د.ك.
                 </div>
             </div>
         </div>
@@ -361,7 +368,6 @@
             <div class="card-header bg-white fw-bold"><i class="fas fa-gauge-high me-2 text-primary"></i>مؤشرات مالية مهمة</div>
             <div class="card-body">
                 <ul class="pl-note-list">
-                    <li class="d-flex justify-content-between"><span>نسبة الرواتب والعمولات من المبيعات</span><strong>@salariesPct%</strong></li>
                     <li class="d-flex justify-content-between"><span>نسبة عمولات الموظفين من المبيعات</span><strong>@commissionsPct%</strong></li>
                     <li class="d-flex justify-content-between"><span>نسبة مرتبات الموظفين الأساسية من المبيعات</span><strong>@basicSalariesPct%</strong></li>
                     <li class="d-flex justify-content-between"><span>نسبة المصروفات التشغيلية من المبيعات</span><strong>@expensesPct%</strong></li>

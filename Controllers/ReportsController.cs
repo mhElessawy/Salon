@@ -1229,7 +1229,8 @@ namespace Salon.Controllers
 
             var current = await LoadPeriodAsync(dateFrom, dateTo);
 
-            decimal totalCosts = current.expenses + current.salaries;
+            // صافي الربح = إجمالي المبيعات − (عمولات الموظفين + رواتب الموظفين الأساسية + المصروفات التشغيلية)
+            decimal totalCosts = current.commissions + current.basicSalaries + current.expenses;
             decimal netProfit = current.sales - totalCosts;
 
             // الكاش المتوفر فعلياً في الصندوق خلال الفترة (نفس معادلة تقرير "حركة الصندوق")
@@ -1250,7 +1251,7 @@ namespace Salon.Controllers
                 var monthEnd = monthStart.AddMonths(1);
                 var m = await LoadPeriodAsync(monthStart, monthEnd);
                 trendLabels.Add(monthStart.ToString("MM/yyyy"));
-                trendValues.Add(m.sales - m.expenses - m.salaries);
+                trendValues.Add(m.sales - m.commissions - m.basicSalaries - m.expenses);
             }
 
             bool isFullMonth = dateFrom.Day == 1 && dateTo == dateFrom.AddMonths(1);
