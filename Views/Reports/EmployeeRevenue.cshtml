@@ -682,11 +682,15 @@
                             <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
                         </th>
                         <th>
+                            <span data-i18n-en="Employee Rate (by target)">نسبة الموظف<br />(حسب التارجت)</span>
+                        </th>
+                        <th>
                             <span data-i18n-en="Employee Commission">عمولة الموظف</span><br />
                             <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
                         </th>
                         <th>
-                            <span data-i18n-en="Employee Rate (by target)">نسبة الموظف<br />(حسب التارجت)</span>
+                            <span data-i18n-en="Employee Debt">دين مع الموظف</span><br />
+                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
                         </th>
                         <th>
                             <span data-i18n-en="Advances">السلفة</span><br />
@@ -726,7 +730,6 @@
                             <td><strong style="color:#16a34a;">@row.TotalRevenue.ToString("N3")</strong></td>
                             <td style="color:#2563eb;">@row.Cash.ToString("N3")</td>
                             <td style="color:#0284c7;">@row.Knet.ToString("N3")</td>
-                            <td style="color:#d97706;font-weight:700;">@row.TotalCommission.ToString("N3")</td>
                             <td>
                                 @if (achieved)
                                 {
@@ -741,6 +744,8 @@
                                     <span class="rate-badge plain">@row.CommissionRate.ToString("N0")%</span>
                                 }
                             </td>
+                            <td style="color:#d97706;font-weight:700;">@row.TotalCommission.ToString("N3")</td>
+                            <td style="color:#dc2626;">@(row.EmployeeDebt > 0 ? row.EmployeeDebt.ToString("N3") : "-")</td>
                             <td style="color:#7c3aed;">@(row.Advances > 0 ? row.Advances.ToString("N3") : "-")</td>
                             <td style="color:#dc2626;">@(row.Deductions > 0 ? row.Deductions.ToString("N3") : "-")</td>
                             <td style="color:#db2777;">@(row.Gifts > 0 ? row.Gifts.ToString("N3") : "-")</td>
@@ -764,7 +769,7 @@
                     @if (!Model.Any())
                     {
                         <tr>
-                            <td colspan="13" class="text-center py-4 text-muted">
+                            <td colspan="14" class="text-center py-4 text-muted">
                                 <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
                                 <span data-i18n-en="No data for the selected period">لا توجد بيانات للفترة المحددة</span>
                             </td>
@@ -777,8 +782,9 @@
                         <td style="color:#16a34a;">@grandTotal.ToString("N3")</td>
                         <td style="color:#2563eb;">@grandCash.ToString("N3")</td>
                         <td style="color:#0284c7;">@grandKnet.ToString("N3")</td>
-                        <td style="color:#d97706;">@grandCommission.ToString("N3")</td>
                         <td>-</td>
+                        <td style="color:#d97706;">@grandCommission.ToString("N3")</td>
+                        <td style="color:#dc2626;">@(grandEmployeeDebt > 0 ? grandEmployeeDebt.ToString("N3") : "-")</td>
                         <td style="color:#7c3aed;">@(grandAdvances > 0 ? grandAdvances.ToString("N3") : "-")</td>
                         <td style="color:#dc2626;">@(grandDeductions > 0 ? grandDeductions.ToString("N3") : "-")</td>
                         <td style="color:#db2777;">@(grandGifts > 0 ? grandGifts.ToString("N3") : "-")</td>
