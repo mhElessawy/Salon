@@ -1,0 +1,413 @@
+@using System.Globalization
+@{
+    ViewData["Title"] = "تقرير الأرباح والخسائر الشهري";
+    bool isFullMonth = ViewBag.IsFullMonth is bool fm && fm;
+    string? monthLabel = ViewBag.MonthLabel as string;
+    string reportNumber = ViewBag.ReportNumber as string ?? "PL-";
+    DateTime reportDateTime = ViewBag.ReportDateTime is DateTime dt ? dt : DateTime.Now;
+
+    decimal totalSales = (decimal)ViewBag.TotalSales;
+    decimal cashSales = (decimal)ViewBag.CashSales;
+    decimal knetSales = (decimal)ViewBag.KnetSales;
+    decimal totalExpenses = (decimal)ViewBag.TotalExpenses;
+    decimal totalSalaries = (decimal)ViewBag.TotalSalaries;
+    decimal totalCommissions = (decimal)ViewBag.TotalCommissions;
+    decimal totalCosts = (decimal)ViewBag.TotalCosts;
+    decimal netProfit = (decimal)ViewBag.NetProfit;
+    decimal profitCashPortion = (decimal)ViewBag.ProfitCashPortion;
+    decimal profitKnetPortion = (decimal)ViewBag.ProfitKnetPortion;
+    decimal cashInSafe = (decimal)ViewBag.CashInSafe;
+
+    decimal salariesPct = totalSales > 0 ? Math.Round(totalSalaries / totalSales * 100, 1) : 0;
+    decimal expensesPct = totalSales > 0 ? Math.Round(totalExpenses / totalSales * 100, 1) : 0;
+    decimal netProfitPct = totalSales > 0 ? Math.Round(netProfit / totalSales * 100, 1) : 0;
+    decimal cashSalesPct = totalSales > 0 ? Math.Round(cashSales / totalSales * 100, 1) : 0;
+    decimal knetSalesPct = totalSales > 0 ? Math.Round(knetSales / totalSales * 100, 1) : 0;
+    decimal profitCashPct = netProfit != 0 ? Math.Round(profitCashPortion / netProfit * 100, 1) : 0;
+    decimal profitKnetPct = netProfit != 0 ? Math.Round(profitKnetPortion / netProfit * 100, 1) : 0;
+
+    var trendLabels = (List<string>)ViewBag.TrendLabels;
+    var trendValues = (List<decimal>)ViewBag.TrendValues;
+}
+
+<style>
+    @@media print {
+        @@page { size: landscape; margin: 1cm; }
+        .no-print { display: none !important; }
+        body { direction: rtl; }
+        .print-header { display: block !important; }
+        .app-wrapper, .main-content, .page-content { display: block !important; min-height: 0 !important; height: auto !important; overflow: visible !important; margin: 0 !important; }
+        .card:not(.no-exist) { display: block !important; box-shadow: none !important; border: 1px solid #dee2e6 !important; }
+        .card-header, .card-body { display: block !important; }
+        .table-responsive { overflow: visible !important; }
+        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
+    .print-header { display: none; }
+
+    .pl-stat-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+
+    .pl-stat {
+        background: #fff; border-radius: 14px; padding: 14px 16px; box-shadow: 0 2px 10px rgba(0,0,0,.07);
+        display: flex; align-items: center; gap: 12px; height: 100%; border-top: 3px solid transparent;
+    }
+
+    .pl-stat-icon {
+        width: 46px; height: 46px; border-radius: 10px; display: flex; align-items: center;
+        justify-content: center; font-size: 18px; flex-shrink: 0;
+    }
+
+    .pl-stat-label { font-size: .74rem; color: #6b7280; margin-bottom: 2px; }
+    .pl-stat-value { font-size: 1.15rem; font-weight: 800; line-height: 1.2; }
+    .pl-stat-sub { font-size: .7rem; color: #9ca3af; margin-top: 2px; }
+
+    .pl-table thead th {
+        background: #f8fafc; font-size: .8rem; font-weight: 600; color: #374151;
+        border-bottom: 2px solid #e5e7eb; padding: 9px 10px; text-align: center;
+    }
+
+    .pl-table tbody td { padding: 9px 10px; font-size: .85rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; text-align: center; }
+    .pl-table tfoot td { padding: 9px 10px; font-weight: 700; font-size: .88rem; background: #f0f9ff; border-top: 2px solid #bae6fd; text-align: center; }
+
+    .pl-safe-box {
+        background: linear-gradient(135deg, #fffbeb, #fef3c7); border: 1px solid #fde68a; border-radius: 14px;
+        padding: 16px; height: 100%;
+    }
+
+    .pl-safe-amount { font-size: 1.8rem; font-weight: 800; color: #b45309; }
+
+    .pl-note-list { list-style: none; padding: 0; margin: 0; }
+    .pl-note-list li { padding: 6px 0; font-size: .82rem; color: #374151; border-bottom: 1px dashed #e5e7eb; }
+    .pl-note-list li:last-child { border-bottom: none; }
+    .pl-note-list i { color: #16a34a; margin-left: 6px; }
+
+    .pl-footer-btn {
+        padding: 7px 16px; border-radius: 8px; border: none; font-size: .82rem; font-weight: 600;
+        display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+    }
+</style>
+
+@* ===== PRINT HEADER ===== *@
+<div class="print-header text-center mb-3">
+    <h4 class="fw-bold">تقرير الأرباح والخسائر الشهري</h4>
+    <p class="mb-0">
+        الفترة: @ViewBag.From إلى @ViewBag.To
+        &nbsp;|&nbsp; رقم التقرير: @reportNumber
+        &nbsp;|&nbsp; وقت الطباعة: @reportDateTime.ToString("dd/MM/yyyy HH:mm")
+    </p>
+</div>
+
+@* ===== PAGE HEADER ===== *@
+<div class="page-header d-flex justify-content-between align-items-start no-print">
+    <div>
+        <h1><i class="fas fa-scale-balanced me-2"></i>تقرير الأرباح والخسائر الشهري</h1>
+        <p class="text-muted small mb-0">
+            ملخص شامل لأداء المحل المالي @(monthLabel != null ? $"- شهر {monthLabel}" : "")
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm"><i class="fas fa-print me-1"></i> طباعة</button>
+        <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
+    </div>
+</div>
+
+@* ===== FILTER ===== *@
+<div class="card mb-3 no-print">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label mb-1 small">من تاريخ</label>
+                <input type="date" name="from" value="@ViewBag.From" class="form-control form-control-sm" style="max-width:160px;" />
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1 small">إلى تاريخ</label>
+                <input type="date" name="to" value="@ViewBag.To" class="form-control form-control-sm" style="max-width:160px;" />
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> بحث</button>
+                <a href="@Url.Action("ProfitLoss")" class="btn btn-outline-secondary btn-sm">إعادة تعيين</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* ===== STAT CARDS ===== *@
+<div class="pl-stat-cards mb-3">
+    <div class="pl-stat" style="border-top-color:#16a34a;">
+        <div class="pl-stat-icon" style="background:#dcfce7;color:#16a34a;"><i class="fas fa-cart-shopping"></i></div>
+        <div>
+            <div class="pl-stat-label">إجمالي المبيعات</div>
+            <div class="pl-stat-value" style="color:#16a34a;">@totalSales.ToString("N3")</div>
+            <div class="pl-stat-sub">د.ك &middot; 100%</div>
+        </div>
+    </div>
+    <div class="pl-stat" style="border-top-color:#d97706;">
+        <div class="pl-stat-icon" style="background:#fef3c7;color:#d97706;"><i class="fas fa-users"></i></div>
+        <div>
+            <div class="pl-stat-label">رواتب وعمولات الموظفين</div>
+            <div class="pl-stat-value" style="color:#d97706;">@totalSalaries.ToString("N3")</div>
+            <div class="pl-stat-sub">د.ك &middot; @salariesPct% من المبيعات</div>
+        </div>
+    </div>
+    <div class="pl-stat" style="border-top-color:#dc2626;">
+        <div class="pl-stat-icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-file-invoice-dollar"></i></div>
+        <div>
+            <div class="pl-stat-label">المصروفات التشغيلية</div>
+            <div class="pl-stat-value" style="color:#dc2626;">@totalExpenses.ToString("N3")</div>
+            <div class="pl-stat-sub">د.ك &middot; @expensesPct% من المبيعات</div>
+        </div>
+    </div>
+    <div class="pl-stat" style="border-top-color:@(netProfit >= 0 ? "#2563eb" : "#dc2626");">
+        <div class="pl-stat-icon" style="background:@(netProfit >= 0 ? "#dbeafe" : "#fee2e2");color:@(netProfit >= 0 ? "#2563eb" : "#dc2626");"><i class="fas fa-sack-dollar"></i></div>
+        <div>
+            <div class="pl-stat-label">صافي الربح</div>
+            <div class="pl-stat-value" style="color:@(netProfit >= 0 ? "#2563eb" : "#dc2626");">@netProfit.ToString("N3")</div>
+            <div class="pl-stat-sub">د.ك &middot; @netProfitPct% من المبيعات</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    @* ===== DETAILS TABLE ===== *@
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header bg-white fw-bold"><i class="fas fa-list-ul me-2 text-primary"></i>تفاصيل الأرباح والخسائر</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table pl-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>البيان</th>
+                                <th>المبلغ (د.ك)</th>
+                                <th>النسبة من المبيعات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="text-align:right;">إجمالي المبيعات</td>
+                                <td class="fw-bold" style="color:#16a34a;">@totalSales.ToString("N3")</td>
+                                <td>100%</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align:right;">رواتب وعمولات الموظفين</td>
+                                <td class="text-danger">(@totalSalaries.ToString("N3"))</td>
+                                <td>@salariesPct%</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align:right;">المصروفات التشغيلية</td>
+                                <td class="text-danger">(@totalExpenses.ToString("N3"))</td>
+                                <td>@expensesPct%</td>
+                            </tr>
+                            <tr class="table-light fw-bold">
+                                <td style="text-align:right;">صافي الربح @(monthLabel != null ? $"- شهر {monthLabel}" : "")</td>
+                                <td style="color:@(netProfit >= 0 ? "#16a34a" : "#dc2626");">@netProfit.ToString("N3")</td>
+                                <td>@netProfitPct%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-2 border-top small text-muted">
+                    <i class="fas fa-circle-info me-1"></i>
+                    صافي الربح = إجمالي المبيعات − (رواتب وعمولات الموظفين) − (المصروفات التشغيلية). عمولة الموظفين المحتسبة ضمن الرواتب: @totalCommissions.ToString("N3") د.ك.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ===== PAYMENT METHOD DISTRIBUTION ===== *@
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header bg-white fw-bold"><i class="fas fa-credit-card me-2 text-primary"></i>توزيع الأرباح حسب طريقة الدفع</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table pl-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>الفئة</th>
+                                <th>المبلغ (د.ك)</th>
+                                <th>النسبة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="text-align:right;"><i class="fas fa-credit-card me-1 text-info"></i>الأرباح المحصّلة كي نت</td>
+                                <td class="fw-bold">@profitKnetPortion.ToString("N3")</td>
+                                <td>@profitKnetPct%</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align:right;"><i class="fas fa-money-bill-wave me-1 text-success"></i>الأرباح المحصّلة كاش</td>
+                                <td class="fw-bold">@profitCashPortion.ToString("N3")</td>
+                                <td>@profitCashPct%</td>
+                            </tr>
+                            <tr class="table-light fw-bold">
+                                <td style="text-align:right;">إجمالي الأرباح</td>
+                                <td>@netProfit.ToString("N3")</td>
+                                <td>100%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-2 border-top small text-muted">
+                    <i class="fas fa-circle-info me-1"></i>
+                    التوزيع تقديري بنفس نسبة توزيع المبيعات كاش/كي نت خلال الفترة (كاش @cashSalesPct% / كي نت @knetSalesPct%).
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ===== SAFE ALERT ===== *@
+<div class="row g-3 mb-3">
+    <div class="col-lg-5">
+        <div class="pl-safe-box">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="fas fa-triangle-exclamation" style="color:#b45309;font-size:20px;"></i>
+                <strong style="color:#92400e;">تنبيه الصندوق</strong>
+            </div>
+            <div class="pl-safe-amount">@cashInSafe.ToString("N3") <small style="font-size:1rem;">د.ك</small></div>
+            <div class="small mt-1" style="color:#92400e;">
+                المبلغ النقدي (كاش) المُقدَّر أنه ما زال في الصندوق ولم يُحوَّل/يُودَع بعد، عن الفترة المحددة.
+            </div>
+            <div class="small text-muted mt-2">
+                يُحسب كـ: (مبيعات كاش + إيداعات) − (مصروفات كاش + رواتب مدفوعة كاش + سلف مدفوعة كاش + سحوبات) — نفس معادلة تقرير
+                <a href="@Url.Action("CashMovement")">حركة الصندوق</a> لكن لهذه الفترة فقط. لا يوجد حالياً سجل مفصّل لكل حركة صندوق على حدة.
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header bg-white fw-bold"><i class="fas fa-vault me-2 text-primary"></i>مكوّنات رصيد الصندوق</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table pl-table mb-0">
+                        <thead><tr><th>البند</th><th>المبلغ (د.ك)</th></tr></thead>
+                        <tbody>
+                            <tr><td style="text-align:right;">+ مبيعات كاش</td><td class="text-success">@cashSales.ToString("N3")</td></tr>
+                            <tr><td style="text-align:right;">+ إيداعات</td><td class="text-success">@((decimal)ViewBag.TotalDeposits).ToString("N3")</td></tr>
+                            <tr><td style="text-align:right;">- مصروفات كاش</td><td class="text-danger">@((decimal)ViewBag.CashExpenses).ToString("N3")</td></tr>
+                            <tr><td style="text-align:right;">- رواتب مدفوعة كاش</td><td class="text-danger">@((decimal)ViewBag.CashSalaries).ToString("N3")</td></tr>
+                            <tr><td style="text-align:right;">- سلف مدفوعة كاش</td><td class="text-danger">@((decimal)ViewBag.CashAdvances).ToString("N3")</td></tr>
+                            <tr><td style="text-align:right;">- سحوبات</td><td class="text-danger">@((decimal)ViewBag.TotalWithdrawals).ToString("N3")</td></tr>
+                            <tr class="table-light fw-bold"><td style="text-align:right;">= رصيد الصندوق التقديري</td><td>@cashInSafe.ToString("N3")</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ===== CHARTS ===== *@
+<div class="row g-3 mb-3 no-print">
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header bg-white fw-bold"><i class="fas fa-chart-line me-2 text-primary"></i>تطور صافي الربح (آخر 6 أشهر)</div>
+            <div class="card-body">
+                <canvas id="trendChart" height="110"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header bg-white fw-bold"><i class="fas fa-chart-pie me-2 text-primary"></i>نسبة توزيع الأرباح</div>
+            <div class="card-body">
+                <canvas id="distributionChart" height="110"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    @* ===== KEY INDICATORS ===== *@
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header bg-white fw-bold"><i class="fas fa-gauge-high me-2 text-primary"></i>مؤشرات مالية مهمة</div>
+            <div class="card-body">
+                <ul class="pl-note-list">
+                    <li class="d-flex justify-content-between"><span>نسبة الرواتب والعمولات من المبيعات</span><strong>@salariesPct%</strong></li>
+                    <li class="d-flex justify-content-between"><span>نسبة المصروفات التشغيلية من المبيعات</span><strong>@expensesPct%</strong></li>
+                    <li class="d-flex justify-content-between"><span>نسبة صافي الربح من المبيعات</span><strong>@netProfitPct%</strong></li>
+                    <li class="d-flex justify-content-between"><span>إجمالي المبيعات</span><strong>@totalSales.ToString("N3") د.ك</strong></li>
+                    <li class="d-flex justify-content-between"><span>صافي الربح</span><strong>@netProfit.ToString("N3") د.ك</strong></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    @* ===== NOTES ===== *@
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header bg-white fw-bold"><i class="fas fa-circle-info me-2 text-primary"></i>ملاحظات وإرشادات</div>
+            <div class="card-body">
+                <ul class="pl-note-list">
+                    <li><i class="fas fa-check"></i>الرواتب والعمولات المحتسبة هنا هي فقط الرواتب المصروفة فعلياً (لها تاريخ صرف) خلال الفترة المحددة.</li>
+                    <li><i class="fas fa-check"></i>المصروفات التشغيلية لا تشمل الرواتب - هي مصروفات المحل العامة المسجلة في شاشة المصروفات.</li>
+                    <li><i class="fas fa-check"></i>توزيع الأرباح كاش/كي نت تقديري حسب نسبة تحصيل المبيعات، وليس مبلغاً فعلياً منفصلاً.</li>
+                    <li><i class="fas fa-check"></i>رصيد الصندوق تقديري بناءً على الحركات المسجلة (مبيعات كاش، مصروفات، رواتب، سلف، إيداعات، سحوبات).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ===== FOOTER ===== *@
+<div class="card mb-3">
+    <div class="card-body py-2 d-flex justify-content-between flex-wrap gap-2 small text-muted">
+        <span><i class="fas fa-user me-1"></i> أُعد بواسطة: <strong>@ViewBag.PreparedBy</strong></span>
+        <span><i class="fas fa-calendar me-1"></i> تاريخ الإعداد: <strong>@reportDateTime.ToString("dd/MM/yyyy HH:mm")</strong></span>
+        <span><i class="fas fa-hashtag me-1"></i> رقم التقرير: <strong>@reportNumber</strong></span>
+    </div>
+</div>
+
+<div class="d-flex gap-2 flex-wrap mb-3 no-print">
+    <button onclick="window.print()" class="pl-footer-btn" style="background:#1a1a2e;color:#fff;">
+        <i class="fas fa-print"></i> طباعة
+    </button>
+    <button onclick="window.print()" class="pl-footer-btn" style="background:#dc2626;color:#fff;">
+        <i class="fas fa-file-pdf"></i> تصدير PDF
+    </button>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        var trendLabels = [@Html.Raw(string.Join(",", trendLabels.Select(l => $"'{l}'")))];
+        var trendValues = [@Html.Raw(string.Join(",", trendValues.Select(v => v.ToString(CultureInfo.InvariantCulture))))];
+
+        new Chart(document.getElementById('trendChart'), {
+            type: 'line',
+            data: {
+                labels: trendLabels,
+                datasets: [{
+                    label: 'صافي الربح (د.ك)',
+                    data: trendValues,
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37,99,235,.1)',
+                    tension: 0.35,
+                    fill: true,
+                    pointBackgroundColor: '#2563eb'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        new Chart(document.getElementById('distributionChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['أرباح مدفوعة كي نت', 'أرباح مدفوعة كاش'],
+                datasets: [{
+                    data: [@profitKnetPortion.ToString(CultureInfo.InvariantCulture), @profitCashPortion.ToString(CultureInfo.InvariantCulture)],
+                    backgroundColor: ['#0284c7', '#16a34a']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    </script>
+}
