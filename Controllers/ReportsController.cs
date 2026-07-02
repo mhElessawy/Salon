@@ -1137,7 +1137,7 @@ namespace Salon.Controllers
             return View(dailyRows);
         }
 
-        public async Task<IActionResult> EmployeeRevenue(string? from, string? to, string? saleType)
+        public async Task<IActionResult> EmployeeRevenue(string? from, string? to, string? saleType, int? employeeId, string? invoiceNumber, string? cardNumber)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
@@ -1148,18 +1148,25 @@ namespace Salon.Controllers
 
             var salesQuery = _context.Sales
                 .Include(s => s.Employee)
+                .Include(s => s.SaleItems)
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
 
             if (userDept == "مساج") salesQuery = salesQuery.Where(s => s.SaleType == "مساج");
             else if (userDept == "حلاقة") salesQuery = salesQuery.Where(s => s.SaleType == "حلاقة");
             if (!string.IsNullOrEmpty(saleType)) salesQuery = salesQuery.Where(s => s.SaleType == saleType);
+            if (!string.IsNullOrEmpty(invoiceNumber)) salesQuery = salesQuery.Where(s => s.InvoiceNumber.Contains(invoiceNumber));
+            if (!string.IsNullOrEmpty(cardNumber)) salesQuery = salesQuery.Where(s => s.KnetReceiptNumber != null && s.KnetReceiptNumber.Contains(cardNumber));
 
             var allSales = await salesQuery.ToListAsync();
 
             var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
             if (deptFilter == "مساج") empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "مساج");
             else if (deptFilter == "حلاقة") empQuery = empQuery.Where(e => e.DepartmentNav!.Name == "حلاقة");
-            var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+            var dropdownEmployees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+
+            var employees = employeeId.HasValue
+                ? dropdownEmployees.Where(e => e.Id == employeeId.Value).ToList()
+                : dropdownEmployees;
 
             var advancesByEmp = (await _context.EmployeeAdvances
                 .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo
@@ -1220,10 +1227,39 @@ namespace Salon.Controllers
                 decimal netForEmployee = emp.BasicSalary + effectiveComm + gifts - advances - deductions - employeeDebt;
                 decimal netForShop = totalRevenue - effectiveComm;
 
+                var services = empSales
+                    .SelectMany(s =>
+                    {
+                        decimal ratio = s.TotalAmount > 0 ? s.NetAmount / s.TotalAmount : 1;
+                        return s.SaleItems.Select(si => new { si.ItemName, si.Quantity, Total = si.Total * ratio });
+                    })
+                    .GroupBy(si => si.ItemName)
+                    .Select(g => new EmployeeServiceItem
+                    {
+                        ItemName = g.Key,
+                        Quantity = g.Sum(si => si.Quantity),
+                        UnitPrice = g.Sum(si => si.Quantity) > 0 ? g.Sum(si => si.Total) / g.Sum(si => si.Quantity) : 0,
+                        Total = g.Sum(si => si.Total)
+                    })
+                    .OrderByDescending(si => si.Total)
+                    .ToList();
+
+                var invoices = empSales
+                    .OrderByDescending(s => s.SaleDate)
+                    .Select(s => new EmployeeInvoiceItem
+                    {
+                        InvoiceNumber = s.InvoiceNumber,
+                        SaleType = s.SaleType,
+                        SaleDate = s.SaleDate,
+                        Amount = s.NetAmount
+                    })
+                    .ToList();
+
                 return new EmployeeRevenueRow
                 {
                     EmployeeId = emp.Id,
                     EmployeeName = emp.FullName,
+                    DepartmentName = emp.DepartmentNav?.Name,
                     TotalRevenue = totalRevenue,
                     Cash = cash,
                     Knet = knet,
@@ -1240,7 +1276,9 @@ namespace Salon.Controllers
                     Deductions = deductions,
                     NetForEmployee = netForEmployee,
                     NetForShop = netForShop,
-                    Count = empSales.Count
+                    Count = empSales.Count,
+                    Services = services,
+                    Invoices = invoices
                 };
             }).ToList();
 
@@ -1251,6 +1289,11 @@ namespace Salon.Controllers
             ViewBag.UserDept = userDept;
             ViewBag.IsDeptUser = isDeptUser;
             ViewBag.ReportNumber = "EMP-" + dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.ReportDateTime = DateTime.Now;
+            ViewBag.Employees = dropdownEmployees;
+            ViewBag.SelectedEmployeeId = employeeId;
+            ViewBag.InvoiceNumber = invoiceNumber;
+            ViewBag.CardNumber = cardNumber;
 
             return View(rows);
         }

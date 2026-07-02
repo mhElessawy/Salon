@@ -5,6 +5,11 @@
     bool isDeptUser = ViewBag.IsDeptUser is bool b && b;
     string? selectedSaleType = ViewBag.SelectedSaleType as string;
     string reportNumber = ViewBag.ReportNumber as string ?? "EMP-";
+    DateTime reportDateTime = ViewBag.ReportDateTime is DateTime dt ? dt : DateTime.Now;
+    var employeesList = ViewBag.Employees as List<Salon.Models.Employee> ?? new List<Salon.Models.Employee>();
+    int? selectedEmployeeId = ViewBag.SelectedEmployeeId as int?;
+    string? invoiceNumber = ViewBag.InvoiceNumber as string;
+    string? cardNumber = ViewBag.CardNumber as string;
 
     decimal grandTotal = Model.Sum(r => r.TotalRevenue);
     decimal grandCash = Model.Sum(r => r.Cash);
@@ -13,12 +18,14 @@
     decimal grandSalary = Model.Sum(r => r.BasicSalary);
     decimal grandCommBefore = Model.Sum(r => r.CommissionBeforeTarget);
     decimal grandCommAfter = Model.Sum(r => r.CommissionAfterTarget);
+    decimal grandCommission = Model.Sum(r => r.TotalCommission);
     decimal grandGifts = Model.Sum(r => r.Gifts);
     decimal grandAdvances = Model.Sum(r => r.Advances);
     decimal grandDeductions = Model.Sum(r => r.Deductions);
     decimal grandNetEmp = Model.Sum(r => r.NetForEmployee);
     decimal grandNetShop = Model.Sum(r => r.NetForShop);
     int grandCount = Model.Sum(r => r.Count);
+    int employeeCount = Model.Count;
 }
 
 <style>
@@ -72,6 +79,10 @@
             padding: 4px 5px !important;
         }
 
+        .edm-overlay {
+            display: none !important;
+        }
+
         * {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
@@ -82,39 +93,108 @@
         display: none;
     }
 
+    .emp-badge-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .emp-info-badge {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 6px 14px;
+        font-size: .78rem;
+        color: #374151;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    }
+
+        .emp-info-badge strong {
+            color: #111827;
+        }
+
+    .emp-stat-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
+    }
+
     .emp-stat {
         background: #fff;
         border-radius: 14px;
-        padding: 14px 16px;
+        padding: 12px 14px;
         box-shadow: 0 2px 10px rgba(0,0,0,.07);
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
         height: 100%;
     }
 
     .emp-stat-icon {
-        width: 44px;
-        height: 44px;
+        width: 40px;
+        height: 40px;
         border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 18px;
+        font-size: 16px;
         flex-shrink: 0;
     }
 
     .emp-stat-label {
-        font-size: .74rem;
+        font-size: .72rem;
         color: #6b7280;
         margin-bottom: 2px;
     }
 
     .emp-stat-value {
-        font-size: 1.05rem;
+        font-size: .98rem;
         font-weight: 700;
         line-height: 1.2;
     }
+
+    .emp-rate-info {
+        position: relative;
+        display: inline-flex;
+    }
+
+        .emp-rate-info .emp-rate-icon {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #eff6ff;
+            color: #2563eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .emp-rate-info .emp-rate-pop {
+            display: none;
+            position: absolute;
+            top: 32px;
+            left: 0;
+            width: 260px;
+            background: #111827;
+            color: #f9fafb;
+            font-size: .72rem;
+            line-height: 1.5;
+            border-radius: 8px;
+            padding: 10px 12px;
+            z-index: 20;
+            box-shadow: 0 6px 20px rgba(0,0,0,.2);
+        }
+
+        .emp-rate-info:hover .emp-rate-pop, .emp-rate-info:focus-within .emp-rate-pop {
+            display: block;
+        }
 
     .emp-table thead th {
         background: #f8fafc;
@@ -153,10 +233,235 @@
         font-weight: 600;
     }
 
-    .target-badge {
+    .rate-badge {
         font-size: .7rem;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 12px;
+        display: inline-block;
+    }
+
+        .rate-badge.achieved {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .rate-badge.below {
+            background: #fef3c7;
+            color: #b45309;
+        }
+
+        .rate-badge.plain {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+    .edm-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15,23,42,.55);
+        align-items: flex-start;
+        justify-content: center;
+        padding: 30px 16px;
+        z-index: 1050;
+        overflow-y: auto;
+    }
+
+        .edm-overlay.show {
+            display: flex;
+        }
+
+    .edm-box {
+        background: #fff;
+        border-radius: 16px;
+        width: 100%;
+        max-width: 1000px;
+        padding: 20px 24px;
+        position: relative;
+    }
+
+    .edm-close {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: none;
+        background: #f1f5f9;
+        color: #475569;
+        font-size: 16px;
+        cursor: pointer;
+    }
+
+    .edm-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        justify-content: flex-end;
+        margin-bottom: 16px;
+        text-align: right;
+    }
+
+    .edm-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: #eef2ff;
+        color: #4f46e5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .edm-name {
+        font-weight: 700;
+        font-size: 1.05rem;
+    }
+
+    .edm-sub {
+        font-size: .78rem;
         color: #6b7280;
-        display: block;
+    }
+
+    .edm-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 8px;
+        margin-bottom: 18px;
+    }
+
+    .edm-stat {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 10px;
+        text-align: center;
+    }
+
+        .edm-stat .ic {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 6px;
+            font-size: 13px;
+        }
+
+        .edm-stat .lbl {
+            font-size: .68rem;
+            color: #6b7280;
+            margin-bottom: 3px;
+        }
+
+        .edm-stat .val {
+            font-size: .92rem;
+            font-weight: 800;
+        }
+
+    .edm-cols {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    @@media (max-width: 900px) {
+        .edm-cols {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .edm-col {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .edm-col-hdr {
+        background: #f8fafc;
+        font-weight: 700;
+        font-size: .8rem;
+        padding: 8px 10px;
+        text-align: center;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .edm-mini-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: .72rem;
+    }
+
+        .edm-mini-table th {
+            background: #fbfbfc;
+            padding: 6px 4px;
+            color: #6b7280;
+            font-weight: 600;
+            border-bottom: 1px solid #f1f5f9;
+            text-align: center;
+        }
+
+        .edm-mini-table td {
+            padding: 6px 4px;
+            text-align: center;
+            border-bottom: 1px solid #f8fafc;
+        }
+
+        .edm-mini-table tfoot td {
+            font-weight: 700;
+            background: #f8fafc;
+        }
+
+    .edm-due-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 7px 10px;
+        border-bottom: 1px solid #f8fafc;
+        font-size: .78rem;
+    }
+
+        .edm-due-row .lbl {
+            color: #475569;
+        }
+
+        .edm-due-row .val {
+            font-weight: 700;
+        }
+
+        .edm-due-row.total {
+            background: #f8fafc;
+        }
+
+    .edm-footer {
+        text-align: center;
+        margin-top: 16px;
+    }
+
+        .edm-footer button {
+            padding: 8px 32px;
+            border-radius: 8px;
+            border: none;
+            background: #1a1a2e;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+    .emp-footer-btn {
+        padding: 7px 16px;
+        border-radius: 8px;
+        border: none;
+        font-size: .82rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
     }
 </style>
 
@@ -167,12 +472,18 @@
         <span data-i18n-en="Period:">الفترة:</span> @ViewBag.From <span data-i18n-en="to">إلى</span> @ViewBag.To
         &nbsp;|&nbsp;
         <span data-i18n-en="Report No.:">رقم التقرير:</span> @reportNumber
+        &nbsp;|&nbsp;
+        <span data-i18n-en="Printed:">وقت الطباعة:</span> @reportDateTime.ToString("dd/MM/yyyy HH:mm")
     </p>
 </div>
 
 @* ===== PAGE HEADER ===== *@
-<div class="d-flex justify-content-between align-items-start mb-3 no-print flex-wrap gap-2">
-    <div>
+<div class="emp-badge-bar mb-3 no-print">
+    <div class="emp-info-badge">
+        <i class="fas fa-file-alt text-primary"></i>
+        <span data-i18n-en="Report No.:">رقم التقرير:</span> <strong>@reportNumber</strong>
+    </div>
+    <div class="text-center">
         <h1 class="h4 mb-0 fw-bold">
             <i class="fas fa-users me-2" style="color:var(--primary)"></i>
             <span data-i18n-en="Employee Revenue Report">تقرير الإيراد حسب الموظف</span>
@@ -181,17 +492,15 @@
             <span data-i18n-en="Summary of each employee's revenue and commissions for the selected period">ملخص إيرادات وعمولات كل موظف خلال الفترة المحددة</span>
         </p>
     </div>
-    <div class="d-flex gap-2 flex-wrap">
-        <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-arrow-right me-1"></i><span data-i18n-en="Reports">التقارير</span>
-        </a>
-        <button onclick="window.print()" class="btn btn-dark btn-sm">
-            <i class="fas fa-print me-1"></i><span data-i18n-en="Print">طباعة</span>
-        </button>
-        <button onclick="exportToExcel()" class="btn btn-success btn-sm">
-            <i class="fas fa-file-excel me-1"></i>Excel
-        </button>
+    <div class="emp-info-badge">
+        <i class="fas fa-clock text-primary"></i>
+        <span data-i18n-en="Report Date/Time:">تاريخ ووقت التقرير:</span> <strong>@reportDateTime.ToString("dd/MM/yyyy HH:mm")</strong>
     </div>
+</div>
+<div class="d-flex justify-content-end mb-2 no-print">
+    <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-right me-1"></i><span data-i18n-en="Reports">التقارير</span>
+    </a>
 </div>
 
 @* ===== FILTERS ===== *@
@@ -202,21 +511,21 @@
                 <label class="form-label mb-1 small" data-i18n-en="From Date">من تاريخ</label>
                 <div class="input-group input-group-sm">
                     <span class="input-group-text"><i class="fas fa-calendar"></i></span>
-                    <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:160px;" />
+                    <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:150px;" />
                 </div>
             </div>
             <div class="col-auto">
                 <label class="form-label mb-1 small" data-i18n-en="To Date">إلى تاريخ</label>
                 <div class="input-group input-group-sm">
                     <span class="input-group-text"><i class="fas fa-calendar"></i></span>
-                    <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:160px;" />
+                    <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:150px;" />
                 </div>
             </div>
             @if (!isDeptUser)
             {
                 <div class="col-auto">
                     <label class="form-label mb-1 small" data-i18n-en="Department">القسم</label>
-                    <select name="saleType" class="form-select form-select-sm" style="max-width:140px;">
+                    <select name="saleType" class="form-select form-select-sm" style="max-width:130px;">
                         <option value="" data-i18n-en="All">الكل</option>
                         <option value="حلاقة" selected="@(selectedSaleType == "حلاقة")" data-i18n-en="✂️ Barber">✂️ حلاقة</option>
                         <option value="مساج" selected="@(selectedSaleType == "مساج")" data-i18n-en="🌿 Massage">🌿 مساج</option>
@@ -224,79 +533,119 @@
                 </div>
             }
             <div class="col-auto">
-                <label class="form-label mb-1 small" data-i18n-en="Report No.">رقم التقرير</label>
-                <input type="text" value="@reportNumber" class="form-control form-control-sm" readonly
-                       style="max-width:160px;background:#f8fafc;" />
+                <label class="form-label mb-1 small" data-i18n-en="Employee">الموظف</label>
+                <select name="employeeId" class="form-select form-select-sm" style="max-width:160px;">
+                    <option value="" data-i18n-en="All">الكل</option>
+                    @foreach (var emp in employeesList)
+                    {
+                        <option value="@emp.Id" selected="@(selectedEmployeeId == emp.Id)">@emp.FullName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1 small" data-i18n-en="Invoice No.">رقم الفاتورة</label>
+                <input type="text" name="invoiceNumber" value="@invoiceNumber" class="form-control form-control-sm" style="max-width:130px;" placeholder="رقم الفاتورة..." />
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1 small" data-i18n-en="K-Net Receipt No.">رقم بطاقة</label>
+                <input type="text" name="cardNumber" value="@cardNumber" class="form-control form-control-sm" style="max-width:130px;" placeholder="رقم إيصال الكي نت..." />
             </div>
             <div class="col-auto">
                 <button type="submit" class="btn btn-primary btn-sm">
                     <i class="fas fa-search me-1"></i><span data-i18n-en="Search">بحث</span>
                 </button>
+                <a href="@Url.Action("EmployeeRevenue")" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-rotate-left me-1"></i><span data-i18n-en="Reset">إعادة تعيين</span>
+                </a>
             </div>
         </form>
     </div>
 </div>
 
 @* ===== SUMMARY CARDS ===== *@
-<div class="row g-3 mb-3">
-    <div class="col-6 col-md-2">
-        <div class="emp-stat">
-            <div class="emp-stat-icon" style="background:#dcfce7;color:#16a34a;"><i class="fas fa-chart-bar"></i></div>
-            <div>
-                <div class="emp-stat-label" data-i18n-en="Total Revenue">إجمالي الإيراد</div>
-                <div class="emp-stat-value" style="color:#16a34a;">@grandTotal.ToString("N3")</div>
-                <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
+<div class="d-flex justify-content-between align-items-center mb-2 no-print">
+    <span class="fw-bold small text-muted" data-i18n-en="Summary">الملخص</span>
+    <div class="emp-rate-info" tabindex="0">
+        <span class="emp-rate-icon"><i class="fas fa-info"></i></span>
+        <div class="emp-rate-pop">
+            <div class="mb-1" data-i18n-en="Rate info:"><strong>معلومات النسبة:</strong></div>
+            <div data-i18n-en="If the employee reaches their target, they receive 60% or more of the total. Below target earns less than 50%.">
+                إذا وصل الموظف للتارجت المحدد يحصل على نسبة العمولة الأعلى (بعد التارجت) من الإجمالي. إذا كان أقل من التارجت يحصل على النسبة الأساسية.
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-2">
-        <div class="emp-stat">
-            <div class="emp-stat-icon" style="background:#dbeafe;color:#2563eb;"><i class="fas fa-money-bill-wave"></i></div>
-            <div>
-                <div class="emp-stat-label" data-i18n-en="Cash">كاش</div>
-                <div class="emp-stat-value" style="color:#2563eb;">@grandCash.ToString("N3")</div>
-                <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
-            </div>
+</div>
+<div class="emp-stat-cards mb-3">
+    <div class="emp-stat" style="border-top:3px solid #16a34a;">
+        <div class="emp-stat-icon" style="background:#dcfce7;color:#16a34a;"><i class="fas fa-chart-bar"></i></div>
+        <div>
+            <div class="emp-stat-label" data-i18n-en="Total Revenue">إجمالي الإيراد</div>
+            <div class="emp-stat-value" style="color:#16a34a;">@grandTotal.ToString("N3")</div>
+            <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
         </div>
     </div>
-    <div class="col-6 col-md-2">
-        <div class="emp-stat">
-            <div class="emp-stat-icon" style="background:#e0f2fe;color:#0284c7;"><i class="fas fa-credit-card"></i></div>
-            <div>
-                <div class="emp-stat-label" data-i18n-en="K-Net">كي نت</div>
-                <div class="emp-stat-value" style="color:#0284c7;">@grandKnet.ToString("N3")</div>
-                <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
-            </div>
+    <div class="emp-stat" style="border-top:3px solid @(grandNetShop >= 0 ? "#16a34a" : "#dc2626");">
+        <div class="emp-stat-icon" style="background:@(grandNetShop >= 0 ? "#dcfce7" : "#fee2e2");color:@(grandNetShop >= 0 ? "#16a34a" : "#dc2626");"><i class="fas fa-store"></i></div>
+        <div>
+            <div class="emp-stat-label" data-i18n-en="Net for Shop">صافي المحل</div>
+            <div class="emp-stat-value" style="color:@(grandNetShop >= 0 ? "#16a34a" : "#dc2626");">@grandNetShop.ToString("N3")</div>
+            <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
         </div>
     </div>
-    <div class="col-6 col-md-2">
-        <div class="emp-stat">
-            <div class="emp-stat-icon" style="background:#fef3c7;color:#d97706;"><i class="fas fa-percentage"></i></div>
-            <div>
-                <div class="emp-stat-label" data-i18n-en="Total Commissions">إجمالي العمولات</div>
-                <div class="emp-stat-value" style="color:#d97706;">@((grandCommBefore + grandCommAfter).ToString("N3"))</div>
-                <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
-            </div>
+    <div class="emp-stat" style="border-top:3px solid #2563eb;">
+        <div class="emp-stat-icon" style="background:#dbeafe;color:#2563eb;"><i class="fas fa-money-bill-wave"></i></div>
+        <div>
+            <div class="emp-stat-label" data-i18n-en="Total Cash">إجمالي كاش</div>
+            <div class="emp-stat-value" style="color:#2563eb;">@grandCash.ToString("N3")</div>
+            <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
         </div>
     </div>
-    <div class="col-6 col-md-2">
-        <div class="emp-stat">
-            <div class="emp-stat-icon" style="background:#f0fdf4;color:#16a34a;"><i class="fas fa-user-check"></i></div>
-            <div>
-                <div class="emp-stat-label" data-i18n-en="Net for Employees">صافي للموظفين</div>
-                <div class="emp-stat-value" style="color:#16a34a;">@grandNetEmp.ToString("N3")</div>
-                <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
-            </div>
+    <div class="emp-stat" style="border-top:3px solid #0284c7;">
+        <div class="emp-stat-icon" style="background:#e0f2fe;color:#0284c7;"><i class="fas fa-credit-card"></i></div>
+        <div>
+            <div class="emp-stat-label" data-i18n-en="Total K-Net">إجمالي كي نت</div>
+            <div class="emp-stat-value" style="color:#0284c7;">@grandKnet.ToString("N3")</div>
+            <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
         </div>
     </div>
-    <div class="col-6 col-md-2">
-        <div class="emp-stat" style="border:2px solid @(grandNetShop >= 0 ? "#16a34a" : "#dc2626");">
-            <div class="emp-stat-icon" style="background:@(grandNetShop >= 0 ? "#dcfce7" : "#fee2e2");color:@(grandNetShop >= 0 ? "#16a34a" : "#dc2626");"><i class="fas fa-store"></i></div>
-            <div>
-                <div class="emp-stat-label" data-i18n-en="Net for Shop">صافي للمحل</div>
-                <div class="emp-stat-value" style="color:@(grandNetShop >= 0 ? "#16a34a" : "#dc2626");">@grandNetShop.ToString("N3")</div>
-                <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
-            </div>
+    <div class="emp-stat" style="border-top:3px solid #d97706;">
+        <div class="emp-stat-icon" style="background:#fef3c7;color:#d97706;"><i class="fas fa-percentage"></i></div>
+        <div>
+            <div class="emp-stat-label" data-i18n-en="Total Employee Commission">إجمالي عمولة الموظفين</div>
+            <div class="emp-stat-value" style="color:#d97706;">@grandCommission.ToString("N3")</div>
+            <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
+        </div>
+    </div>
+    <div class="emp-stat" style="border-top:3px solid #ea580c;">
+        <div class="emp-stat-icon" style="background:#ffedd5;color:#ea580c;"><i class="fas fa-user-clock"></i></div>
+        <div>
+            <div class="emp-stat-label" data-i18n-en="Total Employee Debt">إجمالي دين الموظفين</div>
+            <div class="emp-stat-value" style="color:#ea580c;">@grandEmployeeDebt.ToString("N3")</div>
+            <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
+        </div>
+    </div>
+    <div class="emp-stat" style="border-top:3px solid #7c3aed;">
+        <div class="emp-stat-icon" style="background:#ede9fe;color:#7c3aed;"><i class="fas fa-hand-holding-usd"></i></div>
+        <div>
+            <div class="emp-stat-label" data-i18n-en="Total Advances">إجمالي السلف</div>
+            <div class="emp-stat-value" style="color:#7c3aed;">@grandAdvances.ToString("N3")</div>
+            <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
+        </div>
+    </div>
+    <div class="emp-stat" style="border-top:3px solid #db2777;">
+        <div class="emp-stat-icon" style="background:#fce7f3;color:#db2777;"><i class="fas fa-gift"></i></div>
+        <div>
+            <div class="emp-stat-label" data-i18n-en="Total Gifts">إجمالي الإكراميات</div>
+            <div class="emp-stat-value" style="color:#db2777;">@grandGifts.ToString("N3")</div>
+            <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
+        </div>
+    </div>
+    <div class="emp-stat" style="border-top:3px solid #1a1a2e;">
+        <div class="emp-stat-icon" style="background:#e2e8f0;color:#1a1a2e;"><i class="fas fa-users"></i></div>
+        <div>
+            <div class="emp-stat-label" data-i18n-en="Employee Count">عدد الموظفين</div>
+            <div class="emp-stat-value" style="color:#1a1a2e;">@employeeCount</div>
+            <div class="emp-stat-label" data-i18n-en="Employee(s)">موظف</div>
         </div>
     </div>
 </div>
@@ -318,64 +667,48 @@
             <table class="table emp-table mb-0" id="empRevenueTable">
                 <thead>
                     <tr>
-                        <th rowspan="2" style="vertical-align:middle;">#</th>
-                        <th rowspan="2" style="vertical-align:middle;text-align:right;" data-i18n-en="Name">الاسم</th>
-                        <th rowspan="2" style="vertical-align:middle;">
-                            <span data-i18n-en="Total">الإجمالي</span><br />
+                        <th>#</th>
+                        <th style="text-align:right;" data-i18n-en="Name">الاسم</th>
+                        <th>
+                            <span data-i18n-en="Total">إجمالي</span><br />
                             <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
                         </th>
-                        <th rowspan="2" style="vertical-align:middle;">
+                        <th>
                             <span data-i18n-en="Cash">كاش</span><br />
                             <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
                         </th>
-                        <th rowspan="2" style="vertical-align:middle;">
+                        <th>
                             <span data-i18n-en="K-Net">كي نت</span><br />
                             <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
                         </th>
-                        <th rowspan="2" style="vertical-align:middle;">
-                            <span data-i18n-en="Emp. Debt">دين موظف</span><br />
+                        <th>
+                            <span data-i18n-en="Employee Commission">عمولة الموظف</span><br />
                             <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
                         </th>
-                        <th rowspan="2" style="vertical-align:middle;">
-                            <span data-i18n-en="Salary">الراتب</span><br />
+                        <th>
+                            <span data-i18n-en="Employee Rate (by target)">نسبة الموظف<br />(حسب التارجت)</span>
+                        </th>
+                        <th>
+                            <span data-i18n-en="Advances">السلفة</span><br />
                             <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
                         </th>
-                        <th colspan="2" style="border-bottom:1px solid #e5e7eb;">
-                            <span data-i18n-en="Commission">العمولة</span>
-                        </th>
-                        <th rowspan="2" style="vertical-align:middle;">
-                            <span data-i18n-en="Advances">السلف</span><br />
-                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
-                        </th>
-                        <th rowspan="2" style="vertical-align:middle;">
+                        <th>
                             <span data-i18n-en="Deductions">الخصومات</span><br />
                             <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
                         </th>
-                        <th rowspan="2" style="vertical-align:middle;">
-                            <span data-i18n-en="Gifts">الهدايا</span><br />
-                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
-                        </th>
-                        <th rowspan="2" style="vertical-align:middle;">
-                            <span data-i18n-en="Net / Employee">صافي للموظف</span><br />
-                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
-                        </th>
-                        <th rowspan="2" style="vertical-align:middle;">
-                            <span data-i18n-en="Net / Shop">صافي للمحل</span><br />
-                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
-                        </th>
-                        <th rowspan="2" style="vertical-align:middle;" class="no-print">
-                            <span data-i18n-en="Inv.">ف.</span>
-                        </th>
-                    </tr>
-                    <tr>
                         <th>
-                            <span data-i18n-en="Target">التارجت</span><br />
+                            <span data-i18n-en="Gifts">الإكراميات</span><br />
                             <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
                         </th>
                         <th>
-                            <span data-i18n-en="After Target">بعد التارجت</span><br />
+                            <span data-i18n-en="Net / Employee">صافي الموظف</span><br />
                             <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
                         </th>
+                        <th>
+                            <span data-i18n-en="Net / Shop">صافي المحل</span><br />
+                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
+                        </th>
+                        <th class="no-print" data-i18n-en="Details">التفاصيل</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -386,46 +719,26 @@
                     {
                         rowNum++;
                         bool hasTarget = row.SalesTarget > 0;
+                        bool achieved = hasTarget && row.TotalRevenue >= row.SalesTarget && row.CommissionAfterTarget > 0;
                         <tr>
                             <td class="text-muted">@rowNum</td>
-                            <td style="text-align:right;">
-                                <strong>@row.EmployeeName</strong>
-                                @if (hasTarget)
-                                {
-                                    <small class="target-badge">
-                                        <span data-i18n-en="Target:">تارجت:</span> @row.SalesTarget.ToString("N3") | @row.CommissionRate.ToString("N1")% / @row.CommissionAfterTargetRate.ToString("N1")%
-                                    </small>
-                                }
-                                else if (row.CommissionRate > 0)
-                                {
-                                    <small class="target-badge">
-                                        <span data-i18n-en="Commission:">عمولة:</span> @row.CommissionRate.ToString("N1")%
-                                    </small>
-                                }
-                            </td>
+                            <td style="text-align:right;"><strong>@row.EmployeeName</strong></td>
                             <td><strong style="color:#16a34a;">@row.TotalRevenue.ToString("N3")</strong></td>
                             <td style="color:#2563eb;">@row.Cash.ToString("N3")</td>
                             <td style="color:#0284c7;">@row.Knet.ToString("N3")</td>
-                            <td style="color:#ea580c;">@(row.EmployeeDebt > 0 ? row.EmployeeDebt.ToString("N3") : "-")</td>
-                            <td style="color:#374151;">@row.BasicSalary.ToString("N3")</td>
-                            <td style="color:#d97706;">
-                                @row.CommissionBeforeTarget.ToString("N3")
-                                <small class="target-badge">@row.CommissionRate.ToString("N1")%</small>
-                            </td>
+                            <td style="color:#d97706;font-weight:700;">@row.TotalCommission.ToString("N3")</td>
                             <td>
-                                @if (row.CommissionAfterTarget > 0)
+                                @if (achieved)
                                 {
-                                    <strong style="color:#16a34a;">@row.CommissionAfterTarget.ToString("N3")</strong>
-                                    <small class="target-badge" style="color:#16a34a;">@row.CommissionAfterTargetRate.ToString("N1")% ✓</small>
+                                    <span class="rate-badge achieved">@row.CommissionAfterTargetRate.ToString("N0")% <span data-i18n-en="Achieved">تحقق</span></span>
                                 }
-                                else if (row.SalesTarget > 0)
+                                else if (hasTarget)
                                 {
-                                    <span class="text-muted">-</span>
-                                    <small class="target-badge">@row.CommissionAfterTargetRate.ToString("N1")% (<span data-i18n-en="Not Achieved">لم يحقق</span>)</small>
+                                    <span class="rate-badge below">@row.CommissionRate.ToString("N0")% <span data-i18n-en="Below Target">أقل من التارجت</span></span>
                                 }
                                 else
                                 {
-                                    <span class="text-muted">-</span>
+                                    <span class="rate-badge plain">@row.CommissionRate.ToString("N0")%</span>
                                 }
                             </td>
                             <td style="color:#7c3aed;">@(row.Advances > 0 ? row.Advances.ToString("N3") : "-")</td>
@@ -442,14 +755,16 @@
                                 </strong>
                             </td>
                             <td class="no-print">
-                                <span class="badge bg-secondary">@row.Count</span>
+                                <button type="button" class="btn btn-outline-primary btn-sm py-0" onclick="openEmpDetail(@row.EmployeeId)">
+                                    <i class="fas fa-eye"></i> <span data-i18n-en="Details">عرض التفاصيل</span>
+                                </button>
                             </td>
                         </tr>
                     }
                     @if (!Model.Any())
                     {
                         <tr>
-                            <td colspan="15" class="text-center py-4 text-muted">
+                            <td colspan="13" class="text-center py-4 text-muted">
                                 <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
                                 <span data-i18n-en="No data for the selected period">لا توجد بيانات للفترة المحددة</span>
                             </td>
@@ -462,10 +777,8 @@
                         <td style="color:#16a34a;">@grandTotal.ToString("N3")</td>
                         <td style="color:#2563eb;">@grandCash.ToString("N3")</td>
                         <td style="color:#0284c7;">@grandKnet.ToString("N3")</td>
-                        <td style="color:#ea580c;">@(grandEmployeeDebt > 0 ? grandEmployeeDebt.ToString("N3") : "-")</td>
-                        <td>@grandSalary.ToString("N3")</td>
-                        <td style="color:#d97706;">@grandCommBefore.ToString("N3")</td>
-                        <td style="color:#ea580c;">@(grandCommAfter > 0 ? grandCommAfter.ToString("N3") : "-")</td>
+                        <td style="color:#d97706;">@grandCommission.ToString("N3")</td>
+                        <td>-</td>
                         <td style="color:#7c3aed;">@(grandAdvances > 0 ? grandAdvances.ToString("N3") : "-")</td>
                         <td style="color:#dc2626;">@(grandDeductions > 0 ? grandDeductions.ToString("N3") : "-")</td>
                         <td style="color:#db2777;">@(grandGifts > 0 ? grandGifts.ToString("N3") : "-")</td>
@@ -479,21 +792,227 @@
     </div>
 </div>
 
+@* ===== PER-EMPLOYEE DETAIL MODALS ===== *@
+@foreach (var row in Model)
+{
+    bool mHasTarget = row.SalesTarget > 0;
+    bool mAchieved = mHasTarget && row.TotalRevenue >= row.SalesTarget && row.CommissionAfterTarget > 0;
+    decimal mRate = mAchieved ? row.CommissionAfterTargetRate : row.CommissionRate;
+    string mRateNote = mAchieved ? "تحقق" : (mHasTarget ? "أقل من التارجت" : "");
+    decimal servicesTotal = row.Services.Sum(s => s.Total);
+    decimal invoicesTotal = row.Invoices.Sum(i => i.Amount);
+    <div class="edm-overlay no-print" id="empDetail-@row.EmployeeId">
+        <div class="edm-box">
+            <button type="button" class="edm-close" onclick="closeEmpDetail(@row.EmployeeId)"><i class="fas fa-times"></i></button>
+            <div class="edm-header">
+                <div>
+                    <div class="edm-name">@row.EmployeeName</div>
+                    <div class="edm-sub" data-i18n-en="Serial">مسلسل @row.EmployeeId - قسم @(row.DepartmentName ?? "-")</div>
+                </div>
+                <div class="edm-avatar"><i class="fas fa-user"></i></div>
+            </div>
+
+            <div class="edm-stats">
+                <div class="edm-stat">
+                    <div class="ic" style="background:#dcfce7;color:#16a34a;"><i class="fas fa-chart-bar"></i></div>
+                    <div class="lbl" data-i18n-en="Total Revenue">إجمالي الإيراد</div>
+                    <div class="val" style="color:#16a34a;">@row.TotalRevenue.ToString("N3")</div>
+                </div>
+                <div class="edm-stat">
+                    <div class="ic" style="background:#dbeafe;color:#2563eb;"><i class="fas fa-money-bill-wave"></i></div>
+                    <div class="lbl" data-i18n-en="Cash">كاش</div>
+                    <div class="val" style="color:#2563eb;">@row.Cash.ToString("N3")</div>
+                </div>
+                <div class="edm-stat">
+                    <div class="ic" style="background:#e0f2fe;color:#0284c7;"><i class="fas fa-credit-card"></i></div>
+                    <div class="lbl" data-i18n-en="K-Net">كي نت</div>
+                    <div class="val" style="color:#0284c7;">@row.Knet.ToString("N3")</div>
+                </div>
+                <div class="edm-stat">
+                    <div class="ic" style="background:#fef3c7;color:#d97706;"><i class="fas fa-percentage"></i></div>
+                    <div class="lbl" data-i18n-en="Employee Rate">نسبة الموظف</div>
+                    <div class="val" style="color:#d97706;">@mRate.ToString("N0")%</div>
+                    @if (!string.IsNullOrEmpty(mRateNote))
+                    {
+                        <div class="lbl">(@mRateNote)</div>
+                    }
+                </div>
+                <div class="edm-stat">
+                    <div class="ic" style="background:#ffedd5;color:#ea580c;"><i class="fas fa-user-tag"></i></div>
+                    <div class="lbl" data-i18n-en="Employee Commission">عمولة الموظف</div>
+                    <div class="val" style="color:#ea580c;">@row.TotalCommission.ToString("N3")</div>
+                </div>
+                <div class="edm-stat">
+                    <div class="ic" style="background:@(row.NetForShop >= 0 ? "#dcfce7" : "#fee2e2");color:@(row.NetForShop >= 0 ? "#16a34a" : "#dc2626");"><i class="fas fa-store"></i></div>
+                    <div class="lbl" data-i18n-en="Net for Shop">صافي المحل</div>
+                    <div class="val" style="color:@(row.NetForShop >= 0 ? "#16a34a" : "#dc2626");">@row.NetForShop.ToString("N3")</div>
+                </div>
+            </div>
+
+            <div class="edm-cols">
+                <div class="edm-col">
+                    <div class="edm-col-hdr" data-i18n-en="Service Details">تفاصيل الخدمات</div>
+                    <div style="max-height:280px;overflow-y:auto;">
+                        <table class="edm-mini-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n-en="Service">الخدمة</th>
+                                    <th data-i18n-en="Qty">الكمية</th>
+                                    <th data-i18n-en="Unit Price">سعر الوحدة</th>
+                                    <th data-i18n-en="Total">الإجمالي</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (row.Services.Any())
+                                {
+                                    @foreach (var svc in row.Services)
+                                    {
+                                        <tr>
+                                            <td style="text-align:right;">@svc.ItemName</td>
+                                            <td>@svc.Quantity</td>
+                                            <td>@svc.UnitPrice.ToString("N3")</td>
+                                            <td>@svc.Total.ToString("N3")</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="4" class="text-muted py-2" data-i18n-en="No services">لا توجد خدمات</td></tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td>@servicesTotal.ToString("N3")</td>
+                                    <td colspan="3" data-i18n-en="Total">الإجمالي</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="edm-col">
+                    <div class="edm-col-hdr" data-i18n-en="Dues Details">تفاصيل المستحقات</div>
+                    <div>
+                        <div class="edm-due-row">
+                            <span class="lbl" data-i18n-en="Total Revenue">إجمالي الإيراد</span>
+                            <span class="val">@row.TotalRevenue.ToString("N3") د.ك</span>
+                        </div>
+                        <div class="edm-due-row">
+                            <span class="lbl" data-i18n-en="Employee Rate (by target)">نسبة الموظف (حسب التارجت)</span>
+                            <span class="val">@mRate.ToString("N0")% @(!string.IsNullOrEmpty(mRateNote) ? "(" + mRateNote + ")" : "")</span>
+                        </div>
+                        <div class="edm-due-row">
+                            <span class="lbl" data-i18n-en="Employee Commission">عمولة الموظف</span>
+                            <span class="val" style="color:#ea580c;">@row.TotalCommission.ToString("N3") د.ك</span>
+                        </div>
+                        <div class="edm-due-row">
+                            <span class="lbl" data-i18n-en="Gifts">الإكراميات (الهدايا)</span>
+                            <span class="val" style="color:#db2777;">@row.Gifts.ToString("N3") د.ك</span>
+                        </div>
+                        <div class="edm-due-row">
+                            <span class="lbl" data-i18n-en="Employee Debt">دين الموظف</span>
+                            <span class="val" style="color:#dc2626;">@row.EmployeeDebt.ToString("N3") د.ك</span>
+                        </div>
+                        <div class="edm-due-row">
+                            <span class="lbl" data-i18n-en="Advances">السلفة</span>
+                            <span class="val" style="color:#7c3aed;">@row.Advances.ToString("N3") د.ك</span>
+                        </div>
+                        <div class="edm-due-row">
+                            <span class="lbl" data-i18n-en="Deductions">الخصومات</span>
+                            <span class="val" style="color:#dc2626;">@row.Deductions.ToString("N3") د.ك</span>
+                        </div>
+                        <div class="edm-due-row total">
+                            <span class="lbl fw-bold" data-i18n-en="Net for Employee">صافي الموظف</span>
+                            <span class="val" style="color:@(row.NetForEmployee >= 0 ? "#16a34a" : "#dc2626");font-size:.9rem;">@row.NetForEmployee.ToString("N3") د.ك</span>
+                        </div>
+                        <div class="edm-due-row total">
+                            <span class="lbl fw-bold" data-i18n-en="Net for Shop">صافي المحل</span>
+                            <span class="val" style="color:@(row.NetForShop >= 0 ? "#16a34a" : "#dc2626");font-size:.9rem;">@row.NetForShop.ToString("N3") د.ك</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="edm-col">
+                    <div class="edm-col-hdr" data-i18n-en="Invoice Details">تفاصيل الفواتير</div>
+                    <div style="max-height:280px;overflow-y:auto;">
+                        <table class="edm-mini-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n-en="Invoice No.">رقم الفاتورة</th>
+                                    <th data-i18n-en="Department">القسم</th>
+                                    <th data-i18n-en="Date">التاريخ</th>
+                                    <th data-i18n-en="Amount">المبلغ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (row.Invoices.Any())
+                                {
+                                    @foreach (var inv in row.Invoices)
+                                    {
+                                        <tr>
+                                            <td>@inv.InvoiceNumber</td>
+                                            <td>@inv.SaleType</td>
+                                            <td>@inv.SaleDate.ToString("dd/MM/yyyy")</td>
+                                            <td>@inv.Amount.ToString("N3")</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="4" class="text-muted py-2" data-i18n-en="No invoices">لا توجد فواتير</td></tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td>@invoicesTotal.ToString("N3")</td>
+                                    <td colspan="3" data-i18n-en="Total">الإجمالي</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="edm-footer">
+                <button type="button" onclick="closeEmpDetail(@row.EmployeeId)"><span data-i18n-en="Close">إغلاق</span></button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ===== FOOTER ACTIONS ===== *@
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 no-print">
+    <div class="d-flex gap-2 flex-wrap">
+        <button onclick="window.print()" class="emp-footer-btn" style="background:#1a1a2e;color:#fff;">
+            <i class="fas fa-print"></i><span data-i18n-en="Print">طباعة</span>
+        </button>
+        <button onclick="window.print()" class="emp-footer-btn" style="background:#dc2626;color:#fff;">
+            <i class="fas fa-file-pdf"></i><span data-i18n-en="Export PDF">تصدير PDF</span>
+        </button>
+        <button onclick="exportToExcel()" class="emp-footer-btn" style="background:#16a34a;color:#fff;">
+            <i class="fas fa-file-excel"></i><span data-i18n-en="Export Excel">تصدير Excel</span>
+        </button>
+        <button onclick="shareReport()" class="emp-footer-btn" style="background:#fff;color:#1a1a2e;border:1px solid #d1d5db;">
+            <i class="fas fa-share-alt"></i><span data-i18n-en="Share">مشاركة</span>
+        </button>
+    </div>
+</div>
+
 @* ===== NOTES LEGEND ===== *@
 <div class="card no-print mb-3">
     <div class="card-body py-2">
         <small class="text-muted">
-            <strong><span data-i18n-en="Calculation Notes:">ملاحظات الحساب:</span></strong>
+            <strong><i class="fas fa-info-circle me-1"></i><span data-i18n-en="Important Notes:">ملاحظات هامة:</span></strong>
             <span data-i18n-en="Commission: If the employee achieves their target, the full revenue is calculated at the higher rate (e.g. 60%) instead of the base rate (e.g. 50%)">
-                العمولة: إذا حقق الموظف التارجت تُحتسب كل مبيعاته بنسبة التارجت الأعلى (مثلاً 60%) بدلاً من النسبة الأساسية (50%)
+                العمولة: إذا حقق الموظف التارجت تُحتسب كل مبيعاته بنسبة التارجت الأعلى بدلاً من النسبة الأساسية
             </span>
             &nbsp;|&nbsp;
             <span data-i18n-en="Net Employee = Salary + Actual Commission + Gifts − Advances − Deductions − Emp. Debt">
-                صافي الموظف = الراتب + العمولة الفعلية + الهدايا − السلف − الخصومات − دين الموظف
+                صافي الموظف = الراتب + العمولة الفعلية + الإكراميات − السلفة − الخصومات − دين الموظف
             </span>
             &nbsp;|&nbsp;
-            <span data-i18n-en="Net Shop = Total − Salary − Actual Commission + Emp. Debt + Advances">
-                صافي المحل = الإجمالي − الراتب − العمولة الفعلية + دين الموظف + السلف
+            <span data-i18n-en="Net Shop = Total − Actual Commission">
+                صافي المحل = الإجمالي − العمولة الفعلية
             </span>
         </small>
     </div>
@@ -505,6 +1024,48 @@
             var table = document.getElementById('empRevenueTable');
             var wb = XLSX.utils.table_to_book(table, { sheet: "Employee Revenue", raw: true });
             XLSX.writeFile(wb, 'employee_revenue_@(ViewBag.From)_@(ViewBag.To).xlsx');
+        }
+
+        function openEmpDetail(employeeId) {
+            var overlay = document.getElementById('empDetail-' + employeeId);
+            if (overlay) {
+                overlay.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeEmpDetail(employeeId) {
+            var overlay = document.getElementById('empDetail-' + employeeId);
+            if (overlay) {
+                overlay.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        }
+
+        document.querySelectorAll('.edm-overlay').forEach(function (overlay) {
+            overlay.addEventListener('click', function (e) {
+                if (e.target === overlay) {
+                    overlay.classList.remove('show');
+                    document.body.style.overflow = '';
+                }
+            });
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.edm-overlay.show').forEach(function (overlay) {
+                    overlay.classList.remove('show');
+                });
+                document.body.style.overflow = '';
+            }
+        });
+
+        function shareReport() {
+            if (navigator.share) {
+                navigator.share({ title: 'تقرير الإيراد حسب الموظف', url: window.location.href });
+            } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(window.location.href);
+            }
         }
     </script>
 }
