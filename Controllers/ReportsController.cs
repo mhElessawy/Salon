@@ -1179,7 +1179,8 @@ namespace Salon.Controllers
                 else if (effectiveDept == "حلاقة") salQ = salQ.Where(s => s.Employee!.DepartmentNav!.Name == "حلاقة");
                 var periodSalaries = await salQ.ToListAsync();
                 decimal pSalaries = periodSalaries.Sum(s => s.NetSalary);
-                decimal pCommissions = periodSalaries.Sum(s => s.CommissionAmount);
+                // عمولات الموظفين تُحسب من العمولة + الراتب الأساسي (حق الموظف الفعلي مقابل عمله)
+                decimal pCommissions = periodSalaries.Sum(s => s.CommissionAmount + s.BasicSalary);
                 decimal pCashSalaries = periodSalaries.Where(s => s.PaymentMethod == "نقدي" || s.PaymentMethod == "كاش").Sum(s => s.NetSalary);
 
                 var depQ = _context.Deposits.Where(d => d.DepositDate >= periodFrom && d.DepositDate < periodTo);
