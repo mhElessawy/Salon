@@ -1137,6 +1137,169 @@ namespace Salon.Controllers
             return View(dailyRows);
         }
 
+        public async Task<IActionResult> ProfitLoss(int? month, int? year, string? dept)
+        {
+            int selectedYear = year ?? DateTime.Today.Year;
+            int selectedMonth = month is >= 1 and <= 12 ? month.Value : DateTime.Today.Month;
+            DateTime dateFrom = new DateTime(selectedYear, selectedMonth, 1);
+            DateTime dateTo = dateFrom.AddMonths(1);
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+            bool isDeptUser = userDept == "مساج" || userDept == "حلاقة";
+            var effectiveDept = isDeptUser ? userDept : dept;
+
+            string[] cashMethods = { "كاش", "نقدي", "Cash" };
+            string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
+            async Task<(decimal sales, decimal cashSales, decimal knetSales, decimal expenses, decimal cashExpenses,
+                decimal salaries, decimal commissions, decimal basicSalaries, decimal cashSalaries, decimal deposits, decimal withdrawals, decimal cashAdvances)>
+                LoadPeriodAsync(DateTime periodFrom, DateTime periodTo)
+            {
+                var salesQ = _context.Sales.Where(s => s.SaleDate >= periodFrom && s.SaleDate < periodTo && s.Status != "ملغي");
+                if (effectiveDept == "مساج") salesQ = salesQ.Where(s => s.SaleType == "مساج");
+                else if (effectiveDept == "حلاقة") salesQ = salesQ.Where(s => s.SaleType == "حلاقة");
+                var periodSales = await salesQ.ToListAsync();
+
+                decimal pSales = periodSales.Sum(s => s.NetAmount);
+                decimal pCashSales = periodSales.Sum(s => cashMethods.Contains(s.PaymentMethod) ? s.NetAmount
+                    : mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+                decimal pKnetSales = periodSales.Sum(s => knetMethods.Contains(s.PaymentMethod) ? s.NetAmount
+                    : mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
+
+                var expQ = _context.Expenses.Where(e => e.ExpenseDate >= periodFrom && e.ExpenseDate < periodTo);
+                if (effectiveDept == "مساج") expQ = expQ.Where(e => e.Department == "مساج");
+                else if (effectiveDept == "حلاقة") expQ = expQ.Where(e => e.Department == "حلاقة");
+                var periodExpenses = await expQ.ToListAsync();
+                decimal pExpenses = periodExpenses.Sum(e => e.Amount);
+                decimal pCashExpenses = periodExpenses.Where(e => e.PaymentMethod == "نقدي").Sum(e => e.Amount);
+
+                // القسم "الفعلي" للموظف يُحسب حسب: RevenueDepartment إن وُجد (لموظفي الأقسام غير الإيرادية
+                // كالنظافة والإدارة)، وإلا فقسمه التنظيمي (DepartmentNav)
+                var salQ = _context.Salaries.Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
+                    .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= periodFrom && s.PaidDate.Value < periodTo);
+                if (effectiveDept == "مساج") salQ = salQ.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == "مساج");
+                else if (effectiveDept == "حلاقة") salQ = salQ.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == "حلاقة");
+                var periodSalaries = await salQ.ToListAsync();
+                decimal pSalaries = periodSalaries.Sum(s => s.NetSalary);
+                decimal pCashSalaries = periodSalaries.Where(s => s.PaymentMethod == "نقدي" || s.PaymentMethod == "كاش").Sum(s => s.NetSalary);
+
+                // عمولات الموظفين والرواتب الأساسية تُحسب مباشرة من بيانات كل موظف نشط في القسم (نسبة العمولة على مبيعاته
+                // مع مراعاة التارجت + راتبه الأساسي المسجل) - بغض النظر عن وجود سجل راتب مصروف لهذه الفترة أم لا
+                var empQ = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+                if (effectiveDept == "مساج") empQ = empQ.Where(e => (e.RevenueDepartment ?? e.DepartmentNav!.Name) == "مساج");
+                else if (effectiveDept == "حلاقة") empQ = empQ.Where(e => (e.RevenueDepartment ?? e.DepartmentNav!.Name) == "حلاقة");
+                var periodEmployees = await empQ.ToListAsync();
+
+                var empRevenue = periodSales
+                    .Where(s => s.EmployeeId.HasValue)
+                    .GroupBy(s => s.EmployeeId!.Value)
+                    .ToDictionary(g => g.Key, g => g.Sum(s => s.NetAmount));
+
+                decimal pCommissions = periodEmployees.Sum(emp =>
+                {
+                    decimal revenue = empRevenue.TryGetValue(emp.Id, out var r) ? r : 0;
+                    decimal target = emp.SalesTarget ?? 0;
+                    decimal commAfterRate = emp.CommissionAfterTarget ?? 0;
+                    return (target > 0 && revenue >= target && commAfterRate > 0)
+                        ? revenue * commAfterRate / 100
+                        : revenue * emp.Commission / 100;
+                });
+                decimal pBasicSalaries = periodEmployees.Sum(emp => emp.BasicSalary);
+
+                var depQ = _context.Deposits.Where(d => d.DepositDate >= periodFrom && d.DepositDate < periodTo);
+                if (effectiveDept == "مساج") depQ = depQ.Where(d => d.Department == "مساج");
+                else if (effectiveDept == "حلاقة") depQ = depQ.Where(d => d.Department == "حلاقة");
+                decimal pDeposits = await depQ.SumAsync(d => d.Amount);
+
+                var wdQ = _context.Withdrawals.Where(w => w.WithdrawalDate >= periodFrom && w.WithdrawalDate < periodTo);
+                if (effectiveDept == "مساج") wdQ = wdQ.Where(w => w.Department == "مساج");
+                else if (effectiveDept == "حلاقة") wdQ = wdQ.Where(w => w.Department == "حلاقة");
+                decimal pWithdrawals = await wdQ.SumAsync(w => w.Amount);
+
+                var advQ = _context.EmployeeAdvances.Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                    .Where(a => a.AdvanceDate >= periodFrom && a.AdvanceDate < periodTo
+                             && (a.Status == "موافق عليها" || a.Status == "مسددة")
+                             && a.PaymentMethod == "نقدي");
+                if (effectiveDept == "مساج") advQ = advQ.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == "مساج");
+                else if (effectiveDept == "حلاقة") advQ = advQ.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == "حلاقة");
+                decimal pCashAdvances = await advQ.SumAsync(a => a.Amount);
+
+                return (pSales, pCashSales, pKnetSales, pExpenses, pCashExpenses, pSalaries, pCommissions, pBasicSalaries, pCashSalaries, pDeposits, pWithdrawals, pCashAdvances);
+            }
+
+            var current = await LoadPeriodAsync(dateFrom, dateTo);
+
+            // صافي الربح = إجمالي المبيعات − (عمولات الموظفين + رواتب الموظفين الأساسية + المصروفات التشغيلية)
+            decimal totalCosts = current.commissions + current.basicSalaries + current.expenses;
+            decimal netProfit = current.sales - totalCosts;
+
+            // الكاش المتوفر فعلياً في الصندوق خلال الفترة (نفس معادلة تقرير "حركة الصندوق")
+            decimal cashInSafe = (current.cashSales + current.deposits)
+                - (current.cashExpenses + current.cashSalaries + current.cashAdvances + current.withdrawals);
+
+            // توزيع صافي الربح على طريقتي الدفع بنفس نسبة توزيع المبيعات
+            decimal profitCashPortion = current.sales > 0 ? Math.Round(netProfit * current.cashSales / current.sales, 3) : 0;
+            decimal profitKnetPortion = current.sales > 0 ? netProfit - profitCashPortion : 0;
+
+            // اتجاه صافي الربح لآخر 6 أشهر (تنتهي بشهر بداية الفترة المختارة)
+            var trendLabels = new List<string>();
+            var trendValues = new List<decimal>();
+            var trendAnchor = new DateTime(dateFrom.Year, dateFrom.Month, 1);
+            for (int i = 5; i >= 0; i--)
+            {
+                var monthStart = trendAnchor.AddMonths(-i);
+                var monthEnd = monthStart.AddMonths(1);
+                var m = await LoadPeriodAsync(monthStart, monthEnd);
+                trendLabels.Add(monthStart.ToString("MM/yyyy"));
+                trendValues.Add(m.sales - m.commissions - m.basicSalaries - m.expenses);
+            }
+
+            bool isFullMonth = dateFrom.Day == 1 && dateTo == dateFrom.AddMonths(1);
+            string[] arabicMonths = { "", "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+                                       "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر" };
+
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
+            ViewBag.Month = selectedMonth;
+            ViewBag.Year = selectedYear;
+            ViewBag.Years = Enumerable.Range(DateTime.Today.Year - 3, 5).Reverse().ToList();
+            ViewBag.UserDept = userDept;
+            ViewBag.IsDeptUser = isDeptUser;
+            ViewBag.SelectedDept = effectiveDept;
+            ViewBag.IsFullMonth = isFullMonth;
+            ViewBag.MonthLabel = isFullMonth ? $"{arabicMonths[dateFrom.Month]} {dateFrom.Year}" : null;
+
+            ViewBag.TotalSales = current.sales;
+            ViewBag.CashSales = current.cashSales;
+            ViewBag.KnetSales = current.knetSales;
+            ViewBag.TotalExpenses = current.expenses;
+            ViewBag.TotalSalaries = current.salaries;
+            ViewBag.TotalCommissions = current.commissions;
+            ViewBag.TotalBasicSalaries = current.basicSalaries;
+            ViewBag.TotalCosts = totalCosts;
+            ViewBag.NetProfit = netProfit;
+            ViewBag.ProfitCashPortion = profitCashPortion;
+            ViewBag.ProfitKnetPortion = profitKnetPortion;
+
+            ViewBag.CashInSafe = cashInSafe;
+            ViewBag.TotalDeposits = current.deposits;
+            ViewBag.TotalWithdrawals = current.withdrawals;
+            ViewBag.CashExpenses = current.cashExpenses;
+            ViewBag.CashSalaries = current.cashSalaries;
+            ViewBag.CashAdvances = current.cashAdvances;
+
+            ViewBag.TrendLabels = trendLabels;
+            ViewBag.TrendValues = trendValues;
+
+            ViewBag.PreparedBy = currentUser?.FullName ?? User.Identity?.Name ?? "-";
+            ViewBag.ReportDateTime = DateTime.Now;
+            ViewBag.ReportNumber = "PL-" + dateFrom.ToString("yyyyMM");
+
+            return View();
+        }
+
         public async Task<IActionResult> EmployeeRevenue(string? from, string? to, string? saleType, int? employeeId, string? invoiceNumber, string? cardNumber)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);

@@ -213,6 +213,51 @@ namespace Salon.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReconcileHistoricalDeductions()
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(currentUser!);
+            bool isManager = roles.Contains("Admin") || roles.Contains("Manager");
+            if (!isManager)
+            {
+                TempData["Error"] = "غير مصرح لك بهذا الإجراء";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var employeeIds = await _context.EmployeeAdvances.Select(a => a.EmployeeId).Distinct().ToListAsync();
+            int fixedCount = 0;
+
+            foreach (var employeeId in employeeIds)
+            {
+                decimal totalPaidFromSalary = await _context.Salaries
+                    .Where(s => s.EmployeeId == employeeId && s.PaidDate != null)
+                    .SumAsync(s => s.AdvanceDeducted);
+
+                decimal totalReflectedOnAdvances = await _context.EmployeeAdvances
+                    .Where(a => a.EmployeeId == employeeId)
+                    .SumAsync(a => a.DeductedAmount);
+
+                decimal missing = totalPaidFromSalary - totalReflectedOnAdvances;
+                if (missing > 0)
+                {
+                    await AdvanceReconciliationHelper.ReconcileAsync(_context, employeeId, missing);
+                    fixedCount++;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            await _audit.LogAsync("Reconcile", "Advances",
+                $"إصلاح بيانات السلف القديمة غير المرتبطة برواتب مصروفة - عدد الموظفين المعدَّلين: {fixedCount}",
+                null);
+
+            TempData["Success"] = fixedCount > 0
+                ? $"تم إصلاح بيانات السلف لـ {fixedCount} موظف"
+                : "لا توجد بيانات سلف تحتاج إصلاح";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Approve(int id, string paymentMethod = "نقدي")
         {
             var advance = await _context.EmployeeAdvances.Include(a => a.Employee).FirstOrDefaultAsync(a => a.Id == id);

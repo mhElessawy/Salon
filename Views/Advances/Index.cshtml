@@ -15,10 +15,21 @@
         <h1><i class="fas fa-hand-holding-usd me-2"></i>سلف الموظفين</h1>
         <p>ملخص السلف لكل موظف</p>
     </div>
-    <a href="@Url.Action("Create")" class="btn btn-@(isManager ? "primary" : "success")">
-        <i class="fas fa-@(isManager ? "plus" : "paper-plane") me-1"></i>
-        @(isManager ? "إضافة سلفة" : "طلب سلفة")
-    </a>
+    <div class="d-flex gap-2">
+        @if (isManager)
+        {
+            <form method="post" asp-action="ReconcileHistoricalDeductions" onsubmit="return confirm('سيتم مطابقة السلف مع الرواتب المصروفة وتحديث المبالغ المدفوعة. متابعة؟');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-primary" title="مطابقة مبالغ السلف المخصومة من الرواتب مع سجلات السلف">
+                    <i class="fas fa-sync me-1"></i> إصلاح بيانات السلف المدفوعة
+                </button>
+            </form>
+        }
+        <a href="@Url.Action("Create")" class="btn btn-@(isManager ? "primary" : "success")">
+            <i class="fas fa-@(isManager ? "plus" : "paper-plane") me-1"></i>
+            @(isManager ? "إضافة سلفة" : "طلب سلفة")
+        </a>
+    </div>
 </div>
 
 <div class="row g-3 mb-4">
