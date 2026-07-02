@@ -1173,10 +1173,12 @@ namespace Salon.Controllers
                 decimal pExpenses = periodExpenses.Sum(e => e.Amount);
                 decimal pCashExpenses = periodExpenses.Where(e => e.PaymentMethod == "نقدي").Sum(e => e.Amount);
 
+                // القسم "الفعلي" للموظف يُحسب حسب: RevenueDepartment إن وُجد (لموظفي الأقسام غير الإيرادية
+                // كالنظافة والإدارة)، وإلا فقسمه التنظيمي (DepartmentNav)
                 var salQ = _context.Salaries.Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
                     .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= periodFrom && s.PaidDate.Value < periodTo);
-                if (effectiveDept == "مساج") salQ = salQ.Where(s => s.Employee!.DepartmentNav!.Name == "مساج");
-                else if (effectiveDept == "حلاقة") salQ = salQ.Where(s => s.Employee!.DepartmentNav!.Name == "حلاقة");
+                if (effectiveDept == "مساج") salQ = salQ.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == "مساج");
+                else if (effectiveDept == "حلاقة") salQ = salQ.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == "حلاقة");
                 var periodSalaries = await salQ.ToListAsync();
                 decimal pSalaries = periodSalaries.Sum(s => s.NetSalary);
                 decimal pCashSalaries = periodSalaries.Where(s => s.PaymentMethod == "نقدي" || s.PaymentMethod == "كاش").Sum(s => s.NetSalary);
@@ -1184,8 +1186,8 @@ namespace Salon.Controllers
                 // عمولات الموظفين والرواتب الأساسية تُحسب مباشرة من بيانات كل موظف نشط في القسم (نسبة العمولة على مبيعاته
                 // مع مراعاة التارجت + راتبه الأساسي المسجل) - بغض النظر عن وجود سجل راتب مصروف لهذه الفترة أم لا
                 var empQ = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
-                if (effectiveDept == "مساج") empQ = empQ.Where(e => e.DepartmentNav!.Name == "مساج");
-                else if (effectiveDept == "حلاقة") empQ = empQ.Where(e => e.DepartmentNav!.Name == "حلاقة");
+                if (effectiveDept == "مساج") empQ = empQ.Where(e => (e.RevenueDepartment ?? e.DepartmentNav!.Name) == "مساج");
+                else if (effectiveDept == "حلاقة") empQ = empQ.Where(e => (e.RevenueDepartment ?? e.DepartmentNav!.Name) == "حلاقة");
                 var periodEmployees = await empQ.ToListAsync();
 
                 var empRevenue = periodSales
@@ -1218,8 +1220,8 @@ namespace Salon.Controllers
                     .Where(a => a.AdvanceDate >= periodFrom && a.AdvanceDate < periodTo
                              && (a.Status == "موافق عليها" || a.Status == "مسددة")
                              && a.PaymentMethod == "نقدي");
-                if (effectiveDept == "مساج") advQ = advQ.Where(a => a.Employee!.DepartmentNav!.Name == "مساج");
-                else if (effectiveDept == "حلاقة") advQ = advQ.Where(a => a.Employee!.DepartmentNav!.Name == "حلاقة");
+                if (effectiveDept == "مساج") advQ = advQ.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == "مساج");
+                else if (effectiveDept == "حلاقة") advQ = advQ.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == "حلاقة");
                 decimal pCashAdvances = await advQ.SumAsync(a => a.Amount);
 
                 return (pSales, pCashSales, pKnetSales, pExpenses, pCashExpenses, pSalaries, pCommissions, pBasicSalaries, pCashSalaries, pDeposits, pWithdrawals, pCashAdvances);

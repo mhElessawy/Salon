@@ -69,6 +69,11 @@ namespace Salon.Models
         [NotMapped]
         public string? Department => DepartmentNav?.Name;
 
+        // القسم الذي تُحتسب عليه تكلفة الموظف (راتب/عمولة) في التقارير المالية (حلاقة/مساج)،
+        // يُستخدم لموظفي الأقسام غير الإيرادية (نظافة، إدارة، ...) - يفضّل عن Department عند وجوده
+        [Display(Name = "على حساب (قسم الإيرادات)")]
+        public string? RevenueDepartment { get; set; }
+
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
 

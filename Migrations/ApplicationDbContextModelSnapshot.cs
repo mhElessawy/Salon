@@ -527,6 +527,9 @@ namespace Salon.Migrations
                 b.Property<string>("Phone")
                     .HasColumnType("nvarchar(max)");
 
+                b.Property<string>("RevenueDepartment")
+                    .HasColumnType("nvarchar(max)");
+
                 b.Property<decimal?>("SalesTarget")
                     .HasColumnType("decimal(18,3)");
 

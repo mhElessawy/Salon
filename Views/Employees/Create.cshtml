@@ -33,6 +33,15 @@
                         </a>
                     </div>
                 </div>
+                <div class="col-md-4">
+                    <label asp-for="RevenueDepartment" class="form-label"></label>
+                    <select asp-for="RevenueDepartment" class="form-select">
+                        <option value="">-- تلقائي (حسب القسم) --</option>
+                        <option value="حلاقة">✂️ حلاقة</option>
+                        <option value="مساج">🌿 مساج</option>
+                    </select>
+                    <small class="text-muted">لموظفي الأقسام غير الإيرادية (نظافة، إدارة...) - يحدد أي قسم تُحسب عليه تكلفة الموظف في التقارير المالية</small>
+                </div>
                 <div class="col-md-6">
                     <label asp-for="Phone" class="form-label"></label>
                     <input asp-for="Phone" class="form-control" />
