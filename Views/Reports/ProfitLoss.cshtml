@@ -3,6 +3,9 @@
     ViewData["Title"] = "تقرير الأرباح والخسائر الشهري";
     bool isFullMonth = ViewBag.IsFullMonth is bool fm && fm;
     string? monthLabel = ViewBag.MonthLabel as string;
+    bool isDeptUser = ViewBag.IsDeptUser is bool du && du;
+    string? selectedDept = ViewBag.SelectedDept as string;
+    string deptLabel = selectedDept == "حلاقة" ? " - قسم الحلاقة" : selectedDept == "مساج" ? " - قسم المساج" : "";
     string reportNumber = ViewBag.ReportNumber as string ?? "PL-";
     DateTime reportDateTime = ViewBag.ReportDateTime is DateTime dt ? dt : DateTime.Now;
 
@@ -103,7 +106,7 @@
     <div>
         <h1><i class="fas fa-scale-balanced me-2"></i>تقرير الأرباح والخسائر الشهري</h1>
         <p class="text-muted small mb-0">
-            ملخص شامل لأداء المحل المالي @(monthLabel != null ? $"- شهر {monthLabel}" : "")
+            ملخص شامل لأداء المحل المالي @(monthLabel != null ? $"- شهر {monthLabel}" : "")@deptLabel
         </p>
     </div>
     <div class="d-flex gap-2">
@@ -124,6 +127,17 @@
                 <label class="form-label mb-1 small">إلى تاريخ</label>
                 <input type="date" name="to" value="@ViewBag.To" class="form-control form-control-sm" style="max-width:160px;" />
             </div>
+            @if (!isDeptUser)
+            {
+                <div class="col-auto">
+                    <label class="form-label mb-1 small">القسم</label>
+                    <select name="dept" class="form-select form-select-sm" style="max-width:130px;">
+                        <option value="" selected="@(string.IsNullOrEmpty(selectedDept))">الكل</option>
+                        <option value="حلاقة" selected="@(selectedDept == "حلاقة")">✂️ حلاقة</option>
+                        <option value="مساج" selected="@(selectedDept == "مساج")">🌿 مساج</option>
+                    </select>
+                </div>
+            }
             <div class="col-auto">
                 <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> بحث</button>
                 <a href="@Url.Action("ProfitLoss")" class="btn btn-outline-secondary btn-sm">إعادة تعيين</a>

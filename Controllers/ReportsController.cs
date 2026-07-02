@@ -1137,13 +1137,15 @@ namespace Salon.Controllers
             return View(dailyRows);
         }
 
-        public async Task<IActionResult> ProfitLoss(string? from, string? to)
+        public async Task<IActionResult> ProfitLoss(string? from, string? to, string? dept)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
 
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
+            bool isDeptUser = userDept == "مساج" || userDept == "حلاقة";
+            var effectiveDept = isDeptUser ? userDept : dept;
 
             string[] cashMethods = { "كاش", "نقدي", "Cash" };
             string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
@@ -1154,8 +1156,8 @@ namespace Salon.Controllers
                 LoadPeriodAsync(DateTime periodFrom, DateTime periodTo)
             {
                 var salesQ = _context.Sales.Where(s => s.SaleDate >= periodFrom && s.SaleDate < periodTo && s.Status != "ملغي");
-                if (userDept == "مساج") salesQ = salesQ.Where(s => s.SaleType == "مساج");
-                else if (userDept == "حلاقة") salesQ = salesQ.Where(s => s.SaleType == "حلاقة");
+                if (effectiveDept == "مساج") salesQ = salesQ.Where(s => s.SaleType == "مساج");
+                else if (effectiveDept == "حلاقة") salesQ = salesQ.Where(s => s.SaleType == "حلاقة");
                 var periodSales = await salesQ.ToListAsync();
 
                 decimal pSales = periodSales.Sum(s => s.NetAmount);
@@ -1165,37 +1167,37 @@ namespace Salon.Controllers
                     : mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
 
                 var expQ = _context.Expenses.Where(e => e.ExpenseDate >= periodFrom && e.ExpenseDate < periodTo);
-                if (userDept == "مساج") expQ = expQ.Where(e => e.Department == "مساج");
-                else if (userDept == "حلاقة") expQ = expQ.Where(e => e.Department == "حلاقة");
+                if (effectiveDept == "مساج") expQ = expQ.Where(e => e.Department == "مساج");
+                else if (effectiveDept == "حلاقة") expQ = expQ.Where(e => e.Department == "حلاقة");
                 var periodExpenses = await expQ.ToListAsync();
                 decimal pExpenses = periodExpenses.Sum(e => e.Amount);
                 decimal pCashExpenses = periodExpenses.Where(e => e.PaymentMethod == "نقدي").Sum(e => e.Amount);
 
                 var salQ = _context.Salaries.Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
                     .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= periodFrom && s.PaidDate.Value < periodTo);
-                if (userDept == "مساج") salQ = salQ.Where(s => s.Employee!.DepartmentNav!.Name == "مساج");
-                else if (userDept == "حلاقة") salQ = salQ.Where(s => s.Employee!.DepartmentNav!.Name == "حلاقة");
+                if (effectiveDept == "مساج") salQ = salQ.Where(s => s.Employee!.DepartmentNav!.Name == "مساج");
+                else if (effectiveDept == "حلاقة") salQ = salQ.Where(s => s.Employee!.DepartmentNav!.Name == "حلاقة");
                 var periodSalaries = await salQ.ToListAsync();
                 decimal pSalaries = periodSalaries.Sum(s => s.NetSalary);
                 decimal pCommissions = periodSalaries.Sum(s => s.CommissionAmount);
                 decimal pCashSalaries = periodSalaries.Where(s => s.PaymentMethod == "نقدي" || s.PaymentMethod == "كاش").Sum(s => s.NetSalary);
 
                 var depQ = _context.Deposits.Where(d => d.DepositDate >= periodFrom && d.DepositDate < periodTo);
-                if (userDept == "مساج") depQ = depQ.Where(d => d.Department == "مساج");
-                else if (userDept == "حلاقة") depQ = depQ.Where(d => d.Department == "حلاقة");
+                if (effectiveDept == "مساج") depQ = depQ.Where(d => d.Department == "مساج");
+                else if (effectiveDept == "حلاقة") depQ = depQ.Where(d => d.Department == "حلاقة");
                 decimal pDeposits = await depQ.SumAsync(d => d.Amount);
 
                 var wdQ = _context.Withdrawals.Where(w => w.WithdrawalDate >= periodFrom && w.WithdrawalDate < periodTo);
-                if (userDept == "مساج") wdQ = wdQ.Where(w => w.Department == "مساج");
-                else if (userDept == "حلاقة") wdQ = wdQ.Where(w => w.Department == "حلاقة");
+                if (effectiveDept == "مساج") wdQ = wdQ.Where(w => w.Department == "مساج");
+                else if (effectiveDept == "حلاقة") wdQ = wdQ.Where(w => w.Department == "حلاقة");
                 decimal pWithdrawals = await wdQ.SumAsync(w => w.Amount);
 
                 var advQ = _context.EmployeeAdvances.Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                     .Where(a => a.AdvanceDate >= periodFrom && a.AdvanceDate < periodTo
                              && (a.Status == "موافق عليها" || a.Status == "مسددة")
                              && a.PaymentMethod == "نقدي");
-                if (userDept == "مساج") advQ = advQ.Where(a => a.Employee!.DepartmentNav!.Name == "مساج");
-                else if (userDept == "حلاقة") advQ = advQ.Where(a => a.Employee!.DepartmentNav!.Name == "حلاقة");
+                if (effectiveDept == "مساج") advQ = advQ.Where(a => a.Employee!.DepartmentNav!.Name == "مساج");
+                else if (effectiveDept == "حلاقة") advQ = advQ.Where(a => a.Employee!.DepartmentNav!.Name == "حلاقة");
                 decimal pCashAdvances = await advQ.SumAsync(a => a.Amount);
 
                 return (pSales, pCashSales, pKnetSales, pExpenses, pCashExpenses, pSalaries, pCommissions, pCashSalaries, pDeposits, pWithdrawals, pCashAdvances);
@@ -1234,6 +1236,8 @@ namespace Salon.Controllers
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
             ViewBag.UserDept = userDept;
+            ViewBag.IsDeptUser = isDeptUser;
+            ViewBag.SelectedDept = effectiveDept;
             ViewBag.IsFullMonth = isFullMonth;
             ViewBag.MonthLabel = isFullMonth ? $"{arabicMonths[dateFrom.Month]} {dateFrom.Year}" : null;
 
