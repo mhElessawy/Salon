@@ -150,8 +150,10 @@ namespace Salon.Controllers
                 prevDepositsQuery = prevDepositsQuery.Where(d => d.Department == filterDept);
             decimal prevDeposits = await prevDepositsQuery.SumAsync(d => d.Amount);
 
+            // Only cash-paid expenses/advances actually leave the physical register — ones paid
+            // by card or bank transfer never touched the cash box, so they must not reduce it.
             var prevExpensesQuery = _context.Expenses
-                .Where(e => e.ExpenseDate >= baseDate && e.ExpenseDate < today);
+                .Where(e => e.ExpenseDate >= baseDate && e.ExpenseDate < today && e.PaymentMethod == "نقدي");
             if (filterDept == "حلاقة")
                 prevExpensesQuery = prevExpensesQuery.Where(e => e.Department == "حلاقة" || e.Department == null || e.Department == "");
             else if (filterDept == "مساج")
@@ -159,7 +161,7 @@ namespace Salon.Controllers
             decimal prevExpenses = await prevExpensesQuery.SumAsync(e => e.Amount);
 
             var prevAdvancesQuery = _context.EmployeeAdvances
-                .Where(a => a.AdvanceDate >= baseDate && a.AdvanceDate < today && a.Status != "معلق");
+                .Where(a => a.AdvanceDate >= baseDate && a.AdvanceDate < today && a.Status != "معلق" && a.PaymentMethod == "نقدي");
             prevAdvancesQuery = isEmployee
                 ? prevAdvancesQuery.Where(a => a.EmployeeId == (linkedEmpId ?? -1))
                 : prevAdvancesQuery.Where(a => employeeIds.Contains(a.EmployeeId));
@@ -189,6 +191,8 @@ namespace Salon.Controllers
             decimal tipsDelivered = allSales.Sum(s => s.EmployeeGift ?? 0);
             decimal totalDiscount = staffSales.Sum(s => s.Discount);
             decimal totalExpenses = expenses.Sum(e => e.Amount);
+            decimal cashExpenses = expenses.Where(e => e.PaymentMethod == "نقدي").Sum(e => e.Amount);
+            decimal cashAdvances = advances.Where(a => a.PaymentMethod == "نقدي").Sum(a => a.Amount);
 
             var expensesByCategory = expenses
                 .GroupBy(e => string.IsNullOrEmpty(e.Category) ? "أخرى" : e.Category)
@@ -271,6 +275,8 @@ namespace Salon.Controllers
                 TotalExpensesAmount = totalExpenses,
                 TotalAdvancesAmount = advances.Sum(a => a.Amount),
                 TotalWithdrawals = withdrawals.Sum(w => w.Amount),
+                CashExpensesAmount = cashExpenses,
+                CashAdvancesAmount = cashAdvances,
 
                 ExpenseCount = expenses.Count,
                 MaxExpense = expenses.Any() ? expenses.Max(e => e.Amount) : 0,

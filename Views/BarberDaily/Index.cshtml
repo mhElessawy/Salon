@@ -878,18 +878,18 @@
                                     <span class="dp2-cash-val" style="color:#1d4ed8;">+ @Model.TotalDeposits.ToString("N3")</span>
                                 </div>
                             }
-                            @if (Model.TotalExpensesAmount > 0)
+                            @if (Model.CashExpensesAmount > 0)
                             {
                                 <div class="dp2-cash-row">
-                                    <span class="dp2-cash-lbl"><i class="fas fa-minus-circle" style="color:#dc2626;"></i> مصروفات تشغيل</span>
-                                    <span class="dp2-cash-val" style="color:#dc2626;">− @Model.TotalExpensesAmount.ToString("N3")</span>
+                                    <span class="dp2-cash-lbl"><i class="fas fa-minus-circle" style="color:#dc2626;"></i> مصروفات تشغيل (نقدي)</span>
+                                    <span class="dp2-cash-val" style="color:#dc2626;">− @Model.CashExpensesAmount.ToString("N3")</span>
                                 </div>
                             }
-                            @if (Model.TotalAdvancesAmount > 0)
+                            @if (Model.CashAdvancesAmount > 0)
                             {
                                 <div class="dp2-cash-row">
-                                    <span class="dp2-cash-lbl"><i class="fas fa-minus-circle" style="color:#d97706;"></i> سلف موظفين</span>
-                                    <span class="dp2-cash-val" style="color:#d97706;">− @Model.TotalAdvancesAmount.ToString("N3")</span>
+                                    <span class="dp2-cash-lbl"><i class="fas fa-minus-circle" style="color:#d97706;"></i> سلف موظفين (نقدي)</span>
+                                    <span class="dp2-cash-val" style="color:#d97706;">− @Model.CashAdvancesAmount.ToString("N3")</span>
                                 </div>
                             }
                             @if (Model.TotalWithdrawals > 0)
