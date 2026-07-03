@@ -131,8 +131,12 @@ namespace Salon.Controllers
                 ? 0
                 : (hasBaseline ? firstShiftEver!.OpeningBalance : (shift?.OpeningBalance ?? 0));
 
+            // Must mirror staffSales' scope exactly — including its unconditional exclusion of
+            // "منتجات" sales — since that's what today's CashRevenue is built from. Otherwise a
+            // day's opening balance won't equal the previous day's closing balance.
             var prevSalesQuery = _context.Sales
-                .Where(s => s.SaleDate >= baseDate && s.SaleDate < today && s.Status != "ملغي");
+                .Where(s => s.SaleDate >= baseDate && s.SaleDate < today && s.Status != "ملغي"
+                         && (s.SaleType == "حلاقة" || s.SaleType == "مساج"));
             if (isEmployee)
                 prevSalesQuery = prevSalesQuery.Where(s => s.EmployeeId == (linkedEmpId ?? -1));
             else if (filterDept == "حلاقة")
