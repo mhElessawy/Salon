@@ -13,6 +13,7 @@
     decimal totalKNet = ViewBag.TotalKNet is decimal tkn ? tkn : 0m;
     decimal totalWithdrawals = ViewBag.TotalWithdrawals is decimal tw ? tw : 0m;
     decimal cashBalance = ViewBag.CashBalance is decimal cb ? cb : 0m;
+    decimal openingBalance = ViewBag.OpeningBalance is decimal ob ? ob : 0m;
     string selectedType = ViewBag.SelectedType ?? "";
 
     // الأنواع التي تُخصم من رصيد الكاش
@@ -20,10 +21,10 @@
     // الكي نت لا يدخل في حساب رصيد الكاش
     string[] cashCreditTypes = { "مبيعات كاش", "إيداع" };
 
-    // رصيد كاش جاري بعد كل حركة (يستثني الكي نت والمصروفات غير النقدية)
+    // رصيد كاش جاري بعد كل حركة (يبدأ من رصيد الكاش قبل الفترة، ويستثني الكي نت والمصروفات غير النقدية)
     var ascItems = Model.OrderBy(i => i.Date).ThenBy(i => i.Type).ToList();
     var itemBalance = new Dictionary<Salon.Models.CashMovementReportItem, decimal>();
-    decimal runBal = 0m;
+    decimal runBal = openingBalance;
     foreach (var itm in ascItems)
     {
         // السحب دايمًا نقدي - المصروف/السلفة/الراتب فقط لو طريقة الدفع نقدي
@@ -98,6 +99,61 @@
 
 @* ── بطاقات الملخص ── *@
 
+@* رصيد قبل الفترة *@
+<div class="row g-3 mb-2">
+    <div class="col-12">
+        <div class="text-muted fw-semibold small mb-1 px-1">
+            <i class="fas fa-box-open me-1" style="color:#64748b;"></i> الرصيد قبل الفترة
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="card text-center border-0 shadow-sm h-100" style="border-right:4px solid #64748b !important;">
+            <div class="card-body p-3">
+                <div class="mb-1" style="font-size:24px; color:#475569;"><i class="fas fa-box-open"></i></div>
+                <div class="text-muted small">رصيد الكاش قبل @ViewBag.From</div>
+                <div class="fw-bold fs-6 mt-1" style="color:#475569;">@openingBalance.ToString("N3") <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* صف الدخل *@
+<div class="row g-3 mb-2">
+    <div class="col-12">
+        <div class="text-muted fw-semibold small mb-1 px-1">
+            <i class="fas fa-plus-circle text-success me-1"></i> الدخل
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card text-center border-0 shadow-sm h-100" style="border-right:4px solid #16a34a !important;">
+            <div class="card-body p-3">
+                <div class="text-success mb-1" style="font-size:24px;"><i class="fas fa-cash-register"></i></div>
+                <div class="text-muted small">مبيعات الكاش</div>
+                <div class="fw-bold fs-6 text-success mt-1">@totalCashSales.ToString("N3") <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card text-center border-0 shadow-sm h-100" style="border-right:4px solid #0ea5e9 !important;">
+            <div class="card-body p-3">
+                <div class="mb-1" style="font-size:24px; color:#0ea5e9;"><i class="fas fa-credit-card"></i></div>
+                <div class="text-muted small">مبيعات الكي نت</div>
+                <div class="text-muted" style="font-size:11px;">(خارج رصيد الكاش)</div>
+                <div class="fw-bold fs-6 mt-1" style="color:#0ea5e9;">@totalKNet.ToString("N3") <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card text-center border-0 shadow-sm h-100" style="border-right:4px solid #10b981 !important;">
+            <div class="card-body p-3">
+                <div class="mb-1" style="font-size:24px; color:#10b981;"><i class="fas fa-money-bill-wave"></i></div>
+                <div class="text-muted small">الإيداعات</div>
+                <div class="fw-bold fs-6 mt-1" style="color:#10b981;">@totalDeposits.ToString("N3") <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @* صف المصروفات *@
 <div class="row g-3 mb-2">
     <div class="col-12">
@@ -154,43 +210,6 @@
     </div>
 </div>
 
-@* صف الدخل *@
-<div class="row g-3 mb-2">
-    <div class="col-12">
-        <div class="text-muted fw-semibold small mb-1 px-1">
-            <i class="fas fa-plus-circle text-success me-1"></i> الدخل
-        </div>
-    </div>
-    <div class="col-6 col-md-4">
-        <div class="card text-center border-0 shadow-sm h-100" style="border-right:4px solid #16a34a !important;">
-            <div class="card-body p-3">
-                <div class="text-success mb-1" style="font-size:24px;"><i class="fas fa-cash-register"></i></div>
-                <div class="text-muted small">مبيعات الكاش</div>
-                <div class="fw-bold fs-6 text-success mt-1">@totalCashSales.ToString("N3") <small>د.ك</small></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4">
-        <div class="card text-center border-0 shadow-sm h-100" style="border-right:4px solid #0ea5e9 !important;">
-            <div class="card-body p-3">
-                <div class="mb-1" style="font-size:24px; color:#0ea5e9;"><i class="fas fa-credit-card"></i></div>
-                <div class="text-muted small">مبيعات الكي نت</div>
-                <div class="text-muted" style="font-size:11px;">(خارج رصيد الكاش)</div>
-                <div class="fw-bold fs-6 mt-1" style="color:#0ea5e9;">@totalKNet.ToString("N3") <small>د.ك</small></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4">
-        <div class="card text-center border-0 shadow-sm h-100" style="border-right:4px solid #10b981 !important;">
-            <div class="card-body p-3">
-                <div class="mb-1" style="font-size:24px; color:#10b981;"><i class="fas fa-money-bill-wave"></i></div>
-                <div class="text-muted small">الإيداعات</div>
-                <div class="fw-bold fs-6 mt-1" style="color:#10b981;">@totalDeposits.ToString("N3") <small>د.ك</small></div>
-            </div>
-        </div>
-    </div>
-</div>
-
 @* رصيد الكاش الرئيسي *@
 <div class="card mb-4 border-2" style="border-color:@(cashBalance >= 0 ? "#1d4ed8" : "#dc2626") !important; background:@(cashBalance >= 0 ? "#eff6ff" : "#fff0f0");">
     <div class="card-body p-3">
@@ -200,7 +219,7 @@
                     <i class="fas fa-wallet me-2"></i>رصيد الكاش
                 </div>
                 <div class="text-muted" style="font-size:12px;">
-                    مبيعات كاش (@totalCashSales.ToString("N3")) + إيداعات (@totalDeposits.ToString("N3"))
+                    رصيد قبل الفترة (@openingBalance.ToString("N3")) + مبيعات كاش (@totalCashSales.ToString("N3")) + إيداعات (@totalDeposits.ToString("N3"))
                     − مصروفات نقدي (@totalCashExpenses.ToString("N3")) − سحوبات (@totalWithdrawals.ToString("N3"))
                 </div>
             </div>
@@ -344,6 +363,11 @@
                             decimal tRatib = Model.Where(i => i.Type == "راتب").Sum(i => i.Amount);
                             decimal tSahb = Model.Where(i => i.Type == "سحب").Sum(i => i.Amount);
                         }
+                        <tr>
+                            <td colspan="6" class="text-end text-muted">رصيد الكاش قبل الفترة</td>
+                            <td class="text-end" style="color:#475569;">@openingBalance.ToString("N3")</td>
+                            <td class="text-end" style="background:#eff6ff; color:#475569;">@openingBalance.ToString("N3")</td>
+                        </tr>
                         @if (tMasrouf > 0)
                         {
                             <tr>
@@ -407,7 +431,7 @@
                         }
                         <tr style="background:#eff6ff;">
                             <td colspan="6" class="text-end fw-bold" style="color:#1d4ed8;">
-                                <i class="fas fa-wallet me-1"></i> رصيد الكاش (كاش + إيداعات − مصروفات نقدي − سحوبات)
+                                <i class="fas fa-wallet me-1"></i> رصيد الكاش (رصيد قبل الفترة + كاش + إيداعات − مصروفات نقدي − سحوبات)
                             </td>
                             <td class="text-end fw-bold" style="color:@(cashBalance >= 0 ? "#1d4ed8" : "#dc2626"); font-size:1.05em;">
                                 @cashBalance.ToString("N3")

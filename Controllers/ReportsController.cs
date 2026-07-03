@@ -599,7 +599,43 @@ namespace Salon.Controllers
                     .OrderBy(s => s.CreatedAt)
                     .FirstOrDefaultAsync();
 
-                decimal runningBalance = firstDayShift?.OpeningBalance ?? 0;
+                // If this calendar month has no manually-recorded opening shift, don't reset the
+                // register to zero — carry the balance forward from the very first shift ever
+                // recorded, the same way the daily balance is carried forward day-to-day.
+                decimal runningBalance;
+                if (firstDayShift != null)
+                {
+                    runningBalance = firstDayShift.OpeningBalance;
+                }
+                else
+                {
+                    var firstShiftEver = await _context.Shifts
+                        .OrderBy(s => s.ShiftDate).ThenBy(s => s.CreatedAt)
+                        .FirstOrDefaultAsync();
+                    if (firstShiftEver != null && firstShiftEver.ShiftDate.Date < monthStart)
+                    {
+                        var priorBaseDate = firstShiftEver.ShiftDate.Date;
+                        var priorSales = await _context.Sales
+                            .Where(s => s.SaleDate >= priorBaseDate && s.SaleDate < monthStart && s.Status != "ملغي")
+                            .ToListAsync();
+                        decimal priorCash = priorSales.Sum(s =>
+                            cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                            mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+                        decimal priorDeposits = await _context.Deposits
+                            .Where(d => d.DepositDate >= priorBaseDate && d.DepositDate < monthStart).SumAsync(d => d.Amount);
+                        decimal priorExpenses = await _context.Expenses
+                            .Where(e => e.ExpenseDate >= priorBaseDate && e.ExpenseDate < monthStart).SumAsync(e => e.Amount);
+                        decimal priorAdvances = await _context.EmployeeAdvances
+                            .Where(a => a.AdvanceDate >= priorBaseDate && a.AdvanceDate < monthStart && a.Status != "معلق").SumAsync(a => a.Amount);
+                        decimal priorWithdrawals = await _context.Withdrawals
+                            .Where(w => w.WithdrawalDate >= priorBaseDate && w.WithdrawalDate < monthStart).SumAsync(w => w.Amount);
+                        runningBalance = firstShiftEver.OpeningBalance + priorCash + priorDeposits - priorExpenses - priorAdvances - priorWithdrawals;
+                    }
+                    else
+                    {
+                        runningBalance = firstShiftEver?.OpeningBalance ?? 0;
+                    }
+                }
 
                 var withdrawalEvents = new List<(DateTime Date, decimal Amount, string Type, string Notes)>();
                 foreach (var exp in monthExpenses)
@@ -711,6 +747,67 @@ namespace Salon.Controllers
             bool showKNetSales = string.IsNullOrEmpty(type) || type == "كي نت";
             bool showWithdrawals = string.IsNullOrEmpty(type) || type == "سحب";
             bool filterDept = !string.IsNullOrEmpty(dept);
+
+            // Cash balance that already existed in the register before "from" — carried forward
+            // from the very first recorded shift using the exact same cash/department rules this
+            // report already applies to its own [from, to) items, so the two stay self-consistent.
+            var firstShiftEver = await _context.Shifts
+                .OrderBy(s => s.ShiftDate).ThenBy(s => s.CreatedAt)
+                .FirstOrDefaultAsync();
+            bool hasHistoryBeforePeriod = firstShiftEver != null && firstShiftEver.ShiftDate.Date < dateFrom;
+            decimal openingBalanceBeforePeriod = 0m;
+            if (hasHistoryBeforePeriod)
+            {
+                DateTime priorBaseDate = firstShiftEver!.ShiftDate.Date;
+
+                var priorSalesQuery = _context.Sales
+                    .Where(s => s.SaleDate >= priorBaseDate && s.SaleDate < dateFrom && s.Status != "ملغي");
+                if (filterDept)
+                    priorSalesQuery = priorSalesQuery.Where(s => s.SaleType == dept);
+                var priorSales = await priorSalesQuery.ToListAsync();
+                decimal priorCashSales = priorSales.Sum(s =>
+                    s.PaymentMethod == "كاش" ? s.NetAmount :
+                    s.PaymentMethod == "كي نت و كاش" ? (s.CashAmount ?? 0) : 0m);
+
+                var priorDepositsQuery = _context.Deposits
+                    .Where(d => d.DepositDate >= priorBaseDate && d.DepositDate < dateFrom);
+                if (filterDept)
+                    priorDepositsQuery = priorDepositsQuery.Where(d => d.Department == dept);
+                decimal priorDeposits = await priorDepositsQuery.SumAsync(d => d.Amount);
+
+                var priorExpQuery = _context.Expenses
+                    .Where(e => e.ExpenseDate >= priorBaseDate && e.ExpenseDate < dateFrom && e.PaymentMethod == "نقدي");
+                if (filterDept)
+                    priorExpQuery = priorExpQuery.Where(e => e.Department == dept);
+                decimal priorExpenses = await priorExpQuery.SumAsync(e => e.Amount);
+
+                var priorAdvQuery = _context.EmployeeAdvances
+                    .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                    .Where(a => a.AdvanceDate >= priorBaseDate && a.AdvanceDate < dateFrom
+                             && (a.Status == "موافق عليها" || a.Status == "مسددة") && a.PaymentMethod == "نقدي");
+                if (filterDept)
+                    priorAdvQuery = priorAdvQuery.Where(a => a.Employee!.DepartmentNav!.Name == dept);
+                decimal priorAdvances = await priorAdvQuery.SumAsync(a => a.Amount);
+
+                var priorSalQuery = _context.Salaries
+                    .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
+                    .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= priorBaseDate && s.PaidDate.Value < dateFrom && s.PaymentMethod == "نقدي");
+                if (filterDept)
+                    priorSalQuery = priorSalQuery.Where(s => s.Employee!.DepartmentNav!.Name == dept);
+                decimal priorSalaries = await priorSalQuery.SumAsync(s => s.NetSalary);
+
+                var priorWithdrawalsQuery = _context.Withdrawals
+                    .Where(w => w.WithdrawalDate >= priorBaseDate && w.WithdrawalDate < dateFrom);
+                if (filterDept)
+                    priorWithdrawalsQuery = priorWithdrawalsQuery.Where(w => w.Department == dept);
+                decimal priorWithdrawals = await priorWithdrawalsQuery.SumAsync(w => w.Amount);
+
+                // The physical cash count on the first shift has no per-department split, so it
+                // only applies to the unfiltered (whole-safe) view — same rule as BarberDaily/Index.
+                decimal baseBalance = filterDept ? 0m : firstShiftEver.OpeningBalance;
+                decimal priorCashExpenses = priorExpenses + priorAdvances + priorSalaries;
+                openingBalanceBeforePeriod = baseBalance + priorCashSales + priorDeposits - priorCashExpenses - priorWithdrawals;
+            }
 
             if (showExpenses)
             {
@@ -905,13 +1002,14 @@ namespace Salon.Controllers
             ViewBag.TotalExpenses = totalExp;
             ViewBag.TotalCashExpenses = totalCashExp;
             ViewBag.TotalNonCashExpenses = totalExp - totalCashExp;
+            ViewBag.OpeningBalance = openingBalanceBeforePeriod;
             ViewBag.TotalDeposits = totalDep;
             ViewBag.TotalCashSales = totalCashSales;
             ViewBag.TotalKNet = totalKNet;
             ViewBag.TotalSales = totalCashSales + totalKNet;
             ViewBag.TotalWithdrawals = totalWithdrawals;
-            // رصيد الكاش = مبيعات كاش + إيداعات - مصروفات نقدية - سحوبات (الكي نت + المصروفات غير النقدية خارج الحساب)
-            ViewBag.CashBalance = totalCashSales + totalDep - totalCashExp - totalWithdrawals;
+            // رصيد الكاش = رصيد قبل الفترة + مبيعات كاش + إيداعات - مصروفات نقدية - سحوبات (الكي نت + المصروفات غير النقدية خارج الحساب)
+            ViewBag.CashBalance = openingBalanceBeforePeriod + totalCashSales + totalDep - totalCashExp - totalWithdrawals;
             ViewBag.NetBalance = ViewBag.CashBalance;
 
             return View(items);

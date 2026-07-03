@@ -93,40 +93,107 @@ namespace Salon.Controllers
 
             var advances = await advancesQuery.OrderBy(a => a.Id).ToListAsync();
 
-            var deposits = await _context.Deposits
-                .Where(d => d.DepositDate >= today && d.DepositDate < tomorrow)
-                .ToListAsync();
+            var salariesQuery = _context.Salaries
+                .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= today && s.PaidDate.Value < tomorrow);
+            salariesQuery = isEmployee
+                ? salariesQuery.Where(s => s.EmployeeId == (linkedEmpId ?? -1))
+                : salariesQuery.Where(s => employeeIds.Contains(s.EmployeeId));
+            var todaySalaries = await salariesQuery.ToListAsync();
 
-            var withdrawals = await _context.Withdrawals
-                .Where(w => w.WithdrawalDate >= today && w.WithdrawalDate < tomorrow)
-                .ToListAsync();
+            // Deposits/withdrawals tagged with a department belong to that department's own
+            // cash share; untagged ones are shared and only surface in the unfiltered (no dept) view.
+            var depositsQuery = _context.Deposits
+                .Where(d => d.DepositDate >= today && d.DepositDate < tomorrow);
+            if (filterDept == "حلاقة" || filterDept == "مساج")
+                depositsQuery = depositsQuery.Where(d => d.Department == filterDept);
+            var deposits = await depositsQuery.ToListAsync();
+
+            var withdrawalsQuery = _context.Withdrawals
+                .Where(w => w.WithdrawalDate >= today && w.WithdrawalDate < tomorrow);
+            if (filterDept == "حلاقة" || filterDept == "مساج")
+                withdrawalsQuery = withdrawalsQuery.Where(w => w.Department == filterDept);
+            var withdrawals = await withdrawalsQuery.ToListAsync();
 
             var shift = await _context.Shifts
                 .Where(s => s.ShiftDate >= today && s.ShiftDate < tomorrow)
                 .OrderByDescending(s => s.CreatedAt)
                 .FirstOrDefaultAsync();
 
-            var monthStart = new DateTime(today.Year, today.Month, 1);
-            var firstDayShift = await _context.Shifts
-                .Where(s => s.ShiftDate >= monthStart && s.ShiftDate < monthStart.AddDays(1))
-                .OrderByDescending(s => s.CreatedAt).FirstOrDefaultAsync();
-            decimal baseBalance = firstDayShift?.OpeningBalance ?? shift?.OpeningBalance ?? 0;
+            // Carry the cash balance forward continuously from the very first recorded shift
+            // instead of resetting it to zero at the start of every calendar month. Every
+            // component below is scoped by filterDept using the exact same rules as the
+            // "today" queries above, so a department's opening balance stays its own running
+            // share of the safe (matching Reports/CashMovement) rather than the whole register.
+            var firstShiftEver = await _context.Shifts
+                .OrderBy(s => s.ShiftDate).ThenBy(s => s.CreatedAt)
+                .FirstOrDefaultAsync();
+            bool hasBaseline = firstShiftEver != null && firstShiftEver.ShiftDate.Date <= today;
+            DateTime baseDate = hasBaseline ? firstShiftEver!.ShiftDate.Date : today;
 
-            var prevSales = await _context.Sales
-                .Where(s => s.SaleDate >= monthStart && s.SaleDate < today && s.Status != "ملغي")
-                .ToListAsync();
+            // Shift.OpeningBalance is a manual physical cash count of the whole shared safe — it
+            // has no per-department split. Only fold it in for the unfiltered (whole-safe) view;
+            // a department/employee-scoped balance should be that scope's own running share only.
+            bool isScoped = isEmployee || filterDept == "حلاقة" || filterDept == "مساج";
+            decimal baseBalance = isScoped
+                ? 0
+                : (hasBaseline ? firstShiftEver!.OpeningBalance : (shift?.OpeningBalance ?? 0));
+
+            // Must mirror staffSales' scope exactly — including its unconditional exclusion of
+            // "منتجات" sales — since that's what today's CashRevenue is built from. Otherwise a
+            // day's opening balance won't equal the previous day's closing balance.
+            var prevSalesQuery = _context.Sales
+                .Where(s => s.SaleDate >= baseDate && s.SaleDate < today && s.Status != "ملغي"
+                         && (s.SaleType == "حلاقة" || s.SaleType == "مساج"));
+            if (isEmployee)
+                prevSalesQuery = prevSalesQuery.Where(s => s.EmployeeId == (linkedEmpId ?? -1));
+            else if (filterDept == "حلاقة")
+                prevSalesQuery = prevSalesQuery.Where(s => s.SaleType == "حلاقة");
+            else if (filterDept == "مساج")
+                prevSalesQuery = prevSalesQuery.Where(s => s.SaleType == "مساج");
+            var prevSales = await prevSalesQuery.ToListAsync();
             decimal prevCash = prevSales.Sum(s =>
                 cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
                 mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
-            decimal prevDeposits = await _context.Deposits
-                .Where(d => d.DepositDate >= monthStart && d.DepositDate < today).SumAsync(d => d.Amount);
-            decimal prevExpenses = await _context.Expenses
-                .Where(e => e.ExpenseDate >= monthStart && e.ExpenseDate < today).SumAsync(e => e.Amount);
-            decimal prevAdvances = await _context.EmployeeAdvances
-                .Where(a => a.AdvanceDate >= monthStart && a.AdvanceDate < today && a.Status != "معلق").SumAsync(a => a.Amount);
-            decimal prevWithdrawals = await _context.Withdrawals
-                .Where(w => w.WithdrawalDate >= monthStart && w.WithdrawalDate < today).SumAsync(w => w.Amount);
-            decimal openingBalance = baseBalance + prevCash + prevDeposits - prevExpenses - prevAdvances - prevWithdrawals;
+
+            var prevDepositsQuery = _context.Deposits
+                .Where(d => d.DepositDate >= baseDate && d.DepositDate < today);
+            if (filterDept == "حلاقة" || filterDept == "مساج")
+                prevDepositsQuery = prevDepositsQuery.Where(d => d.Department == filterDept);
+            decimal prevDeposits = await prevDepositsQuery.SumAsync(d => d.Amount);
+
+            // Only cash-paid expenses/advances actually leave the physical register — ones paid
+            // by card or bank transfer never touched the cash box, so they must not reduce it.
+            var prevExpensesQuery = _context.Expenses
+                .Where(e => e.ExpenseDate >= baseDate && e.ExpenseDate < today && e.PaymentMethod == "نقدي");
+            if (filterDept == "حلاقة")
+                prevExpensesQuery = prevExpensesQuery.Where(e => e.Department == "حلاقة" || e.Department == null || e.Department == "");
+            else if (filterDept == "مساج")
+                prevExpensesQuery = prevExpensesQuery.Where(e => e.Department == "مساج" || e.Department == null || e.Department == "");
+            decimal prevExpenses = await prevExpensesQuery.SumAsync(e => e.Amount);
+
+            var prevAdvancesQuery = _context.EmployeeAdvances
+                .Where(a => a.AdvanceDate >= baseDate && a.AdvanceDate < today && a.Status != "معلق" && a.PaymentMethod == "نقدي");
+            prevAdvancesQuery = isEmployee
+                ? prevAdvancesQuery.Where(a => a.EmployeeId == (linkedEmpId ?? -1))
+                : prevAdvancesQuery.Where(a => employeeIds.Contains(a.EmployeeId));
+            decimal prevAdvances = await prevAdvancesQuery.SumAsync(a => a.Amount);
+
+            // Salaries paid in cash reduce the register too — Reports/CashMovement folds these
+            // into the same "cash expenses" deduction alongside مصروف/سلفة.
+            var prevSalariesQuery = _context.Salaries
+                .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= baseDate && s.PaidDate.Value < today && s.PaymentMethod == "نقدي");
+            prevSalariesQuery = isEmployee
+                ? prevSalariesQuery.Where(s => s.EmployeeId == (linkedEmpId ?? -1))
+                : prevSalariesQuery.Where(s => employeeIds.Contains(s.EmployeeId));
+            decimal prevSalaries = await prevSalariesQuery.SumAsync(s => s.NetSalary);
+
+            var prevWithdrawalsQuery = _context.Withdrawals
+                .Where(w => w.WithdrawalDate >= baseDate && w.WithdrawalDate < today);
+            if (filterDept == "حلاقة" || filterDept == "مساج")
+                prevWithdrawalsQuery = prevWithdrawalsQuery.Where(w => w.Department == filterDept);
+            decimal prevWithdrawals = await prevWithdrawalsQuery.SumAsync(w => w.Amount);
+
+            decimal openingBalance = baseBalance + prevCash + prevDeposits - prevExpenses - prevAdvances - prevSalaries - prevWithdrawals;
 
             decimal totalSales = staffSales.Sum(s => s.NetAmount);
             decimal cashRevenue = staffSales.Sum(s =>
@@ -144,6 +211,9 @@ namespace Salon.Controllers
             decimal tipsDelivered = allSales.Sum(s => s.EmployeeGift ?? 0);
             decimal totalDiscount = staffSales.Sum(s => s.Discount);
             decimal totalExpenses = expenses.Sum(e => e.Amount);
+            decimal cashExpenses = expenses.Where(e => e.PaymentMethod == "نقدي").Sum(e => e.Amount);
+            decimal cashAdvances = advances.Where(a => a.PaymentMethod == "نقدي").Sum(a => a.Amount);
+            decimal cashSalaries = todaySalaries.Where(s => s.PaymentMethod == "نقدي").Sum(s => s.NetSalary);
 
             var expensesByCategory = expenses
                 .GroupBy(e => string.IsNullOrEmpty(e.Category) ? "أخرى" : e.Category)
@@ -226,6 +296,9 @@ namespace Salon.Controllers
                 TotalExpensesAmount = totalExpenses,
                 TotalAdvancesAmount = advances.Sum(a => a.Amount),
                 TotalWithdrawals = withdrawals.Sum(w => w.Amount),
+                CashExpensesAmount = cashExpenses,
+                CashAdvancesAmount = cashAdvances,
+                CashSalariesAmount = cashSalaries,
 
                 ExpenseCount = expenses.Count,
                 MaxExpense = expenses.Any() ? expenses.Max(e => e.Amount) : 0,
