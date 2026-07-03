@@ -93,6 +93,13 @@ namespace Salon.Controllers
 
             var advances = await advancesQuery.OrderBy(a => a.Id).ToListAsync();
 
+            var salariesQuery = _context.Salaries
+                .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= today && s.PaidDate.Value < tomorrow);
+            salariesQuery = isEmployee
+                ? salariesQuery.Where(s => s.EmployeeId == (linkedEmpId ?? -1))
+                : salariesQuery.Where(s => employeeIds.Contains(s.EmployeeId));
+            var todaySalaries = await salariesQuery.ToListAsync();
+
             // Deposits/withdrawals tagged with a department belong to that department's own
             // cash share; untagged ones are shared and only surface in the unfiltered (no dept) view.
             var depositsQuery = _context.Deposits
@@ -171,13 +178,22 @@ namespace Salon.Controllers
                 : prevAdvancesQuery.Where(a => employeeIds.Contains(a.EmployeeId));
             decimal prevAdvances = await prevAdvancesQuery.SumAsync(a => a.Amount);
 
+            // Salaries paid in cash reduce the register too — Reports/CashMovement folds these
+            // into the same "cash expenses" deduction alongside مصروف/سلفة.
+            var prevSalariesQuery = _context.Salaries
+                .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= baseDate && s.PaidDate.Value < today && s.PaymentMethod == "نقدي");
+            prevSalariesQuery = isEmployee
+                ? prevSalariesQuery.Where(s => s.EmployeeId == (linkedEmpId ?? -1))
+                : prevSalariesQuery.Where(s => employeeIds.Contains(s.EmployeeId));
+            decimal prevSalaries = await prevSalariesQuery.SumAsync(s => s.NetSalary);
+
             var prevWithdrawalsQuery = _context.Withdrawals
                 .Where(w => w.WithdrawalDate >= baseDate && w.WithdrawalDate < today);
             if (filterDept == "حلاقة" || filterDept == "مساج")
                 prevWithdrawalsQuery = prevWithdrawalsQuery.Where(w => w.Department == filterDept);
             decimal prevWithdrawals = await prevWithdrawalsQuery.SumAsync(w => w.Amount);
 
-            decimal openingBalance = baseBalance + prevCash + prevDeposits - prevExpenses - prevAdvances - prevWithdrawals;
+            decimal openingBalance = baseBalance + prevCash + prevDeposits - prevExpenses - prevAdvances - prevSalaries - prevWithdrawals;
 
             decimal totalSales = staffSales.Sum(s => s.NetAmount);
             decimal cashRevenue = staffSales.Sum(s =>
@@ -197,6 +213,7 @@ namespace Salon.Controllers
             decimal totalExpenses = expenses.Sum(e => e.Amount);
             decimal cashExpenses = expenses.Where(e => e.PaymentMethod == "نقدي").Sum(e => e.Amount);
             decimal cashAdvances = advances.Where(a => a.PaymentMethod == "نقدي").Sum(a => a.Amount);
+            decimal cashSalaries = todaySalaries.Where(s => s.PaymentMethod == "نقدي").Sum(s => s.NetSalary);
 
             var expensesByCategory = expenses
                 .GroupBy(e => string.IsNullOrEmpty(e.Category) ? "أخرى" : e.Category)
@@ -281,6 +298,7 @@ namespace Salon.Controllers
                 TotalWithdrawals = withdrawals.Sum(w => w.Amount),
                 CashExpensesAmount = cashExpenses,
                 CashAdvancesAmount = cashAdvances,
+                CashSalariesAmount = cashSalaries,
 
                 ExpenseCount = expenses.Count,
                 MaxExpense = expenses.Any() ? expenses.Max(e => e.Amount) : 0,

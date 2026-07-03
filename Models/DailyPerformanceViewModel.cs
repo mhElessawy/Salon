@@ -52,12 +52,13 @@
         public decimal TotalExpensesAmount { get; set; }
         public decimal TotalAdvancesAmount { get; set; }
         public decimal TotalWithdrawals { get; set; }
-        // Only cash-paid expenses/advances actually leave the physical register — expenses or
-        // advances paid by card/transfer must not reduce the cash balance.
+        // Only cash-paid expenses/advances/salaries actually leave the physical register — ones
+        // paid by card/transfer must not reduce the cash balance.
         public decimal CashExpensesAmount { get; set; }
         public decimal CashAdvancesAmount { get; set; }
+        public decimal CashSalariesAmount { get; set; }
         public decimal CurrentCashBalance => OpeningBalance + CashRevenue + TotalDeposits
-                                             - CashExpensesAmount - CashAdvancesAmount - TotalWithdrawals;
+                                             - CashExpensesAmount - CashAdvancesAmount - CashSalariesAmount - TotalWithdrawals;
 
         // Expenses analytics
         public int ExpenseCount { get; set; }
