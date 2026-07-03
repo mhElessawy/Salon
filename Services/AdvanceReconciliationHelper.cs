@@ -34,5 +34,33 @@ namespace Salon.Services
                 }
             }
         }
+
+        // يعكس أثر ReconcileAsync عند حذف راتب كان قد خصم من سلفة الموظف - يبدأ بأحدث سلفة
+        // اتخصم منها (حسب تاريخ السداد) باعتبارها الأرجح أنها تأثرت بالراتب المحذوف
+        public static async Task UnreconcileAsync(ApplicationDbContext context, int employeeId, decimal amountToReverse)
+        {
+            if (amountToReverse <= 0) return;
+
+            var advances = await context.EmployeeAdvances
+                .Where(a => a.EmployeeId == employeeId && a.DeductedAmount > 0)
+                .OrderByDescending(a => a.PaidDate ?? a.AdvanceDate)
+                .ToListAsync();
+
+            decimal remaining = amountToReverse;
+            foreach (var advance in advances)
+            {
+                if (remaining <= 0) break;
+
+                decimal reduceBy = Math.Min(advance.DeductedAmount, remaining);
+                advance.DeductedAmount -= reduceBy;
+                remaining -= reduceBy;
+
+                if (advance.DeductedAmount < advance.Amount)
+                {
+                    advance.Status = "موافق عليها";
+                    advance.PaidDate = null;
+                }
+            }
+        }
     }
 }
