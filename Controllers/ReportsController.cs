@@ -599,7 +599,43 @@ namespace Salon.Controllers
                     .OrderBy(s => s.CreatedAt)
                     .FirstOrDefaultAsync();
 
-                decimal runningBalance = firstDayShift?.OpeningBalance ?? 0;
+                // If this calendar month has no manually-recorded opening shift, don't reset the
+                // register to zero — carry the balance forward from the very first shift ever
+                // recorded, the same way the daily balance is carried forward day-to-day.
+                decimal runningBalance;
+                if (firstDayShift != null)
+                {
+                    runningBalance = firstDayShift.OpeningBalance;
+                }
+                else
+                {
+                    var firstShiftEver = await _context.Shifts
+                        .OrderBy(s => s.ShiftDate).ThenBy(s => s.CreatedAt)
+                        .FirstOrDefaultAsync();
+                    if (firstShiftEver != null && firstShiftEver.ShiftDate.Date < monthStart)
+                    {
+                        var priorBaseDate = firstShiftEver.ShiftDate.Date;
+                        var priorSales = await _context.Sales
+                            .Where(s => s.SaleDate >= priorBaseDate && s.SaleDate < monthStart && s.Status != "ملغي")
+                            .ToListAsync();
+                        decimal priorCash = priorSales.Sum(s =>
+                            cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                            mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
+                        decimal priorDeposits = await _context.Deposits
+                            .Where(d => d.DepositDate >= priorBaseDate && d.DepositDate < monthStart).SumAsync(d => d.Amount);
+                        decimal priorExpenses = await _context.Expenses
+                            .Where(e => e.ExpenseDate >= priorBaseDate && e.ExpenseDate < monthStart).SumAsync(e => e.Amount);
+                        decimal priorAdvances = await _context.EmployeeAdvances
+                            .Where(a => a.AdvanceDate >= priorBaseDate && a.AdvanceDate < monthStart && a.Status != "معلق").SumAsync(a => a.Amount);
+                        decimal priorWithdrawals = await _context.Withdrawals
+                            .Where(w => w.WithdrawalDate >= priorBaseDate && w.WithdrawalDate < monthStart).SumAsync(w => w.Amount);
+                        runningBalance = firstShiftEver.OpeningBalance + priorCash + priorDeposits - priorExpenses - priorAdvances - priorWithdrawals;
+                    }
+                    else
+                    {
+                        runningBalance = firstShiftEver?.OpeningBalance ?? 0;
+                    }
+                }
 
                 var withdrawalEvents = new List<(DateTime Date, decimal Amount, string Type, string Notes)>();
                 foreach (var exp in monthExpenses)
