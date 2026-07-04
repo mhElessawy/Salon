@@ -143,6 +143,17 @@
                         }
                     </select>
                 }
+                @if (ViewBag.Users != null)
+                {
+                    var filterUserId = ViewBag.FilterCreatedByUserId as string;
+                    <select name="createdByUserId" class="form-select" style="max-width:150px;">
+                        <option value="">كل المستخدمين</option>
+                        @foreach (var u in (IEnumerable<dynamic>)ViewBag.Users)
+                        {
+                            <option value="@u.Id" selected="@(filterUserId == (string)u.Id ? "selected" : null)">@u.FullName</option>
+                        }
+                    </select>
+                }
                 <input type="text" name="customerName" value="@ViewBag.FilterCustomer" class="form-control" style="max-width:140px;" placeholder="اسم العميل..." />
                 <input type="text" name="invoiceNumber2" value="@ViewBag.InvoiceNumber" class="form-control" style="max-width:130px;" placeholder="رقم الفاتورة..." />
                 <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> بحث</button>
@@ -162,6 +173,7 @@
                         <th><span data-i18n-en="Type">النوع</span></th>
                         <th><span data-i18n-en="Customer">العميل</span></th>
                         <th><span data-i18n-en="Employee">الموظف</span></th>
+                        <th><span data-i18n-en="User">المستخدم</span></th>
                         <th><span data-i18n-en="Date">التاريخ</span></th>
                         <th><span data-i18n-en="Net">الصافي</span></th>
                         <th><span data-i18n-en="Gift">هدية للموظف</span></th>
@@ -174,7 +186,7 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="11" class="text-center text-muted py-4">لا توجد فواتير في هذا اليوم</td></tr>
+                        <tr><td colspan="12" class="text-center text-muted py-4">لا توجد فواتير في هذا اليوم</td></tr>
                     }
                     @foreach (var s in Model)
                     {
@@ -196,6 +208,7 @@
                             </td>
                             <td>@(s.Customer?.FullName ?? "زائر")</td>
                             <td>@(s.Employee?.FullName ?? "-")</td>
+                            <td>@(s.CreatedByUserName ?? "-")</td>
                             <td>
                                 <div>@s.SaleDate.ToString("yyyy/MM/dd")</div>
                                 <div class="text-muted small">@s.SaleDate.ToString("hh:mm tt")</div>

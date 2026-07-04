@@ -81,6 +81,12 @@ namespace Salon.Models
         [DataType(DataType.Currency)]
         public decimal? ChangeAmount { get; set; }
 
+        [Display(Name = "المستخدم")]
+        public string? CreatedByUserId { get; set; }
+
+        [Display(Name = "المستخدم")]
+        public string? CreatedByUserName { get; set; }
+
         public ICollection<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
     }
 

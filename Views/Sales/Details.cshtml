@@ -22,6 +22,7 @@
                 <table class="table table-borderless mb-0">
                     <tr><th>العميل:</th><td>@(Model.Customer?.FullName ?? "زائر")</td></tr>
                     <tr><th>الموظف:</th><td>@(Model.Employee?.FullName ?? "-")</td></tr>
+                    <tr><th>المستخدم:</th><td>@(Model.CreatedByUserName ?? "-")</td></tr>
                     <tr>
                         <th>طريقة الدفع:</th>
                         <td>
