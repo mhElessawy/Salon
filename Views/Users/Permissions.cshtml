@@ -195,11 +195,13 @@ else
                 {
                     var hasAdd = AppModules.HasAdd.Contains(mod.Key);
                     var hasDelete = AppModules.HasDelete.Contains(mod.Key);
-                    var hasActions = hasAdd || hasDelete;
+                    var hasMyOnly = AppModules.HasMyOnly.Contains(mod.Key);
+                    var hasActions = hasAdd || hasDelete || hasMyOnly;
 
                     var viewOn = HasPerm(mod.Key);
                     var addOn = HasPerm(mod.Key + "Add");
                     var deleteOn = HasPerm(mod.Key + "Delete");
+                    var myOnlyOn = HasPerm(mod.Key + "MyOnly");
 
                     <div class="perm-row" data-group="@group.Key">
                         <div class="perm-label">
@@ -271,6 +273,23 @@ else
                                         </span>
                                     </div>
                                 }
+
+                                @if (hasMyOnly)
+                                {
+                                    <!-- عملائي فقط -->
+                                    <div class="perm-action-item">
+                                        <span class="perm-action-label" style="background:#fff3cd;color:#856404;"><i class="fas fa-user me-1"></i>عملائي</span>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input perm-toggle myonly-toggle" type="checkbox"
+                                                   name="allowedModules" value="@(mod.Key)MyOnly"
+                                                   id="perm_@(mod.Key)MyOnly" @(myOnlyOn ? "checked" : "") />
+                                        </div>
+                                        <span class="perm-action-status" id="label_@(mod.Key)MyOnly"
+                                              style="color:@(myOnlyOn ? "#856404" : "#adb5bd")">
+                                            @(myOnlyOn ? "مسموح" : "محظور")
+                                        </span>
+                                    </div>
+                                }
                             </div>
                         }
                     </div>
@@ -296,9 +315,10 @@ else
                 if (!label) return;
                 const isAdd    = this.classList.contains('add-toggle');
                 const isDelete = this.classList.contains('delete-toggle');
+                const isMyOnly = this.classList.contains('myonly-toggle');
                 label.textContent = this.checked ? (_isEn() ? 'Allowed' : 'مسموح') : (_isEn() ? 'Denied' : 'محظور');
                 if (this.checked) {
-                    label.style.color = isDelete ? '#c0392b' : isAdd ? '#1e7e34' : 'var(--primary)';
+                    label.style.color = isDelete ? '#c0392b' : isAdd ? '#1e7e34' : isMyOnly ? '#856404' : 'var(--primary)';
                 } else {
                     label.style.color = '#adb5bd';
                 }
@@ -319,9 +339,10 @@ else
             if (!label) return;
             const isAdd    = cb.classList.contains('add-toggle');
             const isDelete = cb.classList.contains('delete-toggle');
+            const isMyOnly = cb.classList.contains('myonly-toggle');
             label.textContent = val ? (_isEn() ? 'Allowed' : 'مسموح') : (_isEn() ? 'Denied' : 'محظور');
             label.style.color = val
-                ? (isDelete ? '#c0392b' : isAdd ? '#1e7e34' : 'var(--primary)')
+                ? (isDelete ? '#c0392b' : isAdd ? '#1e7e34' : isMyOnly ? '#856404' : 'var(--primary)')
                 : '#adb5bd';
         }
     </script>
