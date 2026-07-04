@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "المصروفات";
     var userDept = ViewBag.UserDept as string;
+    var selectedDept = ViewBag.Department as string;
     string deptLabel = userDept == "حلاقة" ? " - الحلاقة" :
                        userDept == "مساج" ? " - المساج" : "";
 }
@@ -23,6 +24,19 @@
             <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:200px;" />
             <label class="form-label mb-0">إلى تاريخ:</label>
             <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:200px;" />
+            <label class="form-label mb-0">القسم:</label>
+            <select name="department" class="form-select" style="max-width:180px;">
+                <option value="">الكل</option>
+                @if (string.IsNullOrEmpty(userDept) || userDept == "حلاقة")
+                {
+                    <option value="حلاقة" selected="@(selectedDept == "حلاقة")">حلاقة</option>
+                }
+                @if (string.IsNullOrEmpty(userDept) || userDept == "مساج")
+                {
+                    <option value="مساج" selected="@(selectedDept == "مساج")">مساج</option>
+                }
+                <option value="مشترك" selected="@(selectedDept == "مشترك")">مشترك</option>
+            </select>
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
         </form>
     </div>
@@ -37,10 +51,7 @@
                         <th>#</th>
                         <th>البيان</th>
                         <th>الفئة</th>
-                        @if (string.IsNullOrEmpty(userDept))
-                        {
-                            <th>القسم</th>
-                        }
+                        <th>القسم</th>
                         <th>المبلغ</th>
                         <th>طريقة الدفع</th>
                         <th>التاريخ</th>
@@ -50,7 +61,7 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="@(string.IsNullOrEmpty(userDept) ? 8 : 7)" class="text-center text-muted py-4">لا توجد مصروفات في هذه الفترة</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted py-4">لا توجد مصروفات في هذه الفترة</td></tr>
                     }
                     @foreach (var e in Model)
                     {
@@ -58,23 +69,20 @@
                             <td>@e.Id</td>
                             <td>@e.Description</td>
                             <td>@(e.Category ?? "-")</td>
-                            @if (string.IsNullOrEmpty(userDept))
-                            {
-                                <td>
-                                    @if (e.Department == "حلاقة")
-                                    {
-                                        <span class="badge" style="background:#3b82f6;">حلاقة</span>
-                                    }
-                                    else if (e.Department == "مساج")
-                                    {
-                                        <span class="badge" style="background:#8b5cf6;">مساج</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary">مشترك</span>
-                                    }
-                                </td>
-                            }
+                            <td>
+                                @if (e.Department == "حلاقة")
+                                {
+                                    <span class="badge" style="background:#3b82f6;">حلاقة</span>
+                                }
+                                else if (e.Department == "مساج")
+                                {
+                                    <span class="badge" style="background:#8b5cf6;">مساج</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">مشترك</span>
+                                }
+                            </td>
                             <td><strong>@e.Amount.ToString("N3") د.ك</strong></td>
                             <td>@e.PaymentMethod</td>
                             <td>@e.ExpenseDate.ToString("yyyy/MM/dd")</td>
