@@ -52,6 +52,8 @@ namespace Salon.Controllers
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.ToString("yyyy-MM-dd");
             ViewBag.Total = expenses.Sum(e => e.Amount);
+            ViewBag.TotalBarber = expenses.Where(e => e.Department == "حلاقة").Sum(e => e.Amount);
+            ViewBag.TotalMassage = expenses.Where(e => e.Department == "مساج").Sum(e => e.Amount);
             ViewBag.UserDept = userDept;
             ViewBag.Department = department;
             return View(expenses);
