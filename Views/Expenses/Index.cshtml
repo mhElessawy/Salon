@@ -3,6 +3,7 @@
     ViewData["Title"] = "المصروفات";
     var userDept = ViewBag.UserDept as string;
     var selectedDept = ViewBag.Department as string;
+    var selectedPayment = ViewBag.PaymentMethod as string;
     bool seesAllDepts = userDept != "حلاقة" && userDept != "مساج";
     string deptLabel = userDept == "حلاقة" ? " - الحلاقة" :
                        userDept == "مساج" ? " - المساج" : "";
@@ -63,6 +64,13 @@
                 {
                     <option value="مساج" selected="@(selectedDept == "مساج")">مساج</option>
                 }
+            </select>
+            <label class="form-label mb-0">طريقة الدفع:</label>
+            <select name="paymentMethod" class="form-select" style="max-width:180px;">
+                <option value="">الكل</option>
+                <option value="نقدي" selected="@(selectedPayment == "نقدي")">نقدي</option>
+                <option value="بطاقة" selected="@(selectedPayment == "بطاقة")">بطاقة</option>
+                <option value="تحويل بنكي" selected="@(selectedPayment == "تحويل بنكي")">تحويل بنكي</option>
             </select>
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
         </form>

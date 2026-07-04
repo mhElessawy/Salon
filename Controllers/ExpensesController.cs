@@ -22,7 +22,7 @@ namespace Salon.Controllers
             _audit = audit;
         }
 
-        public async Task<IActionResult> Index(string? from, string? to, string? department)
+        public async Task<IActionResult> Index(string? from, string? to, string? department, string? paymentMethod)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? DateTime.Today : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today : DateTime.Parse(to);
@@ -45,6 +45,10 @@ namespace Salon.Controllers
             if (department == "حلاقة" || department == "مساج")
                 query = query.Where(e => e.Department == department);
 
+            // فلترة حسب طريقة الدفع
+            if (!string.IsNullOrEmpty(paymentMethod))
+                query = query.Where(e => e.PaymentMethod == paymentMethod);
+
             var expenses = await query
                 .OrderByDescending(e => e.CreatedAt)
                 .ToListAsync();
@@ -56,6 +60,7 @@ namespace Salon.Controllers
             ViewBag.TotalMassage = expenses.Where(e => e.Department == "مساج").Sum(e => e.Amount);
             ViewBag.UserDept = userDept;
             ViewBag.Department = department;
+            ViewBag.PaymentMethod = paymentMethod;
             return View(expenses);
         }
 
