@@ -322,6 +322,12 @@ else
                 } else {
                     label.style.color = '#adb5bd';
                 }
+
+                // "عملائي فقط" تفترض إتاحة المشاهدة أصلاً
+                if (isMyOnly && this.checked) {
+                    const viewCb = this.closest('.perm-row').querySelector('.view-toggle');
+                    if (viewCb && !viewCb.checked) updateToggle(viewCb, true);
+                }
             });
         });
 
