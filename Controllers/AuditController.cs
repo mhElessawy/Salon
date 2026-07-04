@@ -25,6 +25,7 @@ namespace Salon.Controllers
             string? userName,
             string? module,
             string? actionFilter,
+            string? description,
             DateTime? dateFrom,
             DateTime? dateTo,
             int page = 1)
@@ -63,6 +64,9 @@ namespace Salon.Controllers
             if (!string.IsNullOrEmpty(actionFilter))
                 query = query.Where(l => l.Action == actionFilter);
 
+            if (!string.IsNullOrEmpty(description))
+                query = query.Where(l => l.Description != null && l.Description.Contains(description));
+
             if (dateFrom.HasValue)
                 query = query.Where(l => l.CreatedAt >= dateFrom.Value);
 
@@ -81,6 +85,7 @@ namespace Salon.Controllers
             ViewBag.UserName = ViewBag.SelectedUserName ?? userName;
             ViewBag.Module = module;
             ViewBag.Action = actionFilter;
+            ViewBag.Description = description;
             ViewBag.DateFrom = dateFrom?.ToString("yyyy-MM-dd");
             ViewBag.DateTo = dateTo?.ToString("yyyy-MM-dd");
             ViewBag.Page = page;
