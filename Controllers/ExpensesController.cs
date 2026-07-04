@@ -22,7 +22,7 @@ namespace Salon.Controllers
             _audit = audit;
         }
 
-        public async Task<IActionResult> Index(string? from, string? to)
+        public async Task<IActionResult> Index(string? from, string? to, string? department, string? paymentMethod)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? DateTime.Today : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today : DateTime.Parse(to);
@@ -41,6 +41,14 @@ namespace Salon.Controllers
                 query = query.Where(e => e.Department == "مساج" || e.Department == null);
             // الأدمن يرى الكل
 
+            // فلترة حسب القسم المختار
+            if (department == "حلاقة" || department == "مساج")
+                query = query.Where(e => e.Department == department);
+
+            // فلترة حسب طريقة الدفع
+            if (!string.IsNullOrEmpty(paymentMethod))
+                query = query.Where(e => e.PaymentMethod == paymentMethod);
+
             var expenses = await query
                 .OrderByDescending(e => e.CreatedAt)
                 .ToListAsync();
@@ -48,7 +56,11 @@ namespace Salon.Controllers
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.ToString("yyyy-MM-dd");
             ViewBag.Total = expenses.Sum(e => e.Amount);
+            ViewBag.TotalBarber = expenses.Where(e => e.Department == "حلاقة").Sum(e => e.Amount);
+            ViewBag.TotalMassage = expenses.Where(e => e.Department == "مساج").Sum(e => e.Amount);
             ViewBag.UserDept = userDept;
+            ViewBag.Department = department;
+            ViewBag.PaymentMethod = paymentMethod;
             return View(expenses);
         }
 

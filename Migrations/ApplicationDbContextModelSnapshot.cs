@@ -872,6 +872,12 @@ namespace Salon.Migrations
 
                 b.Property<string>("KnetReceiptNumber");
 
+                b.Property<string>("CreatedByUserId")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("CreatedByUserName")
+                    .HasColumnType("nvarchar(max)");
+
                 b.HasKey("Id");
 
                 b.HasIndex("CustomerId");

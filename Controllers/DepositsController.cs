@@ -22,16 +22,17 @@ namespace Salon.Controllers
             _userManager = userManager;
         }
 
-        public async Task<IActionResult> Index(string? date, string? department)
+        public async Task<IActionResult> Index(string? from, string? to, string? department, string? paymentMethod)
         {
-            DateTime filterDate = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
-            var nextDay = filterDate.AddDays(1);
+            DateTime dateFrom = string.IsNullOrEmpty(from) ? DateTime.Today : DateTime.Parse(from);
+            DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today : DateTime.Parse(to);
+            var rangeEnd = dateTo.AddDays(1);
 
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
 
             var query = _context.Deposits
-                .Where(d => d.DepositDate >= filterDate && d.DepositDate < nextDay);
+                .Where(d => d.DepositDate >= dateFrom && d.DepositDate < rangeEnd);
 
             // فرض فلتر القسم حسب صلاحية المستخدم
             if (userDept == "حلاقة" || userDept == "مساج")
@@ -44,14 +45,22 @@ namespace Salon.Controllers
                 query = query.Where(d => d.Department == department);
             }
 
+            // فلترة حسب طريقة الدفع
+            if (!string.IsNullOrEmpty(paymentMethod))
+                query = query.Where(d => d.PaymentMethod == paymentMethod);
+
             var deposits = await query
                 .OrderByDescending(d => d.CreatedAt)
                 .ToListAsync();
 
-            ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.ToString("yyyy-MM-dd");
             ViewBag.FilterDepartment = department ?? "";
+            ViewBag.PaymentMethod = paymentMethod;
             ViewBag.UserDept = userDept;
             ViewBag.Total = deposits.Sum(d => d.Amount);
+            ViewBag.TotalBarber = deposits.Where(d => d.Department == "حلاقة").Sum(d => d.Amount);
+            ViewBag.TotalMassage = deposits.Where(d => d.Department == "مساج").Sum(d => d.Amount);
             return View(deposits);
         }
 

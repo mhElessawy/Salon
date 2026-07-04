@@ -18,6 +18,9 @@ namespace Salon.Models
         [Display(Name = "المصدر")]
         public string? Source { get; set; }
 
+        [Display(Name = "طريقة الدفع")]
+        public string PaymentMethod { get; set; } = "نقدي";
+
         [Display(Name = "تاريخ الإيداع")]
         [DataType(DataType.Date)]
         public DateTime DepositDate { get; set; } = DateTime.Today;

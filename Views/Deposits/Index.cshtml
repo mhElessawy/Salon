@@ -1,4 +1,4 @@
-﻿@model  IEnumerable<Salon.Models.Deposit>
+﻿@model   IEnumerable<Salon.Models.Deposit>
 @{
     ViewData["Title"] = "الإيداعات";
 }
@@ -6,22 +6,52 @@
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
         <h1><i class="fas fa-money-bill-wave me-2" style="color:#16a34a;"></i>الإيداعات</h1>
-        <p>إجمالي اليوم: <strong class="text-success">@ViewBag.Total?.ToString("N3") د.ك</strong></p>
+        <p>إجمالي الفترة: <strong class="text-success">@ViewBag.Total?.ToString("N3") د.ك</strong></p>
     </div>
     <a href="@Url.Action("Create")" class="btn btn-success">
         <i class="fas fa-plus me-1"></i> إضافة إيداع
     </a>
 </div>
 
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-4">
+        <div class="card text-center h-100 border-0 shadow-sm">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-coins me-1"></i>إجمالي الإيداعات</div>
+                <div class="fw-bold fs-5 text-success">@(((decimal)(ViewBag.Total ?? 0m)).ToString("N3")) <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card text-center h-100 border-0 shadow-sm" style="border-top:3px solid #3b82f6!important">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-cut me-1"></i>إيداعات الحلاقة</div>
+                <div class="fw-bold fs-5" style="color:#3b82f6;">@(((decimal)(ViewBag.TotalBarber ?? 0m)).ToString("N3")) <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card text-center h-100 border-0 shadow-sm" style="border-top:3px solid #8b5cf6!important">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-spa me-1"></i>إيداعات المساج</div>
+                <div class="fw-bold fs-5" style="color:#8b5cf6;">@(((decimal)(ViewBag.TotalMassage ?? 0m)).ToString("N3")) <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @{
     string userDeptFilter = ViewBag.UserDept ?? "";
     bool isRestrictedUser = userDeptFilter == "حلاقة" || userDeptFilter == "مساج";
+    var selectedPayment = ViewBag.PaymentMethod as string;
 }
 <div class="card mb-3">
     <div class="card-body">
         <form method="get" class="d-flex flex-wrap gap-2 align-items-center">
-            <label class="form-label mb-0">التاريخ:</label>
-            <input type="date" name="date" value="@ViewBag.FilterDate" class="form-control" style="max-width:200px;" />
+            <label class="form-label mb-0">من تاريخ:</label>
+            <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:200px;" />
+            <label class="form-label mb-0">إلى تاريخ:</label>
+            <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:200px;" />
             @if (isRestrictedUser)
             {
                 <input type="hidden" name="department" value="@userDeptFilter" />
@@ -59,6 +89,13 @@
                     }
                 </select>
             }
+            <label class="form-label mb-0 ms-2">طريقة الدفع:</label>
+            <select name="paymentMethod" class="form-select" style="max-width:160px;">
+                <option value="">الكل</option>
+                <option value="نقدي" selected="@(selectedPayment == "نقدي")">نقدي</option>
+                <option value="بطاقة" selected="@(selectedPayment == "بطاقة")">بطاقة</option>
+                <option value="تحويل بنكي" selected="@(selectedPayment == "تحويل بنكي")">تحويل بنكي</option>
+            </select>
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
         </form>
     </div>
@@ -75,6 +112,7 @@
                         <th>البيان</th>
                         <th>المصدر</th>
                         <th>المبلغ</th>
+                        <th>طريقة الدفع</th>
                         <th>التاريخ</th>
                         <th>ملاحظات</th>
                         <th>الإجراءات</th>
@@ -83,7 +121,7 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="8" class="text-center text-muted py-4">لا توجد إيداعات في هذا اليوم</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted py-4">لا توجد إيداعات في هذه الفترة</td></tr>
                     }
                     @foreach (var d in Model)
                     {
@@ -106,6 +144,7 @@
                             <td>@d.Description</td>
                             <td>@(d.Source ?? "-")</td>
                             <td><strong class="text-success">@d.Amount.ToString("N3") د.ك</strong></td>
+                            <td>@d.PaymentMethod</td>
                             <td>@d.DepositDate.ToString("yyyy/MM/dd")</td>
                             <td class="text-muted small">@d.Notes</td>
                             <td>
@@ -126,7 +165,7 @@
                         <tr>
                             <td colspan="4" class="text-end">الإجمالي</td>
                             <td class="text-success">@ViewBag.Total?.ToString("N3") د.ك</td>
-                            <td colspan="3"></td>
+                            <td colspan="4"></td>
                         </tr>
                     </tfoot>
                 }

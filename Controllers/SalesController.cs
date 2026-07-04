@@ -41,7 +41,8 @@ namespace Salon.Controllers
 
         // ===== قائمة الفواتير =====
         public async Task<IActionResult> Index(string? from, string? to, string? type,
-            string? paymentMethod, int? employeeId, string? status, string? customerName, string? invoiceNumber2)
+            string? paymentMethod, int? employeeId, string? status, string? customerName, string? invoiceNumber2,
+            string? createdByUserId)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? KuwaitToday : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? KuwaitToday.AddDays(1) : DateTime.Parse(to).AddDays(1);
@@ -77,6 +78,8 @@ namespace Salon.Controllers
                 query = query.Where(s => s.Customer != null && s.Customer.FullName.Contains(customerName));
             if (!string.IsNullOrEmpty(invoiceNumber2))
                 query = query.Where(s => s.InvoiceNumber.Contains(invoiceNumber2));
+            if (!string.IsNullOrEmpty(createdByUserId))
+                query = query.Where(s => s.CreatedByUserId == createdByUserId);
 
             var sales = await query.OrderByDescending(s => s.SaleDate).ToListAsync();
 
@@ -91,6 +94,7 @@ namespace Salon.Controllers
             ViewBag.FilterStatus = status;
             ViewBag.FilterCustomer = customerName;
             ViewBag.InvoiceNumber = invoiceNumber2;
+            ViewBag.FilterCreatedByUserId = createdByUserId;
             ViewBag.TotalSales = activeSales.Sum(s => s.NetAmount);
             ViewBag.TotalCancelled = cancelledSales.Sum(s => s.NetAmount);
 
@@ -127,6 +131,12 @@ namespace Salon.Controllers
             if (userDept == "حلاقة" || userDept == "مساج")
                 empQuery = empQuery.Where(e => e.DepartmentNav != null && e.DepartmentNav.Name == userDept);
             ViewBag.Employees = await empQuery.OrderBy(e => e.FullName).Select(e => new { e.Id, e.FullName }).ToListAsync();
+
+            ViewBag.Users = await _userManager.Users
+                .Where(u => u.IsActive)
+                .OrderBy(u => u.FullName)
+                .Select(u => new { u.Id, u.FullName })
+                .ToListAsync();
 
             return View(sales);
         }
@@ -329,6 +339,8 @@ namespace Salon.Controllers
 
                 model.TotalAmount = 0;
                 model.SaleDate = KuwaitNow;
+                model.CreatedByUserId = user?.Id;
+                model.CreatedByUserName = user?.FullName ?? user?.UserName ?? User.Identity?.Name;
                 _context.Sales.Add(model);
                 await _context.SaveChangesAsync();
 
@@ -810,6 +822,8 @@ namespace Salon.Controllers
 
                 model.TotalAmount = 0;
                 model.SaleDate = KuwaitNow;
+                model.CreatedByUserId = currentUser?.Id;
+                model.CreatedByUserName = currentUser?.FullName ?? currentUser?.UserName ?? User.Identity?.Name;
                 _context.Sales.Add(model);
                 await _context.SaveChangesAsync();
 
