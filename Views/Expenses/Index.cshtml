@@ -3,6 +3,7 @@
     ViewData["Title"] = "المصروفات";
     var userDept = ViewBag.UserDept as string;
     var selectedDept = ViewBag.Department as string;
+    bool seesAllDepts = userDept != "حلاقة" && userDept != "مساج";
     string deptLabel = userDept == "حلاقة" ? " - الحلاقة" :
                        userDept == "مساج" ? " - المساج" : "";
 }
@@ -27,11 +28,11 @@
             <label class="form-label mb-0">القسم:</label>
             <select name="department" class="form-select" style="max-width:180px;">
                 <option value="">الكل</option>
-                @if (string.IsNullOrEmpty(userDept) || userDept == "حلاقة")
+                @if (seesAllDepts || userDept == "حلاقة")
                 {
                     <option value="حلاقة" selected="@(selectedDept == "حلاقة")">حلاقة</option>
                 }
-                @if (string.IsNullOrEmpty(userDept) || userDept == "مساج")
+                @if (seesAllDepts || userDept == "مساج")
                 {
                     <option value="مساج" selected="@(selectedDept == "مساج")">مساج</option>
                 }
