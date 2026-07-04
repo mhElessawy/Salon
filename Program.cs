@@ -198,6 +198,7 @@ using (var scope = app.Services.CreateScope())
                 Department TEXT NOT NULL DEFAULT 'حلاقة',
                 CreatedAt TEXT NOT NULL DEFAULT (datetime('now')))");
             TryExec("ALTER TABLE Deposits ADD COLUMN Department TEXT NOT NULL DEFAULT 'حلاقة'");
+            TryExec("ALTER TABLE Deposits ADD COLUMN PaymentMethod TEXT NOT NULL DEFAULT 'نقدي'");
             TryExec("ALTER TABLE Appointments ADD COLUMN EndTime TEXT NULL");
             TryExec("ALTER TABLE Appointments ADD COLUMN CustomerPackageId INTEGER NULL");
             TryExec("ALTER TABLE Customers ADD COLUMN AssignedEmployeeId INTEGER NULL");
@@ -287,6 +288,7 @@ using (var scope = app.Services.CreateScope())
                 Department NVARCHAR(MAX) NOT NULL DEFAULT N'حلاقة',
                 CreatedAt DATETIME NOT NULL DEFAULT GETDATE())");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Deposits' AND COLUMN_NAME='Department') ALTER TABLE Deposits ADD Department NVARCHAR(MAX) NOT NULL DEFAULT N'حلاقة'");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Deposits' AND COLUMN_NAME='PaymentMethod') ALTER TABLE Deposits ADD PaymentMethod NVARCHAR(50) NOT NULL DEFAULT N'نقدي'");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Appointments' AND COLUMN_NAME='EndTime') ALTER TABLE Appointments ADD EndTime TIME NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Appointments' AND COLUMN_NAME='CustomerPackageId') ALTER TABLE Appointments ADD CustomerPackageId INT NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Customers' AND COLUMN_NAME='AssignedEmployeeId') ALTER TABLE Customers ADD AssignedEmployeeId INT NULL");
