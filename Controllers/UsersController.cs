@@ -230,6 +230,12 @@ namespace Salon.Controllers
 
             // إضافة الصلاحيات الجديدة (مشاهدة + إضافة + حذف)
             var allowed = allowedModules?.ToHashSet() ?? new HashSet<string>();
+
+            // "عملائي فقط" وما شابهها تفترض إتاحة المشاهدة أصلاً، حتى لو نسي المدير تفعيلها
+            foreach (var key in AppModules.HasMyOnly)
+                if (allowed.Contains(key + "MyOnly"))
+                    allowed.Add(key);
+
             foreach (var key in AppModules.AllKeys())
             {
                 _context.UserPermissions.Add(new UserPermission
