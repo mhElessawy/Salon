@@ -52,6 +52,8 @@ namespace Salon.Controllers
             ViewBag.FilterDepartment = department ?? "";
             ViewBag.UserDept = userDept;
             ViewBag.Total = deposits.Sum(d => d.Amount);
+            ViewBag.TotalBarber = deposits.Where(d => d.Department == "حلاقة").Sum(d => d.Amount);
+            ViewBag.TotalMassage = deposits.Where(d => d.Department == "مساج").Sum(d => d.Amount);
             return View(deposits);
         }
 
