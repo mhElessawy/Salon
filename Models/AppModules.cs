@@ -49,7 +49,13 @@ namespace Salon.Models
             "BarberInvoice", "MassageInvoice", "ProductInvoice"
         };
 
-        // جميع مفاتيح الصلاحيات (مشاهدة + إضافة + حذف)
+        // الشاشات التي تدعم صلاحية "عملائي فقط" (تقييد الموظف على عملائه المعينين له فقط)
+        public static readonly HashSet<string> HasMyOnly = new()
+        {
+            "Customers"
+        };
+
+        // جميع مفاتيح الصلاحيات (مشاهدة + إضافة + حذف + عملائي فقط)
         public static IEnumerable<string> AllKeys()
         {
             foreach (var (Key, _, _, _) in All)
@@ -57,6 +63,7 @@ namespace Salon.Models
                 yield return Key;
                 if (HasAdd.Contains(Key)) yield return Key + "Add";
                 if (HasDelete.Contains(Key)) yield return Key + "Delete";
+                if (HasMyOnly.Contains(Key)) yield return Key + "MyOnly";
             }
         }
     }

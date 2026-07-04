@@ -14,12 +14,14 @@ namespace Salon.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IAuditService _audit;
+        private readonly IPermissionService _perms;
 
-        public CustomersController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IAuditService audit)
+        public CustomersController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IAuditService audit, IPermissionService perms)
         {
             _context = context;
             _userManager = userManager;
             _audit = audit;
+            _perms = perms;
         }
 
         public async Task<IActionResult> Index(string? search, string? dept)
@@ -36,6 +38,10 @@ namespace Salon.Controllers
                 query = query.Where(c => c.Department == "حلاقة");
             else if (!string.IsNullOrEmpty(dept))
                 query = query.Where(c => c.Department == dept);
+
+            // صلاحية "عملائي فقط": الموظف يشوف عملاءه المعينين له فقط
+            if (user?.LinkedEmployeeId.HasValue == true && await _perms.HasAccessAsync("CustomersMyOnly"))
+                query = query.Where(c => c.AssignedEmployeeId == user.LinkedEmployeeId);
 
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(c =>
