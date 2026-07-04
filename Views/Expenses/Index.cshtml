@@ -27,15 +27,14 @@
             <label class="form-label mb-0">القسم:</label>
             <select name="department" class="form-select" style="max-width:180px;">
                 <option value="">الكل</option>
-                @if (string.IsNullOrEmpty(userDept) || userDept == "حلاقة")
-                {
-                    <option value="حلاقة" selected="@(selectedDept == "حلاقة")">حلاقة</option>
-                }
                 @if (string.IsNullOrEmpty(userDept) || userDept == "مساج")
                 {
                     <option value="مساج" selected="@(selectedDept == "مساج")">مساج</option>
                 }
-                <option value="مشترك" selected="@(selectedDept == "مشترك")">مشترك</option>
+                @if (string.IsNullOrEmpty(userDept) || userDept == "حلاقة")
+                {
+                    <option value="حلاقة" selected="@(selectedDept == "حلاقة")">حلاقة</option>
+                }
             </select>
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
         </form>

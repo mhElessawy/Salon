@@ -44,8 +44,6 @@ namespace Salon.Controllers
             // فلترة حسب القسم المختار
             if (department == "حلاقة" || department == "مساج")
                 query = query.Where(e => e.Department == department);
-            else if (department == "مشترك")
-                query = query.Where(e => e.Department == null);
 
             var expenses = await query
                 .OrderByDescending(e => e.CreatedAt)
