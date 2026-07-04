@@ -619,6 +619,11 @@ namespace Salon.Migrations
                 b.Property<string>("Notes")
                     .HasColumnType("nvarchar(max)");
 
+                b.Property<string>("PaymentMethod")
+                    .IsRequired()
+                    .HasDefaultValue("نقدي")
+                    .HasColumnType("nvarchar(max)");
+
                 b.Property<string>("Source")
                     .HasColumnType("nvarchar(max)");
 
