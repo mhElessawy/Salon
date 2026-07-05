@@ -224,7 +224,8 @@ namespace Salon.Controllers
             if (effectiveDept == "مساج" || effectiveDept == "حلاقة")
                 query = query.Where(c => c.Department == effectiveDept || c.Department == "الكل");
 
-            if (user?.LinkedEmployeeId.HasValue == true)
+            // صلاحية "عملائي فقط": الموظف يشوف عملاءه المعينين له فقط، إلا لو كانت صلاحيته "جميع العملاء"
+            if (user?.LinkedEmployeeId.HasValue == true && await _perms.HasAccessAsync("CustomersMyOnly"))
                 query = query.Where(c => c.AssignedEmployeeId == user.LinkedEmployeeId);
 
             if (!string.IsNullOrEmpty(q))

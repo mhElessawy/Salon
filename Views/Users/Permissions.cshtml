@@ -141,6 +141,30 @@
         .perm-action-status {
             font-size: 11px;
         }
+
+        /* نطاق العملاء: عملائي فقط / جميع العملاء */
+        .myonly-scope-group {
+            display: flex;
+            border: 1px solid #e0c46c;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .scope-btn {
+            border: none;
+            background: #fff;
+            color: #856404;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+            .scope-btn.active {
+                background: #856404;
+                color: #fff;
+            }
     </style>
 }
 
@@ -276,18 +300,16 @@ else
 
                                 @if (hasMyOnly)
                                 {
-                                    <!-- عملائي فقط -->
+                                    <!-- نطاق العملاء: عملائي فقط / جميع العملاء -->
                                     <div class="perm-action-item">
-                                        <span class="perm-action-label" style="background:#fff3cd;color:#856404;"><i class="fas fa-user me-1"></i>عملائي</span>
-                                        <div class="form-check form-switch mb-0">
-                                            <input class="form-check-input perm-toggle myonly-toggle" type="checkbox"
-                                                   name="allowedModules" value="@(mod.Key)MyOnly"
-                                                   id="perm_@(mod.Key)MyOnly" @(myOnlyOn ? "checked" : "") />
+                                        <span class="perm-action-label" style="background:#fff3cd;color:#856404;"><i class="fas fa-users me-1"></i>نطاق العملاء</span>
+                                        <div class="myonly-scope-group" data-checkbox="perm_@(mod.Key)MyOnly">
+                                            <button type="button" class="scope-btn @(!myOnlyOn ? "active" : "")" data-value="false">جميع العملاء</button>
+                                            <button type="button" class="scope-btn @(myOnlyOn ? "active" : "")" data-value="true">عملائي فقط</button>
                                         </div>
-                                        <span class="perm-action-status" id="label_@(mod.Key)MyOnly"
-                                              style="color:@(myOnlyOn ? "#856404" : "#adb5bd")">
-                                            @(myOnlyOn ? "مسموح" : "محظور")
-                                        </span>
+                                        <input class="d-none perm-toggle myonly-toggle" type="checkbox"
+                                               name="allowedModules" value="@(mod.Key)MyOnly"
+                                               id="perm_@(mod.Key)MyOnly" @(myOnlyOn ? "checked" : "") />
                                     </div>
                                 }
                             </div>
@@ -309,34 +331,54 @@ else
 @section Scripts {
     <script>
         var _isEn = () => localStorage.getItem('lang') === 'en';
-        document.querySelectorAll('.perm-toggle').forEach(cb => {
+        document.querySelectorAll('.perm-toggle:not(.myonly-toggle)').forEach(cb => {
             cb.addEventListener('change', function () {
                 const label = document.getElementById('label_' + this.value);
                 if (!label) return;
                 const isAdd    = this.classList.contains('add-toggle');
                 const isDelete = this.classList.contains('delete-toggle');
-                const isMyOnly = this.classList.contains('myonly-toggle');
                 label.textContent = this.checked ? (_isEn() ? 'Allowed' : 'مسموح') : (_isEn() ? 'Denied' : 'محظور');
-                if (this.checked) {
-                    label.style.color = isDelete ? '#c0392b' : isAdd ? '#1e7e34' : isMyOnly ? '#856404' : 'var(--primary)';
-                } else {
-                    label.style.color = '#adb5bd';
-                }
+                label.style.color = this.checked
+                    ? (isDelete ? '#c0392b' : isAdd ? '#1e7e34' : 'var(--primary)')
+                    : '#adb5bd';
+            });
+        });
 
-                // "عملائي فقط" تفترض إتاحة المشاهدة أصلاً
-                if (isMyOnly && this.checked) {
-                    const viewCb = this.closest('.perm-row').querySelector('.view-toggle');
-                    if (viewCb && !viewCb.checked) updateToggle(viewCb, true);
-                }
+        // نطاق العملاء: عملائي فقط / جميع العملاء
+        function syncMyOnlyButtons(checkbox) {
+            const group = document.querySelector(`.myonly-scope-group[data-checkbox="${checkbox.id}"]`);
+            if (!group) return;
+            group.querySelectorAll('.scope-btn').forEach(b => {
+                b.classList.toggle('active', (b.dataset.value === 'true') === checkbox.checked);
+            });
+        }
+
+        function setMyOnly(checkbox, val) {
+            checkbox.checked = val;
+            syncMyOnlyButtons(checkbox);
+            // "عملائي فقط" تفترض إتاحة المشاهدة أصلاً
+            if (val) {
+                const viewCb = checkbox.closest('.perm-row').querySelector('.view-toggle');
+                if (viewCb && !viewCb.checked) updateToggle(viewCb, true);
+            }
+        }
+
+        document.querySelectorAll('.myonly-scope-group').forEach(group => {
+            const checkbox = document.getElementById(group.dataset.checkbox);
+            if (!checkbox) return;
+            group.querySelectorAll('.scope-btn').forEach(btn => {
+                btn.addEventListener('click', () => setMyOnly(checkbox, btn.dataset.value === 'true'));
             });
         });
 
         function setAll(val) {
-            document.querySelectorAll('.perm-toggle').forEach(cb => updateToggle(cb, val));
+            document.querySelectorAll('.perm-toggle:not(.myonly-toggle)').forEach(cb => updateToggle(cb, val));
+            document.querySelectorAll('.myonly-toggle').forEach(cb => setMyOnly(cb, val));
         }
 
         function setGroup(groupName, val) {
-            document.querySelectorAll(`[data-group="${groupName}"] .perm-toggle`).forEach(cb => updateToggle(cb, val));
+            document.querySelectorAll(`[data-group="${groupName}"] .perm-toggle:not(.myonly-toggle)`).forEach(cb => updateToggle(cb, val));
+            document.querySelectorAll(`[data-group="${groupName}"] .myonly-toggle`).forEach(cb => setMyOnly(cb, val));
         }
 
         function updateToggle(cb, val) {
@@ -345,10 +387,9 @@ else
             if (!label) return;
             const isAdd    = cb.classList.contains('add-toggle');
             const isDelete = cb.classList.contains('delete-toggle');
-            const isMyOnly = cb.classList.contains('myonly-toggle');
             label.textContent = val ? (_isEn() ? 'Allowed' : 'مسموح') : (_isEn() ? 'Denied' : 'محظور');
             label.style.color = val
-                ? (isDelete ? '#c0392b' : isAdd ? '#1e7e34' : isMyOnly ? '#856404' : 'var(--primary)')
+                ? (isDelete ? '#c0392b' : isAdd ? '#1e7e34' : 'var(--primary)')
                 : '#adb5bd';
         }
     </script>
