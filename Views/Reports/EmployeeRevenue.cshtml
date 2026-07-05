@@ -1,4 +1,4 @@
-﻿@model List<Salon.Models.EmployeeRevenueRow>
+﻿@model  List<Salon.Models.EmployeeRevenueRow>
 @{
     ViewData["Title"] = "تقرير الإيراد حسب الموظف";
     string? userDept = ViewBag.UserDept as string;
@@ -19,6 +19,7 @@
     decimal grandCommBefore = Model.Sum(r => r.CommissionBeforeTarget);
     decimal grandCommAfter = Model.Sum(r => r.CommissionAfterTarget);
     decimal grandCommission = Model.Sum(r => r.TotalCommission);
+    decimal grandEmployeeServiceCommission = Model.Sum(r => r.EmployeeServiceCommission);
     decimal grandGifts = Model.Sum(r => r.Gifts);
     decimal grandAdvances = Model.Sum(r => r.Advances);
     decimal grandDeductions = Model.Sum(r => r.Deductions);
@@ -701,6 +702,10 @@
                             <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
                         </th>
                         <th>
+                            <span data-i18n-en="Employee Service Commission">عمولة خدمة الموظف</span><br />
+                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
+                        </th>
+                        <th>
                             <span data-i18n-en="Gifts">الإكراميات</span><br />
                             <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
                         </th>
@@ -748,6 +753,7 @@
                             <td style="color:#dc2626;">@(row.EmployeeDebt > 0 ? row.EmployeeDebt.ToString("N3") : "-")</td>
                             <td style="color:#7c3aed;">@(row.Advances > 0 ? row.Advances.ToString("N3") : "-")</td>
                             <td style="color:#dc2626;">@(row.Deductions > 0 ? row.Deductions.ToString("N3") : "-")</td>
+                            <td style="color:#e67e22;">@(row.EmployeeServiceCommission > 0 ? row.EmployeeServiceCommission.ToString("N3") : "-")</td>
                             <td style="color:#db2777;">@(row.Gifts > 0 ? row.Gifts.ToString("N3") : "-")</td>
                             <td>
                                 <strong style="color:@(row.NetForEmployee >= 0 ? "#16a34a" : "#dc2626");">
@@ -769,7 +775,7 @@
                     @if (!Model.Any())
                     {
                         <tr>
-                            <td colspan="14" class="text-center py-4 text-muted">
+                            <td colspan="15" class="text-center py-4 text-muted">
                                 <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
                                 <span data-i18n-en="No data for the selected period">لا توجد بيانات للفترة المحددة</span>
                             </td>
@@ -787,6 +793,7 @@
                         <td style="color:#dc2626;">@(grandEmployeeDebt > 0 ? grandEmployeeDebt.ToString("N3") : "-")</td>
                         <td style="color:#7c3aed;">@(grandAdvances > 0 ? grandAdvances.ToString("N3") : "-")</td>
                         <td style="color:#dc2626;">@(grandDeductions > 0 ? grandDeductions.ToString("N3") : "-")</td>
+                        <td style="color:#e67e22;">@(grandEmployeeServiceCommission > 0 ? grandEmployeeServiceCommission.ToString("N3") : "-")</td>
                         <td style="color:#db2777;">@(grandGifts > 0 ? grandGifts.ToString("N3") : "-")</td>
                         <td style="color:#16a34a;">@grandNetEmp.ToString("N3")</td>
                         <td style="color:@(grandNetShop >= 0 ? "#16a34a" : "#dc2626");">@grandNetShop.ToString("N3")</td>
@@ -912,6 +919,10 @@
                             <span class="val" style="color:#ea580c;">@row.TotalCommission.ToString("N3") د.ك</span>
                         </div>
                         <div class="edm-due-row">
+                            <span class="lbl" data-i18n-en="Employee Service Commission">عمولة خدمة الموظف</span>
+                            <span class="val" style="color:#e67e22;">@row.EmployeeServiceCommission.ToString("N3") د.ك</span>
+                        </div>
+                        <div class="edm-due-row">
                             <span class="lbl" data-i18n-en="Gifts">الإكراميات (الهدايا)</span>
                             <span class="val" style="color:#db2777;">@row.Gifts.ToString("N3") د.ك</span>
                         </div>
@@ -1013,12 +1024,12 @@
                 العمولة: إذا حقق الموظف التارجت تُحتسب كل مبيعاته بنسبة التارجت الأعلى بدلاً من النسبة الأساسية
             </span>
             &nbsp;|&nbsp;
-            <span data-i18n-en="Net Employee = Salary + Actual Commission + Gifts − Advances − Deductions − Emp. Debt">
-                صافي الموظف = الراتب + العمولة الفعلية + الإكراميات − السلفة − الخصومات − دين الموظف
+            <span data-i18n-en="Net Employee = Salary + Actual Commission + Service Commission + Gifts − Advances − Deductions − Emp. Debt">
+                صافي الموظف = الراتب + العمولة الفعلية + عمولة خدمة الموظف + الإكراميات − السلفة − الخصومات − دين الموظف
             </span>
             &nbsp;|&nbsp;
-            <span data-i18n-en="Net Shop = Total − Actual Commission">
-                صافي المحل = الإجمالي − العمولة الفعلية
+            <span data-i18n-en="Net Shop = Total − Actual Commission − Service Commission">
+                صافي المحل = الإجمالي − العمولة الفعلية − عمولة خدمة الموظف
             </span>
         </small>
     </div>
