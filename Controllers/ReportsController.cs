@@ -1462,6 +1462,7 @@ namespace Salon.Controllers
                 decimal knet = empSales.Sum(s => knetMethods.Contains(s.PaymentMethod) ? s.NetAmount
                     : mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
                 decimal gifts = empSales.Sum(s => s.GiftForEmployee ?? 0);
+                decimal employeeServiceCommission = empSales.Sum(s => s.EmployeeGift ?? 0);
                 decimal employeeDebt = empSales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
                 decimal advances = advancesByEmp.ContainsKey(emp.Id) ? advancesByEmp[emp.Id] : 0;
                 decimal deductions = deductionsByEmp.ContainsKey(emp.Id) ? deductionsByEmp[emp.Id] : 0;
@@ -1485,8 +1486,8 @@ namespace Salon.Controllers
                 }
 
                 decimal totalComm = effectiveComm;
-                decimal netForEmployee = emp.BasicSalary + effectiveComm + gifts - advances - deductions - employeeDebt;
-                decimal netForShop = totalRevenue - effectiveComm;
+                decimal netForEmployee = emp.BasicSalary + effectiveComm + employeeServiceCommission + gifts - advances - deductions - employeeDebt;
+                decimal netForShop = totalRevenue - effectiveComm - employeeServiceCommission;
 
                 var services = empSales
                     .SelectMany(s =>
@@ -1532,6 +1533,7 @@ namespace Salon.Controllers
                     CommissionBeforeTarget = commBeforeTarget,
                     CommissionAfterTarget = commAfterTarget,
                     TotalCommission = effectiveComm,
+                    EmployeeServiceCommission = employeeServiceCommission,
                     Gifts = gifts,
                     Advances = advances,
                     Deductions = deductions,

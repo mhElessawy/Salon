@@ -15,6 +15,7 @@
         public decimal CommissionBeforeTarget { get; set; }
         public decimal CommissionAfterTarget { get; set; }
         public decimal TotalCommission { get; set; }
+        public decimal EmployeeServiceCommission { get; set; }
         public decimal Gifts { get; set; }
         public decimal Advances { get; set; }
         public decimal Deductions { get; set; }
