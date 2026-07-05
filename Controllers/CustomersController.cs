@@ -67,7 +67,7 @@ namespace Salon.Controllers
             if (!string.IsNullOrEmpty(user?.UserDepartment))
                 model.Department = user.UserDepartment;
             ViewBag.UserDepartment = user?.UserDepartment;
-            ViewBag.Employees = await GetEmployeesForUserAsync(user?.UserDepartment);
+            ViewBag.Employees = await GetEmployeesForUserAsync(user?.UserDepartment, user?.LinkedEmployeeId);
             return View(model);
         }
 
@@ -93,7 +93,7 @@ namespace Salon.Controllers
             }
             var user = await _userManager.GetUserAsync(User);
             ViewBag.UserDepartment = user?.UserDepartment;
-            ViewBag.Employees = await GetEmployeesForUserAsync(user?.UserDepartment);
+            ViewBag.Employees = await GetEmployeesForUserAsync(user?.UserDepartment, user?.LinkedEmployeeId);
             return View(model);
         }
 
@@ -156,7 +156,7 @@ namespace Salon.Controllers
             if (customer == null) return NotFound();
             var user = await _userManager.GetUserAsync(User);
             ViewBag.UserDepartment = user?.UserDepartment;
-            ViewBag.Employees = await GetEmployeesForUserAsync(user?.UserDepartment);
+            ViewBag.Employees = await GetEmployeesForUserAsync(user?.UserDepartment, user?.LinkedEmployeeId);
             return View(customer);
         }
 
@@ -182,7 +182,7 @@ namespace Salon.Controllers
             }
             var user = await _userManager.GetUserAsync(User);
             ViewBag.UserDepartment = user?.UserDepartment;
-            ViewBag.Employees = await GetEmployeesForUserAsync(user?.UserDepartment);
+            ViewBag.Employees = await GetEmployeesForUserAsync(user?.UserDepartment, user?.LinkedEmployeeId);
             return View(model);
         }
 
@@ -258,13 +258,16 @@ namespace Salon.Controllers
             return Json(results);
         }
 
-        private async Task<List<Employee>> GetEmployeesForUserAsync(string? userDepartment)
+        private async Task<List<Employee>> GetEmployeesForUserAsync(string? userDepartment, int? linkedEmployeeId = null)
         {
             var query = _context.Employees
                 .Include(e => e.DepartmentNav)
                 .Where(e => e.IsActive);
 
-            if (userDepartment == "حلاقة" || userDepartment == "مساج")
+            // موظف مربوط بحساب مستخدم: يشوف اسمه بس في قائمة "الموظف المسؤول"
+            if (linkedEmployeeId.HasValue)
+                query = query.Where(e => e.Id == linkedEmployeeId.Value);
+            else if (userDepartment == "حلاقة" || userDepartment == "مساج")
                 query = query.Where(e => e.DepartmentNav != null && e.DepartmentNav.Name == userDepartment);
 
             return await query.OrderBy(e => e.FullName).ToListAsync();
