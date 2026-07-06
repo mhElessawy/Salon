@@ -8,7 +8,8 @@
     var totalWork = allRows.Sum(r => r.TotalSales);
     var totalCash = allRows.Sum(r => r.Cash);
     var totalKNet = allRows.Sum(r => r.KNet);
-    var totalDebts = allRows.Sum(r => r.Debts);
+    var totalOwnerDebt = allRows.Sum(r => r.OwnerDebt);
+    var totalEmployeeDebt = allRows.Sum(r => r.EmployeeDebt);
     var totalAdv = allRows.Sum(r => r.Advances);
     var totalDue = allRows.Sum(r => r.DueAmount);
     var totalHadiya = allRows.Sum(r => r.Hadiya);
@@ -148,7 +149,7 @@
     /* ── Cards ──────────────────────────────── */
     .dp2-cards {
         display: grid;
-        grid-template-columns: repeat(6,1fr);
+        grid-template-columns: repeat(7,1fr);
         gap: 8px;
         margin-bottom: 10px;
     }
@@ -606,7 +607,7 @@
         <span class="fw-bold text-secondary small ms-1">@Model.DayName @Model.ReportDate.ToString("yyyy/MM/dd")</span>
     </div>
 
-    <!-- ===== 6 Summary Cards ===== -->
+    <!-- ===== 7 Summary Cards ===== -->
     <div class="dp2-cards mb-2">
 
         <!-- 1. إجمالي المبيعات -->
@@ -638,17 +639,27 @@
             <div class="c-sub">نسبة كي نت: @Model.KNetPercent.ToString("N1")%</div>
         </div>
 
-        <!-- 4. ديون -->
+        <!-- 4. دين على الموظف -->
         <div class="dp2-card" style="border-top:3px solid #d97706;">
-            <div class="c-pct" style="background:#fef3c7;color:#92400e;">@Model.DebtPercent.ToString("N1")%</div>
+            <div class="c-pct" style="background:#fef3c7;color:#92400e;">@Model.EmployeeDebtPercent.ToString("N1")%</div>
             <div class="c-icon" style="color:#d97706;"><i class="fas fa-user-minus"></i></div>
-            <div class="c-lbl" data-i18n-en="Debts (Admin/Employee)">دين (إدارة/موظف)</div>
-            <div class="c-val" style="color:#d97706;">@Model.DebtTotal.ToString("N3")</div>
+            <div class="c-lbl" data-i18n-en="Employee Debt">دين على الموظف</div>
+            <div class="c-val" style="color:#d97706;">@Model.EmployeeDebtTotal.ToString("N3")</div>
             <div class="c-cur">د.ك</div>
-            <div class="c-sub">نسبة الديون: @Model.DebtPercent.ToString("N1")%</div>
+            <div class="c-sub">نسبة الدين: @Model.EmployeeDebtPercent.ToString("N1")%</div>
         </div>
 
-        <!-- 5. إكراميات -->
+        <!-- 5. دين على الإدارة -->
+        <div class="dp2-card" style="border-top:3px solid #b91c1c;">
+            <div class="c-pct" style="background:#fee2e2;color:#b91c1c;">@Model.OwnerDebtPercent.ToString("N1")%</div>
+            <div class="c-icon" style="color:#b91c1c;"><i class="fas fa-landmark"></i></div>
+            <div class="c-lbl" data-i18n-en="Owner Debt">دين على الإدارة</div>
+            <div class="c-val" style="color:#b91c1c;">@Model.OwnerDebtTotal.ToString("N3")</div>
+            <div class="c-cur">د.ك</div>
+            <div class="c-sub">نسبة الدين: @Model.OwnerDebtPercent.ToString("N1")%</div>
+        </div>
+
+        <!-- 6. إكراميات -->
         <div class="dp2-card" style="border-top:3px solid #f59e0b;background:#fffbeb;">
             <div class="c-icon" style="color:#f59e0b;"><i class="fas fa-gift"></i></div>
             <div class="c-lbl" data-i18n-en="Tips (K-Net)">إكراميات (كي نت)</div>
@@ -658,7 +669,7 @@
             <a class="c-link" style="color:#d97706;" href="#tips-section"><i class="fas fa-eye"></i> عرض التفاصيل</a>
         </div>
 
-        <!-- 6. خصومات -->
+        <!-- 7. خصومات -->
         <div class="dp2-card" style="border-top:3px solid #7c3aed;background:#faf5ff;">
             <div class="c-icon" style="color:#7c3aed;"><i class="fas fa-percent"></i></div>
             <div class="c-lbl" data-i18n-en="Today's Discounts">خصومات اليوم</div>
@@ -670,11 +681,11 @@
 
     </div>
 
-    <!-- ===== Middle Row: Employee Performance (right) | Expenses + Cash Movement (left) ===== -->
-    <div class="row g-2 mb-2" style="align-items:stretch;">
+    <!-- ===== Employee Performance - Full Width ===== -->
+    <div class="row g-2 mb-2">
 
-        <!-- Employee Performance Table (right in RTL) -->
-        <div class="col-lg-8 col-md-12">
+        <!-- Employee Performance Table -->
+        <div class="col-12">
             <div class="dp2-panel">
                 <div class="dp2-panel-hdr">
                     <span><i class="fas fa-users me-1"></i> أداء الموظفين</span>
@@ -703,10 +714,11 @@
                                 <th data-i18n-en="Work (KD)">الشغل<br /><small>د.ك</small></th>
                                 <th data-i18n-en="Cash (KD)">كاش<br /><small>د.ك</small></th>
                                 <th data-i18n-en="K-Net (KD)">كي نت<br /><small>د.ك</small></th>
-                                <th data-i18n-en="Debts (KD)">الديون<br /><small>د.ك</small></th>
+                                <th data-i18n-en="Owner Debt (KD)">دين على المحل<br /><small>د.ك</small></th>
+                                <th data-i18n-en="Employee Debt (KD)">دين على الموظف<br /><small>د.ك</small></th>
                                 <th data-i18n-en="Advances (KD)">السلف<br /><small>د.ك</small></th>
                                 <th data-i18n-en="Rate">النسبة</th>
-                                <th data-i18n-en="Due (KD)">المستحق<br /><small>د.ك</small></th>
+                                <th data-i18n-en="Employee Commission (KD)">عمولة الموظف<br /><small>د.ك</small></th>
                                 <th data-i18n-en="Tip (KD)">إكرامية<br /><small>د.ك</small></th>
                                 <th data-i18n-en="Store Net (KD)">للمحل<br /><small>د.ك</small></th>
                             </tr>
@@ -714,7 +726,7 @@
                         <tbody>
                             @if (!allRows.Any())
                             {
-                                <tr><td colspan="@(showDeptCol ? 14 : 13)" class="text-center text-muted py-3" style="font-size:12px;"><i class="fas fa-inbox me-1"></i>لا توجد بيانات</td></tr>
+                                <tr><td colspan="@(showDeptCol ? 15 : 14)" class="text-center text-muted py-3" style="font-size:12px;"><i class="fas fa-inbox me-1"></i>لا توجد بيانات</td></tr>
                             }
                             @{
                                 int si = 1;
@@ -759,7 +771,8 @@
                                     <td style="font-weight:600;">@row.TotalSales.ToString("N3")</td>
                                     <td>@row.Cash.ToString("N3")</td>
                                     <td>@row.KNet.ToString("N3")</td>
-                                    <td class="@(row.Debts > 0 ? "text-danger" : "")">@row.Debts.ToString("N3")</td>
+                                    <td class="@(row.OwnerDebt > 0 ? "text-danger" : "")">@row.OwnerDebt.ToString("N3")</td>
+                                    <td class="@(row.EmployeeDebt > 0 ? "text-danger" : "")">@row.EmployeeDebt.ToString("N3")</td>
                                     <td class="@(row.Advances > 0 ? "text-warning" : "")">@row.Advances.ToString("N3")</td>
                                     <td><strong>@row.CommissionPercent.ToString("N0")%</strong></td>
                                     <td style="color:#16a34a;font-weight:700;">@row.DueAmount.ToString("N3")</td>
@@ -787,7 +800,8 @@
                                     <td>@totalWork.ToString("N3")</td>
                                     <td>@totalCash.ToString("N3")</td>
                                     <td>@totalKNet.ToString("N3")</td>
-                                    <td>@totalDebts.ToString("N3")</td>
+                                    <td>@totalOwnerDebt.ToString("N3")</td>
+                                    <td>@totalEmployeeDebt.ToString("N3")</td>
                                     <td>@totalAdv.ToString("N3")</td>
                                     <td>@overallPct.ToString("N1")%</td>
                                     <td>@totalDue.ToString("N3")</td>
@@ -804,115 +818,6 @@
                         * يتم احتساب النسبة من إجمالي الشغل بعد خصم الخصومات
                     </div>
                 }
-            </div>
-        </div>
-
-        <!-- Left column: Expenses stacked above Cash Movement (left in RTL) -->
-        <div class="col-lg-4 col-md-12">
-            <div class="row g-2">
-                <!-- Expenses + Chart -->
-                <div class="col-12">
-                    <div class="dp2-panel">
-                        <div class="dp2-panel-hdr">
-                            <span><i class="fas fa-receipt me-1"></i> مصروفات تشغيل اليوم</span>
-                        </div>
-                        <div class="dp2-panel-body">
-                            <div style="text-align:center;font-size:12px;color:#64748b;margin-bottom:4px;">إجمالي المصروفات</div>
-                            <div style="text-align:center;font-size:22px;font-weight:800;color:#dc2626;">@Model.TotalExpensesAmount.ToString("N3")</div>
-                            <div style="text-align:center;font-size:10px;color:#888;margin-bottom:8px;">د.ك</div>
-
-                            @if (cats.Any())
-                            {
-                                <div class="dp2-donut-wrap">
-                                    <div class="dp2-donut">
-                                        <div class="dp2-donut-inner">
-                                            <span style="font-size:11px;font-weight:800;color:#1a1a2e;">@Model.ExpenseCount</span>
-                                            <span style="font-size:9px;color:#64748b;">بند</span>
-                                        </div>
-                                    </div>
-                                    <div class="dp2-legend">
-                                        @for (int ci = 0; ci < cats.Count; ci++)
-                                        {
-                                            var pct = totalExp > 0 ? Math.Round(cats[ci].Value / totalExp * 100, 0) : 0;
-                                            <div class="dp2-legend-row">
-                                                <div class="dp2-legend-dot" style="background:@catColors[ci % catColors.Length];"></div>
-                                                <span>@cats[ci].Key</span>
-                                                <span style="font-weight:700;margin-right:auto;">@pct%</span>
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                            }
-                            else
-                            {
-                                <div style="text-align:center;color:#94a3b8;padding:20px 0;font-size:12px;">
-                                    <i class="fas fa-check-circle" style="font-size:28px;color:#16a34a;display:block;margin-bottom:6px;"></i>
-                                    لا توجد مصروفات اليوم
-                                </div>
-                            }
-                            @if (Model.Expenses.Any())
-                            {
-                                <button class="dp2-show-all no-print" onclick="openExpModal()" style="border:none;background:none;cursor:pointer;"><i class="fas fa-eye"></i> عرض التفاصيل</button>
-                            }
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Cash Movement -->
-                <div class="col-12">
-                    <div class="dp2-panel">
-                        <div class="dp2-panel-hdr"><i class="fas fa-building-columns me-1"></i> حركة الصندوق</div>
-                        <div class="dp2-panel-body">
-                            <div class="dp2-cash-row">
-                                <span class="dp2-cash-lbl"><i class="fas fa-box-open" style="color:#64748b;"></i> رصيد بداية اليوم</span>
-                                <span class="dp2-cash-val">@Model.OpeningBalance.ToString("N3")</span>
-                            </div>
-                            <div class="dp2-cash-row">
-                                <span class="dp2-cash-lbl"><i class="fas fa-plus-circle" style="color:#16a34a;"></i> فواتير كاش</span>
-                                <span class="dp2-cash-val" style="color:#16a34a;">+ @Model.CashRevenue.ToString("N3")</span>
-                            </div>
-                            @if (Model.TotalDeposits > 0)
-                            {
-                                <div class="dp2-cash-row">
-                                    <span class="dp2-cash-lbl"><i class="fas fa-arrow-circle-down" style="color:#1d4ed8;"></i> إيداع للصندوق</span>
-                                    <span class="dp2-cash-val" style="color:#1d4ed8;">+ @Model.TotalDeposits.ToString("N3")</span>
-                                </div>
-                            }
-                            @if (Model.CashExpensesAmount > 0)
-                            {
-                                <div class="dp2-cash-row">
-                                    <span class="dp2-cash-lbl"><i class="fas fa-minus-circle" style="color:#dc2626;"></i> مصروفات تشغيل (نقدي)</span>
-                                    <span class="dp2-cash-val" style="color:#dc2626;">− @Model.CashExpensesAmount.ToString("N3")</span>
-                                </div>
-                            }
-                            @if (Model.CashAdvancesAmount > 0)
-                            {
-                                <div class="dp2-cash-row">
-                                    <span class="dp2-cash-lbl"><i class="fas fa-minus-circle" style="color:#d97706;"></i> سلف موظفين (نقدي)</span>
-                                    <span class="dp2-cash-val" style="color:#d97706;">− @Model.CashAdvancesAmount.ToString("N3")</span>
-                                </div>
-                            }
-                            @if (Model.CashSalariesAmount > 0)
-                            {
-                                <div class="dp2-cash-row">
-                                    <span class="dp2-cash-lbl"><i class="fas fa-minus-circle" style="color:#d97706;"></i> رواتب (نقدي)</span>
-                                    <span class="dp2-cash-val" style="color:#d97706;">− @Model.CashSalariesAmount.ToString("N3")</span>
-                                </div>
-                            }
-                            @if (Model.TotalWithdrawals > 0)
-                            {
-                                <div class="dp2-cash-row">
-                                    <span class="dp2-cash-lbl"><i class="fas fa-minus-circle" style="color:#dc2626;"></i> تسليم للبنك</span>
-                                    <span class="dp2-cash-val" style="color:#dc2626; text-decoration:line-through;">− @Model.TotalWithdrawals.ToString("N3")</span>
-                                </div>
-                            }
-                            <div class="dp2-cash-total">
-                                <span>الموجود في الصندوق</span>
-                                <span>@Model.CurrentCashBalance.ToString("N3") <small>د.ك</small></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -1160,11 +1065,115 @@
         </div>
     </div>
 
-    <!-- ===== Bottom Row: Discounts | Quick Summary ===== -->
+    <!-- ===== Bottom Row: Expenses | Cash Movement | Discounts | Quick Summary ===== -->
     <div class="row g-2">
 
+        <!-- Expenses + Chart -->
+        <div class="col-lg-3 col-md-6">
+            <div class="dp2-panel">
+                <div class="dp2-panel-hdr">
+                    <span><i class="fas fa-receipt me-1"></i> مصروفات تشغيل اليوم</span>
+                </div>
+                <div class="dp2-panel-body">
+                    <div style="text-align:center;font-size:12px;color:#64748b;margin-bottom:4px;">إجمالي المصروفات</div>
+                    <div style="text-align:center;font-size:22px;font-weight:800;color:#dc2626;">@Model.TotalExpensesAmount.ToString("N3")</div>
+                    <div style="text-align:center;font-size:10px;color:#888;margin-bottom:8px;">د.ك</div>
+
+                    @if (cats.Any())
+                    {
+                        <div class="dp2-donut-wrap">
+                            <div class="dp2-donut">
+                                <div class="dp2-donut-inner">
+                                    <span style="font-size:11px;font-weight:800;color:#1a1a2e;">@Model.ExpenseCount</span>
+                                    <span style="font-size:9px;color:#64748b;">بند</span>
+                                </div>
+                            </div>
+                            <div class="dp2-legend">
+                                @for (int ci = 0; ci < cats.Count; ci++)
+                                {
+                                    var pct = totalExp > 0 ? Math.Round(cats[ci].Value / totalExp * 100, 0) : 0;
+                                    <div class="dp2-legend-row">
+                                        <div class="dp2-legend-dot" style="background:@catColors[ci % catColors.Length];"></div>
+                                        <span>@cats[ci].Key</span>
+                                        <span style="font-weight:700;margin-right:auto;">@pct%</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="text-align:center;color:#94a3b8;padding:20px 0;font-size:12px;">
+                            <i class="fas fa-check-circle" style="font-size:28px;color:#16a34a;display:block;margin-bottom:6px;"></i>
+                            لا توجد مصروفات اليوم
+                        </div>
+                    }
+                    @if (Model.Expenses.Any())
+                    {
+                        <button class="dp2-show-all no-print" onclick="openExpModal()" style="border:none;background:none;cursor:pointer;"><i class="fas fa-eye"></i> عرض التفاصيل</button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Cash Movement -->
+        <div class="col-lg-3 col-md-6">
+            <div class="dp2-panel">
+                <div class="dp2-panel-hdr"><i class="fas fa-building-columns me-1"></i> حركة الصندوق</div>
+                <div class="dp2-panel-body">
+                    <div class="dp2-cash-row">
+                        <span class="dp2-cash-lbl"><i class="fas fa-box-open" style="color:#64748b;"></i> رصيد بداية اليوم</span>
+                        <span class="dp2-cash-val">@Model.OpeningBalance.ToString("N3")</span>
+                    </div>
+                    <div class="dp2-cash-row">
+                        <span class="dp2-cash-lbl"><i class="fas fa-plus-circle" style="color:#16a34a;"></i> فواتير كاش</span>
+                        <span class="dp2-cash-val" style="color:#16a34a;">+ @Model.CashRevenue.ToString("N3")</span>
+                    </div>
+                    @if (Model.TotalDeposits > 0)
+                    {
+                        <div class="dp2-cash-row">
+                            <span class="dp2-cash-lbl"><i class="fas fa-arrow-circle-down" style="color:#1d4ed8;"></i> إيداع للصندوق</span>
+                            <span class="dp2-cash-val" style="color:#1d4ed8;">+ @Model.TotalDeposits.ToString("N3")</span>
+                        </div>
+                    }
+                    @if (Model.CashExpensesAmount > 0)
+                    {
+                        <div class="dp2-cash-row">
+                            <span class="dp2-cash-lbl"><i class="fas fa-minus-circle" style="color:#dc2626;"></i> مصروفات تشغيل (نقدي)</span>
+                            <span class="dp2-cash-val" style="color:#dc2626;">− @Model.CashExpensesAmount.ToString("N3")</span>
+                        </div>
+                    }
+                    @if (Model.CashAdvancesAmount > 0)
+                    {
+                        <div class="dp2-cash-row">
+                            <span class="dp2-cash-lbl"><i class="fas fa-minus-circle" style="color:#d97706;"></i> سلف موظفين (نقدي)</span>
+                            <span class="dp2-cash-val" style="color:#d97706;">− @Model.CashAdvancesAmount.ToString("N3")</span>
+                        </div>
+                    }
+                    @if (Model.CashSalariesAmount > 0)
+                    {
+                        <div class="dp2-cash-row">
+                            <span class="dp2-cash-lbl"><i class="fas fa-minus-circle" style="color:#d97706;"></i> رواتب (نقدي)</span>
+                            <span class="dp2-cash-val" style="color:#d97706;">− @Model.CashSalariesAmount.ToString("N3")</span>
+                        </div>
+                    }
+                    @if (Model.TotalWithdrawals > 0)
+                    {
+                        <div class="dp2-cash-row">
+                            <span class="dp2-cash-lbl"><i class="fas fa-minus-circle" style="color:#dc2626;"></i> تسليم للبنك</span>
+                            <span class="dp2-cash-val" style="color:#dc2626; text-decoration:line-through;">− @Model.TotalWithdrawals.ToString("N3")</span>
+                        </div>
+                    }
+                    <div class="dp2-cash-total">
+                        <span>الموجود في الصندوق</span>
+                        <span>@Model.CurrentCashBalance.ToString("N3") <small>د.ك</small></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Discounts Table -->
-        <div id="disc-section" class="col-lg-8 col-md-6">
+        <div id="disc-section" class="col-lg-3 col-md-6">
             <div class="dp2-panel">
                 <div class="dp2-panel-hdr" style="background:#7c3aed;">
                     <span><i class="fas fa-tags me-1"></i> تفاصيل خصومات اليوم</span>
@@ -1214,7 +1223,7 @@
         </div>
 
         <!-- Quick Summary -->
-        <div class="col-lg-4 col-md-12">
+        <div class="col-lg-3 col-md-6">
             <div class="dp2-panel">
                 <div class="dp2-panel-hdr"><i class="fas fa-list-check me-1"></i> ملخص سريع لليوم</div>
                 <div class="dp2-panel-body">

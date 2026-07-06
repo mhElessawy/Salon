@@ -202,9 +202,8 @@ namespace Salon.Controllers
             decimal knetRevenue = staffSales.Sum(s =>
                 knetMethods.Contains(s.PaymentMethod) ? s.NetAmount :
                 mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
-            decimal debtRevenue = staffSales.Where(s =>
-                s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "دين على الإدارة")
-                .Sum(s => s.NetAmount);
+            decimal employeeDebtRevenue = staffSales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
+            decimal ownerDebtRevenue = staffSales.Where(s => s.PaymentMethod == "دين على الإدارة").Sum(s => s.NetAmount);
 
             var tipInvoices = allSales.Where(s => (s.GiftForEmployee ?? 0) > 0).ToList();
             decimal tipsTotal = allSales.Sum(s => s.GiftForEmployee ?? 0);
@@ -230,9 +229,8 @@ namespace Salon.Controllers
                 var empKNet = empSales.Sum(s =>
                     knetMethods.Contains(s.PaymentMethod) ? s.NetAmount :
                     mixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
-                var empDebts = empSales.Where(s =>
-                    s.PaymentMethod == "دين على الموظف" || s.PaymentMethod == "دين على الإدارة")
-                    .Sum(s => s.NetAmount);
+                var empDebtToEmployee = empSales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
+                var empDebtToOwner = empSales.Where(s => s.PaymentMethod == "دين على الإدارة").Sum(s => s.NetAmount);
                 var empAdv = advances.Where(a => a.EmployeeId == emp.Id).Sum(a => a.Amount);
                 var empHadiya = allSales.Where(s => s.EmployeeId == emp.Id).Sum(s => s.GiftForEmployee ?? 0);
                 var commission = emp.Commission;
@@ -246,7 +244,8 @@ namespace Salon.Controllers
                     InstantCollection = empCash + empKNet,
                     Cash = empCash,
                     KNet = empKNet,
-                    Debts = empDebts,
+                    EmployeeDebt = empDebtToEmployee,
+                    OwnerDebt = empDebtToOwner,
                     Advances = empAdv,
                     SalesPercent = totalSales > 0 ? Math.Round(empTotal / totalSales * 100, 1) : 0,
                     CommissionPercent = commission,
@@ -285,7 +284,8 @@ namespace Salon.Controllers
                 InvoiceCount = staffSales.Count,
                 CashTotal = cashRevenue,
                 KNetTotal = knetRevenue,
-                DebtTotal = debtRevenue,
+                EmployeeDebtTotal = employeeDebtRevenue,
+                OwnerDebtTotal = ownerDebtRevenue,
                 TotalDiscount = totalDiscount,
                 TipsTotal = tipsTotal,
                 TipsDelivered = tipsDelivered,
