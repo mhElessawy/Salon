@@ -95,8 +95,15 @@
         display: none;
     }
 
+    /* بدون min-width:0 هنا، عناصر الـ flex (main-content/page-content) بتاخد عرض الجدول
+       الكامل بدل ما تسيب الـ scroll يحصل جوه الصندوق، فيتقص المحتوى من غير أي scrollbar */
+    .main-content, .page-content {
+        min-width: 0;
+    }
+
     #empRevenueTable-wrap {
         overflow-x: auto;
+        max-width: 100%;
         scrollbar-width: auto;
         scrollbar-color: #94a3b8 #f1f5f9;
     }
