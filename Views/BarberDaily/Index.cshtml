@@ -6,6 +6,7 @@
     bool showDeptCol = Model.SelectedDept == null;
     var totalInv = allRows.Sum(r => r.InvoiceCount);
     var totalWork = allRows.Sum(r => r.TotalSales);
+    var totalDiscount = allRows.Sum(r => r.Discount);
     var totalCash = allRows.Sum(r => r.Cash);
     var totalKNet = allRows.Sum(r => r.KNet);
     var totalOwnerDebt = allRows.Sum(r => r.OwnerDebt);
@@ -713,6 +714,7 @@
                                 <th>الموظف</th>
                                 <th data-i18n-en="Invoices">الفواتير</th>
                                 <th data-i18n-en="Work (KD)">الشغل<br /><small>د.ك</small></th>
+                                <th data-i18n-en="Discount (KD)">الخصم<br /><small>د.ك</small></th>
                                 <th data-i18n-en="Cash (KD)">كاش<br /><small>د.ك</small></th>
                                 <th data-i18n-en="K-Net (KD)">كي نت<br /><small>د.ك</small></th>
                                 <th data-i18n-en="Owner Debt (KD)">دين على المحل<br /><small>د.ك</small></th>
@@ -727,7 +729,7 @@
                         <tbody>
                             @if (!allRows.Any())
                             {
-                                <tr><td colspan="@(showDeptCol ? 15 : 14)" class="text-center text-muted py-3" style="font-size:12px;"><i class="fas fa-inbox me-1"></i>لا توجد بيانات</td></tr>
+                                <tr><td colspan="@(showDeptCol ? 16 : 15)" class="text-center text-muted py-3" style="font-size:12px;"><i class="fas fa-inbox me-1"></i>لا توجد بيانات</td></tr>
                             }
                             @{
                                 int si = 1;
@@ -770,6 +772,7 @@
                                     </td>
                                     <td>@row.InvoiceCount</td>
                                     <td style="font-weight:600;">@row.TotalSales.ToString("N3")</td>
+                                    <td class="@(row.Discount > 0 ? "text-danger" : "")">@row.Discount.ToString("N3")</td>
                                     <td>@row.Cash.ToString("N3")</td>
                                     <td>@row.KNet.ToString("N3")</td>
                                     <td class="@(row.OwnerDebt > 0 ? "text-danger" : "")">@row.OwnerDebt.ToString("N3")</td>
@@ -799,6 +802,7 @@
                                     <td colspan="@(showDeptCol ? 3 : 2)">الإجمالي</td>
                                     <td>@totalInv</td>
                                     <td>@totalWork.ToString("N3")</td>
+                                    <td>@totalDiscount.ToString("N3")</td>
                                     <td>@totalCash.ToString("N3")</td>
                                     <td>@totalKNet.ToString("N3")</td>
                                     <td>@totalOwnerDebt.ToString("N3")</td>

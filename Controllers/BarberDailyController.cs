@@ -223,6 +223,7 @@ namespace Salon.Controllers
                 var empDeptType = emp.DepartmentNav?.Name == "مساج" ? "مساج" : "حلاقة";
                 var empSales = staffSales.Where(s => s.EmployeeId == emp.Id && s.SaleType == empDeptType).ToList();
                 var empTotal = empSales.Sum(s => s.NetAmount);
+                var empDiscount = empSales.Sum(s => s.Discount);
                 var empCash = empSales.Sum(s =>
                     cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
                     mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
@@ -242,6 +243,7 @@ namespace Salon.Controllers
                     Employee = emp,
                     InvoiceCount = empSales.Count,
                     TotalSales = empTotal,
+                    Discount = empDiscount,
                     InstantCollection = empCash + empKNet,
                     Cash = empCash,
                     KNet = empKNet,

@@ -6,6 +6,7 @@
         public string DepartmentName => Employee.DepartmentNav?.Name ?? "";
         public int InvoiceCount { get; set; }
         public decimal TotalSales { get; set; }
+        public decimal Discount { get; set; }
         public decimal InstantCollection { get; set; }
         public decimal Cash { get; set; }
         public decimal KNet { get; set; }
