@@ -1,4 +1,4 @@
-﻿@model  List<Salon.Models.EmployeeRevenueRow>
+﻿@model   List<Salon.Models.EmployeeRevenueRow>
 @{
     ViewData["Title"] = "تقرير الإيراد حسب الموظف";
     string? userDept = ViewBag.UserDept as string;
@@ -15,6 +15,7 @@
     decimal grandCash = Model.Sum(r => r.Cash);
     decimal grandKnet = Model.Sum(r => r.Knet);
     decimal grandEmployeeDebt = Model.Sum(r => r.EmployeeDebt);
+    decimal grandOwnerDebt = Model.Sum(r => r.OwnerDebt);
     decimal grandSalary = Model.Sum(r => r.BasicSalary);
     decimal grandCommBefore = Model.Sum(r => r.CommissionBeforeTarget);
     decimal grandCommAfter = Model.Sum(r => r.CommissionAfterTarget);
@@ -92,6 +93,37 @@
 
     .print-header {
         display: none;
+    }
+
+    /* بدون min-width:0 هنا، عناصر الـ flex (main-content/page-content) بتاخد عرض الجدول
+       الكامل بدل ما تسيب الـ scroll يحصل جوه الصندوق، فيتقص المحتوى من غير أي scrollbar */
+    .main-content, .page-content {
+        min-width: 0;
+    }
+
+    #empRevenueTable-wrap {
+        overflow-x: auto;
+        max-width: 100%;
+        scrollbar-width: auto;
+        scrollbar-color: #94a3b8 #f1f5f9;
+    }
+
+    #empRevenueTable-wrap::-webkit-scrollbar {
+        height: 12px;
+    }
+
+    #empRevenueTable-wrap::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 6px;
+    }
+
+    #empRevenueTable-wrap::-webkit-scrollbar-thumb {
+        background: #94a3b8;
+        border-radius: 6px;
+    }
+
+    #empRevenueTable-wrap::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
     }
 
     .emp-badge-bar {
@@ -625,6 +657,14 @@
             <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
         </div>
     </div>
+    <div class="emp-stat" style="border-top:3px solid #b91c1c;">
+        <div class="emp-stat-icon" style="background:#fee2e2;color:#b91c1c;"><i class="fas fa-landmark"></i></div>
+        <div>
+            <div class="emp-stat-label" data-i18n-en="Total Owner Debt">إجمالي دين الإدارة</div>
+            <div class="emp-stat-value" style="color:#b91c1c;">@grandOwnerDebt.ToString("N3")</div>
+            <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
+        </div>
+    </div>
     <div class="emp-stat" style="border-top:3px solid #7c3aed;">
         <div class="emp-stat-icon" style="background:#ede9fe;color:#7c3aed;"><i class="fas fa-hand-holding-usd"></i></div>
         <div>
@@ -636,7 +676,7 @@
     <div class="emp-stat" style="border-top:3px solid #db2777;">
         <div class="emp-stat-icon" style="background:#fce7f3;color:#db2777;"><i class="fas fa-gift"></i></div>
         <div>
-            <div class="emp-stat-label" data-i18n-en="Total Gifts">إجمالي الإكراميات</div>
+            <div class="emp-stat-label" data-i18n-en="Total Tips">إجمالي الإكراميات</div>
             <div class="emp-stat-value" style="color:#db2777;">@grandGifts.ToString("N3")</div>
             <div class="emp-stat-label" data-i18n-en="K.D.">د.ك</div>
         </div>
@@ -664,7 +704,7 @@
             </small>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive" id="empRevenueTable-wrap">
             <table class="table emp-table mb-0" id="empRevenueTable">
                 <thead>
                     <tr>
@@ -694,6 +734,10 @@
                             <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
                         </th>
                         <th>
+                            <span data-i18n-en="Owner Debt">دين على الإدارة</span><br />
+                            <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
+                        </th>
+                        <th>
                             <span data-i18n-en="Advances">السلفة</span><br />
                             <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
                         </th>
@@ -706,7 +750,7 @@
                             <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
                         </th>
                         <th>
-                            <span data-i18n-en="Gifts">الإكراميات</span><br />
+                            <span data-i18n-en="Tips">الإكراميات</span><br />
                             <small class="fw-normal text-muted">(<span data-i18n-en="K.D.">د.ك</span>)</small>
                         </th>
                         <th>
@@ -751,6 +795,7 @@
                             </td>
                             <td style="color:#d97706;font-weight:700;">@row.TotalCommission.ToString("N3")</td>
                             <td style="color:#dc2626;">@(row.EmployeeDebt > 0 ? row.EmployeeDebt.ToString("N3") : "-")</td>
+                            <td style="color:#b91c1c;">@(row.OwnerDebt > 0 ? row.OwnerDebt.ToString("N3") : "-")</td>
                             <td style="color:#7c3aed;">@(row.Advances > 0 ? row.Advances.ToString("N3") : "-")</td>
                             <td style="color:#dc2626;">@(row.Deductions > 0 ? row.Deductions.ToString("N3") : "-")</td>
                             <td style="color:#e67e22;">@(row.EmployeeServiceCommission > 0 ? row.EmployeeServiceCommission.ToString("N3") : "-")</td>
@@ -775,7 +820,7 @@
                     @if (!Model.Any())
                     {
                         <tr>
-                            <td colspan="15" class="text-center py-4 text-muted">
+                            <td colspan="16" class="text-center py-4 text-muted">
                                 <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
                                 <span data-i18n-en="No data for the selected period">لا توجد بيانات للفترة المحددة</span>
                             </td>
@@ -791,6 +836,7 @@
                         <td>-</td>
                         <td style="color:#d97706;">@grandCommission.ToString("N3")</td>
                         <td style="color:#dc2626;">@(grandEmployeeDebt > 0 ? grandEmployeeDebt.ToString("N3") : "-")</td>
+                        <td style="color:#b91c1c;">@(grandOwnerDebt > 0 ? grandOwnerDebt.ToString("N3") : "-")</td>
                         <td style="color:#7c3aed;">@(grandAdvances > 0 ? grandAdvances.ToString("N3") : "-")</td>
                         <td style="color:#dc2626;">@(grandDeductions > 0 ? grandDeductions.ToString("N3") : "-")</td>
                         <td style="color:#e67e22;">@(grandEmployeeServiceCommission > 0 ? grandEmployeeServiceCommission.ToString("N3") : "-")</td>
@@ -923,12 +969,16 @@
                             <span class="val" style="color:#e67e22;">@row.EmployeeServiceCommission.ToString("N3") د.ك</span>
                         </div>
                         <div class="edm-due-row">
-                            <span class="lbl" data-i18n-en="Gifts">الإكراميات (الهدايا)</span>
+                            <span class="lbl" data-i18n-en="Tips">الإكراميات</span>
                             <span class="val" style="color:#db2777;">@row.Gifts.ToString("N3") د.ك</span>
                         </div>
                         <div class="edm-due-row">
                             <span class="lbl" data-i18n-en="Employee Debt">دين الموظف</span>
                             <span class="val" style="color:#dc2626;">@row.EmployeeDebt.ToString("N3") د.ك</span>
+                        </div>
+                        <div class="edm-due-row">
+                            <span class="lbl" data-i18n-en="Owner Debt">دين على الإدارة</span>
+                            <span class="val" style="color:#b91c1c;">@row.OwnerDebt.ToString("N3") د.ك</span>
                         </div>
                         <div class="edm-due-row">
                             <span class="lbl" data-i18n-en="Advances">السلفة</span>
@@ -1024,7 +1074,7 @@
                 العمولة: إذا حقق الموظف التارجت تُحتسب كل مبيعاته بنسبة التارجت الأعلى بدلاً من النسبة الأساسية
             </span>
             &nbsp;|&nbsp;
-            <span data-i18n-en="Net Employee = Salary + Actual Commission + Service Commission + Gifts − Advances − Deductions − Emp. Debt">
+            <span data-i18n-en="Net Employee = Salary + Actual Commission + Service Commission + Tips − Advances − Deductions − Emp. Debt">
                 صافي الموظف = الراتب + العمولة الفعلية + عمولة خدمة الموظف + الإكراميات − السلفة − الخصومات − دين الموظف
             </span>
             &nbsp;|&nbsp;

@@ -1,11 +1,11 @@
-﻿@{
-    ViewData["Title"] = "تقييم موظف";
-    var employees = ViewBag.Employees as IEnumerable<Salon.Models.Employee> ?? Enumerable.Empty<Salon.Models.Employee>();
-    int? selectedEmployeeId = ViewBag.SelectedEmployeeId;
-    Salon.Models.Employee? selectedEmp = ViewBag.SelectedEmployee as Salon.Models.Employee;
-    var sales = ViewBag.Sales as IEnumerable<Salon.Models.Sale> ?? Enumerable.Empty<Salon.Models.Sale>();
-    var attendances = ViewBag.Attendances as IEnumerable<Salon.Models.Attendance> ?? Enumerable.Empty<Salon.Models.Attendance>();
-    string? userDept = ViewBag.UserDept as string;
+﻿﻿@{
+ViewData["Title"] = "تقييم موظف";
+var employees = ViewBag.Employees as IEnumerable<Salon.Models.Employee> ?? Enumerable.Empty<Salon.Models.Employee>();
+int? selectedEmployeeId = ViewBag.SelectedEmployeeId;
+Salon.Models.Employee? selectedEmp = ViewBag.SelectedEmployee as Salon.Models.Employee;
+var sales = ViewBag.Sales as IEnumerable<Salon.Models.Sale> ?? Enumerable.Empty<Salon.Models.Sale>();
+var attendances = ViewBag.Attendances as IEnumerable<Salon.Models.Attendance> ?? Enumerable.Empty<Salon.Models.Attendance>();
+string? userDept = ViewBag.UserDept as string;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -24,7 +24,7 @@
                     <option value="">-- اختر موظفاً --</option>
                     @foreach (var emp in employees)
                     {
-                        <option value="@emp.Id" @@(selectedEmployeeId == emp.Id ? "selected" : "")>
+                        <option value="@emp.Id" @@(selectedEmployeeId= =emp.Id ? "selected" : "" )>
                             @emp.FullName @(emp.Department != null ? "(" + emp.Department + ")" : "")
                         </option>
                     }
@@ -104,7 +104,7 @@ else
         </div>
         <div class="col-md-3">
             <div class="stat-card" style="border-right: 4px solid #fd7e14; background:#fff7f0;">
-                <div class="stat-label">إجمالي الهدايا</div>
+                <div class="stat-label">إجمالي الإكراميات</div>
                 <div class="stat-value" style="color:#fd7e14;">@(((decimal)ViewBag.TotalGifts).ToString("N3")) د.ك</div>
             </div>
         </div>
@@ -130,7 +130,7 @@ else
                             <th>التاريخ</th>
                             <th>نوع الفاتورة</th>
                             <th>المبلغ</th>
-                            <th>هدية الموظف</th>
+                            <th>إكرامية الموظف</th>
                             <th>طريقة الدفع</th>
                             <th>الحالة</th>
                         </tr>
@@ -232,9 +232,9 @@ else
                                 <td>
                                     @{
                                         string statusClass = a.Status == "حاضر" ? "bg-success"
-                                            : a.Status == "غائب" ? "bg-danger"
-                                            : a.Status == "إجازة" ? "bg-info"
-                                            : "bg-secondary";
+                                        : a.Status == "غائب" ? "bg-danger"
+                                        : a.Status == "إجازة" ? "bg-info"
+                                        : "bg-secondary";
                                     }
                                     <span class="badge @statusClass">@a.Status</span>
                                 </td>

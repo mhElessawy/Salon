@@ -1,4 +1,4 @@
-﻿@model   Salon.Models.BarberDailyReportViewModel
+﻿@model    Salon.Models.BarberDailyReportViewModel
 @{
     ViewData["Title"] = Model.ReportTitle;
     var selectedDate = Model.ReportDate.ToString("yyyy-MM-dd");
@@ -402,7 +402,7 @@
                     <th>خصم السلف<br />والديون<br /><small>د.ك</small></th>
                     <th>الصافي<br />بعد الخصم<br /><small>د.ك</small></th>
                     <th>صافي المحل<br /><small>د.ك</small></th>
-                    <th>هدية<br />للموظف<br /><small>د.ك</small></th>
+                    <th>إكرامية<br />للموظف<br /><small>د.ك</small></th>
                 </tr>
             </thead>
             <tbody>
@@ -514,7 +514,7 @@
             {
                 <div class="bdr-sum-cell">
                     <div class="sum-icon"><i class="fas fa-gift"></i></div>
-                    <div class="sum-label">هدايا للموظفين<br /><small style="color:#aaa;">(تُصرف مع الراتب)</small></div>
+                    <div class="sum-label">إكراميات للموظفين<br /><small style="color:#aaa;">(تُصرف مع الراتب)</small></div>
                     <div class="sum-val" style="color:#c0392b;">@Model.TotalHadiya.ToString("N3")</div>
                     <div class="sum-cur">د.ك</div>
                 </div>

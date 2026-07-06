@@ -6,16 +6,19 @@
         public string DepartmentName => Employee.DepartmentNav?.Name ?? "";
         public int InvoiceCount { get; set; }
         public decimal TotalSales { get; set; }
+        public decimal Discount { get; set; }
         public decimal InstantCollection { get; set; }
         public decimal Cash { get; set; }
         public decimal KNet { get; set; }
-        public decimal Debts { get; set; }
+        public decimal EmployeeDebt { get; set; }
+        public decimal OwnerDebt { get; set; }
         public decimal Advances { get; set; }
         public decimal SalesPercent { get; set; }
         public decimal CommissionPercent { get; set; }
         public decimal DueAmount { get; set; }
         public decimal ShopNet { get; set; }
         public decimal Hadiya { get; set; }
+        public decimal ServiceCommission { get; set; }
     }
 
     public class DailyPerformanceViewModel
@@ -33,7 +36,8 @@
         public int InvoiceCount { get; set; }
         public decimal CashTotal { get; set; }
         public decimal KNetTotal { get; set; }
-        public decimal DebtTotal { get; set; }
+        public decimal EmployeeDebtTotal { get; set; }
+        public decimal OwnerDebtTotal { get; set; }
         public decimal TotalDiscount { get; set; }
         public decimal TipsTotal { get; set; }
         public decimal TipsDelivered { get; set; }
@@ -41,7 +45,8 @@
 
         public decimal CashPercent => TotalSales > 0 ? Math.Round(CashTotal / TotalSales * 100, 1) : 0;
         public decimal KNetPercent => TotalSales > 0 ? Math.Round(KNetTotal / TotalSales * 100, 1) : 0;
-        public decimal DebtPercent => TotalSales > 0 ? Math.Round(DebtTotal / TotalSales * 100, 1) : 0;
+        public decimal EmployeeDebtPercent => TotalSales > 0 ? Math.Round(EmployeeDebtTotal / TotalSales * 100, 1) : 0;
+        public decimal OwnerDebtPercent => TotalSales > 0 ? Math.Round(OwnerDebtTotal / TotalSales * 100, 1) : 0;
         public decimal GrossTotal => TotalSales + TotalDiscount;
         public decimal DiscountPercent => GrossTotal > 0 ? Math.Round(TotalDiscount / GrossTotal * 100, 1) : 0;
 

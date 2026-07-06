@@ -1464,6 +1464,7 @@ namespace Salon.Controllers
                 decimal gifts = empSales.Sum(s => s.GiftForEmployee ?? 0);
                 decimal employeeServiceCommission = empSales.Sum(s => s.EmployeeGift ?? 0);
                 decimal employeeDebt = empSales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
+                decimal ownerDebt = empSales.Where(s => s.PaymentMethod == "دين على الإدارة").Sum(s => s.NetAmount);
                 decimal advances = advancesByEmp.ContainsKey(emp.Id) ? advancesByEmp[emp.Id] : 0;
                 decimal deductions = deductionsByEmp.ContainsKey(emp.Id) ? deductionsByEmp[emp.Id] : 0;
 
@@ -1526,6 +1527,7 @@ namespace Salon.Controllers
                     Cash = cash,
                     Knet = knet,
                     EmployeeDebt = employeeDebt,
+                    OwnerDebt = ownerDebt,
                     BasicSalary = emp.BasicSalary,
                     CommissionRate = commRate,
                     SalesTarget = target,

@@ -1,4 +1,4 @@
-﻿@model Salon.Models.Sale
+﻿@model   Salon.Models.Sale
 @{
     Layout = null;
 
@@ -351,7 +351,7 @@
         {
             var totalCollect = Model.NetAmount + (Model.GiftForEmployee ?? 0);
             <div class="totals-row sub">
-                <span>هدية للموظف / Staff Gift</span>
+                <span>إكرامية للموظف / Staff Tip</span>
                 <span>@Model.GiftForEmployee.Value.ToString("N3") د.ك</span>
             </div>
             <div class="totals-row net">
@@ -359,7 +359,7 @@
                 <span>@totalCollect.ToString("N3") د.ك</span>
             </div>
             <div class="notes-box">
-                مبلغ الهدية <strong>@Model.GiftForEmployee.Value.ToString("N3") د.ك</strong> خاص بالموظف
+                مبلغ الإكرامية <strong>@Model.GiftForEmployee.Value.ToString("N3") د.ك</strong> خاص بالموظف
                 <strong>@(Model.Employee?.FullName ?? "")</strong> ويُصرف له مع الراتب
             </div>
         }
