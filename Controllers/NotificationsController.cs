@@ -342,12 +342,16 @@ namespace Salon.Controllers
                 assignedCustomersQuery = assignedCustomersQuery.Where(c => c.AssignedEmployeeId == myEmployeeId.Value);
             var assignedCustomers = await assignedCustomersQuery.ToListAsync();
 
+            const int inactiveNamesLimit = 6;
             var inactiveByEmployee = assignedCustomers
                 .Where(c => lastVisitMap.TryGetValue(c.Id, out var lv) && lv < inactiveThreshold)
                 .GroupBy(c => new { c.AssignedEmployeeId, Name = c.AssignedEmployee?.FullName ?? "غير محدد" })
                 .Select(g => new
                 {
                     g.Key.Name,
+                    Names = g.OrderBy(c => lastVisitMap[c.Id])
+                             .Select(c => c.FullName)
+                             .ToList(),
                     Count = g.Count(),
                     OldestVisit = g.Min(c => lastVisitMap[c.Id])
                 });
@@ -355,6 +359,9 @@ namespace Salon.Controllers
             foreach (var grp in inactiveByEmployee)
             {
                 var subInact = $"الموظف: {grp.Name}";
+                var namesShown = string.Join("، ", grp.Names.Take(inactiveNamesLimit));
+                var extra = grp.Count - inactiveNamesLimit;
+                var namesShownEn = string.Join(", ", grp.Names.Take(inactiveNamesLimit));
                 list.Add(new NotificationItem
                 {
                     Type = "inactive-customers",
@@ -363,8 +370,10 @@ namespace Salon.Controllers
                     TitleEn = "Inactive Customers",
                     SubTitle = subInact,
                     SubTitleEn = $"Employee: {grp.Name}",
-                    Body = $"{grp.Count} عميل لم يزوروا الصالون منذ أكثر من شهر",
-                    BodyEn = $"{grp.Count} customer(s) haven't visited the salon in over a month",
+                    Body = $"{grp.Count} عميل لم يزوروا الصالون منذ أكثر من شهر: {namesShown}" +
+                           (extra > 0 ? $" و{extra} آخرين" : ""),
+                    BodyEn = $"{grp.Count} customer(s) haven't visited the salon in over a month: {namesShownEn}" +
+                             (extra > 0 ? $" and {extra} more" : ""),
                     IconClass = "fas fa-user-clock",
                     IconBg = "#0dcaf0",
                     Date = grp.OldestVisit,
