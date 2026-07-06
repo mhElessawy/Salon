@@ -373,7 +373,7 @@
                 {
                     var totalCollect = sale.NetAmount + (sale.GiftForEmployee ?? 0);
                     <div class="totals-row sub">
-                        <span>هدية للموظف / Staff Gift</span>
+                        <span>إكرامية للموظف / Staff Tip</span>
                         <span>@sale.GiftForEmployee.Value.ToString("N3") د.ك</span>
                     </div>
                     <div class="totals-row net">
@@ -381,7 +381,7 @@
                         <span>@totalCollect.ToString("N3") د.ك</span>
                     </div>
                     <div class="notes-box">
-                        مبلغ الهدية <strong>@sale.GiftForEmployee.Value.ToString("N3") د.ك</strong> خاص بالموظف
+                        مبلغ الإكرامية <strong>@sale.GiftForEmployee.Value.ToString("N3") د.ك</strong> خاص بالموظف
                         <strong>@(sale.Employee?.FullName ?? "")</strong> ويُصرف له مع الراتب
                     </div>
                 }

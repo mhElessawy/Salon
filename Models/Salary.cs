@@ -55,11 +55,11 @@ namespace Salon.Models
         [DataType(DataType.Currency)]
         public decimal CommissionAmount { get; set; }
 
-        [Display(Name = "إجمالي الهدايا")]
+        [Display(Name = "إجمالي الإكراميات")]
         [DataType(DataType.Currency)]
         public decimal? GiftAmount { get; set; }
 
-        [Display(Name = "هدية للموظف")]
+        [Display(Name = "إكرامية للموظف")]
         [DataType(DataType.Currency)]
         public decimal? HadiyaAmount { get; set; }
 

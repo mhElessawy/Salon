@@ -65,11 +65,11 @@ namespace Salon.Models
         [ForeignKey("DebtEmployeeId")]
         public Employee? DebtEmployee { get; set; }
 
-        [Display(Name = "هدية الموظف")]
+        [Display(Name = "إكرامية الموظف")]
         [DataType(DataType.Currency)]
         public decimal? EmployeeGift { get; set; }
 
-        [Display(Name = "هدية للموظف")]
+        [Display(Name = "إكرامية للموظف")]
         [DataType(DataType.Currency)]
         public decimal? GiftForEmployee { get; set; }
 

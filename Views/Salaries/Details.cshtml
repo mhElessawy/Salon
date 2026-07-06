@@ -216,13 +216,13 @@
                             <td class="text-end fw-bold">@Model.Allowances.ToString("N3") د.ك</td>
                         </tr>
                         <tr>
-                            <td>إجمالي الهدايا</td>
+                            <td>إجمالي الإكراميات</td>
                             <td class="text-end fw-bold">@((Model.GiftAmount ?? 0).ToString("N3")) د.ك</td>
                         </tr>
                         @if ((Model.HadiyaAmount ?? 0) > 0)
                         {
                             <tr style="background:#fdf2f2;">
-                                <td style="color:#c0392b;"><i class="fas fa-gift me-1"></i>هدية للموظف</td>
+                                <td style="color:#c0392b;"><i class="fas fa-gift me-1"></i>إكرامية للموظف</td>
                                 <td class="text-end fw-bold" style="color:#c0392b;">@((Model.HadiyaAmount ?? 0).ToString("N3")) د.ك</td>
                             </tr>
                         }
