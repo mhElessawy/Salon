@@ -509,6 +509,30 @@ body.sidebar-collapsed .main-content {
     white-space: nowrap;
 }
 
+.kuwait-clock {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #f8f9fa;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1a2e;
+    white-space: nowrap;
+}
+
+    .kuwait-clock i {
+        color: var(--primary);
+    }
+
+    .kuwait-clock .kuwait-clock-date {
+        font-weight: 500;
+        color: var(--text-muted);
+        font-size: 12px;
+    }
+
 /* =============================================
    PAGE CONTENT
    ============================================= */
@@ -988,6 +1012,16 @@ body.sidebar-collapsed .main-content {
     .topbar-left {
         gap: 6px;
     }
+
+    .kuwait-clock {
+        padding: 5px 8px;
+        font-size: 11px;
+        gap: 4px;
+    }
+
+        .kuwait-clock .kuwait-clock-date {
+            font-size: 10px;
+        }
 
     .topbar-right {
         gap: 8px;
