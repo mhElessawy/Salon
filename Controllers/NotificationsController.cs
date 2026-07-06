@@ -89,6 +89,10 @@ namespace Salon.Controllers
             var today = DateTime.Today;
             var weekAgo = today.AddDays(-7);
 
+            // موظف مرتبط بحساب المستخدم الحالي (يشوف تنبيهاته الخاصة فقط) — الأدمن/المدير بدون ربط يشوف تنبيهات الجميع
+            var currentUser = await _userManager.GetUserAsync(User);
+            int? myEmployeeId = currentUser?.LinkedEmployeeId;
+
             // 1. Closed shifts — cash difference or normal close
             var closedShifts = await _context.Shifts
                 .Where(s => s.Status == "مغلق" && s.ShiftDate >= weekAgo && s.ClosingBalance.HasValue)
@@ -318,6 +322,99 @@ namespace Salon.Controllers
                     ActionTextEn = "View Advances",
                     Key = NotifKey("advance-pending", adv.AdvanceDate, subPend)
                 });
+            }
+
+            // 7. عملاء لم يزوروا الصالون منذ أكثر من شهر (لكل موظف مسؤول عنهم)
+            var inactiveThreshold = today.AddDays(-30);
+
+            var visitSales = await _context.Sales
+                .Where(s => s.CustomerId.HasValue && s.Status != "ملغي")
+                .Select(s => new { CustomerId = s.CustomerId!.Value, s.SaleDate })
+                .ToListAsync();
+            var lastVisitMap = visitSales
+                .GroupBy(s => s.CustomerId)
+                .ToDictionary(g => g.Key, g => g.Max(s => s.SaleDate));
+
+            var assignedCustomersQuery = _context.Customers
+                .Include(c => c.AssignedEmployee)
+                .Where(c => c.IsActive && c.AssignedEmployeeId.HasValue);
+            if (myEmployeeId.HasValue)
+                assignedCustomersQuery = assignedCustomersQuery.Where(c => c.AssignedEmployeeId == myEmployeeId.Value);
+            var assignedCustomers = await assignedCustomersQuery.ToListAsync();
+
+            var inactiveCustomers = assignedCustomers
+                .Where(c => lastVisitMap.TryGetValue(c.Id, out var lv) && lv < inactiveThreshold)
+                .OrderBy(c => lastVisitMap[c.Id])
+                .Take(30);
+
+            foreach (var cust in inactiveCustomers)
+            {
+                var lastVisit = lastVisitMap[cust.Id];
+                var daysAgo = (today - lastVisit.Date).Days;
+                var empName = cust.AssignedEmployee?.FullName ?? "غير محدد";
+                var subInact = $"العميل: {cust.FullName}";
+                list.Add(new NotificationItem
+                {
+                    Type = "inactive-customer",
+                    Category = "مهمة",
+                    Title = "عميل لم يزور الصالون",
+                    TitleEn = "Customer Hasn't Visited",
+                    SubTitle = subInact,
+                    SubTitleEn = $"Customer: {cust.FullNameEn ?? cust.FullName}",
+                    Body = $"آخر زيارة: {lastVisit:yyyy/MM/dd} ({daysAgo} يوم) | الموظف المسؤول: {empName}",
+                    BodyEn = $"Last visit: {lastVisit:yyyy/MM/dd} ({daysAgo} days ago) | Employee: {empName}",
+                    IconClass = "fas fa-user-clock",
+                    IconBg = "#0dcaf0",
+                    Date = today,
+                    ActionUrl = Url.Action("Index", "Customers"),
+                    ActionText = "عرض العميل",
+                    ActionTextEn = "View Customer",
+                    Key = NotifKey("inactive-customer", today, $"{cust.Id}")
+                });
+            }
+
+            // 8. اقتراب الموظف من تحقيق التارجت الشهري (باقي أقل من 200 د.ك)
+            var monthStart = new DateTime(today.Year, today.Month, 1);
+            var monthSales = await _context.Sales
+                .Where(s => s.SaleDate >= monthStart && s.Status != "ملغي" && s.EmployeeId.HasValue)
+                .Select(s => new { EmployeeId = s.EmployeeId!.Value, s.NetAmount })
+                .ToListAsync();
+            var revenueMap = monthSales
+                .GroupBy(s => s.EmployeeId)
+                .ToDictionary(g => g.Key, g => g.Sum(s => s.NetAmount));
+
+            var targetEmployeesQuery = _context.Employees.Where(e => e.IsActive && e.SalesTarget != null && e.SalesTarget > 0);
+            if (myEmployeeId.HasValue)
+                targetEmployeesQuery = targetEmployeesQuery.Where(e => e.Id == myEmployeeId.Value);
+            var targetEmployees = await targetEmployeesQuery.ToListAsync();
+
+            foreach (var emp in targetEmployees)
+            {
+                var revenue = revenueMap.TryGetValue(emp.Id, out var r) ? r : 0;
+                var target = emp.SalesTarget ?? 0;
+                var remaining = target - revenue;
+                if (remaining > 0 && remaining <= 200)
+                {
+                    var subTarget = $"الموظف: {emp.FullName}";
+                    list.Add(new NotificationItem
+                    {
+                        Type = "target-near",
+                        Category = "مهمة",
+                        Title = "اقتراب تحقيق التارجت",
+                        TitleEn = "Target Almost Reached",
+                        SubTitle = subTarget,
+                        SubTitleEn = $"Employee: {emp.FullName}",
+                        Body = $"باقي {remaining:N3} د.ك فقط للوصول للتارجت الشهري ({target:N3} د.ك)",
+                        BodyEn = $"Only {remaining:N3} KD left to reach the monthly target ({target:N3} KD)",
+                        IconClass = "fas fa-bullseye",
+                        IconBg = "#6f42c1",
+                        Date = today,
+                        ActionUrl = Url.Action("EmployeeRevenue", "Reports"),
+                        ActionText = "عرض التقرير",
+                        ActionTextEn = "View Report",
+                        Key = NotifKey("target-near", today, subTarget)
+                    });
+                }
             }
 
             return list.OrderByDescending(n => n.Date).ToList();
