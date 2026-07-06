@@ -342,45 +342,34 @@ namespace Salon.Controllers
                 assignedCustomersQuery = assignedCustomersQuery.Where(c => c.AssignedEmployeeId == myEmployeeId.Value);
             var assignedCustomers = await assignedCustomersQuery.ToListAsync();
 
-            const int inactiveNamesLimit = 6;
-            var inactiveByEmployee = assignedCustomers
+            var inactiveCustomers = assignedCustomers
                 .Where(c => lastVisitMap.TryGetValue(c.Id, out var lv) && lv < inactiveThreshold)
-                .GroupBy(c => new { c.AssignedEmployeeId, Name = c.AssignedEmployee?.FullName ?? "غير محدد" })
-                .Select(g => new
-                {
-                    g.Key.Name,
-                    Names = g.OrderBy(c => lastVisitMap[c.Id])
-                             .Select(c => c.FullName)
-                             .ToList(),
-                    Count = g.Count(),
-                    OldestVisit = g.Min(c => lastVisitMap[c.Id])
-                });
+                .OrderBy(c => lastVisitMap[c.Id])
+                .Take(30);
 
-            foreach (var grp in inactiveByEmployee)
+            foreach (var cust in inactiveCustomers)
             {
-                var subInact = $"الموظف: {grp.Name}";
-                var namesShown = string.Join("، ", grp.Names.Take(inactiveNamesLimit));
-                var extra = grp.Count - inactiveNamesLimit;
-                var namesShownEn = string.Join(", ", grp.Names.Take(inactiveNamesLimit));
+                var lastVisit = lastVisitMap[cust.Id];
+                var daysAgo = (today - lastVisit.Date).Days;
+                var empName = cust.AssignedEmployee?.FullName ?? "غير محدد";
+                var subInact = $"العميل: {cust.FullName}";
                 list.Add(new NotificationItem
                 {
-                    Type = "inactive-customers",
+                    Type = "inactive-customer",
                     Category = "مهمة",
-                    Title = "عملاء لم يزوروا الصالون",
-                    TitleEn = "Inactive Customers",
+                    Title = "عميل لم يزور الصالون",
+                    TitleEn = "Customer Hasn't Visited",
                     SubTitle = subInact,
-                    SubTitleEn = $"Employee: {grp.Name}",
-                    Body = $"{grp.Count} عميل لم يزوروا الصالون منذ أكثر من شهر: {namesShown}" +
-                           (extra > 0 ? $" و{extra} آخرين" : ""),
-                    BodyEn = $"{grp.Count} customer(s) haven't visited the salon in over a month: {namesShownEn}" +
-                             (extra > 0 ? $" and {extra} more" : ""),
+                    SubTitleEn = $"Customer: {cust.FullNameEn ?? cust.FullName}",
+                    Body = $"آخر زيارة: {lastVisit:yyyy/MM/dd} ({daysAgo} يوم) | الموظف المسؤول: {empName}",
+                    BodyEn = $"Last visit: {lastVisit:yyyy/MM/dd} ({daysAgo} days ago) | Employee: {empName}",
                     IconClass = "fas fa-user-clock",
                     IconBg = "#0dcaf0",
-                    Date = grp.OldestVisit,
+                    Date = today,
                     ActionUrl = Url.Action("Index", "Customers"),
-                    ActionText = "عرض العملاء",
-                    ActionTextEn = "View Customers",
-                    Key = NotifKey("inactive-customers", today, subInact)
+                    ActionText = "عرض العميل",
+                    ActionTextEn = "View Customer",
+                    Key = NotifKey("inactive-customer", today, $"{cust.Id}")
                 });
             }
 
