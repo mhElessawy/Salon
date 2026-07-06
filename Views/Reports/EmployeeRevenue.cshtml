@@ -95,6 +95,30 @@
         display: none;
     }
 
+    #empRevenueTable-wrap {
+        overflow-x: auto;
+        scrollbar-width: auto;
+        scrollbar-color: #94a3b8 #f1f5f9;
+    }
+
+    #empRevenueTable-wrap::-webkit-scrollbar {
+        height: 12px;
+    }
+
+    #empRevenueTable-wrap::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 6px;
+    }
+
+    #empRevenueTable-wrap::-webkit-scrollbar-thumb {
+        background: #94a3b8;
+        border-radius: 6px;
+    }
+
+    #empRevenueTable-wrap::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+    }
+
     .emp-badge-bar {
         display: flex;
         justify-content: space-between;
@@ -673,7 +697,7 @@
             </small>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive" id="empRevenueTable-wrap">
             <table class="table emp-table mb-0" id="empRevenueTable">
                 <thead>
                     <tr>
