@@ -458,7 +458,7 @@ window.PAGE_TRANSLATIONS = {
     'منتجات': 'Products',
     'دين / عميل': 'Customer Debt',
     'دين / موظف': 'Employee Debt',
-    'دين / صاحب المكان': 'Owner Debt',
+    'دين / إدارة': 'Department Debit',
     'كاش + كي نت': 'Cash & K-Net',
     'نقدي + شبكة': 'Cash & Card',
 
@@ -1314,7 +1314,7 @@ window.PAGE_TRANSLATIONS = {
     '⚠ لم يُسلَّم بعد': '⚠ Not Delivered Yet',
     '✓ تم التسليم': '✓ Delivered',
     '✓ تم التسليم الكامل': '✓ Fully Delivered',
-    '🏠 دين / صاحب المكان': '🏠 Debt / Owner',
+    '🏠 دين / إدارة': '🏠 Debt / Department',
     '👤 دين / عميل': '👤 Debt / Customer',
     '👷 دين / موظف': '👷 Debt / Employee',
     '📦 منتجات': '📦 Products',
