@@ -233,6 +233,7 @@ namespace Salon.Controllers
                 var empDebtToOwner = empSales.Where(s => s.PaymentMethod == "دين على الإدارة").Sum(s => s.NetAmount);
                 var empAdv = advances.Where(a => a.EmployeeId == emp.Id).Sum(a => a.Amount);
                 var empHadiya = allSales.Where(s => s.EmployeeId == emp.Id).Sum(s => s.GiftForEmployee ?? 0);
+                var empServiceCommission = allSales.Where(s => s.EmployeeId == emp.Id).Sum(s => s.EmployeeGift ?? 0);
                 var commission = emp.Commission;
                 var dueAmount = Math.Round(empTotal * commission / 100, 3);
 
@@ -252,6 +253,7 @@ namespace Salon.Controllers
                     DueAmount = dueAmount,
                     ShopNet = empTotal - dueAmount - empHadiya,
                     Hadiya = empHadiya,
+                    ServiceCommission = empServiceCommission,
                 };
             }
 

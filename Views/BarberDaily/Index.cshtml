@@ -12,6 +12,7 @@
     var totalEmployeeDebt = allRows.Sum(r => r.EmployeeDebt);
     var totalAdv = allRows.Sum(r => r.Advances);
     var totalDue = allRows.Sum(r => r.DueAmount);
+    var totalServiceCommission = allRows.Sum(r => r.ServiceCommission);
     var totalHadiya = allRows.Sum(r => r.Hadiya);
     var totalShopNet = allRows.Sum(r => r.ShopNet);
     var overallPct = totalWork > 0 ? Math.Round(totalDue / totalWork * 100, 1) : 0m;
@@ -775,7 +776,7 @@
                                     <td class="@(row.EmployeeDebt > 0 ? "text-danger" : "")">@row.EmployeeDebt.ToString("N3")</td>
                                     <td class="@(row.Advances > 0 ? "text-warning" : "")">@row.Advances.ToString("N3")</td>
                                     <td><strong>@row.CommissionPercent.ToString("N0")%</strong></td>
-                                    <td style="color:#16a34a;font-weight:700;">@row.DueAmount.ToString("N3")</td>
+                                    <td style="color:#16a34a;font-weight:700;">@row.ServiceCommission.ToString("N3")</td>
                                     <td>
                                         @if (row.Hadiya > 0)
                                         {
@@ -804,7 +805,7 @@
                                     <td>@totalEmployeeDebt.ToString("N3")</td>
                                     <td>@totalAdv.ToString("N3")</td>
                                     <td>@overallPct.ToString("N1")%</td>
-                                    <td>@totalDue.ToString("N3")</td>
+                                    <td>@totalServiceCommission.ToString("N3")</td>
                                     <td style="color:#fbbf24;">@totalHadiya.ToString("N3")</td>
                                     <td>@totalShopNet.ToString("N3")</td>
                                 </tr>

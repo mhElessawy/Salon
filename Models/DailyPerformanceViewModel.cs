@@ -17,6 +17,7 @@
         public decimal DueAmount { get; set; }
         public decimal ShopNet { get; set; }
         public decimal Hadiya { get; set; }
+        public decimal ServiceCommission { get; set; }
     }
 
     public class DailyPerformanceViewModel
