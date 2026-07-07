@@ -25,7 +25,6 @@
     bool cashOpen = IsGroupOpen("expenses", "deposits", "withdrawals") ||
                     (ctrl == "reports" && act == "cashmovement");
     bool settingsOpen = IsGroupOpen("settings", "users");
-    bool barberDailyOpen = IsGroupOpen("barberdaily");
 }
 
 <nav class="sidebar" id="sidebar">
@@ -385,6 +384,17 @@
                         </li>
                     }
                 </ul>
+            </li>
+        }
+
+        @* تقرير الأداء اليومي *@
+        @if (canSee("BarberDaily"))
+        {
+            <li>
+                <a href="@Url.Action("Index", "BarberDaily")" class="@IsActive("BarberDaily")">
+                    <i class="fas fa-cut"></i>
+                    <span data-i18n-en="Daily Performance Report">تقرير الأداء اليومي</span>
+                </a>
             </li>
         }
 
