@@ -244,7 +244,7 @@ namespace Salon.Controllers
                     InvoiceCount = empSales.Count,
                     TotalSales = empTotal,
                     Discount = empDiscount,
-                    InstantCollection = empCash + empKNet,
+                    NetCollected = empTotal - (empDebtToEmployee + empDebtToOwner + empAdv + empServiceCommission),
                     Cash = empCash,
                     KNet = empKNet,
                     EmployeeDebt = empDebtToEmployee,

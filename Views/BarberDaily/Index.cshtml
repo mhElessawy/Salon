@@ -1,4 +1,4 @@
-﻿@model    Salon.Models.DailyPerformanceViewModel
+﻿@model     Salon.Models.DailyPerformanceViewModel
 @{
     ViewData["Title"] = "تقرير الأداء اليومي";
     var selectedDate = Model.ReportDate.ToString("yyyy-MM-dd");
@@ -16,7 +16,7 @@
     var totalServiceCommission = allRows.Sum(r => r.ServiceCommission);
     var totalHadiya = allRows.Sum(r => r.Hadiya);
     var totalShopNet = allRows.Sum(r => r.ShopNet);
-    var overallPct = totalWork > 0 ? Math.Round(totalDue / totalWork * 100, 1) : 0m;
+    var totalNetCollected = allRows.Sum(r => r.NetCollected);
     var discountInvoices = Model.Invoices.Where(s => s.Discount > 0).OrderByDescending(s => s.SaleDate).ToList();
     string deptSuffix = Model.SelectedDept != null ? $"&dept={Uri.EscapeDataString(Model.SelectedDept)}" : "";
 
@@ -712,24 +712,23 @@
                                     <th>القسم</th>
                                 }
                                 <th>الموظف</th>
-                                <th data-i18n-en="Invoices">الفواتير</th>
-                                <th data-i18n-en="Work">الشغل</th>
+                                <th data-i18n-en="Invoices">عدد الفواتير</th>
                                 <th data-i18n-en="Discount">الخصم</th>
+                                <th data-i18n-en="Total Amount">المبلغ الاجمالي</th>
                                 <th data-i18n-en="Cash">كاش</th>
                                 <th data-i18n-en="K-Net">كي نت</th>
-                                <th data-i18n-en="Owner Debt">دين على الإدارة</th>
                                 <th data-i18n-en="Employee Debt">دين على الموظف</th>
+                                <th data-i18n-en="Owner Debt">دين على الإدارة</th>
                                 <th data-i18n-en="Advances">السلف</th>
-                                <th data-i18n-en="Rate">النسبة</th>
-                                <th data-i18n-en="Employee Commission">عمولة الموظف</th>
+                                <th data-i18n-en="Employee Service Commission">عمولة خدمة للموظف</th>
                                 <th data-i18n-en="Tip">إكرامية</th>
-                                <th data-i18n-en="Store Net">للمحل</th>
+                                <th data-i18n-en="Net Collected">صافي المحصل</th>
                             </tr>
                         </thead>
                         <tbody>
                             @if (!allRows.Any())
                             {
-                                <tr><td colspan="@(showDeptCol ? 16 : 15)" class="text-center text-muted py-3" style="font-size:12px;"><i class="fas fa-inbox me-1"></i>لا توجد بيانات</td></tr>
+                                <tr><td colspan="@(showDeptCol ? 13 : 12)" class="text-center text-muted py-3" style="font-size:12px;"><i class="fas fa-inbox me-1"></i>لا توجد بيانات</td></tr>
                             }
                             @{
                                 int si = 1;
@@ -771,14 +770,13 @@
                                         </div>
                                     </td>
                                     <td>@row.InvoiceCount</td>
-                                    <td style="font-weight:600;">@row.TotalSales.ToString("N3")</td>
                                     <td class="@(row.Discount > 0 ? "text-danger" : "")">@row.Discount.ToString("N3")</td>
+                                    <td style="font-weight:600;">@row.TotalSales.ToString("N3")</td>
                                     <td>@row.Cash.ToString("N3")</td>
                                     <td>@row.KNet.ToString("N3")</td>
-                                    <td class="@(row.OwnerDebt > 0 ? "text-danger" : "")">@row.OwnerDebt.ToString("N3")</td>
                                     <td class="@(row.EmployeeDebt > 0 ? "text-danger" : "")">@row.EmployeeDebt.ToString("N3")</td>
+                                    <td class="@(row.OwnerDebt > 0 ? "text-danger" : "")">@row.OwnerDebt.ToString("N3")</td>
                                     <td class="@(row.Advances > 0 ? "text-warning" : "")">@row.Advances.ToString("N3")</td>
-                                    <td><strong>@row.CommissionPercent.ToString("N0")%</strong></td>
                                     <td style="color:#16a34a;font-weight:700;">@row.ServiceCommission.ToString("N3")</td>
                                     <td>
                                         @if (row.Hadiya > 0)
@@ -791,7 +789,7 @@
                                             <span class="text-muted">—</span>
                                         }
                                     </td>
-                                    <td style="color:#1d4ed8;font-weight:700;">@row.ShopNet.ToString("N3")</td>
+                                    <td style="color:#1d4ed8;font-weight:700;">@row.NetCollected.ToString("N3")</td>
                                 </tr>
                             }
                         </tbody>
@@ -801,17 +799,16 @@
                                 <tr>
                                     <td colspan="@(showDeptCol ? 3 : 2)">الإجمالي</td>
                                     <td>@totalInv</td>
-                                    <td>@totalWork.ToString("N3")</td>
                                     <td>@totalDiscount.ToString("N3")</td>
+                                    <td>@totalWork.ToString("N3")</td>
                                     <td>@totalCash.ToString("N3")</td>
                                     <td>@totalKNet.ToString("N3")</td>
-                                    <td>@totalOwnerDebt.ToString("N3")</td>
                                     <td>@totalEmployeeDebt.ToString("N3")</td>
+                                    <td>@totalOwnerDebt.ToString("N3")</td>
                                     <td>@totalAdv.ToString("N3")</td>
-                                    <td>@overallPct.ToString("N1")%</td>
                                     <td>@totalServiceCommission.ToString("N3")</td>
                                     <td style="color:#fbbf24;">@totalHadiya.ToString("N3")</td>
-                                    <td>@totalShopNet.ToString("N3")</td>
+                                    <td>@totalNetCollected.ToString("N3")</td>
                                 </tr>
                             </tfoot>
                         }
