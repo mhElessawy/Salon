@@ -5,6 +5,7 @@
     decimal totalMasrouf = ViewBag.TotalMasrouf is decimal tm ? tm : 0m;
     decimal totalSulfa = ViewBag.TotalSulfa is decimal ts2 ? ts2 : 0m;
     decimal totalRatib = ViewBag.TotalRatib is decimal tr ? tr : 0m;
+    decimal totalOhda = ViewBag.TotalOhda is decimal toh ? toh : 0m;
     decimal totalExpenses = ViewBag.TotalExpenses is decimal te ? te : 0m;
     decimal totalCashExpenses = ViewBag.TotalCashExpenses is decimal tce ? tce : 0m;
     decimal totalNonCashExpenses = ViewBag.TotalNonCashExpenses is decimal tnce ? tnce : 0m;
@@ -17,7 +18,7 @@
     string selectedType = ViewBag.SelectedType ?? "";
 
     // الأنواع التي تُخصم من رصيد الكاش
-    string[] debitTypes = { "مصروف", "سلفة", "راتب", "سحب" };
+    string[] debitTypes = { "مصروف", "سلفة", "راتب", "عهدة", "سحب" };
     // الكي نت لا يدخل في حساب رصيد الكاش
     string[] cashCreditTypes = { "مبيعات كاش", "إيداع" };
 
@@ -188,11 +189,20 @@
             </div>
         </div>
     </div>
+    <div class="col-6 col-md-4">
+        <div class="card text-center border-0 shadow-sm h-100" style="border-right:4px solid #be185d !important;">
+            <div class="card-body p-3">
+                <div class="mb-1" style="font-size:24px; color:#be185d;"><i class="fas fa-hand-holding"></i></div>
+                <div class="text-muted small">عهد الموظفين</div>
+                <div class="fw-bold fs-6 mt-1" style="color:#be185d;">@totalOhda.ToString("N3") <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @* خط فاصل وإجمالي المصروفات مع تفصيل نقدي/غير نقدي *@
 <div class="alert alert-danger py-2 px-3 mb-1 d-flex justify-content-between align-items-center">
-    <span><i class="fas fa-equals me-1"></i> إجمالي المصروفات (مصروفات + سلف + مرتبات)</span>
+    <span><i class="fas fa-equals me-1"></i> إجمالي المصروفات (مصروفات + سلف + مرتبات + عهد)</span>
     <strong>@totalExpenses.ToString("N3") د.ك</strong>
 </div>
 <div class="row g-2 mb-3">
@@ -321,6 +331,15 @@
                                                 <small class="text-muted ms-1">(@item.PaymentMethod)</small>
                                             }
                                             break;
+                                        case "عهدة":
+                                            <span class="badge px-2 py-1" style="background:rgba(190,24,93,0.12); color:#be185d;">
+                                                <i class="fas fa-hand-holding me-1"></i>عهدة
+                                            </span>
+                                            @if (item.PaymentMethod != "نقدي")
+                                            {
+                                                <small class="text-muted ms-1">(@item.PaymentMethod)</small>
+                                            }
+                                            break;
                                         case "مبيعات كاش":
                                             <span class="badge px-2 py-1" style="background:rgba(22,163,74,0.12); color:#16a34a;">
                                                 <i class="fas fa-cash-register me-1"></i>كاش
@@ -361,6 +380,7 @@
                             decimal tMasrouf = Model.Where(i => i.Type == "مصروف").Sum(i => i.Amount);
                             decimal tSulfa = Model.Where(i => i.Type == "سلفة").Sum(i => i.Amount);
                             decimal tRatib = Model.Where(i => i.Type == "راتب").Sum(i => i.Amount);
+                            decimal tOhda2 = Model.Where(i => i.Type == "عهدة").Sum(i => i.Amount);
                             decimal tSahb = Model.Where(i => i.Type == "سحب").Sum(i => i.Amount);
                         }
                         <tr>
@@ -389,6 +409,14 @@
                             <tr>
                                 <td colspan="6" class="text-end text-muted">المرتبات</td>
                                 <td class="text-end" style="color:#6f42c1;">-@tRatib.ToString("N3")</td>
+                                <td></td>
+                            </tr>
+                        }
+                        @if (tOhda2 > 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="text-end text-muted">عهد الموظفين</td>
+                                <td class="text-end" style="color:#be185d;">-@tOhda2.ToString("N3")</td>
                                 <td></td>
                             </tr>
                         }

@@ -21,7 +21,7 @@
     bool salesOpen = IsGroupOpen("sales", "appointments");
     bool defsOpen = IsGroupOpen("services", "servicecategories", "departments", "packages");
     bool inventoryOpen = IsGroupOpen("inventory", "suppliers");
-    bool hrOpen = IsGroupOpen("employees", "salaries", "advances", "attendance");
+    bool hrOpen = IsGroupOpen("employees", "salaries", "advances", "custody", "attendance");
     bool cashOpen = IsGroupOpen("expenses", "deposits", "withdrawals") ||
                     (ctrl == "reports" && act == "cashmovement");
     bool settingsOpen = IsGroupOpen("settings", "users");
@@ -263,7 +263,7 @@
         @* شؤون الموظفين *@
         @{
             bool hasHrGroup = canSee("Employees") || canSee("Salaries") ||
-            canSee("Advances") || canSee("Attendance");
+            canSee("Advances") || canSee("Custody") || canSee("Attendance");
         }
         @if (hasHrGroup)
         {
@@ -311,6 +311,21 @@
                             <a href="@Url.Action("Report", "Advances")" class="@IsActive("Advances", "Report")">
                                 <i class="fas fa-file-invoice-dollar"></i>
                                 <span data-i18n-en="Advances Report">تقرير السلف</span>
+                            </a>
+                        </li>
+                    }
+                    @if (canSee("Custody"))
+                    {
+                        <li>
+                            <a href="@Url.Action("Index", "Custody")" class="@IsActive("Custody", "Index")">
+                                <i class="fas fa-hand-holding"></i>
+                                <span data-i18n-en="Employee Custody">عهد الموظفين</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Report", "Custody")" class="@IsActive("Custody", "Report")">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                                <span data-i18n-en="Custody Report">تقرير العهد</span>
                             </a>
                         </li>
                     }

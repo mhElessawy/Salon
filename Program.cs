@@ -225,6 +225,16 @@ using (var scope = app.Services.CreateScope())
                 SentAt TEXT NULL,
                 CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
                 FOREIGN KEY (AppointmentId) REFERENCES Appointments(Id) ON DELETE CASCADE)");
+            TryExec(@"CREATE TABLE IF NOT EXISTS Custodies (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                EmployeeId INTEGER NOT NULL,
+                Amount REAL NOT NULL DEFAULT 0,
+                CustodyDate TEXT NOT NULL DEFAULT (date('now')),
+                PaymentMethod TEXT NOT NULL DEFAULT 'نقدي',
+                Reason TEXT,
+                Notes TEXT,
+                CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+                FOREIGN KEY (EmployeeId) REFERENCES Employees(Id))");
         }
         else
         {
@@ -324,6 +334,17 @@ using (var scope = app.Services.CreateScope())
                 CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
                 CONSTRAINT FK_ApptReminder_Appointments FOREIGN KEY (AppointmentId)
                     REFERENCES Appointments(Id) ON DELETE CASCADE)");
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='Custodies')
+                CREATE TABLE Custodies (Id INT IDENTITY PRIMARY KEY,
+                EmployeeId INT NOT NULL,
+                Amount DECIMAL(18,3) NOT NULL DEFAULT 0,
+                CustodyDate DATE NOT NULL DEFAULT GETDATE(),
+                PaymentMethod NVARCHAR(50) NOT NULL DEFAULT N'نقدي',
+                Reason NVARCHAR(MAX) NULL,
+                Notes NVARCHAR(MAX) NULL,
+                CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                CONSTRAINT FK_Custodies_Employees FOREIGN KEY (EmployeeId)
+                    REFERENCES Employees(Id))");
         }
 
         await SeedData.InitializeAsync(services);

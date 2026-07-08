@@ -93,6 +93,17 @@ namespace Salon.Controllers
 
             var advances = await advancesQuery.OrderBy(a => a.Id).ToListAsync();
 
+            var custodiesQuery = _context.Custodies
+                .Include(c => c.Employee)
+                .Where(c => c.CustodyDate >= today && c.CustodyDate < tomorrow);
+
+            if (!isEmployee)
+                custodiesQuery = custodiesQuery.Where(c => employeeIds.Contains(c.EmployeeId));
+            else
+                custodiesQuery = custodiesQuery.Where(c => c.EmployeeId == (linkedEmpId ?? -1));
+
+            var custodies = await custodiesQuery.OrderBy(c => c.Id).ToListAsync();
+
             var salariesQuery = _context.Salaries
                 .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= today && s.PaidDate.Value < tomorrow);
             salariesQuery = isEmployee
@@ -193,7 +204,16 @@ namespace Salon.Controllers
                 prevWithdrawalsQuery = prevWithdrawalsQuery.Where(w => w.Department == filterDept);
             decimal prevWithdrawals = await prevWithdrawalsQuery.SumAsync(w => w.Amount);
 
-            decimal openingBalance = baseBalance + prevCash + prevDeposits - prevExpenses - prevAdvances - prevSalaries - prevWithdrawals;
+            // Only custody cash-outs actually leave the physical register — ones handed over via
+            // link never touched the cash box, so they must not reduce it.
+            var prevCustodyQuery = _context.Custodies
+                .Where(c => c.CustodyDate >= baseDate && c.CustodyDate < today && c.PaymentMethod == "نقدي");
+            prevCustodyQuery = isEmployee
+                ? prevCustodyQuery.Where(c => c.EmployeeId == (linkedEmpId ?? -1))
+                : prevCustodyQuery.Where(c => employeeIds.Contains(c.EmployeeId));
+            decimal prevCustody = await prevCustodyQuery.SumAsync(c => c.Amount);
+
+            decimal openingBalance = baseBalance + prevCash + prevDeposits - prevExpenses - prevAdvances - prevSalaries - prevWithdrawals - prevCustody;
 
             decimal totalSales = staffSales.Sum(s => s.NetAmount);
             decimal cashRevenue = staffSales.Sum(s =>
@@ -213,6 +233,7 @@ namespace Salon.Controllers
             decimal cashExpenses = expenses.Where(e => e.PaymentMethod == "نقدي").Sum(e => e.Amount);
             decimal cashAdvances = advances.Where(a => a.PaymentMethod == "نقدي").Sum(a => a.Amount);
             decimal cashSalaries = todaySalaries.Where(s => s.PaymentMethod == "نقدي").Sum(s => s.NetSalary);
+            decimal cashCustody = custodies.Where(c => c.PaymentMethod == "نقدي").Sum(c => c.Amount);
 
             var expensesByCategory = expenses
                 .GroupBy(e => string.IsNullOrEmpty(e.Category) ? "أخرى" : e.Category)
@@ -303,6 +324,8 @@ namespace Salon.Controllers
                 CashExpensesAmount = cashExpenses,
                 CashAdvancesAmount = cashAdvances,
                 CashSalariesAmount = cashSalaries,
+                TotalCustodyAmount = custodies.Sum(c => c.Amount),
+                CashCustodyAmount = cashCustody,
 
                 ExpenseCount = expenses.Count,
                 MaxExpense = expenses.Any() ? expenses.Max(e => e.Amount) : 0,
