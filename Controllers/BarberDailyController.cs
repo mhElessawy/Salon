@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -214,6 +215,14 @@ namespace Salon.Controllers
             decimal cashAdvances = advances.Where(a => a.PaymentMethod == "نقدي").Sum(a => a.Amount);
             decimal cashSalaries = todaySalaries.Where(s => s.PaymentMethod == "نقدي").Sum(s => s.NetSalary);
 
+            // "حركة الصندوق" في هذه الصفحة تستخدم نفس معادلة CashBoxCalculator المستخدمة في
+            // Reports/CashMovement (كل أنواع الفواتير وكل الموظفين عند عدم تحديد قسم) حتى لا
+            // يختلف الرقمان — إلا في عرض الموظف لنفسه فقط، حيث يبقى الحساب مقتصراً على مبيعاته
+            // وسلفه ورواتبه هو (لا يوجد مفهوم مماثل في الحاسبة المشتركة).
+            var box = isEmployee
+                ? new CashBoxSnapshot(openingBalance, cashRevenue, deposits.Sum(d => d.Amount), cashExpenses, cashAdvances, cashSalaries, withdrawals.Sum(w => w.Amount))
+                : await CashBoxCalculator.GetSnapshotAsync(_context, today, tomorrow, filterDept);
+
             var expensesByCategory = expenses
                 .GroupBy(e => string.IsNullOrEmpty(e.Category) ? "أخرى" : e.Category)
                 .ToDictionary(g => g.Key, g => g.Sum(e => e.Amount));
@@ -244,7 +253,7 @@ namespace Salon.Controllers
                     InvoiceCount = empSales.Count,
                     TotalSales = empTotal,
                     Discount = empDiscount,
-                    InstantCollection = empTotal - empDebtToEmployee - empDebtToOwner - empAdv - empServiceCommission,
+                    InstantCollection = empCash + empKNet,
                     Cash = empCash,
                     KNet = empKNet,
                     EmployeeDebt = empDebtToEmployee,
@@ -294,15 +303,15 @@ namespace Salon.Controllers
                 TipsTotal = tipsTotal,
                 TipsDelivered = tipsDelivered,
 
-                OpeningBalance = openingBalance,
-                CashRevenue = cashRevenue,
-                TotalDeposits = deposits.Sum(d => d.Amount),
+                OpeningBalance = box.OpeningBalance,
+                CashRevenue = box.CashRevenue,
+                TotalDeposits = box.Deposits,
                 TotalExpensesAmount = totalExpenses,
                 TotalAdvancesAmount = advances.Sum(a => a.Amount),
-                TotalWithdrawals = withdrawals.Sum(w => w.Amount),
-                CashExpensesAmount = cashExpenses,
-                CashAdvancesAmount = cashAdvances,
-                CashSalariesAmount = cashSalaries,
+                TotalWithdrawals = box.Withdrawals,
+                CashExpensesAmount = box.CashExpenses,
+                CashAdvancesAmount = box.CashAdvances,
+                CashSalariesAmount = box.CashSalaries,
 
                 ExpenseCount = expenses.Count,
                 MaxExpense = expenses.Any() ? expenses.Max(e => e.Amount) : 0,

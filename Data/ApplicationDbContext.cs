@@ -27,6 +27,7 @@ namespace Salon.Data
         public DbSet<Attendance> Attendances { get; set; }
         public DbSet<Salary> Salaries { get; set; }
         public DbSet<EmployeeAdvance> EmployeeAdvances { get; set; }
+        public DbSet<Custody> Custodies { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<UserPermission> UserPermissions { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }

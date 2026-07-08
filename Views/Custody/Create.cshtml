@@ -1,0 +1,55 @@
+﻿@model Salon.Models.Custody
+@{
+    ViewData["Title"] = "تسليم عهدة";
+}
+
+<div class="page-header">
+    <h1><i class="fas fa-hand-holding me-2"></i>تسليم عهدة لموظف</h1>
+</div>
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="EmployeeId" class="form-label"></label>
+                    <select asp-for="EmployeeId" asp-items="ViewBag.Employees" class="form-select">
+                        <option value="">-- اختر الموظف --</option>
+                    </select>
+                    <span asp-validation-for="EmployeeId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Amount" class="form-label"></label>
+                    <div class="input-group">
+                        <input asp-for="Amount" type="number" step="0.001" min="0.001" class="form-control" />
+                        <span class="input-group-text">د.ك</span>
+                    </div>
+                    <span asp-validation-for="Amount" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">طريقة التسليم <span class="text-danger">*</span></label>
+                    <select asp-for="PaymentMethod" class="form-select">
+                        <option value="نقدي">💵 نقدي (يخصم من الصندوق)</option>
+                        <option value="لينك">🔗 لينك (لا يؤثر على الصندوق)</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="CustodyDate" class="form-label"></label>
+                    <input asp-for="CustodyDate" type="date" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Reason" class="form-label"></label>
+                    <input asp-for="Reason" class="form-control" placeholder="مثال: عهدة لشراء مستلزمات" />
+                </div>
+                <div class="col-12">
+                    <label asp-for="Notes" class="form-label"></label>
+                    <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary me-2"><i class="fas fa-save me-1"></i> تسليم العهدة</button>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>

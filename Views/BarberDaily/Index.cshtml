@@ -1,4 +1,4 @@
-﻿@model     Salon.Models.DailyPerformanceViewModel
+﻿@model    Salon.Models.DailyPerformanceViewModel
 @{
     ViewData["Title"] = "تقرير الأداء اليومي";
     var selectedDate = Model.ReportDate.ToString("yyyy-MM-dd");
@@ -16,7 +16,7 @@
     var totalServiceCommission = allRows.Sum(r => r.ServiceCommission);
     var totalHadiya = allRows.Sum(r => r.Hadiya);
     var totalShopNet = allRows.Sum(r => r.ShopNet);
-    var totalNetCollected = allRows.Sum(r => r.NetCollected);
+    var totalNetCollected = allRows.Sum(r => r.InstantCollection);
     var discountInvoices = Model.Invoices.Where(s => s.Discount > 0).OrderByDescending(s => s.SaleDate).ToList();
     string deptSuffix = Model.SelectedDept != null ? $"&dept={Uri.EscapeDataString(Model.SelectedDept)}" : "";
 
@@ -789,7 +789,7 @@
                                             <span class="text-muted">—</span>
                                         }
                                     </td>
-                                    <td style="color:#1d4ed8;font-weight:700;">@row.NetCollected.ToString("N3")</td>
+                                    <td style="color:#1d4ed8;font-weight:700;">@row.InstantCollection.ToString("N3")</td>
                                 </tr>
                             }
                         </tbody>

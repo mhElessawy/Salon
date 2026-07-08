@@ -19,6 +19,7 @@ namespace Salon.Models
             ("Employees",         "الموظفين",           "fas fa-id-badge",         "الموظفون"),
             ("Salaries",          "الرواتب",            "fas fa-money-bill-wave",  "الموظفون"),
             ("Advances",          "السلف",              "fas fa-hand-holding-usd", "الموظفون"),
+            ("Custody",           "العهد",              "fas fa-hand-holding",     "الموظفون"),
             ("Attendance",        "الحضور والانصراف",   "fas fa-calendar-alt",     "الموظفون"),
             ("Expenses",          "المصروفات",          "fas fa-receipt",          "المالية"),
             ("Deposits",          "الإيداعات",          "fas fa-money-bill-wave",  "المالية"),
@@ -37,7 +38,7 @@ namespace Salon.Models
         public static readonly HashSet<string> HasAdd = new()
         {
             "Customers", "Suppliers", "Services", "ServiceCategories", "Packages", "Inventory",
-            "Appointments", "Shifts", "Employees", "Salaries", "Advances", "Attendance",
+            "Appointments", "Shifts", "Employees", "Salaries", "Advances", "Custody", "Attendance",
             "Expenses", "Deposits", "Withdrawals", "Users", "BarberInvoice", "MassageInvoice", "ProductInvoice"
         };
 
@@ -45,7 +46,7 @@ namespace Salon.Models
         public static readonly HashSet<string> HasDelete = new()
         {
             "Customers", "Suppliers", "Services", "ServiceCategories", "Packages", "Inventory",
-            "Appointments", "Shifts", "Employees", "Advances", "Expenses", "Deposits", "Withdrawals", "Users",
+            "Appointments", "Shifts", "Employees", "Advances", "Custody", "Expenses", "Deposits", "Withdrawals", "Users",
             "BarberInvoice", "MassageInvoice", "ProductInvoice"
         };
 

@@ -1,0 +1,179 @@
+﻿@model IEnumerable<Salon.Models.Custody>
+@{
+    ViewData["Title"] = "العهد";
+    bool isManager = (bool)(ViewBag.IsManager ?? false);
+    decimal totalCash = (decimal)ViewBag.TotalCash;
+    decimal totalLink = (decimal)ViewBag.TotalLink;
+    decimal total = (decimal)ViewBag.Total;
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="fas fa-hand-holding me-2"></i>عهد الموظفين</h1>
+        <p>تسليم العهد للموظفين (كاش أو لينك)</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="@Url.Action("Report")" class="btn btn-outline-secondary">
+            <i class="fas fa-file-invoice-dollar me-1"></i> تقرير العهد
+        </a>
+        @if (isManager)
+        {
+            <a href="@Url.Action("Create")" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> تسليم عهدة
+            </a>
+        }
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-md-4">
+        <div class="card border-0 shadow-sm h-100" style="border-right:4px solid #dc2626 !important;">
+            <div class="card-body">
+                <div class="text-muted small mb-1"><i class="fas fa-money-bill-wave me-1 text-danger"></i>عهد نقدية <span class="text-muted">(تخصم من الصندوق)</span></div>
+                <div class="fw-bold fs-4 text-danger">@totalCash.ToString("N3") <small class="text-muted">د.ك</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-4">
+        <div class="card border-0 shadow-sm h-100" style="border-right:4px solid #0ea5e9 !important;">
+            <div class="card-body">
+                <div class="text-muted small mb-1"><i class="fas fa-link me-1" style="color:#0ea5e9;"></i>عهد عن طريق لينك <span class="text-muted">(لا تؤثر على الصندوق)</span></div>
+                <div class="fw-bold fs-4" style="color:#0ea5e9;">@totalLink.ToString("N3") <small class="text-muted">د.ك</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-4">
+        <div class="card border-0 shadow-sm h-100" style="border-right:4px solid #6f42c1 !important;">
+            <div class="card-body">
+                <div class="text-muted small mb-1"><i class="fas fa-hand-holding me-1" style="color:#6f42c1;"></i>إجمالي العهد</div>
+                <div class="fw-bold fs-4" style="color:#6f42c1;">@total.ToString("N3") <small class="text-muted">د.ك</small></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+            <label class="form-label mb-0">الموظف:</label>
+            <select name="employeeId" class="form-select" style="max-width:220px;" onchange="this.form.submit()">
+                <option value="">-- الكل --</option>
+                @foreach (SelectListItem emp in ViewBag.Employees)
+                {
+                    var selected = emp.Value == (ViewBag.EmployeeId?.ToString() ?? "");
+                    <option value="@emp.Value" selected="@(selected ? "selected" : null)">@emp.Text</option>
+                }
+            </select>
+            @if (ViewBag.EmployeeId != null)
+            {
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">إعادة تعيين</a>
+            }
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>الموظف</th>
+                        <th>المبلغ</th>
+                        <th>طريقة التسليم</th>
+                        <th>تاريخ التسليم</th>
+                        <th>السبب / البيان</th>
+                        <th>ملاحظات</th>
+                        @if (isManager)
+                        {
+                            <th>الإجراءات</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="8" class="text-center text-muted py-4">لا توجد عهد مسجلة</td></tr>
+                    }
+                    @foreach (var c in Model)
+                    {
+                        <tr>
+                            <td>@c.Id</td>
+                            <td>@(c.Employee?.FullName ?? "-")</td>
+                            <td><strong class="text-danger">@c.Amount.ToString("N3") د.ك</strong></td>
+                            <td>
+                                @if (c.PaymentMethod == "نقدي")
+                                {
+                                    <span class="badge bg-danger bg-opacity-10 text-danger"><i class="fas fa-money-bill-wave me-1"></i>نقدي</span>
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background:rgba(14,165,233,0.12); color:#0ea5e9;"><i class="fas fa-link me-1"></i>لينك</span>
+                                }
+                            </td>
+                            <td>@c.CustodyDate.ToString("yyyy/MM/dd")</td>
+                            <td>@(c.Reason ?? "-")</td>
+                            <td class="text-muted small">@(c.Notes ?? "-")</td>
+                            @if (isManager)
+                            {
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" title="حذف"
+                                            onclick="confirmDelete(@c.Id, '@Html.Raw((c.Employee?.FullName ?? "").Replace("'", "\\'"))')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+                @if (Model.Any())
+                {
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td colspan="2" class="text-end">الإجمالي</td>
+                            <td class="text-danger">@total.ToString("N3") د.ك</td>
+                            <td colspan="@(isManager ? 5 : 4)"></td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (isManager)
+{
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content text-center p-4">
+                <div class="mb-3">
+                    <i class="fas fa-trash-alt text-danger" style="font-size:3rem;"></i>
+                </div>
+                <h4 class="fw-bold mb-2">تأكيد الحذف</h4>
+                <p class="text-muted mb-1">هل تريد حذف عهدة الموظف:</p>
+                <p class="fw-bold fs-5 mb-4" id="deleteEmpName"></p>
+                <p class="text-danger small mb-4">لا يمكن التراجع عن هذا الإجراء</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">إلغاء</button>
+                    <form id="deleteForm" method="post" style="display:inline;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger px-4">
+                            <i class="fas fa-trash me-1"></i> حذف
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @section Scripts {
+        <script>
+            function confirmDelete(id, empName) {
+                document.getElementById('deleteEmpName').textContent = empName;
+                document.getElementById('deleteForm').action = '@Url.Action("Delete")/' + id;
+                new bootstrap.Modal(document.getElementById('deleteModal')).show();
+            }
+        </script>
+    }
+}

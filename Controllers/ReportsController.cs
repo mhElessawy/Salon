@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
+using Salon.Services;
 
 namespace Salon.Controllers
 {
@@ -748,66 +749,10 @@ namespace Salon.Controllers
             bool showWithdrawals = string.IsNullOrEmpty(type) || type == "سحب";
             bool filterDept = !string.IsNullOrEmpty(dept);
 
-            // Cash balance that already existed in the register before "from" — carried forward
-            // from the very first recorded shift using the exact same cash/department rules this
-            // report already applies to its own [from, to) items, so the two stay self-consistent.
-            var firstShiftEver = await _context.Shifts
-                .OrderBy(s => s.ShiftDate).ThenBy(s => s.CreatedAt)
-                .FirstOrDefaultAsync();
-            bool hasHistoryBeforePeriod = firstShiftEver != null && firstShiftEver.ShiftDate.Date < dateFrom;
-            decimal openingBalanceBeforePeriod = 0m;
-            if (hasHistoryBeforePeriod)
-            {
-                DateTime priorBaseDate = firstShiftEver!.ShiftDate.Date;
-
-                var priorSalesQuery = _context.Sales
-                    .Where(s => s.SaleDate >= priorBaseDate && s.SaleDate < dateFrom && s.Status != "ملغي");
-                if (filterDept)
-                    priorSalesQuery = priorSalesQuery.Where(s => s.SaleType == dept);
-                var priorSales = await priorSalesQuery.ToListAsync();
-                decimal priorCashSales = priorSales.Sum(s =>
-                    s.PaymentMethod == "كاش" ? s.NetAmount :
-                    s.PaymentMethod == "كي نت و كاش" ? (s.CashAmount ?? 0) : 0m);
-
-                var priorDepositsQuery = _context.Deposits
-                    .Where(d => d.DepositDate >= priorBaseDate && d.DepositDate < dateFrom);
-                if (filterDept)
-                    priorDepositsQuery = priorDepositsQuery.Where(d => d.Department == dept);
-                decimal priorDeposits = await priorDepositsQuery.SumAsync(d => d.Amount);
-
-                var priorExpQuery = _context.Expenses
-                    .Where(e => e.ExpenseDate >= priorBaseDate && e.ExpenseDate < dateFrom && e.PaymentMethod == "نقدي");
-                if (filterDept)
-                    priorExpQuery = priorExpQuery.Where(e => e.Department == dept);
-                decimal priorExpenses = await priorExpQuery.SumAsync(e => e.Amount);
-
-                var priorAdvQuery = _context.EmployeeAdvances
-                    .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
-                    .Where(a => a.AdvanceDate >= priorBaseDate && a.AdvanceDate < dateFrom
-                             && (a.Status == "موافق عليها" || a.Status == "مسددة") && a.PaymentMethod == "نقدي");
-                if (filterDept)
-                    priorAdvQuery = priorAdvQuery.Where(a => a.Employee!.DepartmentNav!.Name == dept);
-                decimal priorAdvances = await priorAdvQuery.SumAsync(a => a.Amount);
-
-                var priorSalQuery = _context.Salaries
-                    .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
-                    .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= priorBaseDate && s.PaidDate.Value < dateFrom && s.PaymentMethod == "نقدي");
-                if (filterDept)
-                    priorSalQuery = priorSalQuery.Where(s => s.Employee!.DepartmentNav!.Name == dept);
-                decimal priorSalaries = await priorSalQuery.SumAsync(s => s.NetSalary);
-
-                var priorWithdrawalsQuery = _context.Withdrawals
-                    .Where(w => w.WithdrawalDate >= priorBaseDate && w.WithdrawalDate < dateFrom);
-                if (filterDept)
-                    priorWithdrawalsQuery = priorWithdrawalsQuery.Where(w => w.Department == dept);
-                decimal priorWithdrawals = await priorWithdrawalsQuery.SumAsync(w => w.Amount);
-
-                // The physical cash count on the first shift has no per-department split, so it
-                // only applies to the unfiltered (whole-safe) view — same rule as BarberDaily/Index.
-                decimal baseBalance = filterDept ? 0m : firstShiftEver.OpeningBalance;
-                decimal priorCashExpenses = priorExpenses + priorAdvances + priorSalaries;
-                openingBalanceBeforePeriod = baseBalance + priorCashSales + priorDeposits - priorCashExpenses - priorWithdrawals;
-            }
+            // Cash balance that already existed in the register before "from" — computed by the
+            // same shared CashBoxCalculator that BarberDaily/Index uses, so the two reports can
+            // never drift apart again.
+            decimal openingBalanceBeforePeriod = (await CashBoxCalculator.GetSnapshotAsync(_context, dateFrom, dateFrom, dept)).OpeningBalance;
 
             if (showExpenses)
             {
