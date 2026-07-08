@@ -33,6 +33,12 @@ namespace Salon.Models
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
 
+        // سجل المصروف المرتبط تلقائياً بهذه العهدة (فئة "عهدة") — يُنشأ عند التسليم ويُحذف معها
+        public int? ExpenseId { get; set; }
+
+        [ForeignKey("ExpenseId")]
+        public Expense? Expense { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 }

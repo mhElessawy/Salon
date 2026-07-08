@@ -594,14 +594,6 @@ namespace Salon.Controllers
                     .OrderBy(a => a.AdvanceDate).ThenBy(a => a.Id)
                     .ToListAsync();
 
-                var monthCustodies = await _context.Custodies
-                    .Include(c => c.Employee)
-                    .Where(c => c.CustodyDate >= monthStart && c.CustodyDate < tomorrow
-                             && employeeIds.Contains(c.EmployeeId)
-                             && c.PaymentMethod == "نقدي")
-                    .OrderBy(c => c.CustodyDate).ThenBy(c => c.Id)
-                    .ToListAsync();
-
                 var firstDayShift = await _context.Shifts
                     .Where(s => s.ShiftDate >= monthStart && s.ShiftDate < monthStart.AddDays(1))
                     .OrderBy(s => s.CreatedAt)
@@ -637,9 +629,7 @@ namespace Salon.Controllers
                             .Where(a => a.AdvanceDate >= priorBaseDate && a.AdvanceDate < monthStart && a.Status != "معلق").SumAsync(a => a.Amount);
                         decimal priorWithdrawals = await _context.Withdrawals
                             .Where(w => w.WithdrawalDate >= priorBaseDate && w.WithdrawalDate < monthStart).SumAsync(w => w.Amount);
-                        decimal priorCustody = await _context.Custodies
-                            .Where(c => c.CustodyDate >= priorBaseDate && c.CustodyDate < monthStart && c.PaymentMethod == "نقدي").SumAsync(c => c.Amount);
-                        runningBalance = firstShiftEver.OpeningBalance + priorCash + priorDeposits - priorExpenses - priorAdvances - priorWithdrawals - priorCustody;
+                        runningBalance = firstShiftEver.OpeningBalance + priorCash + priorDeposits - priorExpenses - priorAdvances - priorWithdrawals;
                     }
                     else
                     {
@@ -656,10 +646,6 @@ namespace Salon.Controllers
                     withdrawalEvents.Add((adv.AdvanceDate.Date, adv.Amount,
                         "سحب لدفع سلف موظفين",
                         $"سلفة {adv.Employee?.FullName ?? ""}".Trim()));
-                foreach (var cus in monthCustodies)
-                    withdrawalEvents.Add((cus.CustodyDate.Date, cus.Amount,
-                        "سحب لتسليم عهدة",
-                        $"عهدة {cus.Employee?.FullName ?? ""}".Trim()));
 
                 withdrawalEvents = withdrawalEvents.OrderBy(x => x.Date).ThenBy(x => x.Type).ToList();
 
@@ -816,17 +802,10 @@ namespace Salon.Controllers
                     priorWithdrawalsQuery = priorWithdrawalsQuery.Where(w => w.Department == dept);
                 decimal priorWithdrawals = await priorWithdrawalsQuery.SumAsync(w => w.Amount);
 
-                var priorCustodyQuery = _context.Custodies
-                    .Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
-                    .Where(c => c.CustodyDate >= priorBaseDate && c.CustodyDate < dateFrom && c.PaymentMethod == "نقدي");
-                if (filterDept)
-                    priorCustodyQuery = priorCustodyQuery.Where(c => c.Employee!.DepartmentNav!.Name == dept);
-                decimal priorCustody = await priorCustodyQuery.SumAsync(c => c.Amount);
-
                 // The physical cash count on the first shift has no per-department split, so it
                 // only applies to the unfiltered (whole-safe) view — same rule as BarberDaily/Index.
                 decimal baseBalance = filterDept ? 0m : firstShiftEver.OpeningBalance;
-                decimal priorCashExpenses = priorExpenses + priorAdvances + priorSalaries + priorCustody;
+                decimal priorCashExpenses = priorExpenses + priorAdvances + priorSalaries;
                 openingBalanceBeforePeriod = baseBalance + priorCashSales + priorDeposits - priorCashExpenses - priorWithdrawals;
             }
 
@@ -890,26 +869,6 @@ namespace Salon.Controllers
                     Category = "رواتب الموظفين",
                     Notes = s.Notes,
                     PaymentMethod = s.PaymentMethod
-                }));
-
-                var custodyQuery = _context.Custodies
-                    .Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
-                    .Where(c => c.CustodyDate >= dateFrom && c.CustodyDate < dateTo);
-                if (filterDept)
-                    custodyQuery = custodyQuery.Where(c => c.Employee!.DepartmentNav!.Name == dept);
-                var custodies = await custodyQuery
-                    .OrderByDescending(c => c.CustodyDate)
-                    .ToListAsync();
-
-                items.AddRange(custodies.Select(c => new CashMovementReportItem
-                {
-                    Date = c.CustodyDate,
-                    Type = "عهدة",
-                    Description = $"عهدة - {c.Employee?.FullName ?? ""}".Trim(' ', '-'),
-                    Amount = c.Amount,
-                    Category = "عهد الموظفين",
-                    Notes = c.Reason,
-                    PaymentMethod = c.PaymentMethod
                 }));
             }
 
@@ -1023,11 +982,10 @@ namespace Salon.Controllers
             decimal totalMasrouf = items.Where(i => i.Type == "مصروف").Sum(i => i.Amount);
             decimal totalSulfa = items.Where(i => i.Type == "سلفة").Sum(i => i.Amount);
             decimal totalRatib = items.Where(i => i.Type == "راتب").Sum(i => i.Amount);
-            decimal totalOhda = items.Where(i => i.Type == "عهدة").Sum(i => i.Amount);
-            decimal totalExp = totalMasrouf + totalSulfa + totalRatib + totalOhda;
+            decimal totalExp = totalMasrouf + totalSulfa + totalRatib;
             // المصروفات النقدية فقط (لحساب رصيد الكاش)
             decimal totalCashExp = items.Where(i =>
-                (i.Type == "مصروف" || i.Type == "سلفة" || i.Type == "راتب" || i.Type == "عهدة")
+                (i.Type == "مصروف" || i.Type == "سلفة" || i.Type == "راتب")
                 && i.PaymentMethod == "نقدي").Sum(i => i.Amount);
             decimal totalDep = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount);
             decimal totalCashSales = items.Where(i => i.Type == "مبيعات كاش").Sum(i => i.Amount);
@@ -1041,7 +999,6 @@ namespace Salon.Controllers
             ViewBag.TotalMasrouf = totalMasrouf;
             ViewBag.TotalSulfa = totalSulfa;
             ViewBag.TotalRatib = totalRatib;
-            ViewBag.TotalOhda = totalOhda;
             ViewBag.TotalExpenses = totalExp;
             ViewBag.TotalCashExpenses = totalCashExp;
             ViewBag.TotalNonCashExpenses = totalExp - totalCashExp;
@@ -1295,7 +1252,7 @@ namespace Salon.Controllers
             string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
 
             async Task<(decimal sales, decimal cashSales, decimal knetSales, decimal expenses, decimal cashExpenses,
-                decimal salaries, decimal commissions, decimal basicSalaries, decimal cashSalaries, decimal deposits, decimal withdrawals, decimal cashAdvances, decimal cashCustody)>
+                decimal salaries, decimal commissions, decimal basicSalaries, decimal cashSalaries, decimal deposits, decimal withdrawals, decimal cashAdvances)>
                 LoadPeriodAsync(DateTime periodFrom, DateTime periodTo)
             {
                 var salesQ = _context.Sales.Where(s => s.SaleDate >= periodFrom && s.SaleDate < periodTo && s.Status != "ملغي");
@@ -1367,13 +1324,7 @@ namespace Salon.Controllers
                 else if (effectiveDept == "حلاقة") advQ = advQ.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == "حلاقة");
                 decimal pCashAdvances = await advQ.SumAsync(a => a.Amount);
 
-                var cusQ = _context.Custodies.Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
-                    .Where(c => c.CustodyDate >= periodFrom && c.CustodyDate < periodTo && c.PaymentMethod == "نقدي");
-                if (effectiveDept == "مساج") cusQ = cusQ.Where(c => (c.Employee!.RevenueDepartment ?? c.Employee!.DepartmentNav!.Name) == "مساج");
-                else if (effectiveDept == "حلاقة") cusQ = cusQ.Where(c => (c.Employee!.RevenueDepartment ?? c.Employee!.DepartmentNav!.Name) == "حلاقة");
-                decimal pCashCustody = await cusQ.SumAsync(c => c.Amount);
-
-                return (pSales, pCashSales, pKnetSales, pExpenses, pCashExpenses, pSalaries, pCommissions, pBasicSalaries, pCashSalaries, pDeposits, pWithdrawals, pCashAdvances, pCashCustody);
+                return (pSales, pCashSales, pKnetSales, pExpenses, pCashExpenses, pSalaries, pCommissions, pBasicSalaries, pCashSalaries, pDeposits, pWithdrawals, pCashAdvances);
             }
 
             var current = await LoadPeriodAsync(dateFrom, dateTo);
@@ -1384,7 +1335,7 @@ namespace Salon.Controllers
 
             // الكاش المتوفر فعلياً في الصندوق خلال الفترة (نفس معادلة تقرير "حركة الصندوق")
             decimal cashInSafe = (current.cashSales + current.deposits)
-                - (current.cashExpenses + current.cashSalaries + current.cashAdvances + current.cashCustody + current.withdrawals);
+                - (current.cashExpenses + current.cashSalaries + current.cashAdvances + current.withdrawals);
 
             // توزيع صافي الربح على طريقتي الدفع بنفس نسبة توزيع المبيعات
             decimal profitCashPortion = current.sales > 0 ? Math.Round(netProfit * current.cashSales / current.sales, 3) : 0;
@@ -1436,7 +1387,6 @@ namespace Salon.Controllers
             ViewBag.CashExpenses = current.cashExpenses;
             ViewBag.CashSalaries = current.cashSalaries;
             ViewBag.CashAdvances = current.cashAdvances;
-            ViewBag.CashCustody = current.cashCustody;
 
             ViewBag.TrendLabels = trendLabels;
             ViewBag.TrendValues = trendValues;

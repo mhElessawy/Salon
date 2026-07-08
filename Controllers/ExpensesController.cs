@@ -141,6 +141,13 @@ namespace Salon.Controllers
             if (expense != null)
             {
                 var desc = $"{expense.Description} - {expense.Amount:F3} KD";
+
+                // بعض المصروفات (فئة "عهدة") تكون مولَّدة تلقائياً من عهدة موظف — احذف العهدة معها
+                // حتى لا يبقى سجل عهدة يشير لمصروف محذوف.
+                var linkedCustody = await _context.Custodies.FirstOrDefaultAsync(c => c.ExpenseId == id);
+                if (linkedCustody != null)
+                    _context.Custodies.Remove(linkedCustody);
+
                 _context.Expenses.Remove(expense);
                 await _context.SaveChangesAsync();
                 await _audit.LogAsync("Delete", "Expenses", desc, id);

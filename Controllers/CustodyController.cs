@@ -100,11 +100,29 @@ namespace Salon.Controllers
 
             if (ModelState.IsValid)
             {
+                var emp = await _context.Employees.Include(e => e.DepartmentNav).FirstOrDefaultAsync(e => e.Id == model.EmployeeId);
+
+                // كل عهدة تُسجَّل تلقائياً كمصروف (فئة "عهدة") بنفس طريقة الدفع، فتنعكس مباشرة
+                // على الصندوق وكل التقارير المالية التي تعتمد على جدول المصروفات.
+                var expense = new Expense
+                {
+                    Description = $"عهدة - {emp?.FullName ?? model.EmployeeId.ToString()}".Trim(' ', '-'),
+                    Amount = model.Amount,
+                    Category = "عهدة",
+                    Department = emp?.DepartmentNav?.Name,
+                    ExpenseDate = model.CustodyDate,
+                    PaymentMethod = model.PaymentMethod,
+                    Notes = model.Reason,
+                    CreatedAt = DateTime.Now
+                };
+                _context.Expenses.Add(expense);
+                await _context.SaveChangesAsync();
+
+                model.ExpenseId = expense.Id;
                 model.CreatedAt = DateTime.Now;
                 _context.Custodies.Add(model);
                 await _context.SaveChangesAsync();
 
-                var emp = await _context.Employees.FirstOrDefaultAsync(e => e.Id == model.EmployeeId);
                 await _audit.LogAsync("Add", "Custody",
                     $"تسليم عهدة للموظف: {emp?.FullName ?? model.EmployeeId.ToString()} بمبلغ {model.Amount:N3} KD | طريقة التسليم: {model.PaymentMethod}",
                     model.Id);
@@ -136,6 +154,13 @@ namespace Salon.Controllers
             {
                 string empName = custody.Employee?.FullName ?? custody.EmployeeId.ToString();
                 decimal amount = custody.Amount;
+
+                if (custody.ExpenseId.HasValue)
+                {
+                    var linkedExpense = await _context.Expenses.FindAsync(custody.ExpenseId.Value);
+                    if (linkedExpense != null)
+                        _context.Expenses.Remove(linkedExpense);
+                }
 
                 _context.Custodies.Remove(custody);
                 await _context.SaveChangesAsync();

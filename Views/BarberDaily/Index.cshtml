@@ -1159,13 +1159,6 @@
                             <span class="dp2-cash-val" style="color:#d97706;">− @Model.CashSalariesAmount.ToString("N3")</span>
                         </div>
                     }
-                    @if (Model.CashCustodyAmount > 0)
-                    {
-                        <div class="dp2-cash-row">
-                            <span class="dp2-cash-lbl"><i class="fas fa-minus-circle" style="color:#be185d;"></i> عهد موظفين (نقدي)</span>
-                            <span class="dp2-cash-val" style="color:#be185d;">− @Model.CashCustodyAmount.ToString("N3")</span>
-                        </div>
-                    }
                     @if (Model.TotalWithdrawals > 0)
                     {
                         <div class="dp2-cash-row">

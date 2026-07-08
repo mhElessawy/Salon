@@ -233,8 +233,11 @@ using (var scope = app.Services.CreateScope())
                 PaymentMethod TEXT NOT NULL DEFAULT 'نقدي',
                 Reason TEXT,
                 Notes TEXT,
+                ExpenseId INTEGER NULL,
                 CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
-                FOREIGN KEY (EmployeeId) REFERENCES Employees(Id))");
+                FOREIGN KEY (EmployeeId) REFERENCES Employees(Id),
+                FOREIGN KEY (ExpenseId) REFERENCES Expenses(Id))");
+            TryExec("ALTER TABLE Custodies ADD COLUMN ExpenseId INTEGER NULL");
         }
         else
         {
@@ -342,9 +345,13 @@ using (var scope = app.Services.CreateScope())
                 PaymentMethod NVARCHAR(50) NOT NULL DEFAULT N'نقدي',
                 Reason NVARCHAR(MAX) NULL,
                 Notes NVARCHAR(MAX) NULL,
+                ExpenseId INT NULL,
                 CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
                 CONSTRAINT FK_Custodies_Employees FOREIGN KEY (EmployeeId)
-                    REFERENCES Employees(Id))");
+                    REFERENCES Employees(Id),
+                CONSTRAINT FK_Custodies_Expenses FOREIGN KEY (ExpenseId)
+                    REFERENCES Expenses(Id))");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Custodies' AND COLUMN_NAME='ExpenseId') ALTER TABLE Custodies ADD ExpenseId INT NULL");
         }
 
         await SeedData.InitializeAsync(services);
