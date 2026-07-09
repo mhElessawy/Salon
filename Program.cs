@@ -238,6 +238,22 @@ using (var scope = app.Services.CreateScope())
                 FOREIGN KEY (EmployeeId) REFERENCES Employees(Id),
                 FOREIGN KEY (ExpenseId) REFERENCES Expenses(Id))");
             TryExec("ALTER TABLE Custodies ADD COLUMN ExpenseId INTEGER NULL");
+            TryExec("ALTER TABLE Expenses ADD COLUMN EmployeeId INTEGER NULL");
+            TryExec(@"CREATE TABLE IF NOT EXISTS CustodySettlements (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                CustodyId INTEGER NOT NULL,
+                Amount REAL NOT NULL DEFAULT 0,
+                SettlementDate TEXT NOT NULL DEFAULT (date('now')),
+                PaymentMethod TEXT NOT NULL DEFAULT 'نقدي',
+                Notes TEXT,
+                Status TEXT NOT NULL DEFAULT 'معلق',
+                RejectionReason TEXT,
+                DepositId INTEGER NULL,
+                CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+                FOREIGN KEY (CustodyId) REFERENCES Custodies(Id) ON DELETE CASCADE,
+                FOREIGN KEY (DepositId) REFERENCES Deposits(Id))");
+            TryExec("ALTER TABLE CustodySettlements ADD COLUMN Status TEXT NOT NULL DEFAULT 'معلق'");
+            TryExec("ALTER TABLE CustodySettlements ADD COLUMN RejectionReason TEXT");
         }
         else
         {
@@ -352,6 +368,24 @@ using (var scope = app.Services.CreateScope())
                 CONSTRAINT FK_Custodies_Expenses FOREIGN KEY (ExpenseId)
                     REFERENCES Expenses(Id))");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Custodies' AND COLUMN_NAME='ExpenseId') ALTER TABLE Custodies ADD ExpenseId INT NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Expenses' AND COLUMN_NAME='EmployeeId') ALTER TABLE Expenses ADD EmployeeId INT NULL");
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='CustodySettlements')
+                CREATE TABLE CustodySettlements (Id INT IDENTITY PRIMARY KEY,
+                CustodyId INT NOT NULL,
+                Amount DECIMAL(18,3) NOT NULL DEFAULT 0,
+                SettlementDate DATE NOT NULL DEFAULT GETDATE(),
+                PaymentMethod NVARCHAR(50) NOT NULL DEFAULT N'نقدي',
+                Notes NVARCHAR(MAX) NULL,
+                Status NVARCHAR(50) NOT NULL DEFAULT N'معلق',
+                RejectionReason NVARCHAR(MAX) NULL,
+                DepositId INT NULL,
+                CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                CONSTRAINT FK_CustodySettlements_Custodies FOREIGN KEY (CustodyId)
+                    REFERENCES Custodies(Id) ON DELETE CASCADE,
+                CONSTRAINT FK_CustodySettlements_Deposits FOREIGN KEY (DepositId)
+                    REFERENCES Deposits(Id))");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='CustodySettlements' AND COLUMN_NAME='Status') ALTER TABLE CustodySettlements ADD Status NVARCHAR(50) NOT NULL DEFAULT N'معلق'");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='CustodySettlements' AND COLUMN_NAME='RejectionReason') ALTER TABLE CustodySettlements ADD RejectionReason NVARCHAR(MAX) NULL");
         }
 
         await SeedData.InitializeAsync(services);

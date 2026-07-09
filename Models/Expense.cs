@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Salon.Models
 {
@@ -33,6 +34,13 @@ namespace Salon.Models
 
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
+
+        // الموظف المرتبط بهذا المصروف — يُستخدم فقط مع فئة "عهدة" لربطها بسجل عهدة الموظف
+        [Display(Name = "الموظف")]
+        public int? EmployeeId { get; set; }
+
+        [ForeignKey("EmployeeId")]
+        public Employee? Employee { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
     }

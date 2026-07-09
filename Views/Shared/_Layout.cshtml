@@ -74,11 +74,6 @@
                         <i class="fas fa-chevron-right" id="sidebarToggleIcon"></i>
                     </button>
 
-                    <!-- Logout button -->
-                    <a href="@Url.Action("Logout", "Account")" class="logout-btn" title="تسجيل الخروج">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </a>
-
                     @* قائمة المستخدم المنسدلة *@
                     <div class="dropdown">
                         <div class="topbar-user" role="button"
@@ -124,9 +119,10 @@
                 </div>
 
                 <div class="topbar-left">
-                    <div class="topbar-greeting">
-                        <span data-i18n-en="Hello,">مرحباً،</span> <strong>@layoutFullName</strong>
-                    </div>
+                    <!-- Logout button -->
+                    <a href="@Url.Action("Logout", "Account")" class="logout-btn" title="تسجيل الخروج">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </a>
 
                     <div style="font-size:15px; font-weight:700; color:#1a1a2e;">
                         <i class="fas fa-wifi" style="color:var(--primary); margin-left:6px;"></i>
@@ -400,6 +396,36 @@
             li.classList.toggle('open', !isOpen);
             submenu.classList.toggle('show', !isOpen);
         }
+    </script>
+    <script>
+        // ===== Kuwait Clock (live time & date, Asia/Kuwait timezone) =====
+        (function () {
+            var timeEl = document.getElementById('kuwaitClockTime');
+            var dateEl = document.getElementById('kuwaitClockDate');
+            if (!timeEl || !dateEl) return;
+
+            function updateKuwaitClock() {
+                var lang = localStorage.getItem('lang') === 'en' ? 'en-US' : 'ar-KW';
+                var now = new Date();
+                timeEl.textContent = now.toLocaleTimeString(lang, {
+                    timeZone: 'Asia/Kuwait',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                });
+                dateEl.textContent = now.toLocaleDateString(lang, {
+                    timeZone: 'Asia/Kuwait',
+                    weekday: 'long',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+            }
+
+            updateKuwaitClock();
+            setInterval(updateKuwaitClock, 1000);
+        })();
     </script>
     @await RenderSectionAsync("Scripts", required: false)
 

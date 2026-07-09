@@ -294,6 +294,36 @@ namespace Salon.Controllers
                 });
             }
 
+            // 5b. طلبات تسوية/إرجاع العهد المعلقة (تنتظر موافقة الأدمن)
+            var pendingSettlements = await _context.CustodySettlements
+                .Include(s => s.Custody).ThenInclude(c => c!.Employee)
+                .Where(s => s.Status == "معلق" && s.CreatedAt >= today.AddDays(-7))
+                .OrderByDescending(s => s.CreatedAt).Take(10).ToListAsync();
+
+            foreach (var settlement in pendingSettlements)
+            {
+                var empName = settlement.Custody?.Employee?.FullName ?? "غير محدد";
+                var subSettle = $"الموظف: {empName}";
+                list.Add(new NotificationItem
+                {
+                    Type = "custody-settlement-new",
+                    Category = "مهمة",
+                    Title = "طلب تسوية عهدة جديد",
+                    TitleEn = "New Custody Settlement Request",
+                    SubTitle = subSettle,
+                    SubTitleEn = $"Employee: {empName}",
+                    Body = $"المبلغ: {settlement.Amount:N3} د.ك | ينتظر الموافقة",
+                    BodyEn = $"Amount: {settlement.Amount:N3} KD | Awaiting Approval",
+                    IconClass = "fas fa-undo",
+                    IconBg = "#F7941D",
+                    Date = settlement.CreatedAt,
+                    ActionUrl = Url.Action("Index", "Custody"),
+                    ActionText = "مراجعة الطلب",
+                    ActionTextEn = "Review Request",
+                    Key = NotifKey("custody-settlement-new", settlement.CreatedAt, subSettle)
+                });
+            }
+
             // 6. Pending (unpaid) advances
             var pendingAdvances = await _context.EmployeeAdvances
                 .Include(a => a.Employee)

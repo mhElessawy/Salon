@@ -220,12 +220,14 @@ else
                     var hasAdd = AppModules.HasAdd.Contains(mod.Key);
                     var hasDelete = AppModules.HasDelete.Contains(mod.Key);
                     var hasMyOnly = AppModules.HasMyOnly.Contains(mod.Key);
-                    var hasActions = hasAdd || hasDelete || hasMyOnly;
+                    var hasApprove = AppModules.HasApprove.Contains(mod.Key);
+                    var hasActions = hasAdd || hasDelete || hasMyOnly || hasApprove;
 
                     var viewOn = HasPerm(mod.Key);
                     var addOn = HasPerm(mod.Key + "Add");
                     var deleteOn = HasPerm(mod.Key + "Delete");
                     var myOnlyOn = HasPerm(mod.Key + "MyOnly");
+                    var approveOn = HasPerm(mod.Key + "Approve");
 
                     <div class="perm-row" data-group="@group.Key">
                         <div class="perm-label">
@@ -294,6 +296,23 @@ else
                                         <span class="perm-action-status" id="label_@(mod.Key)Delete"
                                               style="color:@(deleteOn ? "#c0392b" : "#adb5bd")">
                                             @(deleteOn ? "مسموح" : "محظور")
+                                        </span>
+                                    </div>
+                                }
+
+                                @if (hasApprove)
+                                {
+                                    <!-- موافقة -->
+                                    <div class="perm-action-item">
+                                        <span class="perm-action-label" style="background:#e0f2fe;color:#0369a1;"><i class="fas fa-check-double me-1"></i>موافقة</span>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input perm-toggle approve-toggle" type="checkbox"
+                                                   name="allowedModules" value="@(mod.Key)Approve"
+                                                   id="perm_@(mod.Key)Approve" @(approveOn ? "checked" : "") />
+                                        </div>
+                                        <span class="perm-action-status" id="label_@(mod.Key)Approve"
+                                              style="color:@(approveOn ? "#0369a1" : "#adb5bd")">
+                                            @(approveOn ? "مسموح" : "محظور")
                                         </span>
                                     </div>
                                 }
