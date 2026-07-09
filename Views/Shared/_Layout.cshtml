@@ -64,6 +64,11 @@
         <div class="main-content">
             <header class="topbar">
                 <div class="topbar-right">
+                    <!-- Logout button -->
+                    <a href="@Url.Action("Logout", "Account")" class="logout-btn" title="تسجيل الخروج">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </a>
+
                     <!-- Hamburger button (mobile only) -->
                     <button class="hamburger-btn d-lg-none" onclick="toggleSidebar()" title="القائمة">
                         <i class="fas fa-bars"></i>
@@ -73,11 +78,6 @@
                     <button class="sidebar-toggle-btn d-none d-lg-flex" id="sidebarToggleBtn" onclick="toggleSidebarDesktop()" title="إخفاء القائمة">
                         <i class="fas fa-chevron-right" id="sidebarToggleIcon"></i>
                     </button>
-
-                    <!-- Logout button -->
-                    <a href="@Url.Action("Logout", "Account")" class="logout-btn" title="تسجيل الخروج">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </a>
 
                     @* قائمة المستخدم المنسدلة *@
                     <div class="dropdown">
@@ -128,10 +128,6 @@
                         <i class="fas fa-clock"></i>
                         <span id="kuwaitClockTime">--:--:--</span>
                         <span class="kuwait-clock-date" id="kuwaitClockDate">--</span>
-                    </div>
-
-                    <div class="topbar-greeting">
-                        <span data-i18n-en="Hello,">مرحباً،</span> <strong>@layoutFullName</strong>
                     </div>
 
                     <div style="font-size:15px; font-weight:700; color:#1a1a2e;">
