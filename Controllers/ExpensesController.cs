@@ -181,10 +181,17 @@ namespace Salon.Controllers
                 var desc = $"{expense.Description} - {expense.Amount:F3} KD";
 
                 // بعض المصروفات (فئة "عهدة") تكون مولَّدة تلقائياً من عهدة موظف — احذف العهدة معها
-                // حتى لا يبقى سجل عهدة يشير لمصروف محذوف.
-                var linkedCustody = await _context.Custodies.FirstOrDefaultAsync(c => c.ExpenseId == id);
+                // حتى لا يبقى سجل عهدة يشير لمصروف محذوف. لا تحذفها لو ليها تسويات/إرجاعات مسجَّلة.
+                var linkedCustody = await _context.Custodies.Include(c => c.Settlements).FirstOrDefaultAsync(c => c.ExpenseId == id);
                 if (linkedCustody != null)
+                {
+                    if (linkedCustody.Settlements.Any())
+                    {
+                        TempData["Error"] = "لا يمكن حذف هذا المصروف — العهدة المرتبطة به لها تسويات/إرجاعات مسجَّلة. احذف التسويات أولاً من شاشة العهد";
+                        return RedirectToAction(nameof(Index));
+                    }
                     _context.Custodies.Remove(linkedCustody);
+                }
 
                 _context.Expenses.Remove(expense);
                 await _context.SaveChangesAsync();

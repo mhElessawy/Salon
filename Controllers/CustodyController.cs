@@ -39,6 +39,7 @@ namespace Salon.Controllers
 
             var query = _context.Custodies
                 .Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Include(c => c.Settlements)
                 .AsQueryable();
 
             if (userDept == "حلاقة" || userDept == "مساج")
@@ -64,6 +65,7 @@ namespace Salon.Controllers
             ViewBag.TotalCash = custodies.Where(c => c.PaymentMethod == "نقدي").Sum(c => c.Amount);
             ViewBag.TotalLink = custodies.Where(c => c.PaymentMethod == "لينك").Sum(c => c.Amount);
             ViewBag.Total = custodies.Sum(c => c.Amount);
+            ViewBag.TotalRemaining = custodies.Sum(c => c.RemainingAmount);
             return View(custodies);
         }
 
@@ -149,9 +151,15 @@ namespace Salon.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var custody = await _context.Custodies.Include(c => c.Employee).FirstOrDefaultAsync(c => c.Id == id);
+            var custody = await _context.Custodies.Include(c => c.Employee).Include(c => c.Settlements).FirstOrDefaultAsync(c => c.Id == id);
             if (custody != null)
             {
+                if (custody.Settlements.Any())
+                {
+                    TempData["Error"] = "لا يمكن حذف عهدة لها تسويات/إرجاعات مسجَّلة — احذف التسويات أولاً";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 string empName = custody.Employee?.FullName ?? custody.EmployeeId.ToString();
                 decimal amount = custody.Amount;
 
@@ -174,6 +182,107 @@ namespace Salon.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> Settle(int custodyId, decimal amount, DateTime settlementDate, string paymentMethod, string? notes)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (!await IsManagerAsync(currentUser))
+            {
+                TempData["Error"] = "غير مصرح لك بتسجيل تسوية عهدة";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var custody = await _context.Custodies
+                .Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Include(c => c.Settlements)
+                .FirstOrDefaultAsync(c => c.Id == custodyId);
+            if (custody == null)
+                return RedirectToAction(nameof(Index));
+
+            if (paymentMethod != "نقدي" && paymentMethod != "لينك")
+                paymentMethod = "نقدي";
+
+            if (amount <= 0 || amount > custody.RemainingAmount)
+            {
+                TempData["Error"] = $"المبلغ يجب أن يكون بين 0 و{custody.RemainingAmount:N3} د.ك (المتبقي من العهدة)";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var settlement = new CustodySettlement
+            {
+                CustodyId = custody.Id,
+                Amount = amount,
+                SettlementDate = settlementDate,
+                PaymentMethod = paymentMethod,
+                Notes = notes,
+                CreatedAt = DateTime.Now
+            };
+
+            // الإرجاع النقدي بيرجع فعلياً للصندوق كإيداع — عكس التسليم اللي بيسجَّل كمصروف
+            if (paymentMethod == "نقدي")
+            {
+                var deposit = new Deposit
+                {
+                    Description = $"إرجاع عهدة - {custody.Employee?.FullName ?? custody.EmployeeId.ToString()}".Trim(' ', '-'),
+                    Amount = amount,
+                    Source = "إرجاع عهدة",
+                    Department = custody.Employee?.DepartmentNav?.Name ?? "",
+                    PaymentMethod = "نقدي",
+                    DepositDate = settlementDate,
+                    Notes = notes,
+                    CreatedAt = DateTime.Now
+                };
+                _context.Deposits.Add(deposit);
+                await _context.SaveChangesAsync();
+                settlement.DepositId = deposit.Id;
+            }
+
+            _context.CustodySettlements.Add(settlement);
+            await _context.SaveChangesAsync();
+
+            await _audit.LogAsync("Settle", "Custody",
+                $"تسوية عهدة الموظف: {custody.Employee?.FullName ?? custody.EmployeeId.ToString()} بمبلغ {amount:N3} KD | طريقة الإرجاع: {paymentMethod}",
+                custody.Id);
+
+            TempData["Success"] = "تم تسجيل تسوية العهدة بنجاح";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteSettlement(int id)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (!await IsManagerAsync(currentUser))
+            {
+                TempData["Error"] = "غير مصرح لك بحذف تسوية العهدة";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var settlement = await _context.CustodySettlements.Include(s => s.Custody).ThenInclude(c => c!.Employee).FirstOrDefaultAsync(s => s.Id == id);
+            if (settlement != null)
+            {
+                if (settlement.DepositId.HasValue)
+                {
+                    var linkedDeposit = await _context.Deposits.FindAsync(settlement.DepositId.Value);
+                    if (linkedDeposit != null)
+                        _context.Deposits.Remove(linkedDeposit);
+                }
+
+                string empName = settlement.Custody?.Employee?.FullName ?? settlement.Custody?.EmployeeId.ToString() ?? "-";
+                decimal amount = settlement.Amount;
+
+                _context.CustodySettlements.Remove(settlement);
+                await _context.SaveChangesAsync();
+
+                await _audit.LogAsync("Delete", "Custody",
+                    $"حذف تسوية عهدة الموظف: {empName} بمبلغ {amount:N3} KD",
+                    settlement.CustodyId);
+
+                TempData["Success"] = "تم حذف التسوية بنجاح";
+            }
+            return RedirectToAction(nameof(Index));
+        }
+
         public async Task<IActionResult> Report(DateTime? dateFrom, DateTime? dateTo, int? employeeId, string? paymentMethod)
         {
             var currentUser = await _userManager.GetUserAsync(User);
@@ -183,6 +292,7 @@ namespace Salon.Controllers
 
             var query = _context.Custodies
                 .Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Include(c => c.Settlements)
                 .AsQueryable();
 
             if (userDept == "حلاقة" || userDept == "مساج")

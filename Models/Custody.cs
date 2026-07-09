@@ -40,5 +40,17 @@ namespace Salon.Models
         public Expense? Expense { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        // تسويات/إرجاعات هذه العهدة — لازم تُحمَّل (Include) في أي استعلام يستخدم الخصائص المحسوبة تحت
+        public List<CustodySettlement> Settlements { get; set; } = new();
+
+        [NotMapped]
+        public decimal SettledAmount => Settlements.Sum(s => s.Amount);
+
+        [NotMapped]
+        public decimal RemainingAmount => Amount - SettledAmount;
+
+        [NotMapped]
+        public string Status => RemainingAmount <= 0 ? "مسددة" : SettledAmount > 0 ? "مسددة جزئياً" : "مستلمة";
     }
 }
