@@ -238,6 +238,7 @@ using (var scope = app.Services.CreateScope())
                 FOREIGN KEY (EmployeeId) REFERENCES Employees(Id),
                 FOREIGN KEY (ExpenseId) REFERENCES Expenses(Id))");
             TryExec("ALTER TABLE Custodies ADD COLUMN ExpenseId INTEGER NULL");
+            TryExec("ALTER TABLE Expenses ADD COLUMN EmployeeId INTEGER NULL");
         }
         else
         {
@@ -352,6 +353,7 @@ using (var scope = app.Services.CreateScope())
                 CONSTRAINT FK_Custodies_Expenses FOREIGN KEY (ExpenseId)
                     REFERENCES Expenses(Id))");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Custodies' AND COLUMN_NAME='ExpenseId') ALTER TABLE Custodies ADD ExpenseId INT NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Expenses' AND COLUMN_NAME='EmployeeId') ALTER TABLE Expenses ADD EmployeeId INT NULL");
         }
 
         await SeedData.InitializeAsync(services);

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
@@ -32,6 +33,7 @@ namespace Salon.Controllers
             var userDept = currentUser?.UserDepartment;
 
             var query = _context.Expenses
+                .Include(e => e.Employee)
                 .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < rangeEnd);
 
             // فلترة حسب قسم المستخدم
@@ -64,17 +66,32 @@ namespace Salon.Controllers
             return View(expenses);
         }
 
+        private async Task LoadEmployeesAsync(string? userDept)
+        {
+            var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+            if (userDept == "حلاقة" || userDept == "مساج")
+                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
+            ViewBag.Employees = new SelectList(await empQuery.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName");
+        }
+
         public async Task<IActionResult> Create()
         {
             var currentUser = await _userManager.GetUserAsync(User);
             ViewBag.UserDept = currentUser?.UserDepartment;
             ViewBag.IsAdmin = User.IsInRole("Admin");
+            await LoadEmployeesAsync(currentUser?.UserDepartment);
             return View(new Expense { ExpenseDate = DateTime.Today });
         }
 
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Expense model)
         {
+            if (model.Category == "عهدة" && !model.EmployeeId.HasValue)
+                ModelState.AddModelError(nameof(Expense.EmployeeId), "يجب اختيار الموظف عند اختيار فئة العهدة");
+
+            if (model.Category != "عهدة")
+                model.EmployeeId = null;
+
             if (ModelState.IsValid)
             {
                 // إذا لم يُحدَّد القسم يدوياً، ضعه تلقائياً حسب قسم المستخدم
@@ -89,6 +106,26 @@ namespace Salon.Controllers
                 model.CreatedAt = DateTime.Now;
                 _context.Expenses.Add(model);
                 await _context.SaveChangesAsync();
+
+                // مصروف فئة "عهدة" مرتبط بموظف يُنشئ سجل عهدة مرتبط تلقائياً، تماماً كما لو تم
+                // تسليمها من شاشة "عهد الموظفين" مباشرة.
+                if (model.Category == "عهدة" && model.EmployeeId.HasValue)
+                {
+                    var custody = new Custody
+                    {
+                        EmployeeId = model.EmployeeId.Value,
+                        Amount = model.Amount,
+                        CustodyDate = model.ExpenseDate,
+                        PaymentMethod = model.PaymentMethod == "نقدي" ? "نقدي" : "لينك",
+                        Reason = model.Description,
+                        Notes = model.Notes,
+                        ExpenseId = model.Id,
+                        CreatedAt = DateTime.Now
+                    };
+                    _context.Custodies.Add(custody);
+                    await _context.SaveChangesAsync();
+                }
+
                 await _audit.LogAsync("Add", "Expenses",
                     $"{model.Description} - {model.Amount:F3} KD" + (!string.IsNullOrEmpty(model.Department) ? $" ({model.Department})" : ""),
                     model.Id);
@@ -99,6 +136,7 @@ namespace Salon.Controllers
             var user = await _userManager.GetUserAsync(User);
             ViewBag.UserDept = user?.UserDepartment;
             ViewBag.IsAdmin = User.IsInRole("Admin");
+            await LoadEmployeesAsync(user?.UserDepartment);
             return View(model);
         }
 

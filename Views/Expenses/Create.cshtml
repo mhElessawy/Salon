@@ -20,7 +20,7 @@
                 </div>
                 <div class="col-md-6">
                     <label asp-for="Category" class="form-label"></label>
-                    <select asp-for="Category" class="form-select">
+                    <select asp-for="Category" class="form-select" id="categorySelect" onchange="toggleEmployeeField()">
                         <option value="">-- اختر الفئة --</option>
                         <option>إيجار</option>
                         <option>كهرباء وماء</option>
@@ -28,8 +28,17 @@
                         <option>صيانة</option>
                         <option>رواتب</option>
                         <option>تسويق</option>
+                        <option>عهدة</option>
                         <option>أخرى</option>
                     </select>
+                </div>
+
+                <div class="col-md-6 @(Model.Category == "عهدة" ? "" : "d-none")" id="employeeField">
+                    <label asp-for="EmployeeId" class="form-label"></label>
+                    <select asp-for="EmployeeId" asp-items="ViewBag.Employees" class="form-select">
+                        <option value="">-- اختر الموظف --</option>
+                    </select>
+                    <span asp-validation-for="EmployeeId" class="text-danger small"></span>
                 </div>
 
                 @* حقل القسم: يظهر للأدمن بشكل dropdown، موظفو القسم يُعيَّن لهم تلقائياً *@
@@ -83,3 +92,12 @@
         </form>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function toggleEmployeeField() {
+            const category = document.getElementById('categorySelect').value;
+            document.getElementById('employeeField').classList.toggle('d-none', category !== 'عهدة');
+        }
+    </script>
+}
