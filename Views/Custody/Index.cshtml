@@ -3,6 +3,8 @@
     ViewData["Title"] = "العهد";
     bool isManager = (bool)(ViewBag.IsManager ?? false);
     bool canApprove = (bool)(ViewBag.CanApprove ?? false);
+    bool canRequestSettlement = (bool)(ViewBag.CanRequestSettlement ?? false);
+    bool showActionsColumn = isManager || canRequestSettlement;
     decimal totalCash = (decimal)ViewBag.TotalCash;
     decimal totalLink = (decimal)ViewBag.TotalLink;
     decimal total = (decimal)ViewBag.Total;
@@ -112,7 +114,7 @@
                         <th>السبب / البيان</th>
                         <th>المتبقي</th>
                         <th>الحالة</th>
-                        @if (isManager)
+                        @if (showActionsColumn)
                         {
                             <th>الإجراءات</th>
                         }
@@ -151,7 +153,7 @@
                                 }
                             </td>
                             <td><span class="badge @statusBadge">@c.Status</span></td>
-                            @if (isManager)
+                            @if (showActionsColumn)
                             {
                                 <td class="text-nowrap">
                                     @if (c.AvailableForSettlement > 0)
@@ -168,17 +170,20 @@
                                             <i class="fas fa-history"></i>
                                         </button>
                                     }
-                                    <button type="button" class="btn btn-sm btn-outline-danger" title="حذف"
-                                            onclick="confirmDelete(@c.Id, '@Html.Raw((c.Employee?.FullName ?? "").Replace("'", "\\'"))')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    @if (isManager)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="حذف"
+                                                onclick="confirmDelete(@c.Id, '@Html.Raw((c.Employee?.FullName ?? "").Replace("'", "\\'"))')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    }
                                 </td>
                             }
                         </tr>
                         @if (c.Settlements.Any())
                         {
                             <tr class="d-none" id="@rowId">
-                                <td colspan="@(isManager ? 9 : 8)" class="bg-light">
+                                <td colspan="@(showActionsColumn ? 9 : 8)" class="bg-light">
                                     <div class="p-2">
                                         <strong class="small">سجل طلبات التسوية / الإرجاع:</strong>
                                         <table class="table table-sm mb-0 mt-1">
@@ -265,7 +270,7 @@
                             <td class="text-danger">@total.ToString("N3") د.ك</td>
                             <td colspan="3"></td>
                             <td class="text-warning">@totalRemaining.ToString("N3") د.ك</td>
-                            <td colspan="@(isManager ? 2 : 1)"></td>
+                            <td colspan="@(showActionsColumn ? 2 : 1)"></td>
                         </tr>
                     </tfoot>
                 }
@@ -274,7 +279,7 @@
     </div>
 </div>
 
-@if (isManager)
+@if (showActionsColumn)
 {
     <!-- Modal طلب تسوية / إرجاع العهدة -->
     <div class="modal fade" id="settleModal" tabindex="-1" aria-hidden="true">
