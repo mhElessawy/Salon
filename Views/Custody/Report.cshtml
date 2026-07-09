@@ -5,6 +5,9 @@
     decimal totalCash = Model.Where(c => c.PaymentMethod == "نقدي").Sum(c => c.Amount);
     decimal totalLink = Model.Where(c => c.PaymentMethod == "لينك").Sum(c => c.Amount);
     decimal totalRemaining = Model.Sum(c => c.RemainingAmount);
+    decimal totalSettled = Model.Sum(c => c.SettledAmount);
+    decimal totalSettledCash = Model.SelectMany(c => c.Settlements).Where(s => s.PaymentMethod == "نقدي").Sum(s => s.Amount);
+    decimal totalSettledLink = Model.SelectMany(c => c.Settlements).Where(s => s.PaymentMethod == "لينك").Sum(s => s.Amount);
     var grouped = Model.GroupBy(c => c.Employee?.FullName ?? "-").OrderBy(g => g.Key);
 }
 
@@ -85,6 +88,18 @@
 
 <div class="row g-3 mb-3">
     <div class="col-md-4">
+        <div class="card" style="border-color:#16a34a;">
+            <div class="card-body text-center">
+                <div class="text-muted small mb-1"><i class="fas fa-undo me-1" style="color:#16a34a;"></i> إجمالي المسدد / المرتجع من العهد</div>
+                <div class="fs-4 fw-bold" style="color:#16a34a;">@totalSettled.ToString("N3") <small>د.ك</small></div>
+                <div class="small text-muted mt-1">
+                    نقدي (يُضاف للصندوق): <strong class="text-success">@totalSettledCash.ToString("N3")</strong> —
+                    لينك: <strong style="color:#0ea5e9;">@totalSettledLink.ToString("N3")</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
         <div class="card" style="border-color:#d97706;">
             <div class="card-body text-center">
                 <div class="text-muted small mb-1"><i class="fas fa-clock me-1" style="color:#d97706;"></i> إجمالي المتبقي (غير مسدد)</div>
@@ -105,6 +120,7 @@ else
         decimal gAll = group.Sum(c => c.Amount);
         decimal gCash = group.Where(c => c.PaymentMethod == "نقدي").Sum(c => c.Amount);
         decimal gLink = group.Where(c => c.PaymentMethod == "لينك").Sum(c => c.Amount);
+        decimal gSettled = group.Sum(c => c.SettledAmount);
         decimal gRemaining = group.Sum(c => c.RemainingAmount);
 
         <div class="card mb-3">
@@ -114,6 +130,7 @@ else
                     <span class="text-danger">نقدي: <strong>@gCash.ToString("N3")</strong> د.ك</span>
                     <span style="color:#0ea5e9;">لينك: <strong>@gLink.ToString("N3")</strong> د.ك</span>
                     <span style="color:#6f42c1;">الإجمالي: <strong>@gAll.ToString("N3")</strong> د.ك</span>
+                    <span style="color:#16a34a;">المسدد: <strong>@gSettled.ToString("N3")</strong> د.ك</span>
                     <span style="color:#d97706;">المتبقي: <strong>@gRemaining.ToString("N3")</strong> د.ك</span>
                 </div>
             </div>
@@ -122,10 +139,11 @@ else
                     <thead class="table-light">
                         <tr>
                             <th>تاريخ التسليم</th>
-                            <th>المبلغ</th>
+                            <th>المبلغ المسلَّم</th>
                             <th>طريقة التسليم</th>
                             <th>السبب</th>
                             <th>ملاحظات</th>
+                            <th>المسدد</th>
                             <th>المتبقي</th>
                             <th>الحالة</th>
                         </tr>
@@ -149,9 +167,24 @@ else
                                 </td>
                                 <td>@(c.Reason ?? "-")</td>
                                 <td class="text-muted small">@(c.Notes ?? "-")</td>
+                                <td class="@(c.SettledAmount > 0 ? "text-success fw-bold" : "text-muted")">@c.SettledAmount.ToString("N3") د.ك</td>
                                 <td class="@(c.RemainingAmount > 0 ? "text-warning fw-bold" : "text-muted")">@c.RemainingAmount.ToString("N3") د.ك</td>
                                 <td><span class="badge @statusBadge">@c.Status</span></td>
                             </tr>
+                            @if (c.Settlements.Any())
+                            {
+                                <tr class="table-light">
+                                    <td colspan="8" class="py-1 px-3">
+                                        <span class="small text-muted"><i class="fas fa-undo me-1"></i>تسويات:</span>
+                                        @foreach (var s in c.Settlements.OrderBy(s => s.SettlementDate))
+                                        {
+                                            <span class="badge bg-light text-dark border ms-1">
+                                                @s.SettlementDate.ToString("yyyy/MM/dd") — @s.Amount.ToString("N3") (@s.PaymentMethod)
+                                            </span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
                         }
                     </tbody>
                     <tfoot class="table-light fw-bold">
@@ -159,6 +192,7 @@ else
                             <td>الإجمالي</td>
                             <td class="text-danger">@gAll.ToString("N3") د.ك</td>
                             <td colspan="3"></td>
+                            <td class="text-success">@gSettled.ToString("N3") د.ك</td>
                             <td class="text-warning">@gRemaining.ToString("N3") د.ك</td>
                             <td></td>
                         </tr>
