@@ -1387,6 +1387,22 @@ window.PAGE_TRANSLATIONS = {
     '🔗 لينك (لا يؤثر على الصندوق)': "🔗 Link (doesn't affect register)",
     'نقدي (يُضاف للصندوق):': 'Cash (added to register):',
 
+    // ── Custody settlement approval workflow ───────────────
+    'إرسال الطلب': 'Submit Request',
+    'الطلب لا يخصم من رصيد العهدة ولا يؤثر على الصندوق إلا بعد موافقة الأدمن عليه.': 'The request does not deduct from the custody balance or affect the register until the admin approves it.',
+    'المتاح للتسوية': 'Available for Settlement',
+    'تسليم العهد للموظفين (كاش أو لينك) — طلب تسوية/إرجاع يحتاج موافقة قبل تنفيذه': 'Hand custody to employees (cash or link) — settlement/return requests need approval before taking effect',
+    'سجل طلبات التسوية / الإرجاع:': 'Settlement / Return Request History:',
+    'طلب تسوية': 'Request Settlement',
+    'طلب تسوية / إرجاع عهدة': 'Request Custody Settlement / Return',
+    'فيه طلبات تسوية عهد بانتظار موافقتك': 'There are custody settlement requests awaiting your approval',
+    '💵 نقدي (يُضاف للصندوق بعد الموافقة)': '💵 Cash (added to register after approval)',
+    'قيد المراجعة:': 'Under Review:',
+    'منها قيد المراجعة:': 'Of which under review:',
+    'إجمالي المبالغ المطلوب تسويتها:': 'Total amount requested for settlement:',
+    'طلب تسوية عهدة جديد': 'New Custody Settlement Request',
+    'رفض الطلب': 'Reject Request',
+
 };
 
 // ── Translation engine ───────────────────────────────────────────────────────

@@ -246,10 +246,12 @@ using (var scope = app.Services.CreateScope())
                 SettlementDate TEXT NOT NULL DEFAULT (date('now')),
                 PaymentMethod TEXT NOT NULL DEFAULT 'نقدي',
                 Notes TEXT,
+                Status TEXT NOT NULL DEFAULT 'معلق',
                 DepositId INTEGER NULL,
                 CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
                 FOREIGN KEY (CustodyId) REFERENCES Custodies(Id) ON DELETE CASCADE,
                 FOREIGN KEY (DepositId) REFERENCES Deposits(Id))");
+            TryExec("ALTER TABLE CustodySettlements ADD COLUMN Status TEXT NOT NULL DEFAULT 'معلق'");
         }
         else
         {
@@ -372,12 +374,14 @@ using (var scope = app.Services.CreateScope())
                 SettlementDate DATE NOT NULL DEFAULT GETDATE(),
                 PaymentMethod NVARCHAR(50) NOT NULL DEFAULT N'نقدي',
                 Notes NVARCHAR(MAX) NULL,
+                Status NVARCHAR(50) NOT NULL DEFAULT N'معلق',
                 DepositId INT NULL,
                 CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
                 CONSTRAINT FK_CustodySettlements_Custodies FOREIGN KEY (CustodyId)
                     REFERENCES Custodies(Id) ON DELETE CASCADE,
                 CONSTRAINT FK_CustodySettlements_Deposits FOREIGN KEY (DepositId)
                     REFERENCES Deposits(Id))");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='CustodySettlements' AND COLUMN_NAME='Status') ALTER TABLE CustodySettlements ADD Status NVARCHAR(50) NOT NULL DEFAULT N'معلق'");
         }
 
         await SeedData.InitializeAsync(services);

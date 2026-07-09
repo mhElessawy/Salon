@@ -44,11 +44,20 @@ namespace Salon.Models
         // تسويات/إرجاعات هذه العهدة — لازم تُحمَّل (Include) في أي استعلام يستخدم الخصائص المحسوبة تحت
         public List<CustodySettlement> Settlements { get; set; } = new();
 
+        // المبلغ المسدَّد فعلياً — التسويات الموافَق عليها فقط (الطلبات المعلَّقة لا تخصم شيئاً بعد)
         [NotMapped]
-        public decimal SettledAmount => Settlements.Sum(s => s.Amount);
+        public decimal SettledAmount => Settlements.Where(s => s.Status == "موافق عليها").Sum(s => s.Amount);
+
+        [NotMapped]
+        public decimal PendingSettlementAmount => Settlements.Where(s => s.Status == "معلق").Sum(s => s.Amount);
 
         [NotMapped]
         public decimal RemainingAmount => Amount - SettledAmount;
+
+        // الحد الأقصى المتاح لطلب تسوية جديد (يستبعد المتبقي + الطلبات المعلَّقة حتى لا يتجاوز مجموع
+        // الطلبات الموافَق عليها مستقبلاً مبلغ العهدة الأصلي)
+        [NotMapped]
+        public decimal AvailableForSettlement => RemainingAmount - PendingSettlementAmount;
 
         [NotMapped]
         public string Status => RemainingAmount <= 0 ? "مسددة" : SettledAmount > 0 ? "مسددة جزئياً" : "مستلمة";

@@ -2,16 +2,18 @@
 @{
     ViewData["Title"] = "العهد";
     bool isManager = (bool)(ViewBag.IsManager ?? false);
+    bool canApprove = (bool)(ViewBag.CanApprove ?? false);
     decimal totalCash = (decimal)ViewBag.TotalCash;
     decimal totalLink = (decimal)ViewBag.TotalLink;
     decimal total = (decimal)ViewBag.Total;
     decimal totalRemaining = (decimal)ViewBag.TotalRemaining;
+    decimal totalPending = (decimal)ViewBag.TotalPending;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
         <h1><i class="fas fa-hand-holding me-2"></i>عهد الموظفين</h1>
-        <p>تسليم العهد للموظفين (كاش أو لينك) وتسوية/إرجاع ما تم تسليمه</p>
+        <p>تسليم العهد للموظفين (كاش أو لينك) — طلب تسوية/إرجاع يحتاج موافقة قبل تنفيذه</p>
     </div>
     <div class="d-flex gap-2">
         <a href="@Url.Action("Report")" class="btn btn-outline-secondary">
@@ -25,6 +27,17 @@
         }
     </div>
 </div>
+
+@if (canApprove && totalPending > 0)
+{
+    <div class="alert alert-warning d-flex align-items-center gap-3 shadow-sm mb-3">
+        <i class="fas fa-clock fs-4 text-warning"></i>
+        <div>
+            <strong>فيه طلبات تسوية عهد بانتظار موافقتك</strong>
+            <div class="small text-muted"><span>إجمالي المبالغ المطلوب تسويتها:</span> @totalPending.ToString("N3") د.ك</div>
+        </div>
+    </div>
+}
 
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-md-3">
@@ -56,6 +69,10 @@
             <div class="card-body">
                 <div class="text-muted small mb-1"><i class="fas fa-clock me-1" style="color:#d97706;"></i>إجمالي المتبقي (غير مسدد)</div>
                 <div class="fw-bold fs-4" style="color:#d97706;">@totalRemaining.ToString("N3") <small class="text-muted">د.ك</small></div>
+                @if (totalPending > 0)
+                {
+                    <div class="small mt-1" style="color:#b45309;"><i class="fas fa-hourglass-half me-1"></i><span>قيد المراجعة:</span> @totalPending.ToString("N3") د.ك</div>
+                }
             </div>
         </div>
     </div>
@@ -126,16 +143,22 @@
                             </td>
                             <td>@c.CustodyDate.ToString("yyyy/MM/dd")</td>
                             <td>@(c.Reason ?? "-")</td>
-                            <td class="@(c.RemainingAmount > 0 ? "text-warning fw-bold" : "text-muted")">@c.RemainingAmount.ToString("N3") د.ك</td>
+                            <td>
+                                <span class="@(c.RemainingAmount > 0 ? "text-warning fw-bold" : "text-muted")">@c.RemainingAmount.ToString("N3") د.ك</span>
+                                @if (c.PendingSettlementAmount > 0)
+                                {
+                                    <div class="small" style="color:#b45309;"><i class="fas fa-hourglass-half me-1"></i><span>قيد المراجعة:</span> @c.PendingSettlementAmount.ToString("N3")</div>
+                                }
+                            </td>
                             <td><span class="badge @statusBadge">@c.Status</span></td>
                             @if (isManager)
                             {
                                 <td class="text-nowrap">
-                                    @if (c.RemainingAmount > 0)
+                                    @if (c.AvailableForSettlement > 0)
                                     {
-                                        <button type="button" class="btn btn-sm btn-outline-success me-1" title="تسوية / إرجاع"
-                                                onclick="openSettleModal(@c.Id, '@Html.Raw((c.Employee?.FullName ?? "").Replace("'", "\\'"))', @c.RemainingAmount.ToString("F3", System.Globalization.CultureInfo.InvariantCulture))">
-                                            <i class="fas fa-undo"></i> تسوية
+                                        <button type="button" class="btn btn-sm btn-outline-success me-1" title="طلب تسوية / إرجاع"
+                                                onclick="openSettleModal(@c.Id, '@Html.Raw((c.Employee?.FullName ?? "").Replace("'", "\\'"))', @c.AvailableForSettlement.ToString("F3", System.Globalization.CultureInfo.InvariantCulture))">
+                                            <i class="fas fa-undo"></i> طلب تسوية
                                         </button>
                                     }
                                     @if (c.Settlements.Any())
@@ -157,13 +180,14 @@
                             <tr class="d-none" id="@rowId">
                                 <td colspan="@(isManager ? 9 : 8)" class="bg-light">
                                     <div class="p-2">
-                                        <strong class="small">سجل التسويات / الإرجاع:</strong>
+                                        <strong class="small">سجل طلبات التسوية / الإرجاع:</strong>
                                         <table class="table table-sm mb-0 mt-1">
                                             <thead>
                                                 <tr>
                                                     <th>التاريخ</th>
                                                     <th>المبلغ</th>
                                                     <th>طريقة الإرجاع</th>
+                                                    <th>الحالة</th>
                                                     <th>ملاحظات</th>
                                                     @if (isManager)
                                                     {
@@ -178,11 +202,32 @@
                                                         <td>@s.SettlementDate.ToString("yyyy/MM/dd")</td>
                                                         <td class="text-success fw-bold">@s.Amount.ToString("N3") د.ك</td>
                                                         <td>@s.PaymentMethod</td>
+                                                        <td>
+                                                            @if (s.Status == "موافق عليها")
+                                                            {
+                                                                <span class="badge bg-success">موافق عليها</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="badge bg-warning text-dark">معلق</span>
+                                                            }
+                                                        </td>
                                                         <td class="text-muted">@(s.Notes ?? "-")</td>
                                                         @if (isManager)
                                                         {
-                                                            <td>
-                                                                <button type="button" class="btn btn-xs btn-outline-danger" title="حذف التسوية"
+                                                            <td class="text-nowrap">
+                                                                @if (s.Status == "معلق" && canApprove)
+                                                                {
+                                                                    <form method="post" asp-action="ApproveSettlement" style="display:inline;"
+                                                                          onsubmit="return confirm('الموافقة على تسوية بمبلغ @s.Amount.ToString("N3") د.ك؟');">
+                                                                        @Html.AntiForgeryToken()
+                                                                        <input type="hidden" name="id" value="@s.Id" />
+                                                                        <button type="submit" class="btn btn-xs btn-success me-1" title="موافقة">
+                                                                            <i class="fas fa-check"></i>
+                                                                        </button>
+                                                                    </form>
+                                                                }
+                                                                <button type="button" class="btn btn-xs btn-outline-danger" title="@(s.Status == "معلق" ? "رفض الطلب" : "حذف التسوية")"
                                                                         onclick="confirmDeleteSettlement(@s.Id)">
                                                                     <i class="fas fa-trash"></i>
                                                                 </button>
@@ -217,25 +262,29 @@
 
 @if (isManager)
 {
-    <!-- Modal تسوية / إرجاع العهدة -->
+    <!-- Modal طلب تسوية / إرجاع العهدة -->
     <div class="modal fade" id="settleModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header" style="background:#198754;color:#fff;">
-                    <h5 class="modal-title"><i class="fas fa-undo me-2"></i>تسوية / إرجاع عهدة</h5>
+                    <h5 class="modal-title"><i class="fas fa-undo me-2"></i>طلب تسوية / إرجاع عهدة</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form id="settleForm" method="post" asp-action="Settle">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="custodyId" id="settleCustodyId" />
                     <div class="modal-body">
+                        <div class="alert alert-info py-2 small mb-3">
+                            <i class="fas fa-info-circle me-1"></i>
+                            الطلب لا يخصم من رصيد العهدة ولا يؤثر على الصندوق إلا بعد موافقة الأدمن عليه.
+                        </div>
                         <div class="mb-3 p-3 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;">
                             <div class="d-flex justify-content-between align-items-center">
                                 <span class="text-muted">الموظف</span>
                                 <strong id="settleEmpName" class="fs-6"></strong>
                             </div>
                             <div class="d-flex justify-content-between align-items-center mt-2">
-                                <span class="text-muted">المتبقي من العهدة</span>
+                                <span class="text-muted">المتاح للتسوية</span>
                                 <strong id="settleRemaining" class="fs-6 text-warning"></strong>
                                 <span class="text-muted small">د.ك</span>
                             </div>
@@ -251,7 +300,7 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold">طريقة الإرجاع <span class="text-danger">*</span></label>
                             <select name="paymentMethod" class="form-select">
-                                <option value="نقدي">💵 نقدي (يُضاف للصندوق)</option>
+                                <option value="نقدي">💵 نقدي (يُضاف للصندوق بعد الموافقة)</option>
                                 <option value="لينك">🔗 لينك (لا يؤثر على الصندوق)</option>
                             </select>
                         </div>
@@ -262,7 +311,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                        <button type="submit" class="btn btn-success px-4"><i class="fas fa-check me-1"></i> تسجيل التسوية</button>
+                        <button type="submit" class="btn btn-success px-4"><i class="fas fa-paper-plane me-1"></i> إرسال الطلب</button>
                     </div>
                 </form>
             </div>
@@ -293,14 +342,14 @@
         </div>
     </div>
 
-    <!-- Modal تأكيد حذف التسوية -->
+    <!-- Modal تأكيد حذف/رفض التسوية -->
     <div class="modal fade" id="deleteSettlementModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content text-center p-4">
                 <div class="mb-3">
                     <i class="fas fa-trash-alt text-danger" style="font-size:3rem;"></i>
                 </div>
-                <h4 class="fw-bold mb-2">تأكيد حذف التسوية</h4>
+                <h4 class="fw-bold mb-2">تأكيد الحذف</h4>
                 <p class="text-danger small mb-4">لا يمكن التراجع عن هذا الإجراء</p>
                 <div class="d-flex justify-content-center gap-3">
                     <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">إلغاء</button>
@@ -328,13 +377,13 @@
                 new bootstrap.Modal(document.getElementById('deleteSettlementModal')).show();
             }
 
-            function openSettleModal(custodyId, empName, remaining) {
+            function openSettleModal(custodyId, empName, available) {
                 document.getElementById('settleCustodyId').value = custodyId;
                 document.getElementById('settleEmpName').textContent = empName;
-                document.getElementById('settleRemaining').textContent = remaining.toFixed(3);
+                document.getElementById('settleRemaining').textContent = available.toFixed(3);
                 var amountInput = document.getElementById('settleAmount');
-                amountInput.max = remaining;
-                amountInput.value = remaining.toFixed(3);
+                amountInput.max = available;
+                amountInput.value = available.toFixed(3);
                 new bootstrap.Modal(document.getElementById('settleModal')).show();
             }
 
