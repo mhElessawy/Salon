@@ -174,14 +174,38 @@ else
                             @if (c.Settlements.Any())
                             {
                                 <tr class="table-light">
-                                    <td colspan="8" class="py-1 px-3">
-                                        <span class="small text-muted"><i class="fas fa-undo me-1"></i>تسويات:</span>
-                                        @foreach (var s in c.Settlements.OrderBy(s => s.SettlementDate))
-                                        {
-                                            <span class="badge bg-light text-dark border ms-1">
-                                                @s.SettlementDate.ToString("yyyy/MM/dd") — @s.Amount.ToString("N3") (@s.PaymentMethod)
-                                            </span>
-                                        }
+                                    <td colspan="8" class="py-2 px-3">
+                                        <div class="small fw-bold text-muted mb-1"><i class="fas fa-undo me-1"></i>تفاصيل التسويات / الإرجاع:</div>
+                                        <table class="table table-sm table-borderless mb-0" style="background:transparent;">
+                                            <thead>
+                                                <tr class="text-muted small">
+                                                    <th style="width:120px;">التاريخ</th>
+                                                    <th style="width:140px;">المبلغ</th>
+                                                    <th style="width:120px;">طريقة الإرجاع</th>
+                                                    <th>ملاحظات</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var s in c.Settlements.OrderBy(s => s.SettlementDate))
+                                                {
+                                                    <tr>
+                                                        <td>@s.SettlementDate.ToString("yyyy/MM/dd")</td>
+                                                        <td class="text-success fw-bold">@s.Amount.ToString("N3") د.ك</td>
+                                                        <td>
+                                                            @if (s.PaymentMethod == "نقدي")
+                                                            {
+                                                                <span class="badge bg-success bg-opacity-10 text-success">نقدي</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="badge" style="background:rgba(14,165,233,0.12); color:#0ea5e9;">لينك</span>
+                                                            }
+                                                        </td>
+                                                        <td class="text-muted">@(s.Notes ?? "-")</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
                                     </td>
                                 </tr>
                             }
