@@ -212,12 +212,22 @@ else
                                                             {
                                                                 <span class="badge bg-success">موافق عليها</span>
                                                             }
+                                                            else if (s.Status == "مرفوضة")
+                                                            {
+                                                                <span class="badge bg-danger">مرفوضة</span>
+                                                            }
                                                             else
                                                             {
                                                                 <span class="badge bg-warning text-dark">معلق</span>
                                                             }
                                                         </td>
-                                                        <td class="text-muted">@(s.Notes ?? "-")</td>
+                                                        <td class="text-muted">
+                                                            @(s.Notes ?? "-")
+                                                            @if (s.Status == "مرفوضة" && !string.IsNullOrEmpty(s.RejectionReason))
+                                                            {
+                                                                <div class="text-danger small mt-1"><i class="fas fa-comment-slash me-1"></i><span>سبب الرفض:</span> @s.RejectionReason</div>
+                                                            }
+                                                        </td>
                                                     </tr>
                                                 }
                                             </tbody>

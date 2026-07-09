@@ -247,11 +247,13 @@ using (var scope = app.Services.CreateScope())
                 PaymentMethod TEXT NOT NULL DEFAULT 'نقدي',
                 Notes TEXT,
                 Status TEXT NOT NULL DEFAULT 'معلق',
+                RejectionReason TEXT,
                 DepositId INTEGER NULL,
                 CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
                 FOREIGN KEY (CustodyId) REFERENCES Custodies(Id) ON DELETE CASCADE,
                 FOREIGN KEY (DepositId) REFERENCES Deposits(Id))");
             TryExec("ALTER TABLE CustodySettlements ADD COLUMN Status TEXT NOT NULL DEFAULT 'معلق'");
+            TryExec("ALTER TABLE CustodySettlements ADD COLUMN RejectionReason TEXT");
         }
         else
         {
@@ -375,6 +377,7 @@ using (var scope = app.Services.CreateScope())
                 PaymentMethod NVARCHAR(50) NOT NULL DEFAULT N'نقدي',
                 Notes NVARCHAR(MAX) NULL,
                 Status NVARCHAR(50) NOT NULL DEFAULT N'معلق',
+                RejectionReason NVARCHAR(MAX) NULL,
                 DepositId INT NULL,
                 CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
                 CONSTRAINT FK_CustodySettlements_Custodies FOREIGN KEY (CustodyId)
@@ -382,6 +385,7 @@ using (var scope = app.Services.CreateScope())
                 CONSTRAINT FK_CustodySettlements_Deposits FOREIGN KEY (DepositId)
                     REFERENCES Deposits(Id))");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='CustodySettlements' AND COLUMN_NAME='Status') ALTER TABLE CustodySettlements ADD Status NVARCHAR(50) NOT NULL DEFAULT N'معلق'");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='CustodySettlements' AND COLUMN_NAME='RejectionReason') ALTER TABLE CustodySettlements ADD RejectionReason NVARCHAR(MAX) NULL");
         }
 
         await SeedData.InitializeAsync(services);

@@ -297,6 +297,45 @@ namespace Salon.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> RejectSettlement(int id, string reason)
+        {
+            if (!await _perms.HasAccessAsync("CustodyApprove"))
+            {
+                TempData["Error"] = "غير مصرح لك برفض تسوية العهدة";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                TempData["Error"] = "يجب كتابة سبب الرفض";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var settlement = await _context.CustodySettlements
+                .Include(s => s.Custody).ThenInclude(c => c!.Employee)
+                .FirstOrDefaultAsync(s => s.Id == id);
+            if (settlement == null || settlement.Custody == null)
+                return RedirectToAction(nameof(Index));
+
+            if (settlement.Status != "معلق")
+            {
+                TempData["Error"] = "لا يمكن رفض تسوية تمت الموافقة عليها بالفعل أو مرفوضة مسبقاً";
+                return RedirectToAction(nameof(Index));
+            }
+
+            settlement.Status = "مرفوضة";
+            settlement.RejectionReason = reason.Trim();
+            await _context.SaveChangesAsync();
+
+            await _audit.LogAsync("Reject", "Custody",
+                $"رفض تسوية عهدة الموظف: {settlement.Custody.Employee?.FullName ?? settlement.Custody.EmployeeId.ToString()} بمبلغ {settlement.Amount:N3} KD | السبب: {settlement.RejectionReason}",
+                settlement.CustodyId);
+
+            TempData["Success"] = "تم رفض طلب التسوية";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteSettlement(int id)
         {
             var currentUser = await _userManager.GetUserAsync(User);

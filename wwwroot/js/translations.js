@@ -1402,6 +1402,12 @@ window.PAGE_TRANSLATIONS = {
     'إجمالي المبالغ المطلوب تسويتها:': 'Total amount requested for settlement:',
     'طلب تسوية عهدة جديد': 'New Custody Settlement Request',
     'رفض الطلب': 'Reject Request',
+    'رفض طلب التسوية': 'Reject Settlement Request',
+    'سبب الرفض': 'Rejection Reason',
+    'سبب الرفض:': 'Rejection Reason:',
+    'مرفوضة': 'Rejected',
+    'حذف نهائي': 'Permanent Delete',
+    'اكتب سبب رفض طلب التسوية...': 'Enter the reason for rejecting the settlement request...',
 
 };
 

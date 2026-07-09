@@ -207,12 +207,22 @@
                                                             {
                                                                 <span class="badge bg-success">موافق عليها</span>
                                                             }
+                                                            else if (s.Status == "مرفوضة")
+                                                            {
+                                                                <span class="badge bg-danger">مرفوضة</span>
+                                                            }
                                                             else
                                                             {
                                                                 <span class="badge bg-warning text-dark">معلق</span>
                                                             }
                                                         </td>
-                                                        <td class="text-muted">@(s.Notes ?? "-")</td>
+                                                        <td class="text-muted">
+                                                            @(s.Notes ?? "-")
+                                                            @if (s.Status == "مرفوضة" && !string.IsNullOrEmpty(s.RejectionReason))
+                                                            {
+                                                                <div class="text-danger small mt-1"><i class="fas fa-comment-slash me-1"></i><span>سبب الرفض:</span> @s.RejectionReason</div>
+                                                            }
+                                                        </td>
                                                         @if (isManager)
                                                         {
                                                             <td class="text-nowrap">
@@ -226,8 +236,12 @@
                                                                             <i class="fas fa-check"></i>
                                                                         </button>
                                                                     </form>
+                                                                    <button type="button" class="btn btn-xs btn-outline-danger me-1" title="رفض الطلب"
+                                                                            onclick="openRejectModal(@s.Id)">
+                                                                        <i class="fas fa-times"></i>
+                                                                    </button>
                                                                 }
-                                                                <button type="button" class="btn btn-xs btn-outline-danger" title="@(s.Status == "معلق" ? "رفض الطلب" : "حذف التسوية")"
+                                                                <button type="button" class="btn btn-xs btn-outline-secondary" title="حذف نهائي"
                                                                         onclick="confirmDeleteSettlement(@s.Id)">
                                                                     <i class="fas fa-trash"></i>
                                                                 </button>
@@ -318,6 +332,30 @@
         </div>
     </div>
 
+    <!-- Modal رفض طلب التسوية -->
+    <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#dc3545;color:#fff;">
+                    <h5 class="modal-title"><i class="fas fa-times-circle me-2"></i>رفض طلب التسوية</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="rejectForm" method="post" asp-action="RejectSettlement">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="rejectSettlementId" />
+                    <div class="modal-body">
+                        <label class="form-label fw-bold">سبب الرفض <span class="text-danger">*</span></label>
+                        <textarea name="reason" id="rejectReason" class="form-control" rows="3" required placeholder="اكتب سبب رفض طلب التسوية..."></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-danger px-4"><i class="fas fa-times me-1"></i> رفض الطلب</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal تأكيد حذف العهدة -->
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -375,6 +413,12 @@
             function confirmDeleteSettlement(id) {
                 document.getElementById('deleteSettlementForm').action = '@Url.Action("DeleteSettlement")/' + id;
                 new bootstrap.Modal(document.getElementById('deleteSettlementModal')).show();
+            }
+
+            function openRejectModal(id) {
+                document.getElementById('rejectSettlementId').value = id;
+                document.getElementById('rejectReason').value = '';
+                new bootstrap.Modal(document.getElementById('rejectModal')).show();
             }
 
             function openSettleModal(custodyId, empName, available) {
