@@ -87,7 +87,7 @@
 
         @* المبيعات *@
         @{
-            bool hasSalesGroup = canSee("BarberInvoice") || canSee("MassageInvoice") ||
+            bool hasSalesGroup = canSee("SalesInvoices") || canSee("BarberInvoice") || canSee("MassageInvoice") ||
             canSee("ProductInvoice") || canSee("Appointments");
         }
         @if (hasSalesGroup)
@@ -100,7 +100,7 @@
                     <i class="fas fa-chevron-left arrow-icon"></i>
                 </a>
                 <ul class="submenu @(salesOpen ? "show" : "")">
-                    @if (canSee("BarberInvoice") || canSee("MassageInvoice") || canSee("ProductInvoice"))
+                    @if (canSee("SalesInvoices"))
                     {
                         <li>
                             <a href="@Url.Action("Index", "Sales")" class="@IsActive("Sales", "Index")">
