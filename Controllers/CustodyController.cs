@@ -266,25 +266,6 @@ namespace Salon.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // الإرجاع النقدي بيرجع فعلياً للصندوق كإيداع — عكس التسليم اللي بيسجَّل كمصروف
-            if (settlement.PaymentMethod == "نقدي")
-            {
-                var deposit = new Deposit
-                {
-                    Description = $"إرجاع عهدة - {custody.Employee?.FullName ?? custody.EmployeeId.ToString()}".Trim(' ', '-'),
-                    Amount = settlement.Amount,
-                    Source = "إرجاع عهدة",
-                    Department = custody.Employee?.DepartmentNav?.Name ?? "",
-                    PaymentMethod = "نقدي",
-                    DepositDate = settlement.SettlementDate,
-                    Notes = settlement.Notes,
-                    CreatedAt = DateTime.Now
-                };
-                _context.Deposits.Add(deposit);
-                await _context.SaveChangesAsync();
-                settlement.DepositId = deposit.Id;
-            }
-
             settlement.Status = "موافق عليها";
             await _context.SaveChangesAsync();
 
