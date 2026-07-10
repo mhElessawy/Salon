@@ -65,10 +65,6 @@ namespace Salon.Controllers
             ViewBag.EmployeeId = employeeId;
             ViewBag.IsManager = isManager;
             ViewBag.CanApprove = await _perms.HasAccessAsync("CustodyApprove");
-            // موظف (غير مدير) عنده صلاحية "إضافة" يقدر يطلب تسوية/إرجاع عهدته هو فقط — تسليم عهدة
-            // جديدة يفضل حصراً للمدير/الأدمن
-            ViewBag.CanRequestSettlement = isManager || (linkedEmpId.HasValue && await _perms.HasAccessAsync("CustodyAdd"));
-            ViewBag.LinkedEmployeeId = linkedEmpId;
             ViewBag.TotalCash = custodies.Where(c => c.PaymentMethod == "نقدي").Sum(c => c.Amount);
             ViewBag.TotalLink = custodies.Where(c => c.PaymentMethod == "لينك").Sum(c => c.Amount);
             ViewBag.Total = custodies.Sum(c => c.Amount);
@@ -194,7 +190,11 @@ namespace Salon.Controllers
         public async Task<IActionResult> Settle(int custodyId, decimal amount, DateTime settlementDate, string paymentMethod, string? notes)
         {
             var currentUser = await _userManager.GetUserAsync(User);
-            bool isManager = await IsManagerAsync(currentUser);
+            if (!await IsManagerAsync(currentUser))
+            {
+                TempData["Error"] = "غير مصرح لك بطلب تسوية عهدة";
+                return RedirectToAction(nameof(Index));
+            }
 
             var custody = await _context.Custodies
                 .Include(c => c.Employee)
@@ -202,19 +202,6 @@ namespace Salon.Controllers
                 .FirstOrDefaultAsync(c => c.Id == custodyId);
             if (custody == null)
                 return RedirectToAction(nameof(Index));
-
-            // موظف (غير مدير) يقدر يطلب تسوية/إرجاع عهدته هو فقط، وبس لو عنده صلاحية "إضافة" على
-            // شاشة العهد — تسليم عهدة جديدة يفضل حصراً للمدير/الأدمن
-            bool isSelfRequest = !isManager
-                && currentUser?.LinkedEmployeeId.HasValue == true
-                && custody.EmployeeId == currentUser.LinkedEmployeeId.Value
-                && await _perms.HasAccessAsync("CustodyAdd");
-
-            if (!isManager && !isSelfRequest)
-            {
-                TempData["Error"] = "غير مصرح لك بطلب تسوية عهدة";
-                return RedirectToAction(nameof(Index));
-            }
 
             if (paymentMethod != "نقدي" && paymentMethod != "لينك")
                 paymentMethod = "نقدي";
@@ -277,25 +264,6 @@ namespace Salon.Controllers
             {
                 TempData["Error"] = $"لا يمكن الموافقة — المبلغ ({settlement.Amount:N3}) أكبر من المتبقي الحالي ({custody.RemainingAmount:N3}) د.ك";
                 return RedirectToAction(nameof(Index));
-            }
-
-            // الإرجاع النقدي بيرجع فعلياً للصندوق كإيداع — عكس التسليم اللي بيسجَّل كمصروف
-            if (settlement.PaymentMethod == "نقدي")
-            {
-                var deposit = new Deposit
-                {
-                    Description = $"إرجاع عهدة - {custody.Employee?.FullName ?? custody.EmployeeId.ToString()}".Trim(' ', '-'),
-                    Amount = settlement.Amount,
-                    Source = "إرجاع عهدة",
-                    Department = custody.Employee?.DepartmentNav?.Name ?? "",
-                    PaymentMethod = "نقدي",
-                    DepositDate = settlement.SettlementDate,
-                    Notes = settlement.Notes,
-                    CreatedAt = DateTime.Now
-                };
-                _context.Deposits.Add(deposit);
-                await _context.SaveChangesAsync();
-                settlement.DepositId = deposit.Id;
             }
 
             settlement.Status = "موافق عليها";

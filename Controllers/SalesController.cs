@@ -44,6 +44,9 @@ namespace Salon.Controllers
             string? paymentMethod, int? employeeId, string? status, string? customerName, string? invoiceNumber2,
             string? createdByUserId)
         {
+            if (!await _perms.HasAccessAsync("SalesInvoices"))
+                return Forbid();
+
             DateTime dateFrom = string.IsNullOrEmpty(from) ? KuwaitToday : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? KuwaitToday.AddDays(1) : DateTime.Parse(to).AddDays(1);
 
