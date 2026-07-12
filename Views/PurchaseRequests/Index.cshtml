@@ -100,6 +100,7 @@
                         <th>المنتجات</th>
                         <th>القيمة التقديرية</th>
                         <th>المورد</th>
+                        <th>متبقي العهدة</th>
                         <th>الحالة</th>
                         <th>الإجراءات</th>
                     </tr>
@@ -107,7 +108,7 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="8" class="text-center text-muted py-4">لا توجد طلبات شراء</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted py-4">لا توجد طلبات شراء</td></tr>
                     }
                     @foreach (var p in Model)
                     {
@@ -123,6 +124,16 @@
                             </td>
                             <td><strong class="text-danger">@p.EstimatedAmount.ToString("N3") د.ك</strong></td>
                             <td>@(p.Supplier?.Name ?? "-")</td>
+                            <td>
+                                @if (p.Custody != null)
+                                {
+                                    <span class="@(p.Custody.RemainingAmount > 0 ? "text-warning fw-bold" : "text-muted")">@p.Custody.RemainingAmount.ToString("N3") د.ك</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
                             <td><span class="badge @StatusBadge(p.Status)">@p.Status</span></td>
                             <td class="text-nowrap">
                                 @if (p.Status == "بانتظار موافقة المدير" && canApprove)
@@ -143,7 +154,7 @@
                                 @if (p.Status == "تمت الموافقة - بانتظار الشراء" && isCashier)
                                 {
                                     <button type="button" class="btn btn-xs btn-primary me-1" title="مطابقة واستلام"
-                                            onclick="openCashierModal(@p.Id, '@Html.Raw((p.Employee?.FullName ?? "").Replace("'", "\\'"))', @p.EstimatedAmount.ToString("F3", System.Globalization.CultureInfo.InvariantCulture))">
+                                            onclick="openCashierModal(@p.Id, '@Html.Raw((p.Employee?.FullName ?? "").Replace("'", "\\'"))', @p.EstimatedAmount.ToString("F3", System.Globalization.CultureInfo.InvariantCulture), @(p.Custody?.RemainingAmount ?? 0).ToString("F3", System.Globalization.CultureInfo.InvariantCulture))">
                                         <i class="fas fa-clipboard-check"></i> مطابقة واستلام
                                     </button>
                                 }
@@ -157,7 +168,7 @@
                             </td>
                         </tr>
                         <tr class="d-none" id="@rowId">
-                            <td colspan="8" class="bg-light">
+                            <td colspan="9" class="bg-light">
                                 <div class="p-2">
                                     <div class="row g-3 small">
                                         <div class="col-md-6">
@@ -168,6 +179,14 @@
                                                     <li>@item.ProductName — الكمية: @item.Quantity</li>
                                                 }
                                             </ul>
+                                            @if (p.Custody != null)
+                                            {
+                                                <div class="mt-2 text-muted">
+                                                    <strong>العهدة:</strong> بتاريخ @p.Custody.CustodyDate.ToString("yyyy/MM/dd") —
+                                                    الأصل @p.Custody.Amount.ToString("N3") د.ك —
+                                                    المتبقي حالياً @p.Custody.RemainingAmount.ToString("N3") د.ك
+                                                </div>
+                                            }
                                         </div>
                                         <div class="col-md-6">
                                             <div><strong>سبب الشراء:</strong> @p.Reason</div>
@@ -255,6 +274,11 @@
                                 <strong id="cashierEstimated" class="fs-6 text-warning"></strong>
                                 <span class="text-muted small">د.ك</span>
                             </div>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="text-muted">المتبقي في العهدة</span>
+                                <strong id="cashierCustodyRemaining" class="fs-6 text-success"></strong>
+                                <span class="text-muted small">د.ك</span>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">رقم الفاتورة <span class="text-danger">*</span></label>
@@ -272,7 +296,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">المبلغ الفعلي <span class="text-danger">*</span></label>
-                            <input type="number" step="0.001" min="0.001" name="actualAmount" class="form-control" required />
+                            <input type="number" step="0.001" min="0.001" name="actualAmount" id="cashierActualAmount" class="form-control" required />
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">صورة الفاتورة (اختياري)</label>
@@ -332,10 +356,12 @@
             new bootstrap.Modal(document.getElementById('rejectModal')).show();
         }
 
-        function openCashierModal(id, empName, estimated) {
+        function openCashierModal(id, empName, estimated, custodyRemaining) {
             document.getElementById('cashierRequestId').value = id;
             document.getElementById('cashierEmpName').textContent = empName;
             document.getElementById('cashierEstimated').textContent = estimated.toFixed(3);
+            document.getElementById('cashierCustodyRemaining').textContent = custodyRemaining.toFixed(3);
+            document.getElementById('cashierActualAmount').max = custodyRemaining;
             new bootstrap.Modal(document.getElementById('cashierModal')).show();
         }
 

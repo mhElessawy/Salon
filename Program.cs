@@ -244,6 +244,7 @@ using (var scope = app.Services.CreateScope())
             TryExec(@"CREATE TABLE IF NOT EXISTS PurchaseRequests (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 EmployeeId INTEGER NOT NULL,
+                CustodyId INTEGER NOT NULL DEFAULT 0,
                 RequestDate TEXT NOT NULL DEFAULT (date('now')),
                 Reason TEXT NOT NULL DEFAULT '',
                 SupplierId INTEGER NULL,
@@ -263,8 +264,10 @@ using (var scope = app.Services.CreateScope())
                 ExpenseId INTEGER NULL,
                 CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
                 FOREIGN KEY (EmployeeId) REFERENCES Employees(Id),
+                FOREIGN KEY (CustodyId) REFERENCES Custodies(Id),
                 FOREIGN KEY (SupplierId) REFERENCES Suppliers(Id),
                 FOREIGN KEY (ExpenseId) REFERENCES Expenses(Id))");
+            TryExec("ALTER TABLE PurchaseRequests ADD COLUMN CustodyId INTEGER NOT NULL DEFAULT 0");
             TryExec(@"CREATE TABLE IF NOT EXISTS PurchaseRequestItems (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 PurchaseRequestId INTEGER NOT NULL,
@@ -391,6 +394,7 @@ using (var scope = app.Services.CreateScope())
             TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='PurchaseRequests')
                 CREATE TABLE PurchaseRequests (Id INT IDENTITY PRIMARY KEY,
                 EmployeeId INT NOT NULL,
+                CustodyId INT NOT NULL DEFAULT 0,
                 RequestDate DATE NOT NULL DEFAULT GETDATE(),
                 Reason NVARCHAR(MAX) NOT NULL DEFAULT N'',
                 SupplierId INT NULL,
@@ -411,10 +415,13 @@ using (var scope = app.Services.CreateScope())
                 CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
                 CONSTRAINT FK_PurchaseRequests_Employees FOREIGN KEY (EmployeeId)
                     REFERENCES Employees(Id),
+                CONSTRAINT FK_PurchaseRequests_Custodies FOREIGN KEY (CustodyId)
+                    REFERENCES Custodies(Id),
                 CONSTRAINT FK_PurchaseRequests_Suppliers FOREIGN KEY (SupplierId)
                     REFERENCES Suppliers(Id),
                 CONSTRAINT FK_PurchaseRequests_Expenses FOREIGN KEY (ExpenseId)
                     REFERENCES Expenses(Id))");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='PurchaseRequests' AND COLUMN_NAME='CustodyId') ALTER TABLE PurchaseRequests ADD CustodyId INT NOT NULL DEFAULT 0");
             TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='PurchaseRequestItems')
                 CREATE TABLE PurchaseRequestItems (Id INT IDENTITY PRIMARY KEY,
                 PurchaseRequestId INT NOT NULL,

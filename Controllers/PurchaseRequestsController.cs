@@ -63,6 +63,7 @@ namespace Salon.Controllers
                 .Include(p => p.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Include(p => p.Supplier)
                 .Include(p => p.Items)
+                .Include(p => p.Custody)
                 .AsQueryable();
 
             if (userDept == "حلاقة" || userDept == "مساج")
@@ -114,8 +115,25 @@ namespace Salon.Controllers
 
             ViewBag.Employees = new SelectList(await empQuery.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName", linkedEmpId);
             ViewBag.Suppliers = new SelectList(await _context.Suppliers.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync(), "Id", "Name");
+            ViewBag.Custodies = await GetCustodyOptionsAsync(userDept, isManager, linkedEmpId);
             ViewBag.IsManager = isManager;
             return View(new PurchaseRequest { RequestDate = DateTime.Today });
+        }
+
+        private async Task<List<Custody>> GetCustodyOptionsAsync(string? userDept, bool isManager, int? linkedEmpId)
+        {
+            var custodyQuery = _context.Custodies
+                .Include(c => c.Employee)
+                .Include(c => c.PurchaseRequests)
+                .AsQueryable();
+
+            if (userDept == "حلاقة" || userDept == "مساج")
+                custodyQuery = custodyQuery.Where(c => c.Employee!.DepartmentNav!.Name == userDept);
+
+            if (!isManager && linkedEmpId.HasValue)
+                custodyQuery = custodyQuery.Where(c => c.EmployeeId == linkedEmpId.Value);
+
+            return await custodyQuery.OrderByDescending(c => c.CustodyDate).ToListAsync();
         }
 
         [HttpPost, ValidateAntiForgeryToken]
@@ -147,6 +165,14 @@ namespace Salon.Controllers
 
             ModelState.Remove(nameof(PurchaseRequest.Items));
 
+            var custody = await _context.Custodies.Include(c => c.PurchaseRequests).FirstOrDefaultAsync(c => c.Id == model.CustodyId);
+            if (custody == null)
+                ModelState.AddModelError("", "العهدة المختارة غير موجودة");
+            else if (custody.EmployeeId != model.EmployeeId)
+                ModelState.AddModelError("", "العهدة المختارة لا تتبع هذا الموظف");
+            else if (model.EstimatedAmount > custody.AvailableForRequest)
+                ModelState.AddModelError("", $"القيمة التقديرية أكبر من المتاح في العهدة ({custody.AvailableForRequest:N3} د.ك)");
+
             if (ModelState.IsValid)
             {
                 var emp = await _context.Employees.Include(e => e.DepartmentNav).FirstOrDefaultAsync(e => e.Id == model.EmployeeId);
@@ -173,6 +199,7 @@ namespace Salon.Controllers
                 empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
             ViewBag.Employees = new SelectList(await empQuery.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName");
             ViewBag.Suppliers = new SelectList(await _context.Suppliers.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync(), "Id", "Name");
+            ViewBag.Custodies = await GetCustodyOptionsAsync(userDept, isManager, linkedEmpId);
             ViewBag.IsManager = isManager;
             model.Items = items;
             return View(model);
@@ -260,6 +287,7 @@ namespace Salon.Controllers
             var request = await _context.PurchaseRequests
                 .Include(p => p.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Include(p => p.Items)
+                .Include(p => p.Custody).ThenInclude(c => c!.PurchaseRequests)
                 .FirstOrDefaultAsync(p => p.Id == id);
             if (request == null) return RedirectToAction(nameof(Index));
 
@@ -278,6 +306,14 @@ namespace Salon.Controllers
             if (actualAmount <= 0)
             {
                 TempData["Error"] = "المبلغ الفعلي يجب أن يكون أكبر من صفر";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // إعادة التحقق وقت الاعتماد (وليس وقت الطلب فقط) من أن المبلغ الفعلي لا يتجاوز
+            // المتبقي الحالي في العهدة، لضمان عدم تجاوز مجموع المشتريات المعتمدة مبلغ العهدة الأصلي
+            if (request.Custody != null && actualAmount > request.Custody.RemainingAmount)
+            {
+                TempData["Error"] = $"لا يمكن الاعتماد — المبلغ الفعلي ({actualAmount:N3}) أكبر من المتبقي الحالي في العهدة ({request.Custody.RemainingAmount:N3}) د.ك";
                 return RedirectToAction(nameof(Index));
             }
 

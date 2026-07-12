@@ -27,6 +27,20 @@
                 </div>
 
                 <div class="col-12">
+                    <label class="form-label fw-bold">العهدة <span class="text-danger">*</span></label>
+                    <select name="CustodyId" id="custodySelect" class="form-select" required>
+                        <option value="">-- اختر العهدة --</option>
+                        @foreach (Salon.Models.Custody c in (IEnumerable<Salon.Models.Custody>)ViewBag.Custodies)
+                        {
+                            <option value="@c.Id" data-emp="@c.EmployeeId">
+                                @(c.Employee?.FullName) — عهدة بتاريخ @c.CustodyDate.ToString("yyyy/MM/dd") — المتاح: @c.AvailableForRequest.ToString("N3") د.ك (من أصل @c.Amount.ToString("N3"))
+                            </option>
+                        }
+                    </select>
+                    <div class="form-text">تظهر فقط عهد الموظف المختار أعلاه</div>
+                </div>
+
+                <div class="col-12">
                     <label class="form-label fw-bold">المنتجات المطلوبة <span class="text-danger">*</span></label>
                     <table class="table table-sm" id="itemsTable">
                         <thead>
@@ -98,5 +112,23 @@
                 btn.closest('tr').remove();
             }
         }
+
+        function filterCustodyOptions() {
+            var empId = document.querySelector('select[name="EmployeeId"]').value;
+            var custodySelect = document.getElementById('custodySelect');
+            var hasVisibleSelected = false;
+            for (var i = 0; i < custodySelect.options.length; i++) {
+                var opt = custodySelect.options[i];
+                if (!opt.value) continue;
+                var matches = !empId || opt.getAttribute('data-emp') === empId;
+                opt.hidden = !matches;
+                opt.disabled = !matches;
+                if (matches && opt.selected) hasVisibleSelected = true;
+            }
+            if (!hasVisibleSelected) custodySelect.value = '';
+        }
+
+        document.querySelector('select[name="EmployeeId"]').addEventListener('change', filterCustodyOptions);
+        filterCustodyOptions();
     </script>
 }

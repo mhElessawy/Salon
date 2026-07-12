@@ -39,6 +39,7 @@ namespace Salon.Controllers
 
             var query = _context.Custodies
                 .Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Include(c => c.PurchaseRequests)
                 .AsQueryable();
 
             if (userDept == "حلاقة" || userDept == "مساج")
@@ -64,6 +65,9 @@ namespace Salon.Controllers
             ViewBag.TotalCash = custodies.Where(c => c.PaymentMethod == "نقدي").Sum(c => c.Amount);
             ViewBag.TotalLink = custodies.Where(c => c.PaymentMethod == "لينك").Sum(c => c.Amount);
             ViewBag.Total = custodies.Sum(c => c.Amount);
+            ViewBag.TotalSpent = custodies.Sum(c => c.SpentAmount);
+            ViewBag.TotalReserved = custodies.Sum(c => c.ReservedAmount);
+            ViewBag.TotalRemaining = custodies.Sum(c => c.RemainingAmount);
             return View(custodies);
         }
 
@@ -134,9 +138,15 @@ namespace Salon.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var custody = await _context.Custodies.Include(c => c.Employee).FirstOrDefaultAsync(c => c.Id == id);
+            var custody = await _context.Custodies.Include(c => c.Employee).Include(c => c.PurchaseRequests).FirstOrDefaultAsync(c => c.Id == id);
             if (custody != null)
             {
+                if (custody.PurchaseRequests.Any())
+                {
+                    TempData["Error"] = "لا يمكن حذف عهدة لها طلبات شراء مرتبطة — احذف طلبات الشراء أولاً";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 string empName = custody.Employee?.FullName ?? custody.EmployeeId.ToString();
                 decimal amount = custody.Amount;
 
@@ -168,6 +178,7 @@ namespace Salon.Controllers
 
             var query = _context.Custodies
                 .Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Include(c => c.PurchaseRequests)
                 .AsQueryable();
 
             if (userDept == "حلاقة" || userDept == "مساج")

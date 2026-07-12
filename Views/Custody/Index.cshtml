@@ -5,6 +5,9 @@
     decimal totalCash = (decimal)ViewBag.TotalCash;
     decimal totalLink = (decimal)ViewBag.TotalLink;
     decimal total = (decimal)ViewBag.Total;
+    decimal totalSpent = (decimal)ViewBag.TotalSpent;
+    decimal totalReserved = (decimal)ViewBag.TotalReserved;
+    decimal totalRemaining = (decimal)ViewBag.TotalRemaining;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -53,6 +56,26 @@
             </div>
         </div>
     </div>
+    <div class="col-sm-6 col-md-4">
+        <div class="card border-0 shadow-sm h-100" style="border-right:4px solid #198754 !important;">
+            <div class="card-body">
+                <div class="text-muted small mb-1"><i class="fas fa-shopping-cart me-1 text-success"></i>مصروف (طلبات شراء معتمدة)</div>
+                <div class="fw-bold fs-4 text-success">@totalSpent.ToString("N3") <small class="text-muted">د.ك</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-4">
+        <div class="card border-0 shadow-sm h-100" style="border-right:4px solid #d97706 !important;">
+            <div class="card-body">
+                <div class="text-muted small mb-1"><i class="fas fa-clock me-1" style="color:#d97706;"></i>إجمالي المتبقي</div>
+                <div class="fw-bold fs-4" style="color:#d97706;">@totalRemaining.ToString("N3") <small class="text-muted">د.ك</small></div>
+                @if (totalReserved > 0)
+                {
+                    <div class="small mt-1" style="color:#b45309;"><i class="fas fa-hourglass-half me-1"></i><span>محجوز لطلبات قيد المعالجة:</span> @totalReserved.ToString("N3") د.ك</div>
+                }
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="card mb-3">
@@ -87,6 +110,7 @@
                         <th>طريقة التسليم</th>
                         <th>تاريخ التسليم</th>
                         <th>السبب / البيان</th>
+                        <th>المتبقي</th>
                         <th>ملاحظات</th>
                         @if (isManager)
                         {
@@ -97,7 +121,7 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="8" class="text-center text-muted py-4">لا توجد عهد مسجلة</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted py-4">لا توجد عهد مسجلة</td></tr>
                     }
                     @foreach (var c in Model)
                     {
@@ -117,6 +141,13 @@
                             </td>
                             <td>@c.CustodyDate.ToString("yyyy/MM/dd")</td>
                             <td>@(c.Reason ?? "-")</td>
+                            <td>
+                                <span class="@(c.RemainingAmount > 0 ? "text-warning fw-bold" : "text-muted")">@c.RemainingAmount.ToString("N3") د.ك</span>
+                                @if (c.ReservedAmount > 0)
+                                {
+                                    <div class="small" style="color:#b45309;"><i class="fas fa-hourglass-half me-1"></i><span>محجوز:</span> @c.ReservedAmount.ToString("N3")</div>
+                                }
+                            </td>
                             <td class="text-muted">@(c.Notes ?? "-")</td>
                             @if (isManager)
                             {
@@ -136,7 +167,9 @@
                         <tr>
                             <td colspan="2" class="text-end">الإجمالي</td>
                             <td class="text-danger">@total.ToString("N3") د.ك</td>
-                            <td colspan="@(isManager ? 4 : 3)"></td>
+                            <td colspan="3"></td>
+                            <td class="text-warning">@totalRemaining.ToString("N3") د.ك</td>
+                            <td colspan="@(isManager ? 2 : 1)"></td>
                         </tr>
                     </tfoot>
                 }

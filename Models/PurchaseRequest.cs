@@ -24,6 +24,13 @@ namespace Salon.Models
         [ForeignKey("EmployeeId")]
         public Employee? Employee { get; set; }
 
+        [Required]
+        [Display(Name = "العهدة")]
+        public int CustodyId { get; set; }
+
+        [ForeignKey("CustodyId")]
+        public Custody? Custody { get; set; }
+
         [Display(Name = "تاريخ الطلب")]
         [DataType(DataType.Date)]
         public DateTime RequestDate { get; set; } = DateTime.Today;

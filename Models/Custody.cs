@@ -42,5 +42,28 @@ namespace Salon.Models
         public Expense? Expense { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        // طلبات الشراء المصروفة من هذه العهدة — لازم تُحمَّل (Include) في أي استعلام يستخدم الخصائص المحسوبة تحت
+        public List<PurchaseRequest> PurchaseRequests { get; set; } = new();
+
+        // المبلغ المصروف فعلياً — طلبات الشراء المعتمَدة (بعد مطابقة الكاشير) فقط
+        [NotMapped]
+        public decimal SpentAmount => PurchaseRequests
+            .Where(p => p.Status == PurchaseRequest.Statuses.Completed)
+            .Sum(p => p.ActualAmount ?? 0);
+
+        // محجوز لطلبات شراء بانتظار الموافقة أو الشراء (تقديرياً، لم يُخصم بعد)
+        [NotMapped]
+        public decimal ReservedAmount => PurchaseRequests
+            .Where(p => p.Status == PurchaseRequest.Statuses.Pending || p.Status == PurchaseRequest.Statuses.Approved)
+            .Sum(p => p.EstimatedAmount);
+
+        [NotMapped]
+        public decimal RemainingAmount => Amount - SpentAmount;
+
+        // الحد الأقصى المتاح لطلب شراء جديد (يستبعد المحجوز حتى لا يتجاوز مجموع الطلبات
+        // المعتمدة مستقبلاً مبلغ العهدة الأصلي)
+        [NotMapped]
+        public decimal AvailableForRequest => RemainingAmount - ReservedAmount;
     }
 }
