@@ -108,23 +108,8 @@ namespace Salon.Controllers
             {
                 var emp = await _context.Employees.Include(e => e.DepartmentNav).FirstOrDefaultAsync(e => e.Id == model.EmployeeId);
 
-                // كل عهدة تُسجَّل تلقائياً كمصروف (فئة "عهدة") بنفس طريقة الدفع، فتنعكس مباشرة
-                // على الصندوق وكل التقارير المالية التي تعتمد على جدول المصروفات.
-                var expense = new Expense
-                {
-                    Description = $"عهدة - {emp?.FullName ?? model.EmployeeId.ToString()}".Trim(' ', '-'),
-                    Amount = model.Amount,
-                    Category = "عهدة",
-                    Department = emp?.DepartmentNav?.Name,
-                    ExpenseDate = model.CustodyDate,
-                    PaymentMethod = model.PaymentMethod,
-                    Notes = model.Reason,
-                    CreatedAt = DateTime.Now
-                };
-                _context.Expenses.Add(expense);
-                await _context.SaveChangesAsync();
-
-                model.ExpenseId = expense.Id;
+                // العهدة لا تُنشئ مصروفاً ولا تخصم من الصندوق — هي مبلغ منفصل تحت عهدة الموظف
+                // فقط، يظهر في شاشة العهد وملخص BarberDaily كرقم معلوماتي.
                 model.CreatedAt = DateTime.Now;
                 _context.Custodies.Add(model);
                 await _context.SaveChangesAsync();

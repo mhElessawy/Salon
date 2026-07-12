@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 
 namespace Salon.Services
@@ -11,11 +11,10 @@ namespace Salon.Services
         decimal CashExpenses,
         decimal CashAdvances,
         decimal CashSalaries,
-        decimal CashCustody,
         decimal Withdrawals)
     {
         public decimal ClosingBalance => OpeningBalance + CashRevenue + Deposits
-            - CashExpenses - CashAdvances - CashSalaries - CashCustody - Withdrawals;
+            - CashExpenses - CashAdvances - CashSalaries - Withdrawals;
     }
 
     /// <summary>
@@ -43,16 +42,16 @@ namespace Salon.Services
 
             var prior = await ComputeFlowsAsync(context, baseDate, periodFrom, dept, filterDept);
             decimal openingBalance = baseBalance + prior.CashRevenue + prior.Deposits
-                - prior.CashExpenses - prior.CashAdvances - prior.CashSalaries - prior.CashCustody - prior.Withdrawals;
+                - prior.CashExpenses - prior.CashAdvances - prior.CashSalaries - prior.Withdrawals;
 
             var current = await ComputeFlowsAsync(context, periodFrom, periodToExclusive, dept, filterDept);
 
             return new CashBoxSnapshot(openingBalance, current.CashRevenue, current.Deposits,
-                current.CashExpenses, current.CashAdvances, current.CashSalaries, current.CashCustody, current.Withdrawals);
+                current.CashExpenses, current.CashAdvances, current.CashSalaries, current.Withdrawals);
         }
 
         private record Flows(decimal CashRevenue, decimal Deposits, decimal CashExpenses,
-            decimal CashAdvances, decimal CashSalaries, decimal CashCustody, decimal Withdrawals);
+            decimal CashAdvances, decimal CashSalaries, decimal Withdrawals);
 
         private static async Task<Flows> ComputeFlowsAsync(
             ApplicationDbContext context, DateTime from, DateTime to, string? dept, bool filterDept)
@@ -70,9 +69,8 @@ namespace Salon.Services
             if (filterDept) depositsQuery = depositsQuery.Where(d => d.Department == dept);
             decimal deposits = await depositsQuery.SumAsync(d => d.Amount);
 
-            // فئة "عهدة" مستبعدة هنا لأنها تُحسب على حدة (CashCustody تحت) — كل عهدة نقدية تُنشئ
-            // مصروفاً مرتبطاً تلقائياً (Custody.ExpenseId)، فلو بقيت داخل cashExpenses كمان
-            // ستُخصم من الصندوق مرتين.
+            // فئة "عهدة" مستبعدة هنا لأن العهدة لا تؤثر على الصندوق إطلاقاً — هي مبلغ منفصل تحت
+            // عهدة الموظف، مش مصروف فعلي خرج من الكاش.
             var expQuery = context.Expenses.Where(e => e.ExpenseDate >= from && e.ExpenseDate < to
                      && e.PaymentMethod == "نقدي" && e.Category != "عهدة");
             if (filterDept) expQuery = expQuery.Where(e => e.Department == dept);
@@ -95,12 +93,7 @@ namespace Salon.Services
             if (filterDept) wdQuery = wdQuery.Where(w => w.Department == dept);
             decimal withdrawals = await wdQuery.SumAsync(w => w.Amount);
 
-            var custodyQuery = context.Custodies.Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
-                .Where(c => c.CustodyDate >= from && c.CustodyDate < to && c.PaymentMethod == "نقدي");
-            if (filterDept) custodyQuery = custodyQuery.Where(c => c.Employee!.DepartmentNav!.Name == dept);
-            decimal cashCustody = await custodyQuery.SumAsync(c => c.Amount);
-
-            return new Flows(cashRevenue, deposits, cashExpenses, cashAdvances, cashSalaries, cashCustody, withdrawals);
+            return new Flows(cashRevenue, deposits, cashExpenses, cashAdvances, cashSalaries, withdrawals);
         }
     }
 }

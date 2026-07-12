@@ -175,9 +175,8 @@ namespace Salon.Controllers
 
             // Only cash-paid expenses/advances actually leave the physical register — ones paid
             // by card or bank transfer never touched the cash box, so they must not reduce it.
-            // Category "عهدة" is excluded here because it is counted separately below as
-            // prevCustody — every cash custody already creates a linked expense record, so
-            // leaving it in prevExpenses too would deduct it from the register twice.
+            // Category "عهدة" is excluded entirely: custody is money set aside under an
+            // employee's custody, not a cash outflow, so it never reduces the register.
             var prevExpensesQuery = _context.Expenses
                 .Where(e => e.ExpenseDate >= baseDate && e.ExpenseDate < today && e.PaymentMethod == "نقدي" && e.Category != "عهدة");
             if (filterDept == "حلاقة")
@@ -185,13 +184,6 @@ namespace Salon.Controllers
             else if (filterDept == "مساج")
                 prevExpensesQuery = prevExpensesQuery.Where(e => e.Department == "مساج" || e.Department == null || e.Department == "");
             decimal prevExpenses = await prevExpensesQuery.SumAsync(e => e.Amount);
-
-            var prevCustodyQuery = _context.Custodies
-                .Where(c => c.CustodyDate >= baseDate && c.CustodyDate < today && c.PaymentMethod == "نقدي");
-            prevCustodyQuery = isEmployee
-                ? prevCustodyQuery.Where(c => c.EmployeeId == (linkedEmpId ?? -1))
-                : prevCustodyQuery.Where(c => employeeIds.Contains(c.EmployeeId));
-            decimal prevCustody = await prevCustodyQuery.SumAsync(c => c.Amount);
 
             var prevAdvancesQuery = _context.EmployeeAdvances
                 .Where(a => a.AdvanceDate >= baseDate && a.AdvanceDate < today && a.Status != "معلق" && a.PaymentMethod == "نقدي");
@@ -215,7 +207,7 @@ namespace Salon.Controllers
                 prevWithdrawalsQuery = prevWithdrawalsQuery.Where(w => w.Department == filterDept);
             decimal prevWithdrawals = await prevWithdrawalsQuery.SumAsync(w => w.Amount);
 
-            decimal openingBalance = baseBalance + prevCash + prevDeposits - prevExpenses - prevAdvances - prevSalaries - prevCustody - prevWithdrawals;
+            decimal openingBalance = baseBalance + prevCash + prevDeposits - prevExpenses - prevAdvances - prevSalaries - prevWithdrawals;
 
             decimal totalSales = staffSales.Sum(s => s.NetAmount);
             decimal cashRevenue = staffSales.Sum(s =>
@@ -235,15 +227,15 @@ namespace Salon.Controllers
             decimal cashExpenses = expenses.Where(e => e.PaymentMethod == "نقدي" && e.Category != "عهدة").Sum(e => e.Amount);
             decimal cashAdvances = advances.Where(a => a.PaymentMethod == "نقدي").Sum(a => a.Amount);
             decimal cashSalaries = todaySalaries.Where(s => s.PaymentMethod == "نقدي").Sum(s => s.NetSalary);
+            // العهدة معلوماتية فقط هنا — لا تُخصم من الصندوق (راجع todayCustodies أعلاه).
             decimal totalCustody = todayCustodies.Sum(c => c.Amount);
-            decimal cashCustody = todayCustodies.Where(c => c.PaymentMethod == "نقدي").Sum(c => c.Amount);
 
             // "حركة الصندوق" في هذه الصفحة تستخدم نفس معادلة CashBoxCalculator المستخدمة في
             // Reports/CashMovement (كل أنواع الفواتير وكل الموظفين عند عدم تحديد قسم) حتى لا
             // يختلف الرقمان — إلا في عرض الموظف لنفسه فقط، حيث يبقى الحساب مقتصراً على مبيعاته
             // وسلفه ورواتبه هو (لا يوجد مفهوم مماثل في الحاسبة المشتركة).
             var box = isEmployee
-                ? new CashBoxSnapshot(openingBalance, cashRevenue, deposits.Sum(d => d.Amount), cashExpenses, cashAdvances, cashSalaries, cashCustody, withdrawals.Sum(w => w.Amount))
+                ? new CashBoxSnapshot(openingBalance, cashRevenue, deposits.Sum(d => d.Amount), cashExpenses, cashAdvances, cashSalaries, withdrawals.Sum(w => w.Amount))
                 : await CashBoxCalculator.GetSnapshotAsync(_context, today, tomorrow, filterDept);
 
             var expensesByCategory = expenses
@@ -336,7 +328,6 @@ namespace Salon.Controllers
                 CashAdvancesAmount = box.CashAdvances,
                 CashSalariesAmount = box.CashSalaries,
                 TotalCustodyAmount = totalCustody,
-                CashCustodyAmount = box.CashCustody,
 
                 ExpenseCount = expenses.Count,
                 MaxExpense = expenses.Any() ? expenses.Max(e => e.Amount) : 0,

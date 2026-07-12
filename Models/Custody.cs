@@ -23,7 +23,8 @@ namespace Salon.Models
         [DataType(DataType.Date)]
         public DateTime CustodyDate { get; set; } = DateTime.Today;
 
-        // "نقدي" (يخصم من الصندوق) | "لينك" (لا يؤثر على الصندوق)
+        // "نقدي" | "لينك" — العهدة لا تخصم من الصندوق بأي طريقة دفع، هي مجرد مبلغ منفصل تحت
+        // عهدة الموظف يظهر معلوماتياً في تقارير الصندوق.
         [Display(Name = "طريقة التسليم")]
         public string PaymentMethod { get; set; } = "نقدي";
 
@@ -33,7 +34,8 @@ namespace Salon.Models
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
 
-        // سجل المصروف المرتبط تلقائياً بهذه العهدة (فئة "عهدة") — يُنشأ عند التسليم ويُحذف معها
+        // قديماً كانت كل عهدة تُنشئ مصروفاً مرتبطاً تلقائياً (فئة "عهدة") لخصمها من الصندوق —
+        // أُلغي هذا الربط لأن العهدة لم تعد تؤثر على الصندوق، وبقي الحقل فقط للسجلات القديمة.
         public int? ExpenseId { get; set; }
 
         [ForeignKey("ExpenseId")]
