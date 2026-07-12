@@ -1,4 +1,4 @@
-﻿@model    Salon.Models.DailyPerformanceViewModel
+﻿@model   Salon.Models.DailyPerformanceViewModel
 @{
     ViewData["Title"] = "تقرير الأداء اليومي";
     var selectedDate = Model.ReportDate.ToString("yyyy-MM-dd");
@@ -1246,6 +1246,13 @@
                         <div class="dp2-qs-row">
                             <span class="dp2-qs-lbl"><i class="fas fa-receipt" style="color:#dc2626;"></i> إجمالي المصروفات</span>
                             <span class="dp2-qs-val" style="color:#dc2626;">@Model.TotalExpensesAmount.ToString("N3") د.ك</span>
+                        </div>
+                    }
+                    @if (Model.TotalCustodyAmount > 0)
+                    {
+                        <div class="dp2-qs-row">
+                            <span class="dp2-qs-lbl"><i class="fas fa-hand-holding-dollar" style="color:#b91c1c;"></i> عهد الموظفين</span>
+                            <span class="dp2-qs-val" style="color:#b91c1c;">@Model.TotalCustodyAmount.ToString("N3") د.ك</span>
                         </div>
                     }
                     @if (Model.TipsTotal > 0)

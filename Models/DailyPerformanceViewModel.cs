@@ -57,15 +57,16 @@
         public decimal TotalExpensesAmount { get; set; }
         public decimal TotalAdvancesAmount { get; set; }
         public decimal TotalWithdrawals { get; set; }
-        // Only cash-paid expenses/advances/salaries/custody actually leave the physical register —
-        // ones paid by card/transfer/link must not reduce the cash balance.
+        // Only cash-paid expenses/advances/salaries actually leave the physical register — ones
+        // paid by card/transfer/link must not reduce the cash balance. Custody is deliberately
+        // excluded: it is money set aside under an employee's custody, not a cash outflow, so it
+        // never reduces the register — it is only tracked informationally (TotalCustodyAmount).
         public decimal CashExpensesAmount { get; set; }
         public decimal CashAdvancesAmount { get; set; }
         public decimal CashSalariesAmount { get; set; }
         public decimal TotalCustodyAmount { get; set; }
-        public decimal CashCustodyAmount { get; set; }
         public decimal CurrentCashBalance => OpeningBalance + CashRevenue + TotalDeposits
-                                             - CashExpensesAmount - CashAdvancesAmount - CashSalariesAmount - CashCustodyAmount - TotalWithdrawals;
+                                             - CashExpensesAmount - CashAdvancesAmount - CashSalariesAmount - TotalWithdrawals;
 
         // Expenses analytics
         public int ExpenseCount { get; set; }

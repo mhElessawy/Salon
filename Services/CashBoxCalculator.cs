@@ -69,7 +69,10 @@ namespace Salon.Services
             if (filterDept) depositsQuery = depositsQuery.Where(d => d.Department == dept);
             decimal deposits = await depositsQuery.SumAsync(d => d.Amount);
 
-            var expQuery = context.Expenses.Where(e => e.ExpenseDate >= from && e.ExpenseDate < to && e.PaymentMethod == "نقدي");
+            // فئة "عهدة" مستبعدة هنا لأن العهدة لا تؤثر على الصندوق إطلاقاً — هي مبلغ منفصل تحت
+            // عهدة الموظف، مش مصروف فعلي خرج من الكاش.
+            var expQuery = context.Expenses.Where(e => e.ExpenseDate >= from && e.ExpenseDate < to
+                     && e.PaymentMethod == "نقدي" && e.Category != "عهدة");
             if (filterDept) expQuery = expQuery.Where(e => e.Department == dept);
             decimal cashExpenses = await expQuery.SumAsync(e => e.Amount);
 
