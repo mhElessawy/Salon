@@ -180,17 +180,19 @@ namespace Salon.Controllers
             {
                 var desc = $"{expense.Description} - {expense.Amount:F3} KD";
 
-                // بعض المصروفات (فئة "عهدة") تكون مولَّدة تلقائياً من عهدة موظف — احذف العهدة معها
-                // حتى لا يبقى سجل عهدة يشير لمصروف محذوف. لا تحذفها لو ليها تسويات/إرجاعات مسجَّلة.
-                var linkedCustody = await _context.Custodies.Include(c => c.Settlements).FirstOrDefaultAsync(c => c.ExpenseId == id);
+                // بعض المصروفات القديمة (فئة "عهدة") كانت مولَّدة تلقائياً من عهدة موظف — احذف العهدة معها
+                // حتى لا يبقى سجل عهدة يشير لمصروف محذوف (هذا الربط لم يعد يُنشأ لعهد جديدة).
+                var linkedCustody = await _context.Custodies.FirstOrDefaultAsync(c => c.ExpenseId == id);
                 if (linkedCustody != null)
-                {
-                    if (linkedCustody.Settlements.Any())
-                    {
-                        TempData["Error"] = "لا يمكن حذف هذا المصروف — العهدة المرتبطة به لها تسويات/إرجاعات مسجَّلة. احذف التسويات أولاً من شاشة العهد";
-                        return RedirectToAction(nameof(Index));
-                    }
                     _context.Custodies.Remove(linkedCustody);
+
+                // مصروف مولَّد من اعتماد وتسجيل طلب شراء — لا يُحذف إلا من شاشة طلبات الشراء
+                // حتى لا يبقى طلب شراء "معتمدة" يشير لمصروف محذوف.
+                var linkedPurchaseRequest = await _context.PurchaseRequests.FirstOrDefaultAsync(p => p.ExpenseId == id);
+                if (linkedPurchaseRequest != null)
+                {
+                    TempData["Error"] = "لا يمكن حذف هذا المصروف — مرتبط بطلب شراء معتمَد. احذف طلب الشراء أولاً من شاشة طلبات الشراء";
+                    return RedirectToAction(nameof(Index));
                 }
 
                 _context.Expenses.Remove(expense);

@@ -34,9 +34,9 @@
             <div class="col-auto">
                 <label class="form-label mb-1">القسم:</label>
                 <select name="dept" class="form-select" style="min-width:150px;">
-                    <option value="" @@(string.IsNullOrEmpty(Model.Department) ? "selected" : "")>الكل</option>
-                    <option value="حلاقة" @@(Model.Department == "حلاقة" ? "selected" : "")>حلاقة</option>
-                    <option value="مساج"  @@(Model.Department == "مساج"  ? "selected" : "")>مساج</option>
+                    <option value="" selected="@(string.IsNullOrEmpty(Model.Department) ? "selected" : null)">الكل</option>
+                    <option value="حلاقة" selected="@(Model.Department == "حلاقة" ? "selected" : null)">حلاقة</option>
+                    <option value="مساج" selected="@(Model.Department == "مساج" ? "selected" : null)">مساج</option>
                 </select>
             </div>
             <div class="col-auto">

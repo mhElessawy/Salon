@@ -583,10 +583,10 @@
                     <!-- Status -->
                     <div class="panel-section-title"><span>الحالة</span></div>
                     <select name="Status" id="statusSelect" class="form-select form-select-sm mb-2">
-                        <option value="مجدول" @@(initialStatus == "مجدول" ? "selected" : "")>مجدول</option>
-                        <option value="مؤكد" @@(initialStatus == "مؤكد" ? "selected" : "")>مؤكد</option>
-                        <option value="مكتمل" @@(initialStatus == "مكتمل" ? "selected" : "")>مكتمل</option>
-                        <option value="ملغي" @@(initialStatus == "ملغي" ? "selected" : "")>ملغي</option>
+                        <option value="مجدول" selected="@(initialStatus == "مجدول" ? "selected" : null)">مجدول</option>
+                        <option value="مؤكد" selected="@(initialStatus == "مؤكد" ? "selected" : null)">مؤكد</option>
+                        <option value="مكتمل" selected="@(initialStatus == "مكتمل" ? "selected" : null)">مكتمل</option>
+                        <option value="ملغي" selected="@(initialStatus == "ملغي" ? "selected" : null)">ملغي</option>
                     </select>
 
                     <hr class="section-divider" />

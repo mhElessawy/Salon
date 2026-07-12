@@ -239,21 +239,38 @@ using (var scope = app.Services.CreateScope())
                 FOREIGN KEY (ExpenseId) REFERENCES Expenses(Id))");
             TryExec("ALTER TABLE Custodies ADD COLUMN ExpenseId INTEGER NULL");
             TryExec("ALTER TABLE Expenses ADD COLUMN EmployeeId INTEGER NULL");
-            TryExec(@"CREATE TABLE IF NOT EXISTS CustodySettlements (
+            // نظام تسوية/إرجاع العهد القديم أُلغي بالكامل واستُبدل بتدفق طلبات الشراء أدناه
+            TryExec("DROP TABLE IF EXISTS CustodySettlements");
+            TryExec(@"CREATE TABLE IF NOT EXISTS PurchaseRequests (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                CustodyId INTEGER NOT NULL,
-                Amount REAL NOT NULL DEFAULT 0,
-                SettlementDate TEXT NOT NULL DEFAULT (date('now')),
-                PaymentMethod TEXT NOT NULL DEFAULT 'نقدي',
+                EmployeeId INTEGER NOT NULL,
+                RequestDate TEXT NOT NULL DEFAULT (date('now')),
+                Reason TEXT NOT NULL DEFAULT '',
+                SupplierId INTEGER NULL,
+                EstimatedAmount REAL NOT NULL DEFAULT 0,
                 Notes TEXT,
-                Status TEXT NOT NULL DEFAULT 'معلق',
+                Status TEXT NOT NULL DEFAULT 'بانتظار موافقة المدير',
                 RejectionReason TEXT,
-                DepositId INTEGER NULL,
+                ApprovedByUserId TEXT NULL,
+                ApprovedByName TEXT NULL,
+                ApprovedAt TEXT NULL,
+                InvoiceNumber TEXT NULL,
+                ActualAmount REAL NULL,
+                InvoicePhotoPath TEXT NULL,
+                ReviewedByUserId TEXT NULL,
+                ReviewedByName TEXT NULL,
+                ReviewedAt TEXT NULL,
+                ExpenseId INTEGER NULL,
                 CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
-                FOREIGN KEY (CustodyId) REFERENCES Custodies(Id) ON DELETE CASCADE,
-                FOREIGN KEY (DepositId) REFERENCES Deposits(Id))");
-            TryExec("ALTER TABLE CustodySettlements ADD COLUMN Status TEXT NOT NULL DEFAULT 'معلق'");
-            TryExec("ALTER TABLE CustodySettlements ADD COLUMN RejectionReason TEXT");
+                FOREIGN KEY (EmployeeId) REFERENCES Employees(Id),
+                FOREIGN KEY (SupplierId) REFERENCES Suppliers(Id),
+                FOREIGN KEY (ExpenseId) REFERENCES Expenses(Id))");
+            TryExec(@"CREATE TABLE IF NOT EXISTS PurchaseRequestItems (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                PurchaseRequestId INTEGER NOT NULL,
+                ProductName TEXT NOT NULL,
+                Quantity INTEGER NOT NULL DEFAULT 1,
+                FOREIGN KEY (PurchaseRequestId) REFERENCES PurchaseRequests(Id) ON DELETE CASCADE)");
         }
         else
         {
@@ -369,23 +386,42 @@ using (var scope = app.Services.CreateScope())
                     REFERENCES Expenses(Id))");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Custodies' AND COLUMN_NAME='ExpenseId') ALTER TABLE Custodies ADD ExpenseId INT NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Expenses' AND COLUMN_NAME='EmployeeId') ALTER TABLE Expenses ADD EmployeeId INT NULL");
-            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='CustodySettlements')
-                CREATE TABLE CustodySettlements (Id INT IDENTITY PRIMARY KEY,
-                CustodyId INT NOT NULL,
-                Amount DECIMAL(18,3) NOT NULL DEFAULT 0,
-                SettlementDate DATE NOT NULL DEFAULT GETDATE(),
-                PaymentMethod NVARCHAR(50) NOT NULL DEFAULT N'نقدي',
+            // نظام تسوية/إرجاع العهد القديم أُلغي بالكامل واستُبدل بتدفق طلبات الشراء أدناه
+            TryExec("IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='CustodySettlements') DROP TABLE CustodySettlements");
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='PurchaseRequests')
+                CREATE TABLE PurchaseRequests (Id INT IDENTITY PRIMARY KEY,
+                EmployeeId INT NOT NULL,
+                RequestDate DATE NOT NULL DEFAULT GETDATE(),
+                Reason NVARCHAR(MAX) NOT NULL DEFAULT N'',
+                SupplierId INT NULL,
+                EstimatedAmount DECIMAL(18,3) NOT NULL DEFAULT 0,
                 Notes NVARCHAR(MAX) NULL,
-                Status NVARCHAR(50) NOT NULL DEFAULT N'معلق',
+                Status NVARCHAR(50) NOT NULL DEFAULT N'بانتظار موافقة المدير',
                 RejectionReason NVARCHAR(MAX) NULL,
-                DepositId INT NULL,
+                ApprovedByUserId NVARCHAR(450) NULL,
+                ApprovedByName NVARCHAR(MAX) NULL,
+                ApprovedAt DATETIME NULL,
+                InvoiceNumber NVARCHAR(200) NULL,
+                ActualAmount DECIMAL(18,3) NULL,
+                InvoicePhotoPath NVARCHAR(500) NULL,
+                ReviewedByUserId NVARCHAR(450) NULL,
+                ReviewedByName NVARCHAR(MAX) NULL,
+                ReviewedAt DATETIME NULL,
+                ExpenseId INT NULL,
                 CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
-                CONSTRAINT FK_CustodySettlements_Custodies FOREIGN KEY (CustodyId)
-                    REFERENCES Custodies(Id) ON DELETE CASCADE,
-                CONSTRAINT FK_CustodySettlements_Deposits FOREIGN KEY (DepositId)
-                    REFERENCES Deposits(Id))");
-            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='CustodySettlements' AND COLUMN_NAME='Status') ALTER TABLE CustodySettlements ADD Status NVARCHAR(50) NOT NULL DEFAULT N'معلق'");
-            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='CustodySettlements' AND COLUMN_NAME='RejectionReason') ALTER TABLE CustodySettlements ADD RejectionReason NVARCHAR(MAX) NULL");
+                CONSTRAINT FK_PurchaseRequests_Employees FOREIGN KEY (EmployeeId)
+                    REFERENCES Employees(Id),
+                CONSTRAINT FK_PurchaseRequests_Suppliers FOREIGN KEY (SupplierId)
+                    REFERENCES Suppliers(Id),
+                CONSTRAINT FK_PurchaseRequests_Expenses FOREIGN KEY (ExpenseId)
+                    REFERENCES Expenses(Id))");
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='PurchaseRequestItems')
+                CREATE TABLE PurchaseRequestItems (Id INT IDENTITY PRIMARY KEY,
+                PurchaseRequestId INT NOT NULL,
+                ProductName NVARCHAR(300) NOT NULL,
+                Quantity INT NOT NULL DEFAULT 1,
+                CONSTRAINT FK_PurchaseRequestItems_PurchaseRequests FOREIGN KEY (PurchaseRequestId)
+                    REFERENCES PurchaseRequests(Id) ON DELETE CASCADE)");
         }
 
         await SeedData.InitializeAsync(services);

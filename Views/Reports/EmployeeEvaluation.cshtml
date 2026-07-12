@@ -24,7 +24,7 @@ string? userDept = ViewBag.UserDept as string;
                     <option value="">-- اختر موظفاً --</option>
                     @foreach (var emp in employees)
                     {
-                        <option value="@emp.Id" @@(selectedEmployeeId= =emp.Id ? "selected" : "" )>
+                        <option value="@emp.Id" selected="@(selectedEmployeeId == emp.Id ? "selected" : null)">
                             @emp.FullName @(emp.Department != null ? "(" + emp.Department + ")" : "")
                         </option>
                     }
