@@ -1166,6 +1166,13 @@
                             <span class="dp2-cash-val" style="color:#dc2626; text-decoration:line-through;">− @Model.TotalWithdrawals.ToString("N3")</span>
                         </div>
                     }
+                    @if (Model.TotalCustodyAmount > 0)
+                    {
+                        <div class="dp2-cash-row" style="opacity:.85;">
+                            <span class="dp2-cash-lbl"><i class="fas fa-hand-holding-dollar" style="color:#b91c1c;"></i> عهد موظفين (لا تُخصم)</span>
+                            <span class="dp2-cash-val" style="color:#b91c1c;">@Model.TotalCustodyAmount.ToString("N3")</span>
+                        </div>
+                    }
                     <div class="dp2-cash-total">
                         <span>الموجود في الصندوق</span>
                         <span>@Model.CurrentCashBalance.ToString("N3") <small>د.ك</small></span>
