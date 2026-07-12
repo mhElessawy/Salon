@@ -1159,6 +1159,13 @@
                             <span class="dp2-cash-val" style="color:#d97706;">− @Model.CashSalariesAmount.ToString("N3")</span>
                         </div>
                     }
+                    @if (Model.CashCustodyAmount > 0)
+                    {
+                        <div class="dp2-cash-row">
+                            <span class="dp2-cash-lbl"><i class="fas fa-minus-circle" style="color:#b91c1c;"></i> عهد موظفين (نقدي)</span>
+                            <span class="dp2-cash-val" style="color:#b91c1c;">− @Model.CashCustodyAmount.ToString("N3")</span>
+                        </div>
+                    }
                     @if (Model.TotalWithdrawals > 0)
                     {
                         <div class="dp2-cash-row">
@@ -1246,6 +1253,13 @@
                         <div class="dp2-qs-row">
                             <span class="dp2-qs-lbl"><i class="fas fa-receipt" style="color:#dc2626;"></i> إجمالي المصروفات</span>
                             <span class="dp2-qs-val" style="color:#dc2626;">@Model.TotalExpensesAmount.ToString("N3") د.ك</span>
+                        </div>
+                    }
+                    @if (Model.TotalCustodyAmount > 0)
+                    {
+                        <div class="dp2-qs-row">
+                            <span class="dp2-qs-lbl"><i class="fas fa-hand-holding-dollar" style="color:#b91c1c;"></i> عهد الموظفين</span>
+                            <span class="dp2-qs-val" style="color:#b91c1c;">@Model.TotalCustodyAmount.ToString("N3") د.ك</span>
                         </div>
                     }
                     @if (Model.TipsTotal > 0)
