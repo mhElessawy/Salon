@@ -153,8 +153,11 @@
                                 }
                                 @if (p.Status == "تمت الموافقة - بانتظار الشراء" && isCashier)
                                 {
-                                    <button type="button" class="btn btn-xs btn-primary me-1" title="مطابقة واستلام"
-                                            onclick="openCashierModal(@p.Id, '@Html.Raw((p.Employee?.FullName ?? "").Replace("'", "\\'"))', @p.EstimatedAmount.ToString("F3", System.Globalization.CultureInfo.InvariantCulture), @(p.Custody?.RemainingAmount ?? 0).ToString("F3", System.Globalization.CultureInfo.InvariantCulture))">
+                                    <button type="button" class="btn btn-xs btn-primary me-1 js-cashier-btn" title="مطابقة واستلام"
+                                            data-cashier-id="@p.Id"
+                                            data-cashier-emp="@(p.Employee?.FullName ?? "-")"
+                                            data-cashier-estimated="@p.EstimatedAmount.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)"
+                                            data-cashier-remaining="@((p.Custody?.RemainingAmount ?? 0).ToString("F3", System.Globalization.CultureInfo.InvariantCulture))">
                                         <i class="fas fa-clipboard-check"></i> مطابقة واستلام
                                     </button>
                                 }
@@ -364,6 +367,17 @@
             document.getElementById('cashierActualAmount').max = custodyRemaining;
             new bootstrap.Modal(document.getElementById('cashierModal')).show();
         }
+
+        document.querySelectorAll('.js-cashier-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                openCashierModal(
+                    parseInt(btn.dataset.cashierId, 10),
+                    btn.dataset.cashierEmp,
+                    parseFloat(btn.dataset.cashierEstimated),
+                    parseFloat(btn.dataset.cashierRemaining)
+                );
+            });
+        });
 
         function confirmDelete(id, empName) {
             document.getElementById('deleteEmpName').textContent = empName;
