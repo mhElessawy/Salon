@@ -336,6 +336,30 @@
             color: #fbbf24;
             font-size: 15px;
         }
+    /* ── Compact panels (cash movement + custody stack) ──── */
+    .dp2-panel-sm .dp2-panel-hdr {
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+
+    .dp2-panel-sm .dp2-panel-body {
+        padding: 5px 8px;
+    }
+
+    .dp2-panel-sm .dp2-cash-row {
+        padding: 3px 0;
+        font-size: 10px;
+    }
+
+    .dp2-panel-sm .dp2-cash-total {
+        padding: 5px 8px;
+        margin: 4px -8px -5px;
+        font-size: 10px;
+    }
+
+        .dp2-panel-sm .dp2-cash-total span {
+            font-size: 11px;
+        }
     /* ── Employee table ─────────────────────── */
     .dp2-emp-table {
         width: 100%;
@@ -1120,7 +1144,7 @@
 
         <!-- Cash Movement -->
         <div class="col-lg-3 col-md-6">
-            <div class="dp2-panel">
+            <div class="dp2-panel dp2-panel-sm">
                 <div class="dp2-panel-hdr"><i class="fas fa-building-columns me-1"></i> حركة الصندوق</div>
                 <div class="dp2-panel-body">
                     <div class="dp2-cash-row">
@@ -1174,7 +1198,7 @@
             </div>
 
             <!-- Employee Custodies -->
-            <div class="dp2-panel mt-2">
+            <div class="dp2-panel dp2-panel-sm mt-2">
                 <div class="dp2-panel-hdr" style="background:#b91c1c;">
                     <span><i class="fas fa-hand-holding-dollar me-1"></i> العهد الحالية</span>
                     @if (Model.CurrentCustodies.Any())
@@ -1199,8 +1223,8 @@
                     }
                     else
                     {
-                        <div style="text-align:center;color:#94a3b8;padding:20px 0;font-size:12px;">
-                            <i class="fas fa-check-circle" style="font-size:28px;color:#16a34a;display:block;margin-bottom:6px;"></i>
+                        <div style="text-align:center;color:#94a3b8;padding:8px 0;font-size:10px;">
+                            <i class="fas fa-check-circle" style="font-size:16px;color:#16a34a;display:block;margin-bottom:3px;"></i>
                             لا توجد عهد حالياً لدى الموظفين
                         </div>
                     }
