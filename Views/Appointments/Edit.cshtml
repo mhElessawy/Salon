@@ -502,7 +502,7 @@
     <input asp-for="Id" type="hidden" />
     <input asp-for="CreatedAt" type="hidden" />
     <input type="hidden" id="hdnAppointmentDate" name="AppointmentDate" value="@Model.AppointmentDate.ToString("yyyy-MM-ddTHH:mm:ss")" />
-    <input type="hidden" id="hdnEndTime" name="EndTime" value="@(Model.EndTime.HasValue ? Model.EndTime.Value.ToString(@"hh\:mm\:ss") : "")" />
+    <input type="hidden" id="hdnEndTime" name="EndTime" value="@(Model.EndTime.HasValue? Model.EndTime.Value.ToString(@"hh\:mm\:ss") : "")" />
     <input type="hidden" id="hdnEmployeeId" name="EmployeeId" value="@Model.EmployeeId" />
     <input type="hidden" id="hdnCustomerId" name="CustomerId" value="@Model.CustomerId" />
     <input type="hidden" name="CustomerPackageId" value="@Model.CustomerPackageId" />
@@ -583,10 +583,10 @@
                     <!-- Status -->
                     <div class="panel-section-title"><span>الحالة</span></div>
                     <select name="Status" id="statusSelect" class="form-select form-select-sm mb-2">
-                        <option value="مجدول" @@(initialStatus == "مجدول" ? "selected" : "")>مجدول</option>
-                        <option value="مؤكد" @@(initialStatus == "مؤكد" ? "selected" : "")>مؤكد</option>
-                        <option value="مكتمل" @@(initialStatus == "مكتمل" ? "selected" : "")>مكتمل</option>
-                        <option value="ملغي" @@(initialStatus == "ملغي" ? "selected" : "")>ملغي</option>
+                        <option value="مجدول" selected="@(initialStatus == "مجدول" ? "selected" : null)">مجدول</option>
+                        <option value="مؤكد" selected="@(initialStatus == "مؤكد" ? "selected" : null)">مؤكد</option>
+                        <option value="مكتمل" selected="@(initialStatus == "مكتمل" ? "selected" : null)">مكتمل</option>
+                        <option value="ملغي" selected="@(initialStatus == "ملغي" ? "selected" : null)">ملغي</option>
                     </select>
 
                     <hr class="section-divider" />
@@ -628,7 +628,6 @@
                     </div>
                 </div>
             </div><!-- /details-panel -->
-
             <!-- Calendar Section -->
             <div class="calendar-section">
                 <div class="calendar-wrapper" id="calendarWrapper">

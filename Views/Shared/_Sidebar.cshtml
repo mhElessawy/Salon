@@ -21,7 +21,7 @@
     bool salesOpen = IsGroupOpen("sales", "appointments");
     bool defsOpen = IsGroupOpen("services", "servicecategories", "departments", "packages");
     bool inventoryOpen = IsGroupOpen("inventory", "suppliers");
-    bool hrOpen = IsGroupOpen("employees", "salaries", "advances", "custody", "attendance");
+    bool hrOpen = IsGroupOpen("employees", "salaries", "advances", "custody", "purchaserequests", "attendance");
     bool cashOpen = IsGroupOpen("expenses", "deposits", "withdrawals") ||
                     (ctrl == "reports" && act == "cashmovement");
     bool settingsOpen = IsGroupOpen("settings", "users");
@@ -326,6 +326,15 @@
                             <a href="@Url.Action("Report", "Custody")" class="@IsActive("Custody", "Report")">
                                 <i class="fas fa-file-invoice-dollar"></i>
                                 <span data-i18n-en="Custody Report">تقرير العهد</span>
+                            </a>
+                        </li>
+                    }
+                    @if (canSee("PurchaseRequest"))
+                    {
+                        <li>
+                            <a href="@Url.Action("Index", "PurchaseRequests")" class="@IsActive("PurchaseRequests", "Index")">
+                                <i class="fas fa-shopping-cart"></i>
+                                <span data-i18n-en="Purchase Requests">طلبات الشراء</span>
                             </a>
                         </li>
                     }

@@ -202,8 +202,8 @@
                             <option value="">— كل الموظفين —</option>
                             @foreach (var emp in (List<Salon.Models.Employee>)ViewBag.Employees)
                             {
-                                var sel = (ViewBag.EmployeeId != null && (int)ViewBag.EmployeeId == emp.Id) ? "selected" : "";
-                                <option value="@emp.Id" @@sel>@emp.FullName</option>
+                                var sel = (ViewBag.EmployeeId != null && (int)ViewBag.EmployeeId == emp.Id) ? "selected" : null;
+                                <option value="@emp.Id" selected="@sel">@emp.FullName</option>
                             }
                         </select>
                     </div>

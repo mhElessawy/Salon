@@ -24,7 +24,7 @@ namespace Salon.Models
         public DateTime CustodyDate { get; set; } = DateTime.Today;
 
         // "نقدي" | "لينك" — العهدة لا تخصم من الصندوق بأي طريقة دفع، هي مجرد مبلغ منفصل تحت
-        // عهدة الموظف يظهر معلوماتياً في تقارير الصندوق.
+        // عهدة الموظف يظهر معلوماتياً في تقارير الصندوق. لا تعتبر مصروفاً ولا تؤثر على الربح والخسارة.
         [Display(Name = "طريقة التسليم")]
         public string PaymentMethod { get; set; } = "نقدي";
 
@@ -43,25 +43,27 @@ namespace Salon.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-        // تسويات/إرجاعات هذه العهدة — لازم تُحمَّل (Include) في أي استعلام يستخدم الخصائص المحسوبة تحت
-        public List<CustodySettlement> Settlements { get; set; } = new();
+        // طلبات الشراء المصروفة من هذه العهدة — لازم تُحمَّل (Include) في أي استعلام يستخدم الخصائص المحسوبة تحت
+        public List<PurchaseRequest> PurchaseRequests { get; set; } = new();
 
-        // المبلغ المسدَّد فعلياً — التسويات الموافَق عليها فقط (الطلبات المعلَّقة لا تخصم شيئاً بعد)
+        // المبلغ المصروف فعلياً — طلبات الشراء المعتمَدة (بعد مطابقة الكاشير) فقط
         [NotMapped]
-        public decimal SettledAmount => Settlements.Where(s => s.Status == "موافق عليها").Sum(s => s.Amount);
+        public decimal SpentAmount => PurchaseRequests
+            .Where(p => p.Status == PurchaseRequest.Statuses.Completed)
+            .Sum(p => p.ActualAmount ?? 0);
 
+        // محجوز لطلبات شراء بانتظار الموافقة أو الشراء (تقديرياً، لم يُخصم بعد)
         [NotMapped]
-        public decimal PendingSettlementAmount => Settlements.Where(s => s.Status == "معلق").Sum(s => s.Amount);
-
-        [NotMapped]
-        public decimal RemainingAmount => Amount - SettledAmount;
-
-        // الحد الأقصى المتاح لطلب تسوية جديد (يستبعد المتبقي + الطلبات المعلَّقة حتى لا يتجاوز مجموع
-        // الطلبات الموافَق عليها مستقبلاً مبلغ العهدة الأصلي)
-        [NotMapped]
-        public decimal AvailableForSettlement => RemainingAmount - PendingSettlementAmount;
+        public decimal ReservedAmount => PurchaseRequests
+            .Where(p => p.Status == PurchaseRequest.Statuses.Pending || p.Status == PurchaseRequest.Statuses.Approved)
+            .Sum(p => p.EstimatedAmount);
 
         [NotMapped]
-        public string Status => RemainingAmount <= 0 ? "مسددة" : SettledAmount > 0 ? "مسددة جزئياً" : "مستلمة";
+        public decimal RemainingAmount => Amount - SpentAmount;
+
+        // الحد الأقصى المتاح لطلب شراء جديد (يستبعد المحجوز حتى لا يتجاوز مجموع الطلبات
+        // المعتمدة مستقبلاً مبلغ العهدة الأصلي)
+        [NotMapped]
+        public decimal AvailableForRequest => RemainingAmount - ReservedAmount;
     }
 }

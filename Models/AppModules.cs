@@ -21,6 +21,7 @@ namespace Salon.Models
             ("Salaries",          "الرواتب",            "fas fa-money-bill-wave",  "الموظفون"),
             ("Advances",          "السلف",              "fas fa-hand-holding-usd", "الموظفون"),
             ("Custody",           "العهد",              "fas fa-hand-holding",     "الموظفون"),
+            ("PurchaseRequest",   "طلبات الشراء",        "fas fa-shopping-cart",    "الموظفون"),
             ("Attendance",        "الحضور والانصراف",   "fas fa-calendar-alt",     "الموظفون"),
             ("Expenses",          "المصروفات",          "fas fa-receipt",          "المالية"),
             ("Deposits",          "الإيداعات",          "fas fa-money-bill-wave",  "المالية"),
@@ -39,7 +40,7 @@ namespace Salon.Models
         public static readonly HashSet<string> HasAdd = new()
         {
             "Customers", "Suppliers", "Services", "ServiceCategories", "Packages", "Inventory",
-            "Appointments", "Shifts", "Employees", "Salaries", "Advances", "Custody", "Attendance",
+            "Appointments", "Shifts", "Employees", "Salaries", "Advances", "Custody", "PurchaseRequest", "Attendance",
             "Expenses", "Deposits", "Withdrawals", "Users", "BarberInvoice", "MassageInvoice", "ProductInvoice"
         };
 
@@ -47,7 +48,7 @@ namespace Salon.Models
         public static readonly HashSet<string> HasDelete = new()
         {
             "Customers", "Suppliers", "Services", "ServiceCategories", "Packages", "Inventory",
-            "Appointments", "Shifts", "Employees", "Advances", "Custody", "Expenses", "Deposits", "Withdrawals", "Users",
+            "Appointments", "Shifts", "Employees", "Advances", "Custody", "PurchaseRequest", "Expenses", "Deposits", "Withdrawals", "Users",
             "BarberInvoice", "MassageInvoice", "ProductInvoice"
         };
 
@@ -60,7 +61,7 @@ namespace Salon.Models
         // الشاشات التي تدعم صلاحية "الموافقة" (اعتماد طلب قبل تنفيذه فعلياً)
         public static readonly HashSet<string> HasApprove = new()
         {
-            "Custody"
+            "PurchaseRequest"
         };
 
         // جميع مفاتيح الصلاحيات (مشاهدة + إضافة + حذف + عملائي فقط + موافقة)

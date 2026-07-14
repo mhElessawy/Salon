@@ -294,33 +294,72 @@ namespace Salon.Controllers
                 });
             }
 
-            // 5b. طلبات تسوية/إرجاع العهد المعلقة (تنتظر موافقة الأدمن)
-            var pendingSettlements = await _context.CustodySettlements
-                .Include(s => s.Custody).ThenInclude(c => c!.Employee)
-                .Where(s => s.Status == "معلق" && s.CreatedAt >= today.AddDays(-7))
-                .OrderByDescending(s => s.CreatedAt).Take(10).ToListAsync();
+            // 5b. طلبات الشراء الجديدة المعلقة (تنتظر موافقة الأدمن)
+            var pendingPurchaseRequests = await _context.PurchaseRequests
+                .Include(p => p.Employee)
+                .Where(p => p.Status == PurchaseRequest.Statuses.Pending && p.CreatedAt >= today.AddDays(-7))
+                .OrderByDescending(p => p.CreatedAt).Take(10).ToListAsync();
 
-            foreach (var settlement in pendingSettlements)
+            foreach (var pr in pendingPurchaseRequests)
             {
-                var empName = settlement.Custody?.Employee?.FullName ?? "غير محدد";
-                var subSettle = $"الموظف: {empName}";
+                var empName = pr.Employee?.FullName ?? "غير محدد";
+                var subPr = $"الموظف: {empName}";
                 list.Add(new NotificationItem
                 {
-                    Type = "custody-settlement-new",
+                    Type = "purchase-request-new",
                     Category = "مهمة",
-                    Title = "طلب تسوية عهدة جديد",
-                    TitleEn = "New Custody Settlement Request",
-                    SubTitle = subSettle,
+                    Title = "طلب شراء جديد",
+                    TitleEn = "New Purchase Request",
+                    SubTitle = subPr,
                     SubTitleEn = $"Employee: {empName}",
-                    Body = $"المبلغ: {settlement.Amount:N3} د.ك | ينتظر الموافقة",
-                    BodyEn = $"Amount: {settlement.Amount:N3} KD | Awaiting Approval",
-                    IconClass = "fas fa-undo",
+                    Body = $"قيمة تقديرية: {pr.EstimatedAmount:N3} د.ك | ينتظر الموافقة",
+                    BodyEn = $"Estimated: {pr.EstimatedAmount:N3} KD | Awaiting Approval",
+                    IconClass = "fas fa-shopping-cart",
                     IconBg = "#F7941D",
-                    Date = settlement.CreatedAt,
-                    ActionUrl = Url.Action("Index", "Custody"),
+                    Date = pr.CreatedAt,
+                    ActionUrl = Url.Action("Index", "PurchaseRequests"),
                     ActionText = "مراجعة الطلب",
                     ActionTextEn = "Review Request",
-                    Key = NotifKey("custody-settlement-new", settlement.CreatedAt, subSettle)
+                    Key = NotifKey("purchase-request-new", pr.CreatedAt, subPr)
+                });
+            }
+
+            // 5c. طلبات الشراء التي تمت الموافقة عليها أو رفضها حديثاً (لصاحب الطلب)
+            var decidedPurchaseRequestsQuery = _context.PurchaseRequests
+                .Include(p => p.Employee)
+                .Where(p => (p.Status == PurchaseRequest.Statuses.Approved || p.Status == PurchaseRequest.Statuses.Rejected)
+                         && p.CreatedAt >= weekAgo);
+            if (myEmployeeId.HasValue)
+                decidedPurchaseRequestsQuery = decidedPurchaseRequestsQuery.Where(p => p.EmployeeId == myEmployeeId.Value);
+            var decidedPurchaseRequests = await decidedPurchaseRequestsQuery
+                .OrderByDescending(p => p.ApprovedAt ?? p.CreatedAt).Take(10).ToListAsync();
+
+            foreach (var pr in decidedPurchaseRequests)
+            {
+                bool approved = pr.Status == PurchaseRequest.Statuses.Approved;
+                var decidedDate = pr.ApprovedAt ?? pr.CreatedAt;
+                var subDecided = $"طلب شراء #{pr.Id}";
+                list.Add(new NotificationItem
+                {
+                    Type = approved ? "purchase-request-approved" : "purchase-request-rejected",
+                    Category = "مهمة",
+                    Title = approved ? "تمت الموافقة على طلب الشراء" : "تم رفض طلب الشراء",
+                    TitleEn = approved ? "Purchase Request Approved" : "Purchase Request Rejected",
+                    SubTitle = subDecided,
+                    SubTitleEn = subDecided,
+                    Body = approved
+                        ? $"بواسطة: {pr.ApprovedByName ?? "-"} | {decidedDate:HH:mm  yyyy/MM/dd}"
+                        : $"السبب: {pr.RejectionReason ?? "-"}",
+                    BodyEn = approved
+                        ? $"By: {pr.ApprovedByName ?? "-"} | {decidedDate:HH:mm  yyyy/MM/dd}"
+                        : $"Reason: {pr.RejectionReason ?? "-"}",
+                    IconClass = approved ? "fas fa-check-circle" : "fas fa-times-circle",
+                    IconBg = approved ? "#198754" : "#dc3545",
+                    Date = decidedDate,
+                    ActionUrl = Url.Action("Index", "PurchaseRequests"),
+                    ActionText = "عرض الطلب",
+                    ActionTextEn = "View Request",
+                    Key = NotifKey(approved ? "purchase-request-approved" : "purchase-request-rejected", decidedDate, subDecided)
                 });
             }
 

@@ -1,4 +1,4 @@
-﻿@model IEnumerable<Salon.Models.AuditLog>
+﻿@model  IEnumerable<Salon.Models.AuditLog>
 @{
     ViewData["Title"] = "سجل الأنشطة";
     int page = ViewBag.Page;
@@ -22,7 +22,7 @@
                     <option value="">-- كل المستخدمين --</option>
                     @foreach (var u in (List<Salon.Models.ApplicationUser>)ViewBag.AllUsers)
                     {
-                        <option value="@u.Id" @@(ViewBag.UserId == u.Id ? "selected" : "")>@u.FullName</option>
+                        <option value="@u.Id" selected="@(ViewBag.UserId == u.Id ? "selected" : null)">@u.FullName</option>
                     }
                 </select>
             </div>

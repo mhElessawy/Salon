@@ -28,7 +28,8 @@ namespace Salon.Data
         public DbSet<Salary> Salaries { get; set; }
         public DbSet<EmployeeAdvance> EmployeeAdvances { get; set; }
         public DbSet<Custody> Custodies { get; set; }
-        public DbSet<CustodySettlement> CustodySettlements { get; set; }
+        public DbSet<PurchaseRequest> PurchaseRequests { get; set; }
+        public DbSet<PurchaseRequestItem> PurchaseRequestItems { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<UserPermission> UserPermissions { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
@@ -180,6 +181,14 @@ namespace Salon.Data
 
             builder.Entity<Shift>()
                 .Property(s => s.ClosingBalance)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<PurchaseRequest>()
+                .Property(p => p.EstimatedAmount)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<PurchaseRequest>()
+                .Property(p => p.ActualAmount)
                 .HasColumnType("decimal(18,3)");
         }
     }
