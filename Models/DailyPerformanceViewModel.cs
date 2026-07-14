@@ -1,5 +1,11 @@
 ﻿namespace Salon.Models
 {
+    public class EmployeeCustodyBalance
+    {
+        public string EmployeeName { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+    }
+
     public class EmployeePerformanceRow
     {
         public Employee Employee { get; set; } = null!;
@@ -65,6 +71,8 @@
         public decimal CashAdvancesAmount { get; set; }
         public decimal CashSalariesAmount { get; set; }
         public decimal TotalCustodyAmount { get; set; }
+        public List<EmployeeCustodyBalance> CurrentCustodies { get; set; } = new();
+        public decimal TotalCurrentCustody => CurrentCustodies.Sum(c => c.Amount);
         public decimal CurrentCashBalance => OpeningBalance + CashRevenue + TotalDeposits
                                              - CashExpensesAmount - CashAdvancesAmount - CashSalariesAmount - TotalWithdrawals;
 

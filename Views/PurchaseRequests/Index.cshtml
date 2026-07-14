@@ -1,4 +1,4 @@
-﻿@model IEnumerable<Salon.Models.PurchaseRequest>
+﻿@model  IEnumerable<Salon.Models.PurchaseRequest>
 @{
     ViewData["Title"] = "طلبات الشراء";
     bool isManager = (bool)(ViewBag.IsManager ?? false);
@@ -153,15 +153,20 @@
                                 }
                                 @if (p.Status == "تمت الموافقة - بانتظار الشراء" && isCashier)
                                 {
-                                    <button type="button" class="btn btn-xs btn-primary me-1" title="مطابقة واستلام"
-                                            onclick="openCashierModal(@p.Id, '@Html.Raw((p.Employee?.FullName ?? "").Replace("'", "\\'"))', @p.EstimatedAmount.ToString("F3", System.Globalization.CultureInfo.InvariantCulture), @(p.Custody?.RemainingAmount ?? 0).ToString(" F3", System.Globalization.CultureInfo.InvariantCulture))">
+                                    <button type="button" class="btn btn-xs btn-primary me-1 js-cashier-btn" title="مطابقة واستلام"
+                                            data-cashier-id="@p.Id"
+                                            data-cashier-emp="@(p.Employee?.FullName ?? "-")"
+                                            data-cashier-estimated="@p.EstimatedAmount.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)"
+                                            data-cashier-remaining="@((p.Custody?.RemainingAmount ?? 0).ToString("F3", System.Globalization.CultureInfo.InvariantCulture))">
                                         <i class="fas fa-clipboard-check"></i> مطابقة واستلام
                                     </button>
                                 }
-                                @if (isManager && p.Status != "معتمدة")
+                                @if (isManager)
                                 {
-                                    <button type="button" class="btn btn-xs btn-outline-secondary" title="حذف"
-                                            onclick="confirmDelete(@p.Id, '@Html.Raw((p.Employee?.FullName ?? "").Replace("'", "\\'"))')">
+                                    <button type="button" class="btn btn-xs btn-outline-secondary js-delete-btn" title="حذف"
+                                            data-delete-id="@p.Id"
+                                            data-delete-emp="@(p.Employee?.FullName ?? "-")"
+                                            data-delete-completed="@(p.Status == "معتمدة" ? "1" : "0")">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 }
@@ -328,7 +333,11 @@
                 </div>
                 <h4 class="fw-bold mb-2">تأكيد الحذف</h4>
                 <p class="text-muted mb-1">هل تريد حذف طلب شراء الموظف:</p>
-                <p class="fw-bold fs-5 mb-4" id="deleteEmpName"></p>
+                <p class="fw-bold fs-5 mb-2" id="deleteEmpName"></p>
+                <p class="text-danger small mb-2 d-none" id="deleteExpenseWarning">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    هذا الطلب معتمَد وله مصروف مسجَّل على الصندوق — هيتحذف المصروف معاه أيضاً
+                </p>
                 <p class="text-danger small mb-4">لا يمكن التراجع عن هذا الإجراء</p>
                 <div class="d-flex justify-content-center gap-3">
                     <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">إلغاء</button>
@@ -365,11 +374,33 @@
             new bootstrap.Modal(document.getElementById('cashierModal')).show();
         }
 
-        function confirmDelete(id, empName) {
+        document.querySelectorAll('.js-cashier-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                openCashierModal(
+                    parseInt(btn.dataset.cashierId, 10),
+                    btn.dataset.cashierEmp,
+                    parseFloat(btn.dataset.cashierEstimated),
+                    parseFloat(btn.dataset.cashierRemaining)
+                );
+            });
+        });
+
+        function confirmDelete(id, empName, isCompleted) {
             document.getElementById('deleteEmpName').textContent = empName;
+            document.getElementById('deleteExpenseWarning').classList.toggle('d-none', !isCompleted);
             document.getElementById('deleteForm').action = '@Url.Action("Delete")/' + id;
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
+
+        document.querySelectorAll('.js-delete-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                confirmDelete(
+                    parseInt(btn.dataset.deleteId, 10),
+                    btn.dataset.deleteEmp,
+                    btn.dataset.deleteCompleted === '1'
+                );
+            });
+        });
     </script>
     <style>
         .btn-xs {

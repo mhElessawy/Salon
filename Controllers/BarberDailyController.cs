@@ -105,6 +105,28 @@ namespace Salon.Controllers
 
             var todayCustodies = await custodiesQuery.OrderBy(c => c.Id).ToListAsync();
 
+            // Current custody balances per employee — every custody ever handed out (not just
+            // today's), minus amounts already spent via completed purchase requests, so the card
+            // reflects what each employee is still holding right now rather than only today's
+            // movement.
+            var allCustodiesQuery = _context.Custodies
+                .Include(c => c.Employee)
+                .Include(c => c.PurchaseRequests)
+                .AsQueryable();
+
+            if (!isEmployee)
+                allCustodiesQuery = allCustodiesQuery.Where(c => employeeIds.Contains(c.EmployeeId));
+            else
+                allCustodiesQuery = allCustodiesQuery.Where(c => c.EmployeeId == (linkedEmpId ?? -1));
+
+            var allCustodies = await allCustodiesQuery.ToListAsync();
+            var currentCustodies = allCustodies
+                .GroupBy(c => c.Employee?.FullName ?? "—")
+                .Select(g => new EmployeeCustodyBalance { EmployeeName = g.Key, Amount = g.Sum(c => c.RemainingAmount) })
+                .Where(x => x.Amount > 0)
+                .OrderByDescending(x => x.Amount)
+                .ToList();
+
             var salariesQuery = _context.Salaries
                 .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= today && s.PaidDate.Value < tomorrow);
             salariesQuery = isEmployee
@@ -328,6 +350,7 @@ namespace Salon.Controllers
                 CashAdvancesAmount = box.CashAdvances,
                 CashSalariesAmount = box.CashSalaries,
                 TotalCustodyAmount = totalCustody,
+                CurrentCustodies = currentCustodies,
 
                 ExpenseCount = expenses.Count,
                 MaxExpense = expenses.Any() ? expenses.Max(e => e.Amount) : 0,
