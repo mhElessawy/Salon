@@ -154,7 +154,7 @@
                                 @if (p.Status == "تمت الموافقة - بانتظار الشراء" && isCashier)
                                 {
                                     <button type="button" class="btn btn-xs btn-primary me-1" title="مطابقة واستلام"
-                                            onclick="openCashierModal(@p.Id, '@Html.Raw((p.Employee?.FullName ?? "").Replace("'", "\\'"))', @p.EstimatedAmount.ToString("F3", System.Globalization.CultureInfo.InvariantCulture), @(p.Custody?.RemainingAmount ?? 0).ToString(" F3", System.Globalization.CultureInfo.InvariantCulture))">
+                                            onclick="openCashierModal(@p.Id, '@Html.Raw((p.Employee?.FullName ?? "").Replace("'", "\\'"))', @p.EstimatedAmount.ToString("F3", System.Globalization.CultureInfo.InvariantCulture), @(p.Custody?.RemainingAmount ?? 0).ToString("F3", System.Globalization.CultureInfo.InvariantCulture))">
                                         <i class="fas fa-clipboard-check"></i> مطابقة واستلام
                                     </button>
                                 }
