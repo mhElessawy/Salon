@@ -63,7 +63,7 @@ namespace Salon.Controllers
                 .Include(p => p.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Include(p => p.Supplier)
                 .Include(p => p.Items)
-                .Include(p => p.Custody)
+                .Include(p => p.Custody).ThenInclude(c => c!.PurchaseRequests)
                 .AsQueryable();
 
             if (userDept == "حلاقة" || userDept == "مساج")
