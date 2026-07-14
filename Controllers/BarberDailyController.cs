@@ -106,11 +106,12 @@ namespace Salon.Controllers
             var todayCustodies = await custodiesQuery.OrderBy(c => c.Id).ToListAsync();
 
             // Current custody balances per employee — every custody ever handed out (not just
-            // today's), minus approved settlements, so the card reflects what each employee is
-            // still holding right now rather than only today's movement.
+            // today's), minus amounts already spent via completed purchase requests, so the card
+            // reflects what each employee is still holding right now rather than only today's
+            // movement.
             var allCustodiesQuery = _context.Custodies
                 .Include(c => c.Employee)
-                .Include(c => c.Settlements)
+                .Include(c => c.PurchaseRequests)
                 .AsQueryable();
 
             if (!isEmployee)
