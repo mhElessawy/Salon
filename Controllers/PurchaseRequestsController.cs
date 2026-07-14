@@ -105,7 +105,8 @@ namespace Salon.Controllers
             bool isManager = await IsManagerAsync(currentUser);
             var userDept = currentUser?.UserDepartment;
 
-            var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+            var empQuery = _context.Employees.Include(e => e.DepartmentNav)
+                .Where(e => e.IsActive && _context.Custodies.Any(c => c.EmployeeId == e.Id));
             if (userDept == "حلاقة" || userDept == "مساج")
                 empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
 
@@ -194,7 +195,8 @@ namespace Salon.Controllers
             }
 
             var userDept = currentUser?.UserDepartment;
-            var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+            var empQuery = _context.Employees.Include(e => e.DepartmentNav)
+                .Where(e => e.IsActive && _context.Custodies.Any(c => c.EmployeeId == e.Id));
             if (userDept == "حلاقة" || userDept == "مساج")
                 empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
             ViewBag.Employees = new SelectList(await empQuery.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName");
