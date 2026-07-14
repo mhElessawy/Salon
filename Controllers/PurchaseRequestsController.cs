@@ -392,20 +392,25 @@ namespace Salon.Controllers
             var request = await _context.PurchaseRequests.Include(p => p.Employee).Include(p => p.Items).FirstOrDefaultAsync(p => p.Id == id);
             if (request != null)
             {
-                if (request.Status == PurchaseRequest.Statuses.Completed)
-                {
-                    TempData["Error"] = "لا يمكن حذف طلب شراء معتمَد وله فاتورة مسجَّلة على الصندوق";
-                    return RedirectToAction(nameof(Index));
-                }
-
                 string empName = request.Employee?.FullName ?? request.EmployeeId.ToString();
+                bool wasCompleted = request.Status == PurchaseRequest.Statuses.Completed;
+
+                // طلب معتمَد له مصروف اتسجل على الصندوق فعلياً — لازم يتحذف معاه عشان الصندوق يرجع
+                // متزامن، مش بس يتحذف الطلب ويفضل المصروف قايم لوحده.
+                if (request.ExpenseId.HasValue)
+                {
+                    var linkedExpense = await _context.Expenses.FindAsync(request.ExpenseId.Value);
+                    if (linkedExpense != null)
+                        _context.Expenses.Remove(linkedExpense);
+                }
 
                 _context.PurchaseRequestItems.RemoveRange(request.Items);
                 _context.PurchaseRequests.Remove(request);
                 await _context.SaveChangesAsync();
 
                 await _audit.LogAsync("Delete", "PurchaseRequest",
-                    $"حذف طلب شراء الموظف: {empName} بقيمة تقديرية {request.EstimatedAmount:N3} KD",
+                    $"حذف طلب شراء الموظف: {empName} بقيمة تقديرية {request.EstimatedAmount:N3} KD" +
+                    (wasCompleted ? " (كان معتمَداً — تم حذف المصروف المرتبط به من الصندوق أيضاً)" : ""),
                     id);
 
                 TempData["Success"] = "تم حذف طلب الشراء بنجاح";
