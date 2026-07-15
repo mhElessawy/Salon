@@ -15,6 +15,8 @@
     decimal cashBalance = ViewBag.CashBalance is decimal cb ? cb : 0m;
     decimal openingBalance = ViewBag.OpeningBalance is decimal ob ? ob : 0m;
     string selectedType = ViewBag.SelectedType ?? "";
+    var currentCustodies = ViewBag.CurrentCustodies as List<Salon.Models.EmployeeCustodyBalance> ?? new();
+    decimal totalCurrentCustody = ViewBag.TotalCurrentCustody is decimal tcc ? tcc : 0m;
 
     // الأنواع التي تُخصم من رصيد الكاش
     string[] debitTypes = { "مصروف", "سلفة", "راتب", "سحب" };
@@ -235,6 +237,47 @@
             <div class="d-flex justify-content-between align-items-center">
                 <span class="text-muted small"><i class="fas fa-credit-card me-1" style="color:#0ea5e9;"></i>الكي نت (مستقل - لا يدخل في رصيد الكاش)</span>
                 <span class="fw-bold" style="color:#0ea5e9;">@totalKNet.ToString("N3") د.ك</span>
+            </div>
+        }
+    </div>
+</div>
+
+@* ── بطاقة العهد ── *@
+<div class="card mb-4 border-0 shadow-sm" style="border-right:4px solid #b91c1c !important;">
+    <div class="card-header d-flex justify-content-between align-items-center bg-white">
+        <span style="color:#b91c1c;"><i class="fas fa-hand-holding-dollar me-2"></i>بطاقة العهد</span>
+        <a href="@Url.Action("Report", "Custody")" class="btn btn-outline-danger btn-sm">
+            <i class="fas fa-list me-1"></i> تفاصيل العهد
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="text-muted small mb-2">
+            <i class="fas fa-info-circle me-1"></i>
+            العهدة مبلغ مُسلَّم للموظف بشكل منفصل ولا تُخصم من رصيد الكاش أعلاه — تُعرض هنا للعلم فقط.
+        </div>
+        @if (currentCustodies.Any())
+        {
+            <div class="row g-2 mb-2">
+                @foreach (var custody in currentCustodies)
+                {
+                    <div class="col-6 col-md-3">
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 rounded" style="background:#fef2f2; border:1px solid #fecaca;">
+                            <span class="small"><i class="fas fa-user me-1 text-muted"></i>@custody.EmployeeName</span>
+                            <strong style="color:#b91c1c;">@custody.Amount.ToString("N3")</strong>
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-3 py-2 rounded fw-bold" style="background:#b91c1c; color:#fff;">
+                <span><i class="fas fa-wallet me-1"></i> إجمالي العهد الحالية</span>
+                <span>@totalCurrentCustody.ToString("N3") <small>د.ك</small></span>
+            </div>
+        }
+        else
+        {
+            <div class="text-center text-muted py-3">
+                <i class="fas fa-check-circle fa-2x mb-2 d-block" style="color:#16a34a;"></i>
+                لا توجد عهد حالياً لدى الموظفين
             </div>
         }
     </div>

@@ -754,10 +754,31 @@ namespace Salon.Controllers
             // never drift apart again.
             decimal openingBalanceBeforePeriod = (await CashBoxCalculator.GetSnapshotAsync(_context, dateFrom, dateFrom, dept)).OpeningBalance;
 
+            // بطاقة العهد — رصيد العهدة الحالي لكل موظف (كل العهد القائمة بغض النظر عن فترة
+            // التقرير، لأنها مبلغ قائم تحت عهدة الموظف وليست مرتبطة بفترة معينة)، بنفس منطق
+            // شاشة BarberDaily. العهدة معلوماتية فقط ولا تدخل في حساب رصيد الكاش أعلاه.
+            var custodyQuery = _context.Custodies
+                .Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Include(c => c.PurchaseRequests)
+                .AsQueryable();
+            if (filterDept)
+                custodyQuery = custodyQuery.Where(c => c.Employee!.DepartmentNav!.Name == dept);
+            var allCustodies = await custodyQuery.ToListAsync();
+            var currentCustodies = allCustodies
+                .GroupBy(c => c.Employee?.FullName ?? "—")
+                .Select(g => new EmployeeCustodyBalance { EmployeeName = g.Key, Amount = g.Sum(c => c.RemainingAmount) })
+                .Where(x => x.Amount > 0)
+                .OrderByDescending(x => x.Amount)
+                .ToList();
+            decimal totalCurrentCustody = currentCustodies.Sum(x => x.Amount);
+
             if (showExpenses)
             {
+                // فئة "عهدة" مستبعدة هنا لنفس السبب المطبق في CashBoxCalculator/BarberDaily:
+                // العهدة مبلغ منفصل تحت عهدة الموظف، مش مصروف فعلي خرج من الصندوق، فلا يجب أن
+                // تظهر كحركة "مصروف" هنا ولا تُخصم من رصيد الكاش.
                 var expensesQuery = _context.Expenses
-                    .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo);
+                    .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo && e.Category != "عهدة");
                 if (filterDept)
                     expensesQuery = expensesQuery.Where(e => e.Department == dept);
                 var expenses = await expensesQuery
@@ -956,6 +977,8 @@ namespace Salon.Controllers
             // رصيد الكاش = رصيد قبل الفترة + مبيعات كاش + إيداعات - مصروفات نقدية - سحوبات (الكي نت + المصروفات غير النقدية خارج الحساب)
             ViewBag.CashBalance = openingBalanceBeforePeriod + totalCashSales + totalDep - totalCashExp - totalWithdrawals;
             ViewBag.NetBalance = ViewBag.CashBalance;
+            ViewBag.CurrentCustodies = currentCustodies;
+            ViewBag.TotalCurrentCustody = totalCurrentCustody;
 
             return View(items);
         }
