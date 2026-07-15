@@ -762,7 +762,7 @@ namespace Salon.Controllers
                 .Include(c => c.PurchaseRequests)
                 .AsQueryable();
             if (filterDept)
-                custodyQuery = custodyQuery.Where(c => c.Employee!.DepartmentNav!.Name == dept);
+                custodyQuery = custodyQuery.Where(c => (c.Employee!.RevenueDepartment ?? c.Employee!.DepartmentNav!.Name) == dept);
             var allCustodies = await custodyQuery.ToListAsync();
             var currentCustodies = allCustodies
                 .GroupBy(c => c.Employee?.FullName ?? "—")
@@ -796,12 +796,15 @@ namespace Salon.Controllers
                     PaymentMethod = e.PaymentMethod
                 }));
 
+                // القسم "الفعلي" للموظف يُحسب حسب: RevenueDepartment إن وُجد (لموظفي الأقسام غير
+                // الإيرادية كالإدارة)، وإلا فقسمه التنظيمي (DepartmentNav) — حتى تظهر سلف
+                // الإداريين التابعين لقسم حلاقة/مساج تحت نفس القسم مش بس سلف الموظفين المباشرين
                 var advancesQuery = _context.EmployeeAdvances
                     .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                     .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo
                              && (a.Status == "موافق عليها" || a.Status == "مسددة"));
                 if (filterDept)
-                    advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == dept);
+                    advancesQuery = advancesQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == dept);
                 var advances = await advancesQuery
                     .OrderByDescending(a => a.AdvanceDate)
                     .ToListAsync();
@@ -821,7 +824,7 @@ namespace Salon.Controllers
                     .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
                     .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= dateFrom && s.PaidDate.Value < dateTo);
                 if (filterDept)
-                    salariesQuery = salariesQuery.Where(s => s.Employee!.DepartmentNav!.Name == dept);
+                    salariesQuery = salariesQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == dept);
                 var salaries = await salariesQuery
                     .OrderByDescending(s => s.PaidDate)
                     .ToListAsync();
