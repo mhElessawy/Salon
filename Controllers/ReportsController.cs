@@ -176,13 +176,16 @@ namespace Salon.Controllers
                 .OrderByDescending(e => e.ExpenseDate)
                 .ToListAsync();
 
+            // القسم "الفعلي" للموظف يُحسب حسب RevenueDepartment إن وُجد (لموظفي الأقسام غير
+            // الإيرادية كالإدارة)، وإلا فقسمه التنظيمي (DepartmentNav) — حتى تظهر رواتب
+            // الإداريين التابعين لقسم حلاقة/مساج ماليًا تحت نفس القسم.
             var salariesQuery = _context.Salaries
                 .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Where(s => s.PaidDate >= dateFrom && s.PaidDate < dateTo);
             if (effectiveDept == "مساج")
-                salariesQuery = salariesQuery.Where(s => s.Employee!.DepartmentNav!.Name == "مساج");
+                salariesQuery = salariesQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == "مساج");
             else if (effectiveDept == "حلاقة")
-                salariesQuery = salariesQuery.Where(s => s.Employee!.DepartmentNav!.Name == "حلاقة");
+                salariesQuery = salariesQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == "حلاقة");
 
             var salaries = await salariesQuery
                 .OrderBy(s => s.PaidDate)
@@ -201,7 +204,7 @@ namespace Salon.Controllers
             // Sub-groups — only for admin with no specific dept filter
             bool showSubGroups = !isDeptUser && string.IsNullOrEmpty(effectiveDept);
             var barberExpenses = showSubGroups ? expenses.Where(e => e.Department == "حلاقة").ToList() : new List<Expense>();
-            var barberSalaries = showSubGroups ? salaries.Where(s => s.Employee?.Department == "حلاقة").ToList() : new List<Salary>();
+            var barberSalaries = showSubGroups ? salaries.Where(s => (s.Employee?.RevenueDepartment ?? s.Employee?.Department) == "حلاقة").ToList() : new List<Salary>();
             decimal barberExp = barberExpenses.Sum(e => e.Amount);
             decimal barberSal = barberSalaries.Sum(s => s.NetSalary);
             ViewBag.BarberExpenses = barberExpenses;
@@ -211,7 +214,7 @@ namespace Salon.Controllers
             ViewBag.TotalBarberCombined = barberExp + barberSal;
 
             var massageExpenses = showSubGroups ? expenses.Where(e => e.Department == "مساج").ToList() : new List<Expense>();
-            var massageSalaries = showSubGroups ? salaries.Where(s => s.Employee?.Department == "مساج").ToList() : new List<Salary>();
+            var massageSalaries = showSubGroups ? salaries.Where(s => (s.Employee?.RevenueDepartment ?? s.Employee?.Department) == "مساج").ToList() : new List<Salary>();
             decimal massageExp = massageExpenses.Sum(e => e.Amount);
             decimal massageSal = massageSalaries.Sum(s => s.NetSalary);
             ViewBag.MassageExpenses = massageExpenses;
