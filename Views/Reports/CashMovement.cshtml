@@ -163,7 +163,7 @@
             <i class="fas fa-minus-circle text-danger me-1"></i> المصروفات
         </div>
     </div>
-    <div class="col-6 col-md-4">
+    <div class="col-6 col-md-3">
         <div class="card text-center border-0 shadow-sm h-100" style="border-right:4px solid #ef4444 !important;">
             <div class="card-body p-3">
                 <div class="text-danger mb-1" style="font-size:24px;"><i class="fas fa-receipt"></i></div>
@@ -172,7 +172,7 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-4">
+    <div class="col-6 col-md-3">
         <div class="card text-center border-0 shadow-sm h-100" style="border-right:4px solid #f59e0b !important;">
             <div class="card-body p-3">
                 <div class="mb-1" style="font-size:24px; color:#b45309;"><i class="fas fa-hand-holding-usd"></i></div>
@@ -181,7 +181,7 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-4">
+    <div class="col-6 col-md-3">
         <div class="card text-center border-0 shadow-sm h-100" style="border-right:4px solid #6f42c1 !important;">
             <div class="card-body p-3">
                 <div class="mb-1" style="font-size:24px; color:#6f42c1;"><i class="fas fa-money-bill-wave"></i></div>
@@ -190,18 +190,32 @@
             </div>
         </div>
     </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center border-0 shadow-sm h-100" style="border-right:4px solid #dc2626 !important;">
+            <div class="card-body p-3">
+                <div class="mb-1" style="font-size:24px; color:#dc2626;"><i class="fas fa-hand-holding-usd"></i></div>
+                <div class="text-muted small">السحوبات</div>
+                <div class="fw-bold fs-6 mt-1" style="color:#dc2626;">@totalWithdrawals.ToString("N3") <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
 </div>
 
-@* خط فاصل وإجمالي المصروفات مع تفصيل نقدي/غير نقدي *@
+@{
+    // السحب دايمًا نقدي، فهو يُضاف لعمود "نقدي" في التفصيل بحيث يظل مجموع العمودين مطابقاً للإجمالي أعلاه
+    decimal totalExpensesWithWithdrawals = totalExpenses + totalWithdrawals;
+    decimal totalCashExpensesWithWithdrawals = totalCashExpenses + totalWithdrawals;
+}
+@* خط فاصل وإجمالي المصروفات (شامل السحوبات) مع تفصيل نقدي/غير نقدي *@
 <div class="alert alert-danger py-2 px-3 mb-1 d-flex justify-content-between align-items-center">
-    <span><i class="fas fa-equals me-1"></i> إجمالي المصروفات (مصروفات + سلف + مرتبات)</span>
-    <strong>@totalExpenses.ToString("N3") د.ك</strong>
+    <span><i class="fas fa-equals me-1"></i> إجمالي المصروفات (مصروفات + سلف + مرتبات + سحوبات)</span>
+    <strong>@totalExpensesWithWithdrawals.ToString("N3") د.ك</strong>
 </div>
 <div class="row g-2 mb-3">
     <div class="col-6">
         <div class="d-flex justify-content-between align-items-center px-3 py-2 rounded" style="background:#fff0f0; border:1px solid #fca5a5;">
             <span class="small"><i class="fas fa-money-bill-wave me-1 text-danger"></i> نقدي <span class="text-muted">(يؤثر على الرصيد)</span></span>
-            <strong class="text-danger">@totalCashExpenses.ToString("N3") د.ك</strong>
+            <strong class="text-danger">@totalCashExpensesWithWithdrawals.ToString("N3") د.ك</strong>
         </div>
     </div>
     <div class="col-6">
