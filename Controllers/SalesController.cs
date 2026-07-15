@@ -338,14 +338,27 @@ namespace Salon.Controllers
                 }
 
                 // ── توليد رقم الفاتورة عند الحفظ الفعلي لتجنّب التكرار ──
-                model.InvoiceNumber = await GenerateInvoiceNumber("PRD");
-
                 model.TotalAmount = 0;
                 model.SaleDate = KuwaitNow;
                 model.CreatedByUserId = user?.Id;
                 model.CreatedByUserName = user?.FullName ?? user?.UserName ?? User.Identity?.Name;
                 _context.Sales.Add(model);
-                await _context.SaveChangesAsync();
+
+                // لو طلبين اتبعتوا شبه في نفس اللحظة ممكن يتولّد نفس رقم الفاتورة مرتين — الفهرس
+                // الفريد على InvoiceNumber بيرفض التكرار، فنولّد رقم جديد ونعيد المحاولة.
+                const int maxInvoiceAttempts = 5;
+                for (int attempt = 1; ; attempt++)
+                {
+                    model.InvoiceNumber = await GenerateInvoiceNumber("PRD");
+                    try
+                    {
+                        await _context.SaveChangesAsync();
+                        break;
+                    }
+                    catch (DbUpdateException) when (attempt < maxInvoiceAttempts)
+                    {
+                    }
+                }
 
                 if (itemNames != null)
                 {
@@ -821,14 +834,29 @@ namespace Salon.Controllers
 
                 // ── توليد رقم الفاتورة عند الحفظ الفعلي لتجنّب التكرار ──
                 var invoicePrefix = dept == "حلاقة" ? "PAR" : "MAS";
-                model.InvoiceNumber = await GenerateInvoiceNumber(invoicePrefix);
-
                 model.TotalAmount = 0;
                 model.SaleDate = KuwaitNow;
                 model.CreatedByUserId = currentUser?.Id;
                 model.CreatedByUserName = currentUser?.FullName ?? currentUser?.UserName ?? User.Identity?.Name;
                 _context.Sales.Add(model);
-                await _context.SaveChangesAsync();
+
+                // لو طلبين اتبعتوا شبه في نفس اللحظة (double-click أو إعادة إرسال) ممكن الاتنين
+                // يقروا نفس أكبر رقم قبل ما أي حد يحفظ، فيتولّد نفس رقم الفاتورة مرتين — الفهرس
+                // الفريد على InvoiceNumber بيرفض التكرار في قاعدة البيانات، فنولّد رقم جديد
+                // ونعيد المحاولة بدل ما نرجّع خطأ للمستخدم.
+                const int maxInvoiceAttempts = 5;
+                for (int attempt = 1; ; attempt++)
+                {
+                    model.InvoiceNumber = await GenerateInvoiceNumber(invoicePrefix);
+                    try
+                    {
+                        await _context.SaveChangesAsync();
+                        break;
+                    }
+                    catch (DbUpdateException) when (attempt < maxInvoiceAttempts)
+                    {
+                    }
+                }
 
                 if (itemNames != null)
                 {
