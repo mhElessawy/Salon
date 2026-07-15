@@ -65,7 +65,9 @@ namespace Salon.Services
                 s.PaymentMethod == "كاش" ? s.NetAmount :
                 s.PaymentMethod == "كي نت و كاش" ? (s.CashAmount ?? 0) : 0m);
 
-            var depositsQuery = context.Deposits.Where(d => d.DepositDate >= from && d.DepositDate < to);
+            // الإيداعات النقدية فقط تدخل الصندوق الفعلي — إيداع بالتحويل البنكي أو البطاقة
+            // ميعديش على الكاش الفعلي في الدرج، فمينفعش يزود رصيد الكاش.
+            var depositsQuery = context.Deposits.Where(d => d.DepositDate >= from && d.DepositDate < to && d.PaymentMethod == "نقدي");
             if (filterDept) depositsQuery = depositsQuery.Where(d => d.Department == dept);
             decimal deposits = await depositsQuery.SumAsync(d => d.Amount);
 

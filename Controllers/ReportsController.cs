@@ -855,7 +855,8 @@ namespace Salon.Controllers
                     Description = d.Description,
                     Amount = d.Amount,
                     Category = d.Source,
-                    Notes = d.Notes
+                    Notes = d.Notes,
+                    PaymentMethod = d.PaymentMethod
                 }));
             }
 
@@ -959,6 +960,9 @@ namespace Salon.Controllers
                 (i.Type == "مصروف" || i.Type == "سلفة" || i.Type == "راتب")
                 && i.PaymentMethod == "نقدي").Sum(i => i.Amount);
             decimal totalDep = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount);
+            // إيداع بالتحويل البنكي أو البطاقة ميعديش على الكاش الفعلي في الدرج، فمينفعش يزود رصيد الكاش
+            decimal totalDepCash = items.Where(i => i.Type == "إيداع" && i.PaymentMethod == "نقدي").Sum(i => i.Amount);
+            decimal totalDepNonCash = totalDep - totalDepCash;
             decimal totalCashSales = items.Where(i => i.Type == "مبيعات كاش").Sum(i => i.Amount);
             decimal totalKNet = items.Where(i => i.Type == "كي نت").Sum(i => i.Amount);
             decimal totalWithdrawals = items.Where(i => i.Type == "سحب").Sum(i => i.Amount);
@@ -979,12 +983,14 @@ namespace Salon.Controllers
             ViewBag.TotalNonCashExpenses = totalExp - totalCashExp;
             ViewBag.OpeningBalance = openingBalanceBeforePeriod;
             ViewBag.TotalDeposits = totalDep;
+            ViewBag.TotalDepositsCash = totalDepCash;
+            ViewBag.TotalDepositsNonCash = totalDepNonCash;
             ViewBag.TotalCashSales = totalCashSales;
             ViewBag.TotalKNet = totalKNet;
             ViewBag.TotalSales = totalCashSales + totalKNet;
             ViewBag.TotalWithdrawals = totalWithdrawals;
-            // رصيد الكاش = رصيد قبل الفترة + مبيعات كاش + إيداعات - مصروفات نقدية - سحوبات (الكي نت + المصروفات غير النقدية خارج الحساب)
-            ViewBag.CashBalance = openingBalanceBeforePeriod + totalCashSales + totalDep - totalCashExp - totalWithdrawals;
+            // رصيد الكاش = رصيد قبل الفترة + مبيعات كاش + إيداعات نقدي - مصروفات نقدية - سحوبات (الكي نت والإيداعات غير النقدية خارج الحساب)
+            ViewBag.CashBalance = openingBalanceBeforePeriod + totalCashSales + totalDepCash - totalCashExp - totalWithdrawals;
             ViewBag.NetBalance = ViewBag.CashBalance;
             ViewBag.CurrentCustodies = currentCustodies;
             ViewBag.TotalCurrentCustody = totalCurrentCustody;

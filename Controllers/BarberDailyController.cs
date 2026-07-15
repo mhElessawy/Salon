@@ -189,8 +189,9 @@ namespace Salon.Controllers
                 cashMethods.Contains(s.PaymentMethod) ? s.NetAmount :
                 mixedMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
 
+            // إيداع بالتحويل البنكي أو البطاقة ميعديش على الكاش الفعلي في الدرج (يطابق CashBoxCalculator)
             var prevDepositsQuery = _context.Deposits
-                .Where(d => d.DepositDate >= baseDate && d.DepositDate < today);
+                .Where(d => d.DepositDate >= baseDate && d.DepositDate < today && d.PaymentMethod == "نقدي");
             if (filterDept == "حلاقة" || filterDept == "مساج")
                 prevDepositsQuery = prevDepositsQuery.Where(d => d.Department == filterDept);
             decimal prevDeposits = await prevDepositsQuery.SumAsync(d => d.Amount);
@@ -257,7 +258,7 @@ namespace Salon.Controllers
             // يختلف الرقمان — إلا في عرض الموظف لنفسه فقط، حيث يبقى الحساب مقتصراً على مبيعاته
             // وسلفه ورواتبه هو (لا يوجد مفهوم مماثل في الحاسبة المشتركة).
             var box = isEmployee
-                ? new CashBoxSnapshot(openingBalance, cashRevenue, deposits.Sum(d => d.Amount), cashExpenses, cashAdvances, cashSalaries, withdrawals.Sum(w => w.Amount))
+                ? new CashBoxSnapshot(openingBalance, cashRevenue, deposits.Where(d => d.PaymentMethod == "نقدي").Sum(d => d.Amount), cashExpenses, cashAdvances, cashSalaries, withdrawals.Sum(w => w.Amount))
                 : await CashBoxCalculator.GetSnapshotAsync(_context, today, tomorrow, filterDept);
 
             var expensesByCategory = expenses
