@@ -3,7 +3,11 @@
     ViewData["Title"] = "تقرير حركة الصندوق";
     string selectedDept = ViewBag.SelectedDept ?? "";
     decimal totalMasrouf = ViewBag.TotalMasrouf is decimal tm ? tm : 0m;
+    decimal totalMasroufCash = ViewBag.TotalMasroufCash is decimal tmc ? tmc : 0m;
+    decimal totalMasroufKNet = ViewBag.TotalMasroufKNet is decimal tmk ? tmk : 0m;
     decimal totalSulfa = ViewBag.TotalSulfa is decimal ts2 ? ts2 : 0m;
+    decimal totalSulfaCash = ViewBag.TotalSulfaCash is decimal tsc ? tsc : 0m;
+    decimal totalSulfaKNet = ViewBag.TotalSulfaKNet is decimal tsk ? tsk : 0m;
     decimal totalRatib = ViewBag.TotalRatib is decimal tr ? tr : 0m;
     decimal totalExpenses = ViewBag.TotalExpenses is decimal te ? te : 0m;
     decimal totalCashExpenses = ViewBag.TotalCashExpenses is decimal tce ? tce : 0m;
@@ -169,6 +173,14 @@
                 <div class="text-danger mb-1" style="font-size:24px;"><i class="fas fa-receipt"></i></div>
                 <div class="text-muted small">مصروفات عامة</div>
                 <div class="fw-bold fs-6 text-danger mt-1">@totalMasrouf.ToString("N3") <small>د.ك</small></div>
+                <div class="d-flex justify-content-between mt-2 pt-2" style="border-top:1px dashed #fca5a5; font-size:11px;">
+                    <span class="text-muted"><i class="fas fa-money-bill-wave me-1 text-danger"></i>كاش</span>
+                    <span class="fw-semibold text-danger">@totalMasroufCash.ToString("N3")</span>
+                </div>
+                <div class="d-flex justify-content-between" style="font-size:11px;">
+                    <span class="text-muted"><i class="fas fa-credit-card me-1" style="color:#0ea5e9;"></i>كي نت</span>
+                    <span class="fw-semibold" style="color:#0ea5e9;">@totalMasroufKNet.ToString("N3")</span>
+                </div>
             </div>
         </div>
     </div>
@@ -178,6 +190,14 @@
                 <div class="mb-1" style="font-size:24px; color:#b45309;"><i class="fas fa-hand-holding-usd"></i></div>
                 <div class="text-muted small">سلف الموظفين</div>
                 <div class="fw-bold fs-6 mt-1" style="color:#b45309;">@totalSulfa.ToString("N3") <small>د.ك</small></div>
+                <div class="d-flex justify-content-between mt-2 pt-2" style="border-top:1px dashed #fde68a; font-size:11px;">
+                    <span class="text-muted"><i class="fas fa-money-bill-wave me-1" style="color:#b45309;"></i>كاش</span>
+                    <span class="fw-semibold" style="color:#b45309;">@totalSulfaCash.ToString("N3")</span>
+                </div>
+                <div class="d-flex justify-content-between" style="font-size:11px;">
+                    <span class="text-muted"><i class="fas fa-credit-card me-1" style="color:#0ea5e9;"></i>كي نت</span>
+                    <span class="fw-semibold" style="color:#0ea5e9;">@totalSulfaKNet.ToString("N3")</span>
+                </div>
             </div>
         </div>
     </div>
@@ -196,6 +216,9 @@
                 <div class="mb-1" style="font-size:24px; color:#dc2626;"><i class="fas fa-hand-holding-usd"></i></div>
                 <div class="text-muted small">السحوبات</div>
                 <div class="fw-bold fs-6 mt-1" style="color:#dc2626;">@totalWithdrawals.ToString("N3") <small>د.ك</small></div>
+                <div class="text-muted mt-2 pt-2" style="border-top:1px dashed #fca5a5; font-size:11px;">
+                    <i class="fas fa-money-bill-wave me-1 text-danger"></i>نقدي بالكامل
+                </div>
             </div>
         </div>
     </div>
