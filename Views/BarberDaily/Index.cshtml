@@ -1309,6 +1309,13 @@
                             <span class="dp2-qs-val" style="color:#dc2626;">@Model.TotalWithdrawals.ToString("N3") د.ك</span>
                         </div>
                     }
+                    @if (Model.TotalAdvancesAmount > 0)
+                    {
+                        <div class="dp2-qs-row">
+                            <span class="dp2-qs-lbl"><i class="fas fa-hand-holding-usd" style="color:#f59e0b;"></i> سلف الموظفين</span>
+                            <span class="dp2-qs-val" style="color:#f59e0b;">@Model.TotalAdvancesAmount.ToString("N3") د.ك</span>
+                        </div>
+                    }
                     @if (Model.TotalCustodyAmount > 0)
                     {
                         <div class="dp2-qs-row">
