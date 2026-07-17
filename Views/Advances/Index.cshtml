@@ -5,9 +5,28 @@
                                "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر" };
     decimal pendingTotal = (decimal)ViewBag.PendingTotal;
     decimal approvedTotal = (decimal)ViewBag.ApprovedTotal;
+    decimal cashierQueueTotal = (decimal)ViewBag.CashierQueueTotal;
+    decimal bankQueueTotal = (decimal)ViewBag.BankQueueTotal;
     int pendingCount = (int)ViewBag.PendingCount;
     int approvedCount = (int)ViewBag.ApprovedCount;
+    int cashierQueueCount = (int)ViewBag.CashierQueueCount;
+    int bankQueueCount = (int)ViewBag.BankQueueCount;
     bool isManager = (bool)(ViewBag.IsManager ?? false);
+    bool isCashier = (bool)(ViewBag.IsCashier ?? false);
+    int? myEmployeeId = ViewBag.MyEmployeeId as int?;
+
+    var statusBadgeClasses = new Dictionary<string, string>
+    {
+        ["بانتظار موافقة المدير"] = "bg-warning text-dark",
+        ["مرفوض"] = "bg-danger",
+        ["معتمد - بانتظار صرف الكاشير"] = "bg-info text-dark",
+        ["معتمد - بانتظار التحويل البنكي"] = "bg-info text-dark",
+        ["تم الصرف"] = "bg-primary",
+        ["تم التحويل"] = "bg-primary",
+        ["مسددة"] = "bg-success",
+        ["ملغي"] = "bg-secondary",
+    };
+    string BadgeClass(string status) => statusBadgeClasses.TryGetValue(status, out var c) ? c : "bg-secondary";
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -38,7 +57,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <div class="text-muted small mb-1">السلف المعلقة</div>
+                        <div class="text-muted small mb-1">بانتظار موافقة المدير</div>
                         <div class="fw-bold fs-4 text-warning">@pendingCount</div>
                         <div class="small text-muted">سلفة</div>
                     </div>
@@ -54,12 +73,60 @@
             </div>
         </div>
     </div>
+    @if (isCashier)
+    {
+        <div class="col-sm-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100" style="border-right:4px solid #17a2b8 !important; border-right-width:4px !important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-muted small mb-1">بانتظار صرف الكاشير</div>
+                            <div class="fw-bold fs-4 text-info">@cashierQueueCount</div>
+                            <div class="small text-muted">سلفة</div>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                             style="width:48px;height:48px;background:#cff4fc;">
+                            <i class="fas fa-money-bill-wave text-info fs-5"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2 pt-2 border-top">
+                        <span class="fw-bold text-info">@cashierQueueTotal.ToString("N3")</span>
+                        <span class="text-muted small"> د.ك</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    @if (isManager)
+    {
+        <div class="col-sm-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100" style="border-right:4px solid #0d6efd !important; border-right-width:4px !important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-muted small mb-1">بانتظار التحويل البنكي</div>
+                            <div class="fw-bold fs-4 text-primary">@bankQueueCount</div>
+                            <div class="small text-muted">سلفة</div>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                             style="width:48px;height:48px;background:#cfe2ff;">
+                            <i class="fas fa-university text-primary fs-5"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2 pt-2 border-top">
+                        <span class="fw-bold text-primary">@bankQueueTotal.ToString("N3")</span>
+                        <span class="text-muted small"> د.ك</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
     <div class="col-sm-6 col-md-3">
         <div class="card border-0 shadow-sm h-100" style="border-right:4px solid #10b981 !important; border-right-width:4px !important;">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <div class="text-muted small mb-1">السلف الموافق عليها</div>
+                        <div class="text-muted small mb-1">سلف منصرفة</div>
                         <div class="fw-bold fs-4 text-success">@approvedCount</div>
                         <div class="small text-muted">سلفة</div>
                     </div>
@@ -83,7 +150,27 @@
         <i class="fas fa-clock fs-4 text-warning"></i>
         <div>
             <strong>لديك @pendingCount طلب سلفة بانتظار موافقتك</strong>
-            <div class="small text-muted">إجمالي المبالغ المعلقة: @pendingTotal.ToString("N3") د.ك</div>
+            <div class="small text-muted">إجمالي المبالغ: @pendingTotal.ToString("N3") د.ك</div>
+        </div>
+    </div>
+}
+@if (isCashier && cashierQueueCount > 0)
+{
+    <div class="alert alert-info d-flex align-items-center gap-3 shadow-sm mb-3">
+        <i class="fas fa-money-bill-wave fs-4 text-info"></i>
+        <div>
+            <strong>لديك @cashierQueueCount سلفة بانتظار الصرف النقدي</strong>
+            <div class="small text-muted">إجمالي المبالغ: @cashierQueueTotal.ToString("N3") د.ك</div>
+        </div>
+    </div>
+}
+@if (isManager && bankQueueCount > 0)
+{
+    <div class="alert alert-primary d-flex align-items-center gap-3 shadow-sm mb-3">
+        <i class="fas fa-university fs-4 text-primary"></i>
+        <div>
+            <strong>لديك @bankQueueCount تحويل بنكي بانتظار التنفيذ</strong>
+            <div class="small text-muted">إجمالي المبالغ: @bankQueueTotal.ToString("N3") د.ك</div>
         </div>
     </div>
 }
@@ -114,8 +201,8 @@ else
         {
             var cardId = "emp-" + summary.Employee.Id;
             var hasRemaining = summary.TotalRemaining > 0;
-            var empPending = summary.Advances.Where(a => a.Status == "معلق").Sum(a => a.Amount);
-            var empApproved = summary.Advances.Where(a => a.Status == "موافق عليها").Sum(a => a.Amount);
+            var empPending = summary.Advances.Where(a => a.Status == "بانتظار موافقة المدير").Sum(a => a.Amount);
+            var empRealized = summary.Advances.Where(a => a.Amount > 0 && (a.Status == "تم الصرف" || a.Status == "تم التحويل" || a.Status == "مسددة")).Sum(a => a.Amount);
 
             <div class="col-md-6 col-xl-4">
                 <div class="card h-100 shadow-sm border-0" style="cursor:pointer;"
@@ -130,19 +217,18 @@ else
                                 @(hasRemaining ? "لديه رصيد" : "مسدد")
                             </span>
                         </div>
-                        <!-- معلقة / موافق عليها -->
                         <div class="row text-center g-2 mb-2">
                             <div class="col-6">
                                 <div class="rounded p-2" style="background:#fef3c7;">
-                                    <div class="small text-muted">معلقة</div>
+                                    <div class="small text-muted">بانتظار الموافقة</div>
                                     <div class="fw-bold text-warning">@empPending.ToString("N3")</div>
                                     <div class="small text-muted">د.ك</div>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="rounded p-2" style="background:#d1fae5;">
-                                    <div class="small text-muted">موافق عليها</div>
-                                    <div class="fw-bold text-success">@empApproved.ToString("N3")</div>
+                                    <div class="small text-muted">منصرفة</div>
+                                    <div class="fw-bold text-success">@empRealized.ToString("N3")</div>
                                     <div class="small text-muted">د.ك</div>
                                 </div>
                             </div>
@@ -230,6 +316,12 @@ else
                                             @foreach (var adv in summary.Advances)
                                             {
                                                 var remaining = adv.Amount - adv.DeductedAmount;
+                                                bool isOwner = myEmployeeId.HasValue && adv.EmployeeId == myEmployeeId.Value;
+                                                // نص JSON آمن للتضمين داخل onclick — Razor يُهرّب علامات الاقتباس تلقائياً
+                                                // (بدون Html.Raw) فتبقى قيمة السمة صحيحة ويفك المتصفح الترميز قبل تنفيذ الجافاسكربت.
+                                                var empNameJs = System.Text.Json.JsonSerializer.Serialize(summary.Employee.FullName);
+                                                var reasonJs = System.Text.Json.JsonSerializer.Serialize(adv.Reason ?? "-");
+                                                var managerNameJs = System.Text.Json.JsonSerializer.Serialize(adv.ManagerName ?? "-");
                                                 <tr>
                                                     <td>@adv.AdvanceDate.ToString("yyyy/MM/dd")</td>
                                                     <td class="fw-bold">@adv.Amount.ToString("N3") <small class="text-muted">د.ك</small></td>
@@ -240,7 +332,6 @@ else
                                                         }
                                                         else
                                                         {
-
                                                             <span class="text-muted">-</span>
                                                         }
                                                     </td>
@@ -251,34 +342,55 @@ else
                                                         }
                                                         else
                                                         {
-
                                                             <span class="badge bg-success">مسدد</span>
                                                         }
                                                     </td>
                                                     <td>
-                                                        <span class="badge @(adv.Status == "مسددة" ? "bg-success" : adv.Status == "موافق عليها" ? "bg-primary" : "bg-warning text-dark")">
+                                                        <span class="badge @BadgeClass(adv.Status)">
                                                             @adv.Status
                                                         </span>
-                                                    </td>
-                                                    <td>
-                                                        @if (adv.Status == "معلق" && isManager)
+                                                        @if (adv.Status == "مرفوض" && !string.IsNullOrEmpty(adv.RejectionReason))
                                                         {
-                                                            <button type="button" class="btn btn-xs btn-success"
-                                                                    onclick="event.stopPropagation(); openApproveModal(@adv.Id, '@Html.Raw(summary.Employee.FullName)', '@adv.Amount.ToString("N3")')"
-                                                                    title="موافقة">
-                                                                <i class="fas fa-check"></i> موافقة
+                                                            <div class="small text-muted mt-1">@adv.RejectionReason</div>
+                                                        }
+                                                    </td>
+                                                    <td class="text-nowrap">
+                                                        @if (adv.Status == "بانتظار موافقة المدير" && isManager)
+                                                        {
+                                                            <button type="button" class="btn btn-xs btn-primary"
+                                                                    onclick="event.stopPropagation(); openReviewModal(@adv.Id, @empNameJs, '@adv.Amount.ToString("N3")', @reasonJs)"
+                                                                    title="مراجعة">
+                                                                <i class="fas fa-eye"></i> مراجعة
                                                             </button>
                                                         }
-                                                        else if (adv.Status == "معلق" && !isManager)
+                                                        @if (adv.Status == "بانتظار موافقة المدير" && (isManager || isOwner))
                                                         {
-                                                            <span class="badge bg-warning text-dark">
-                                                                <i class="fas fa-clock me-1"></i>انتظار
-                                                            </span>
+                                                            <button type="button" class="btn btn-xs btn-outline-secondary ms-1"
+                                                                    onclick="event.stopPropagation(); confirmCancel(@adv.Id, @empNameJs)"
+                                                                    title="إلغاء الطلب">
+                                                                <i class="fas fa-ban"></i> إلغاء
+                                                            </button>
+                                                        }
+                                                        @if (adv.Status == "معتمد - بانتظار صرف الكاشير" && isCashier)
+                                                        {
+                                                            <button type="button" class="btn btn-xs btn-success"
+                                                                    onclick="event.stopPropagation(); openDisburseModal(@adv.Id, @empNameJs, '@adv.Amount.ToString("N3")', @reasonJs, @managerNameJs, '@(adv.DecisionAt?.ToString("yyyy/MM/dd HH:mm") ?? "-")')"
+                                                                    title="تسليم المبلغ">
+                                                                <i class="fas fa-hand-holding-usd"></i> تم تسليم المبلغ
+                                                            </button>
+                                                        }
+                                                        @if (adv.Status == "معتمد - بانتظار التحويل البنكي" && isManager)
+                                                        {
+                                                            <button type="button" class="btn btn-xs btn-primary"
+                                                                    onclick="event.stopPropagation(); openTransferModal(@adv.Id, @empNameJs, '@adv.Amount.ToString("N3")')"
+                                                                    title="تنفيذ التحويل">
+                                                                <i class="fas fa-university"></i> تم التحويل
+                                                            </button>
                                                         }
                                                         @if (isManager)
                                                         {
                                                             <button type="button" class="btn btn-xs btn-outline-danger ms-1"
-                                                                    onclick="event.stopPropagation(); confirmDelete(@adv.Id, '@summary.Employee.FullName')"
+                                                                    onclick="event.stopPropagation(); confirmDelete(@adv.Id, @empNameJs)"
                                                                     title="حذف">
                                                                 <i class="fas fa-trash"></i>
                                                             </button>
@@ -290,6 +402,22 @@ else
                                                     <tr class="table-light">
                                                         <td colspan="6" class="small text-muted py-1">
                                                             <i class="fas fa-comment me-1"></i>@adv.Reason
+                                                        </td>
+                                                    </tr>
+                                                }
+                                                @if (adv.Status == "تم الصرف")
+                                                {
+                                                    <tr class="table-light">
+                                                        <td colspan="6" class="small text-muted py-1">
+                                                            <i class="fas fa-user-check me-1"></i>صرفها الكاشير: @(adv.CashierName ?? "-") | @(adv.DisbursedAt?.ToString("yyyy/MM/dd HH:mm") ?? "-")
+                                                        </td>
+                                                    </tr>
+                                                }
+                                                @if (adv.Status == "تم التحويل")
+                                                {
+                                                    <tr class="table-light">
+                                                        <td colspan="6" class="small text-muted py-1">
+                                                            <i class="fas fa-university me-1"></i>نفّذها: @(adv.TransferredByName ?? "-") | مرجع: @(adv.TransferReference ?? "-") | @(adv.DisbursedAt?.ToString("yyyy/MM/dd HH:mm") ?? "-")
                                                         </td>
                                                     </tr>
                                                 }
@@ -354,45 +482,187 @@ else
     </div>
 }
 
-<!-- Modal الموافقة على السلفة -->
-<div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
+<!-- Modal مراجعة طلب السلفة (موافقة / رفض) -->
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header" style="background:#198754;color:#fff;">
-                <h5 class="modal-title">
-                    <i class="fas fa-check-circle me-2"></i>الموافقة على طلب السلفة
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3 p-3 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted">الموظف</span>
-                        <strong id="approveEmpName" class="fs-6"></strong>
+            <form id="reviewForm" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header" style="background:#0f3460;color:#fff;">
+                    <h5 class="modal-title">
+                        <i class="fas fa-eye me-2"></i>مراجعة طلب السلفة
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3 p-3 rounded" style="background:#f7f8fa;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">الموظف</span>
+                            <strong id="reviewEmpName" class="fs-6"></strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="text-muted">المبلغ</span>
+                            <strong id="reviewAmount" class="fs-5 text-success"></strong>
+                            <span class="text-muted small">د.ك</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="text-muted">السبب</span>
+                            <span id="reviewReasonDisplay" class="text-end"></span>
+                        </div>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center mt-2">
-                        <span class="text-muted">المبلغ</span>
-                        <strong id="approveAmount" class="fs-5 text-success"></strong>
-                        <span class="text-muted small">د.ك</span>
+
+                    <ul class="nav nav-pills nav-fill mb-3">
+                        <li class="nav-item">
+                            <button type="button" class="nav-link active" data-mode="approve" onclick="setReviewMode('approve')">
+                                <i class="fas fa-check me-1"></i> موافقة
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button type="button" class="nav-link" data-mode="reject" onclick="setReviewMode('reject')">
+                                <i class="fas fa-times me-1"></i> رفض
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div id="approveSection">
+                        <label class="form-label fw-bold">طريقة الصرف <span class="text-danger">*</span></label>
+                        <select name="paymentMethod" class="form-select form-select-lg">
+                            <option value="نقدي">💵 نقدي (يذهب لطابور الكاشير)</option>
+                            <option value="تحويل بنكي">🏦 تحويل بنكي (يذهب لطابور التحويل)</option>
+                        </select>
+                    </div>
+                    <div id="rejectSection" class="d-none">
+                        <label class="form-label fw-bold">سبب الرفض</label>
+                        <textarea name="reason" class="form-control" rows="2" placeholder="اكتب سبب الرفض..."></textarea>
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">طريقة الدفع <span class="text-danger">*</span></label>
-                    <select id="approvePaymentSelect" class="form-select form-select-lg">
-                        <option value="نقدي">💵 نقدي</option>
-                        <option value="تحويل بنكي">🏦 تحويل بنكي</option>
-                        <option value="شيك">📄 شيك</option>
-                        <option value="كنت">💳 كنت</option>
-                    </select>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="submit" id="reviewSubmitBtn" class="btn btn-success px-4">
+                        <i class="fas fa-check me-1"></i> موافقة
+                    </button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                <form id="approveForm" method="post">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="paymentMethod" id="approvePaymentInput" value="نقدي" />
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal تسليم مبلغ السلفة (الكاشير) -->
+<div class="modal fade" id="disburseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="disburseForm" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header" style="background:#198754;color:#fff;">
+                    <h5 class="modal-title">
+                        <i class="fas fa-hand-holding-usd me-2"></i>تسليم مبلغ السلفة
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="p-3 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">الموظف</span>
+                            <strong id="disburseEmpName" class="fs-6"></strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="text-muted">المبلغ</span>
+                            <strong id="disburseAmount" class="fs-5 text-success"></strong>
+                            <span class="text-muted small">د.ك</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="text-muted">السبب</span>
+                            <span id="disburseReason" class="text-end"></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="text-muted">المدير</span>
+                            <span id="disburseManager" class="text-end"></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="text-muted">تاريخ ووقت الموافقة</span>
+                            <span id="disburseDecisionAt" class="text-end"></span>
+                        </div>
+                    </div>
+                    <p class="text-muted small mt-3 mb-0">
+                        <i class="fas fa-info-circle me-1"></i>
+                        بالضغط على "تم تسليم المبلغ" سيتم تسجيل السلفة على الموظف وخصم المبلغ من الصندوق فوراً.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
                     <button type="submit" class="btn btn-success px-4">
-                        <i class="fas fa-check me-1"></i> موافقة وصرف
+                        <i class="fas fa-check me-1"></i> تم تسليم المبلغ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal تنفيذ التحويل البنكي -->
+<div class="modal fade" id="transferModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="transferForm" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header" style="background:#0d6efd;color:#fff;">
+                    <h5 class="modal-title">
+                        <i class="fas fa-university me-2"></i>تنفيذ التحويل البنكي
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="p-3 rounded mb-3" style="background:#eff6ff;border:1px solid #bfdbfe;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">الموظف</span>
+                            <strong id="transferEmpName" class="fs-6"></strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="text-muted">المبلغ</span>
+                            <strong id="transferAmount" class="fs-5 text-primary"></strong>
+                            <span class="text-muted small">د.ك</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">رقم مرجع التحويل <span class="text-danger">*</span></label>
+                        <input type="text" name="transferReference" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">البنك / الحساب المحوَّل منه</label>
+                        <input type="text" name="transferBank" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ملاحظات (اختياري)</label>
+                        <textarea name="transferNotes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="fas fa-check me-1"></i> تم التحويل
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal تأكيد الإلغاء -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-center p-4">
+            <div class="mb-3">
+                <i class="fas fa-ban text-secondary" style="font-size:3rem;"></i>
+            </div>
+            <h4 class="fw-bold mb-2">تأكيد إلغاء الطلب</h4>
+            <p class="text-muted mb-1">هل تريد إلغاء طلب سلفة الموظف:</p>
+            <p class="fw-bold fs-5 mb-4" id="cancelEmpName"></p>
+            <div class="d-flex justify-content-center gap-3">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">تراجع</button>
+                <form id="cancelForm" method="post" style="display:inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-warning px-4">
+                        <i class="fas fa-ban me-1"></i> إلغاء الطلب
                     </button>
                 </form>
             </div>
@@ -450,16 +720,54 @@ else
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
 
-        function openApproveModal(id, empName, amount) {
-            document.getElementById('approveEmpName').textContent = empName;
-            document.getElementById('approveAmount').textContent = amount;
-            document.getElementById('approveForm').action = '/Advances/Approve/' + id;
-            document.getElementById('approvePaymentSelect').value = 'نقدي';
-            document.getElementById('approvePaymentInput').value = 'نقدي';
-            document.getElementById('approvePaymentSelect').onchange = function () {
-                document.getElementById('approvePaymentInput').value = this.value;
-            };
-            new bootstrap.Modal(document.getElementById('approveModal')).show();
+        function confirmCancel(id, empName) {
+            document.getElementById('cancelEmpName').textContent = empName;
+            document.getElementById('cancelForm').action = '/Advances/Cancel/' + id;
+            new bootstrap.Modal(document.getElementById('cancelModal')).show();
+        }
+
+        function setReviewMode(mode) {
+            const id = document.getElementById('reviewForm').dataset.id;
+            document.getElementById('approveSection').classList.toggle('d-none', mode !== 'approve');
+            document.getElementById('rejectSection').classList.toggle('d-none', mode !== 'reject');
+            document.querySelectorAll('#reviewModal .nav-link').forEach(el => el.classList.toggle('active', el.dataset.mode === mode));
+
+            const btn = document.getElementById('reviewSubmitBtn');
+            if (mode === 'approve') {
+                btn.className = 'btn btn-success px-4';
+                btn.innerHTML = '<i class="fas fa-check me-1"></i> موافقة';
+                document.getElementById('reviewForm').action = '/Advances/Approve/' + id;
+            } else {
+                btn.className = 'btn btn-danger px-4';
+                btn.innerHTML = '<i class="fas fa-times me-1"></i> رفض';
+                document.getElementById('reviewForm').action = '/Advances/Reject/' + id;
+            }
+        }
+
+        function openReviewModal(id, empName, amount, reason) {
+            document.getElementById('reviewForm').dataset.id = id;
+            document.getElementById('reviewEmpName').textContent = empName;
+            document.getElementById('reviewAmount').textContent = amount;
+            document.getElementById('reviewReasonDisplay').textContent = reason || '-';
+            setReviewMode('approve');
+            new bootstrap.Modal(document.getElementById('reviewModal')).show();
+        }
+
+        function openDisburseModal(id, empName, amount, reason, managerName, decisionAt) {
+            document.getElementById('disburseEmpName').textContent = empName;
+            document.getElementById('disburseAmount').textContent = amount;
+            document.getElementById('disburseReason').textContent = reason || '-';
+            document.getElementById('disburseManager').textContent = managerName || '-';
+            document.getElementById('disburseDecisionAt').textContent = decisionAt || '-';
+            document.getElementById('disburseForm').action = '/Advances/Disburse/' + id;
+            new bootstrap.Modal(document.getElementById('disburseModal')).show();
+        }
+
+        function openTransferModal(id, empName, amount) {
+            document.getElementById('transferEmpName').textContent = empName;
+            document.getElementById('transferAmount').textContent = amount;
+            document.getElementById('transferForm').action = '/Advances/ConfirmTransfer/' + id;
+            new bootstrap.Modal(document.getElementById('transferModal')).show();
         }
     </script>
     <style>

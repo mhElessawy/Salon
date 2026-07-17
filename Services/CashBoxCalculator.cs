@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Salon.Data;
+using Salon.Models;
 
 namespace Salon.Services
 {
@@ -84,7 +85,7 @@ namespace Salon.Services
             // حلاقة/مساج تحت نفس القسم مش بس موظفيه المباشرين.
             var advQuery = context.EmployeeAdvances.Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Where(a => a.AdvanceDate >= from && a.AdvanceDate < to
-                         && (a.Status == "موافق عليها" || a.Status == "مسددة") && a.PaymentMethod == "نقدي");
+                         && EmployeeAdvance.Statuses.Realized.Contains(a.Status) && a.PaymentMethod == "نقدي");
             if (filterDept) advQuery = advQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == dept);
             decimal cashAdvances = await advQuery.SumAsync(a => a.Amount);
 

@@ -109,6 +109,22 @@ using (var scope = app.Services.CreateScope())
         if (isSqlite)
         {
             TryExec("ALTER TABLE EmployeeAdvances ADD COLUMN AmountPaid REAL NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE EmployeeAdvances ADD COLUMN ManagerId TEXT NULL");
+            TryExec("ALTER TABLE EmployeeAdvances ADD COLUMN ManagerName TEXT NULL");
+            TryExec("ALTER TABLE EmployeeAdvances ADD COLUMN DecisionAt TEXT NULL");
+            TryExec("ALTER TABLE EmployeeAdvances ADD COLUMN RejectionReason TEXT NULL");
+            TryExec("ALTER TABLE EmployeeAdvances ADD COLUMN CashierId TEXT NULL");
+            TryExec("ALTER TABLE EmployeeAdvances ADD COLUMN CashierName TEXT NULL");
+            TryExec("ALTER TABLE EmployeeAdvances ADD COLUMN DisbursedAt TEXT NULL");
+            TryExec("ALTER TABLE EmployeeAdvances ADD COLUMN TransferReference TEXT NULL");
+            TryExec("ALTER TABLE EmployeeAdvances ADD COLUMN TransferBank TEXT NULL");
+            TryExec("ALTER TABLE EmployeeAdvances ADD COLUMN TransferNotes TEXT NULL");
+            TryExec("ALTER TABLE EmployeeAdvances ADD COLUMN TransferredById TEXT NULL");
+            TryExec("ALTER TABLE EmployeeAdvances ADD COLUMN TransferredByName TEXT NULL");
+            // ترحيل الحالات القديمة (معلق/موافق عليها) لأسماء حالات مسار الموافقة/الصرف الجديد
+            TryExec("UPDATE EmployeeAdvances SET Status = 'بانتظار موافقة المدير' WHERE Status = 'معلق'");
+            TryExec("UPDATE EmployeeAdvances SET Status = 'تم الصرف' WHERE Status = 'موافق عليها' AND PaymentMethod = 'نقدي'");
+            TryExec("UPDATE EmployeeAdvances SET Status = 'تم التحويل' WHERE Status = 'موافق عليها' AND PaymentMethod <> 'نقدي'");
             TryExec("ALTER TABLE Products ADD COLUMN SupplierId INTEGER NULL");
             TryExec("ALTER TABLE Products ADD COLUMN OpeningQuantity INTEGER NOT NULL DEFAULT 0");
             TryExec("ALTER TABLE Attendances ADD COLUMN QueuePosition INTEGER NULL");
@@ -281,6 +297,21 @@ using (var scope = app.Services.CreateScope())
         else
         {
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EmployeeAdvances' AND COLUMN_NAME='AmountPaid') ALTER TABLE EmployeeAdvances ADD AmountPaid DECIMAL(18,3) NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EmployeeAdvances' AND COLUMN_NAME='ManagerId') ALTER TABLE EmployeeAdvances ADD ManagerId NVARCHAR(450) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EmployeeAdvances' AND COLUMN_NAME='ManagerName') ALTER TABLE EmployeeAdvances ADD ManagerName NVARCHAR(MAX) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EmployeeAdvances' AND COLUMN_NAME='DecisionAt') ALTER TABLE EmployeeAdvances ADD DecisionAt DATETIME NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EmployeeAdvances' AND COLUMN_NAME='RejectionReason') ALTER TABLE EmployeeAdvances ADD RejectionReason NVARCHAR(MAX) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EmployeeAdvances' AND COLUMN_NAME='CashierId') ALTER TABLE EmployeeAdvances ADD CashierId NVARCHAR(450) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EmployeeAdvances' AND COLUMN_NAME='CashierName') ALTER TABLE EmployeeAdvances ADD CashierName NVARCHAR(MAX) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EmployeeAdvances' AND COLUMN_NAME='DisbursedAt') ALTER TABLE EmployeeAdvances ADD DisbursedAt DATETIME NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EmployeeAdvances' AND COLUMN_NAME='TransferReference') ALTER TABLE EmployeeAdvances ADD TransferReference NVARCHAR(MAX) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EmployeeAdvances' AND COLUMN_NAME='TransferBank') ALTER TABLE EmployeeAdvances ADD TransferBank NVARCHAR(MAX) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EmployeeAdvances' AND COLUMN_NAME='TransferNotes') ALTER TABLE EmployeeAdvances ADD TransferNotes NVARCHAR(MAX) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EmployeeAdvances' AND COLUMN_NAME='TransferredById') ALTER TABLE EmployeeAdvances ADD TransferredById NVARCHAR(450) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EmployeeAdvances' AND COLUMN_NAME='TransferredByName') ALTER TABLE EmployeeAdvances ADD TransferredByName NVARCHAR(MAX) NULL");
+            TryExec("UPDATE EmployeeAdvances SET Status = N'بانتظار موافقة المدير' WHERE Status = N'معلق'");
+            TryExec("UPDATE EmployeeAdvances SET Status = N'تم الصرف' WHERE Status = N'موافق عليها' AND PaymentMethod = N'نقدي'");
+            TryExec("UPDATE EmployeeAdvances SET Status = N'تم التحويل' WHERE Status = N'موافق عليها' AND PaymentMethod <> N'نقدي'");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Products' AND COLUMN_NAME='SupplierId') ALTER TABLE Products ADD SupplierId INT NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Products' AND COLUMN_NAME='OpeningQuantity') ALTER TABLE Products ADD OpeningQuantity INT NOT NULL DEFAULT 0");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Attendances' AND COLUMN_NAME='QueuePosition') ALTER TABLE Attendances ADD QueuePosition INT NULL");

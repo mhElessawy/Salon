@@ -557,14 +557,32 @@ namespace Salon.Migrations
                 b.Property<decimal>("Amount")
                     .HasColumnType("decimal(18,3)");
 
+                b.Property<string>("CashierId")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("CashierName")
+                    .HasColumnType("nvarchar(max)");
+
                 b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("datetime2");
+
+                b.Property<DateTime?>("DecisionAt")
                     .HasColumnType("datetime2");
 
                 b.Property<decimal>("DeductedAmount")
                     .HasColumnType("decimal(18,3)");
 
+                b.Property<DateTime?>("DisbursedAt")
+                    .HasColumnType("datetime2");
+
                 b.Property<int>("EmployeeId")
                     .HasColumnType("int");
+
+                b.Property<string>("ManagerId")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("ManagerName")
+                    .HasColumnType("nvarchar(max)");
 
                 b.Property<string>("Notes")
                     .HasColumnType("nvarchar(max)");
@@ -579,8 +597,26 @@ namespace Salon.Migrations
                 b.Property<string>("Reason")
                     .HasColumnType("nvarchar(max)");
 
+                b.Property<string>("RejectionReason")
+                    .HasColumnType("nvarchar(max)");
+
                 b.Property<string>("Status")
                     .IsRequired()
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("TransferBank")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("TransferNotes")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("TransferReference")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("TransferredById")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("TransferredByName")
                     .HasColumnType("nvarchar(max)");
 
                 b.HasKey("Id");
