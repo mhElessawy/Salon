@@ -92,6 +92,9 @@ namespace Salon.Controllers
             // موظف مرتبط بحساب المستخدم الحالي (يشوف تنبيهاته الخاصة فقط) — الأدمن/المدير بدون ربط يشوف تنبيهات الجميع
             var currentUser = await _userManager.GetUserAsync(User);
             int? myEmployeeId = currentUser?.LinkedEmployeeId;
+            var myRoles = currentUser != null ? await _userManager.GetRolesAsync(currentUser) : new List<string>();
+            bool viewerIsManager = myRoles.Contains("Admin") || myRoles.Contains("Manager");
+            bool viewerIsCashier = viewerIsManager || myRoles.Contains("Cashier");
 
             // 1. Closed shifts — cash difference or normal close
             var closedShifts = await _context.Shifts
@@ -265,33 +268,169 @@ namespace Salon.Controllers
                 });
             }
 
-            // 5. طلبات السلف الجديدة المعلقة (تنتظر موافقة الأدمن)
-            var pendingRequests = await _context.EmployeeAdvances
-                .Include(a => a.Employee)
-                .Where(a => a.Status == "معلق" && a.CreatedAt >= today.AddDays(-7))
-                .OrderByDescending(a => a.CreatedAt).Take(10).ToListAsync();
-
-            foreach (var adv in pendingRequests)
+            // 5. طلبات السلف الجديدة (تنتظر موافقة المدير) — تصل للمدير فقط
+            if (viewerIsManager)
             {
-                var subAdv = $"الموظف: {adv.Employee?.FullName ?? "غير محدد"}";
-                list.Add(new NotificationItem
+                var pendingRequests = await _context.EmployeeAdvances
+                    .Include(a => a.Employee)
+                    .Where(a => a.Status == EmployeeAdvance.Statuses.PendingApproval && a.CreatedAt >= today.AddDays(-7))
+                    .OrderByDescending(a => a.CreatedAt).Take(10).ToListAsync();
+
+                foreach (var adv in pendingRequests)
                 {
-                    Type = "advance-new",
-                    Category = "مهمة",
-                    Title = "طلب سلفة جديد",
-                    TitleEn = "New Advance Request",
-                    SubTitle = subAdv,
-                    SubTitleEn = $"Employee: {adv.Employee?.FullName ?? "Unknown"}",
-                    Body = $"المبلغ: {adv.Amount:N3} د.ك | ينتظر الموافقة",
-                    BodyEn = $"Amount: {adv.Amount:N3} KD | Awaiting Approval",
-                    IconClass = "fas fa-hand-holding-usd",
-                    IconBg = "#F7941D",
-                    Date = adv.CreatedAt,
-                    ActionUrl = Url.Action("Index", "Advances"),
-                    ActionText = "مراجعة الطلب",
-                    ActionTextEn = "Review Request",
-                    Key = NotifKey("advance-new", adv.CreatedAt, subAdv)
-                });
+                    var subAdv = $"الموظف: {adv.Employee?.FullName ?? "غير محدد"}";
+                    list.Add(new NotificationItem
+                    {
+                        Type = "advance-new",
+                        Category = "مهمة",
+                        Title = "طلب سلفة جديد",
+                        TitleEn = "New Advance Request",
+                        SubTitle = subAdv,
+                        SubTitleEn = $"Employee: {adv.Employee?.FullName ?? "Unknown"}",
+                        Body = $"المبلغ: {adv.Amount:N3} د.ك | السبب: {adv.Reason ?? "-"} | ينتظر الموافقة",
+                        BodyEn = $"Amount: {adv.Amount:N3} KD | Awaiting Approval",
+                        IconClass = "fas fa-hand-holding-usd",
+                        IconBg = "#F7941D",
+                        Date = adv.CreatedAt,
+                        ActionUrl = Url.Action("Index", "Advances"),
+                        ActionText = "مراجعة الطلب",
+                        ActionTextEn = "Review Request",
+                        Key = NotifKey("advance-new", adv.CreatedAt, subAdv)
+                    });
+                }
+            }
+
+            // 5a-i. سلف معتمدة بانتظار صرف الكاشير — تصل للكاشير (والمدير)
+            if (viewerIsCashier)
+            {
+                var cashierQueue = await _context.EmployeeAdvances
+                    .Include(a => a.Employee)
+                    .Where(a => a.Status == EmployeeAdvance.Statuses.AwaitingCashierPayout && a.DecisionAt >= weekAgo)
+                    .OrderByDescending(a => a.DecisionAt).Take(10).ToListAsync();
+
+                foreach (var adv in cashierQueue)
+                {
+                    var empName = adv.Employee?.FullName ?? "غير محدد";
+                    var subCq = $"الموظف: {empName}";
+                    var decidedAt = adv.DecisionAt ?? adv.CreatedAt;
+                    list.Add(new NotificationItem
+                    {
+                        Type = "advance-cashier-queue",
+                        Category = "مهمة",
+                        Title = "سلفة بانتظار الصرف",
+                        TitleEn = "Advance Awaiting Cash Payout",
+                        SubTitle = subCq,
+                        SubTitleEn = $"Employee: {empName}",
+                        Body = $"تمت الموافقة على صرف سلفة للموظف ({empName}) بقيمة ({adv.Amount:N3} د.ك)، يرجى صرف المبلغ وتأكيد عملية التسليم. المدير: {adv.ManagerName ?? "-"}",
+                        BodyEn = $"Approved advance for ({empName}) of ({adv.Amount:N3} KD) — please pay out and confirm delivery. Manager: {adv.ManagerName ?? "-"}",
+                        IconClass = "fas fa-money-bill-wave",
+                        IconBg = "#198754",
+                        Date = decidedAt,
+                        ActionUrl = Url.Action("Index", "Advances"),
+                        ActionText = "صرف السلفة",
+                        ActionTextEn = "Pay Out Advance",
+                        Key = NotifKey("advance-cashier-queue", decidedAt, subCq)
+                    });
+                }
+            }
+
+            // 5a-ii. سلف معتمدة بانتظار التحويل البنكي — تصل للمدير/المستخدم المخوَّل
+            if (viewerIsManager)
+            {
+                var bankQueue = await _context.EmployeeAdvances
+                    .Include(a => a.Employee)
+                    .Where(a => a.Status == EmployeeAdvance.Statuses.AwaitingBankTransfer && a.DecisionAt >= weekAgo)
+                    .OrderByDescending(a => a.DecisionAt).Take(10).ToListAsync();
+
+                foreach (var adv in bankQueue)
+                {
+                    var empName = adv.Employee?.FullName ?? "غير محدد";
+                    var subBq = $"الموظف: {empName}";
+                    var decidedAt = adv.DecisionAt ?? adv.CreatedAt;
+                    list.Add(new NotificationItem
+                    {
+                        Type = "advance-bank-queue",
+                        Category = "مهمة",
+                        Title = "سلفة بانتظار التحويل البنكي",
+                        TitleEn = "Advance Awaiting Bank Transfer",
+                        SubTitle = subBq,
+                        SubTitleEn = $"Employee: {empName}",
+                        Body = $"تمت الموافقة على تحويل سلفة للموظف ({empName}) بقيمة ({adv.Amount:N3} د.ك)، يرجى تنفيذ التحويل وتأكيده",
+                        BodyEn = $"Approved bank-transfer advance for ({empName}) of ({adv.Amount:N3} KD) — please execute and confirm the transfer",
+                        IconClass = "fas fa-university",
+                        IconBg = "#0d6efd",
+                        Date = decidedAt,
+                        ActionUrl = Url.Action("Index", "Advances"),
+                        ActionText = "تنفيذ التحويل",
+                        ActionTextEn = "Execute Transfer",
+                        Key = NotifKey("advance-bank-queue", decidedAt, subBq)
+                    });
+                }
+            }
+
+            // 5a-iii. نتيجة الطلب لصاحبه: رفض / صرف نقدي / تحويل بنكي
+            {
+                var decidedAdvancesQuery = _context.EmployeeAdvances
+                    .Include(a => a.Employee)
+                    .Where(a => (a.Status == EmployeeAdvance.Statuses.Rejected && a.DecisionAt >= weekAgo)
+                             || (a.Status == EmployeeAdvance.Statuses.Disbursed && a.DisbursedAt >= weekAgo)
+                             || (a.Status == EmployeeAdvance.Statuses.Transferred && a.DisbursedAt >= weekAgo));
+                if (myEmployeeId.HasValue)
+                    decidedAdvancesQuery = decidedAdvancesQuery.Where(a => a.EmployeeId == myEmployeeId.Value);
+                var decidedAdvances = await decidedAdvancesQuery.OrderByDescending(a => a.DisbursedAt ?? a.DecisionAt).Take(10).ToListAsync();
+
+                foreach (var adv in decidedAdvances)
+                {
+                    var empName = adv.Employee?.FullName ?? "غير محدد";
+                    bool forEmployee = !myEmployeeId.HasValue || adv.EmployeeId == myEmployeeId.Value;
+                    // تنبيه المدير بإتمام الصرف النقدي، وتنبيه الكاشير للعلم فقط بعد التحويل البنكي
+                    bool forAudience = adv.Status switch
+                    {
+                        var s when s == EmployeeAdvance.Statuses.Disbursed => forEmployee || viewerIsManager,
+                        var s when s == EmployeeAdvance.Statuses.Transferred => forEmployee || viewerIsCashier,
+                        _ => forEmployee
+                    };
+                    if (!forAudience) continue;
+
+                    var (type, title, titleEn, icon, iconBg, body, bodyEn) = adv.Status switch
+                    {
+                        var s when s == EmployeeAdvance.Statuses.Rejected => (
+                            "advance-rejected", "تم رفض طلب السلفة", "Advance Request Rejected",
+                            "fas fa-times-circle", "#dc3545",
+                            $"طلب سلفة الموظف ({empName}) بقيمة ({adv.Amount:N3} د.ك) — السبب: {adv.RejectionReason ?? "-"}",
+                            $"Advance request for ({empName}) of ({adv.Amount:N3} KD) rejected — Reason: {adv.RejectionReason ?? "-"}"),
+                        var s when s == EmployeeAdvance.Statuses.Disbursed => (
+                            "advance-disbursed", "تم صرف السلفة", "Advance Paid Out",
+                            "fas fa-hand-holding-usd", "#198754",
+                            $"تم تسليم مبلغ السلفة ({adv.Amount:N3} د.ك) للموظف ({empName}) نقداً بواسطة الكاشير: {adv.CashierName ?? "-"}",
+                            $"Cash advance of ({adv.Amount:N3} KD) paid out to ({empName}) by cashier: {adv.CashierName ?? "-"}"),
+                        _ => (
+                            "advance-transferred", "تم تحويل السلفة بنكياً", "Advance Bank Transfer Completed",
+                            "fas fa-university", "#0d6efd",
+                            $"تم تحويل مبلغ السلفة ({adv.Amount:N3} د.ك) للموظف ({empName}) بنكياً | مرجع التحويل: {adv.TransferReference ?? "-"}",
+                            $"Bank transfer of ({adv.Amount:N3} KD) completed for ({empName}) | Ref: {adv.TransferReference ?? "-"}")
+                    };
+                    var subDec = $"الموظف: {empName}";
+                    var decDate = adv.DisbursedAt ?? adv.DecisionAt ?? adv.CreatedAt;
+                    list.Add(new NotificationItem
+                    {
+                        Type = type,
+                        Category = "مهمة",
+                        Title = title,
+                        TitleEn = titleEn,
+                        SubTitle = subDec,
+                        SubTitleEn = $"Employee: {empName}",
+                        Body = body,
+                        BodyEn = bodyEn,
+                        IconClass = icon,
+                        IconBg = iconBg,
+                        Date = decDate,
+                        ActionUrl = Url.Action("Index", "Advances"),
+                        ActionText = "عرض السلفة",
+                        ActionTextEn = "View Advance",
+                        Key = NotifKey(type, decDate, subDec)
+                    });
+                }
             }
 
             // 5b. طلبات الشراء الجديدة المعلقة (تنتظر موافقة الأدمن)
@@ -366,7 +505,8 @@ namespace Salon.Controllers
             // 6. Pending (unpaid) advances
             var pendingAdvances = await _context.EmployeeAdvances
                 .Include(a => a.Employee)
-                .Where(a => (a.Status == "معلق" || a.Status == "موافق") && a.Amount > a.DeductedAmount)
+                .Where(a => (a.Status == EmployeeAdvance.Statuses.Disbursed || a.Status == EmployeeAdvance.Statuses.Transferred)
+                         && a.Amount > a.DeductedAmount)
                 .OrderByDescending(a => a.AdvanceDate).Take(10).ToListAsync();
 
             foreach (var adv in pendingAdvances)

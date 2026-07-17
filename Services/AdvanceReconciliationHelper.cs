@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Salon.Data;
+using Salon.Models;
 
 namespace Salon.Services
 {
@@ -10,7 +11,9 @@ namespace Salon.Services
             if (amountToDeduct <= 0) return;
 
             var advances = await context.EmployeeAdvances
-                .Where(a => a.EmployeeId == employeeId && a.Status == "موافق عليها" && a.PaidDate == null)
+                .Where(a => a.EmployeeId == employeeId
+                         && (a.Status == EmployeeAdvance.Statuses.Disbursed || a.Status == EmployeeAdvance.Statuses.Transferred)
+                         && a.PaidDate == null)
                 .OrderBy(a => a.AdvanceDate)
                 .ToListAsync();
 
@@ -25,7 +28,7 @@ namespace Salon.Services
                     remaining -= advanceRemaining;
                     advance.DeductedAmount = advance.Amount;
                     advance.PaidDate = DateTime.Today;
-                    advance.Status = "مسددة";
+                    advance.Status = EmployeeAdvance.Statuses.Repaid;
                 }
                 else
                 {
@@ -57,7 +60,9 @@ namespace Salon.Services
 
                 if (advance.DeductedAmount < advance.Amount)
                 {
-                    advance.Status = "موافق عليها";
+                    advance.Status = advance.PaymentMethod == "نقدي"
+                        ? EmployeeAdvance.Statuses.Disbursed
+                        : EmployeeAdvance.Statuses.Transferred;
                     advance.PaidDate = null;
                 }
             }

@@ -85,7 +85,7 @@ namespace Salon.Controllers
 
             var advancesQuery = _context.EmployeeAdvances
                 .Include(a => a.Employee)
-                .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow && a.Status != "معلق");
+                .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow && EmployeeAdvance.Statuses.Realized.Contains(a.Status));
 
             if (!isEmployee)
                 advancesQuery = advancesQuery.Where(a => employeeIds.Contains(a.EmployeeId));
@@ -208,7 +208,8 @@ namespace Salon.Controllers
             decimal prevExpenses = await prevExpensesQuery.SumAsync(e => e.Amount);
 
             var prevAdvancesQuery = _context.EmployeeAdvances
-                .Where(a => a.AdvanceDate >= baseDate && a.AdvanceDate < today && a.Status != "معلق" && a.PaymentMethod == "نقدي");
+                .Where(a => a.AdvanceDate >= baseDate && a.AdvanceDate < today
+                         && EmployeeAdvance.Statuses.Realized.Contains(a.Status) && a.PaymentMethod == "نقدي");
             prevAdvancesQuery = isEmployee
                 ? prevAdvancesQuery.Where(a => a.EmployeeId == (linkedEmpId ?? -1))
                 : prevAdvancesQuery.Where(a => employeeIds.Contains(a.EmployeeId));

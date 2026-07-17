@@ -20,7 +20,7 @@
         {
             <div class="alert alert-info d-flex align-items-center gap-2 mb-4">
                 <i class="fas fa-info-circle fs-5"></i>
-                <span>بعد إرسال الطلب سيتحول إلى حالة <strong>معلق</strong> حتى يوافق عليه المدير</span>
+                <span>بعد إرسال الطلب سيتحول إلى حالة <strong>بانتظار موافقة المدير</strong> حتى يوافق عليه أو يرفضه</span>
             </div>
         }
 
@@ -48,21 +48,14 @@
 
                 @if (isManager)
                 {
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">طريقة الدفع</label>
-                        <select name="PaymentMethod" class="form-select">
-                            <option value="نقدي">نقدي</option>
-                            <option value="تحويل بنكي">تحويل بنكي</option>
-                            <option value="شيك">شيك</option>
-                            <option value="كنت">كنت</option>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">تسجيل السلفة كـ</label>
+                        <select name="directStatus" class="form-select">
+                            <option value="">طلب بانتظار موافقة المدير (المسار العادي)</option>
+                            <option value="Disbursed">مصروفة نقداً بالفعل (تسجيل مباشر)</option>
+                            <option value="Transferred">محوَّلة بنكياً بالفعل (تسجيل مباشر)</option>
                         </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">الحالة</label>
-                        <select name="Status" class="form-select">
-                            <option value="معلق">معلق</option>
-                            <option value="موافق عليها" selected>موافق عليها</option>
-                        </select>
+                        <div class="form-text">اختر "طلب بانتظار الموافقة" للمسار الطبيعي، أو أحد الخيارين الآخرين فقط لتسجيل سلفة سابقة تم صرفها بالفعل خارج النظام.</div>
                     </div>
                 }
 

@@ -137,7 +137,9 @@ namespace Salon.Controllers
             if (employee == null) return NotFound();
 
             var pendingAdvances = await _context.EmployeeAdvances
-                .Where(a => a.EmployeeId == employeeId && a.Status == "موافق عليها" && a.PaidDate == null)
+                .Where(a => a.EmployeeId == employeeId
+                         && (a.Status == EmployeeAdvance.Statuses.Disbursed || a.Status == EmployeeAdvance.Statuses.Transferred)
+                         && a.PaidDate == null)
                 .ToListAsync();
             var totalAdvances = pendingAdvances.Sum(a => a.Amount - a.DeductedAmount);
 

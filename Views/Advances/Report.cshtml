@@ -43,7 +43,7 @@
                 <label class="form-label mb-1">الحالة</label>
                 <select name="status" class="form-select">
                     <option value="">-- الكل --</option>
-                    @foreach (var st in new[] { "موافق عليها", "مدفوعة جزئياً", "مسددة" })
+                    @foreach (var st in new[] { "تم الصرف", "تم التحويل", "مسددة" })
                     {
                         var selected = ViewBag.Status == st;
                         <option value="@st" selected="@(selected ? "selected" : null)">@st</option>
@@ -123,9 +123,9 @@ else
                         @foreach (var a in group)
                         {
                             decimal rem = a.Amount - a.AmountPaid;
-                            string badgeClass = a.Status == "مسددة"          ? "bg-success" :
-                                               a.Status == "مدفوعة جزئياً" ? "bg-info text-dark" :
-                                               a.Status == "موافق عليها"    ? "bg-primary" : "bg-warning text-dark";
+                            string badgeClass = a.Status == "مسددة"        ? "bg-success" :
+                                               a.Status == "تم الصرف"      ? "bg-primary" :
+                                               a.Status == "تم التحويل"    ? "bg-info text-dark" : "bg-warning text-dark";
                             <tr>
                                 <td>@a.AdvanceDate.ToString("yyyy/MM/dd")</td>
                                 <td class="text-danger fw-bold">@a.Amount.ToString("N3") د.ك</td>
