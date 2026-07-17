@@ -65,7 +65,9 @@ namespace Salon.Services
                 s.PaymentMethod == "كاش" ? s.NetAmount :
                 s.PaymentMethod == "كي نت و كاش" ? (s.CashAmount ?? 0) : 0m);
 
-            var depositsQuery = context.Deposits.Where(d => d.DepositDate >= from && d.DepositDate < to);
+            // الإيداعات النقدية فقط تدخل الصندوق الفعلي — إيداع بالتحويل البنكي أو البطاقة
+            // ميعديش على الكاش الفعلي في الدرج، فمينفعش يزود رصيد الكاش.
+            var depositsQuery = context.Deposits.Where(d => d.DepositDate >= from && d.DepositDate < to && d.PaymentMethod == "نقدي");
             if (filterDept) depositsQuery = depositsQuery.Where(d => d.Department == dept);
             decimal deposits = await depositsQuery.SumAsync(d => d.Amount);
 
@@ -76,17 +78,19 @@ namespace Salon.Services
             if (filterDept) expQuery = expQuery.Where(e => e.Department == dept);
             decimal cashExpenses = await expQuery.SumAsync(e => e.Amount);
 
-            // كل السلف/الرواتب النقدية المصروفة تُخصم من الصندوق مهما كان قسم الموظف — الفلترة
-            // بالقسم تُطبَّق فقط عند اختيار قسم معيّن، وليس لموظفي حلاقة/مساج فقط.
+            // القسم "الفعلي" للموظف يُحسب حسب RevenueDepartment إن وُجد (لموظفي الأقسام غير
+            // الإيرادية كالإدارة)، وإلا فقسمه التنظيمي (DepartmentNav) — يطابق نفس المنطق
+            // المستخدم في تقرير الأرباح/الإيرادات حتى تظهر سلف ورواتب الإداريين التابعين لقسم
+            // حلاقة/مساج تحت نفس القسم مش بس موظفيه المباشرين.
             var advQuery = context.EmployeeAdvances.Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Where(a => a.AdvanceDate >= from && a.AdvanceDate < to
                          && (a.Status == "موافق عليها" || a.Status == "مسددة") && a.PaymentMethod == "نقدي");
-            if (filterDept) advQuery = advQuery.Where(a => a.Employee!.DepartmentNav!.Name == dept);
+            if (filterDept) advQuery = advQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == dept);
             decimal cashAdvances = await advQuery.SumAsync(a => a.Amount);
 
             var salQuery = context.Salaries.Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= from && s.PaidDate.Value < to && s.PaymentMethod == "نقدي");
-            if (filterDept) salQuery = salQuery.Where(s => s.Employee!.DepartmentNav!.Name == dept);
+            if (filterDept) salQuery = salQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == dept);
             decimal cashSalaries = await salQuery.SumAsync(s => s.NetSalary);
 
             var wdQuery = context.Withdrawals.Where(w => w.WithdrawalDate >= from && w.WithdrawalDate < to);

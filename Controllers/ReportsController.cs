@@ -176,13 +176,16 @@ namespace Salon.Controllers
                 .OrderByDescending(e => e.ExpenseDate)
                 .ToListAsync();
 
+            // القسم "الفعلي" للموظف يُحسب حسب RevenueDepartment إن وُجد (لموظفي الأقسام غير
+            // الإيرادية كالإدارة)، وإلا فقسمه التنظيمي (DepartmentNav) — حتى تظهر رواتب
+            // الإداريين التابعين لقسم حلاقة/مساج ماليًا تحت نفس القسم.
             var salariesQuery = _context.Salaries
                 .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Where(s => s.PaidDate >= dateFrom && s.PaidDate < dateTo);
             if (effectiveDept == "مساج")
-                salariesQuery = salariesQuery.Where(s => s.Employee!.DepartmentNav!.Name == "مساج");
+                salariesQuery = salariesQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == "مساج");
             else if (effectiveDept == "حلاقة")
-                salariesQuery = salariesQuery.Where(s => s.Employee!.DepartmentNav!.Name == "حلاقة");
+                salariesQuery = salariesQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == "حلاقة");
 
             var salaries = await salariesQuery
                 .OrderBy(s => s.PaidDate)
@@ -201,7 +204,7 @@ namespace Salon.Controllers
             // Sub-groups — only for admin with no specific dept filter
             bool showSubGroups = !isDeptUser && string.IsNullOrEmpty(effectiveDept);
             var barberExpenses = showSubGroups ? expenses.Where(e => e.Department == "حلاقة").ToList() : new List<Expense>();
-            var barberSalaries = showSubGroups ? salaries.Where(s => s.Employee?.Department == "حلاقة").ToList() : new List<Salary>();
+            var barberSalaries = showSubGroups ? salaries.Where(s => (s.Employee?.RevenueDepartment ?? s.Employee?.Department) == "حلاقة").ToList() : new List<Salary>();
             decimal barberExp = barberExpenses.Sum(e => e.Amount);
             decimal barberSal = barberSalaries.Sum(s => s.NetSalary);
             ViewBag.BarberExpenses = barberExpenses;
@@ -211,7 +214,7 @@ namespace Salon.Controllers
             ViewBag.TotalBarberCombined = barberExp + barberSal;
 
             var massageExpenses = showSubGroups ? expenses.Where(e => e.Department == "مساج").ToList() : new List<Expense>();
-            var massageSalaries = showSubGroups ? salaries.Where(s => s.Employee?.Department == "مساج").ToList() : new List<Salary>();
+            var massageSalaries = showSubGroups ? salaries.Where(s => (s.Employee?.RevenueDepartment ?? s.Employee?.Department) == "مساج").ToList() : new List<Salary>();
             decimal massageExp = massageExpenses.Sum(e => e.Amount);
             decimal massageSal = massageSalaries.Sum(s => s.NetSalary);
             ViewBag.MassageExpenses = massageExpenses;
@@ -754,10 +757,31 @@ namespace Salon.Controllers
             // never drift apart again.
             decimal openingBalanceBeforePeriod = (await CashBoxCalculator.GetSnapshotAsync(_context, dateFrom, dateFrom, dept)).OpeningBalance;
 
+            // بطاقة العهد — رصيد العهدة الحالي لكل موظف (كل العهد القائمة بغض النظر عن فترة
+            // التقرير، لأنها مبلغ قائم تحت عهدة الموظف وليست مرتبطة بفترة معينة)، بنفس منطق
+            // شاشة BarberDaily. العهدة معلوماتية فقط ولا تدخل في حساب رصيد الكاش أعلاه.
+            var custodyQuery = _context.Custodies
+                .Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Include(c => c.PurchaseRequests)
+                .AsQueryable();
+            if (filterDept)
+                custodyQuery = custodyQuery.Where(c => (c.Employee!.RevenueDepartment ?? c.Employee!.DepartmentNav!.Name) == dept);
+            var allCustodies = await custodyQuery.ToListAsync();
+            var currentCustodies = allCustodies
+                .GroupBy(c => c.Employee?.FullName ?? "—")
+                .Select(g => new EmployeeCustodyBalance { EmployeeName = g.Key, Amount = g.Sum(c => c.RemainingAmount) })
+                .Where(x => x.Amount > 0)
+                .OrderByDescending(x => x.Amount)
+                .ToList();
+            decimal totalCurrentCustody = currentCustodies.Sum(x => x.Amount);
+
             if (showExpenses)
             {
+                // فئة "عهدة" مستبعدة هنا لنفس السبب المطبق في CashBoxCalculator/BarberDaily:
+                // العهدة مبلغ منفصل تحت عهدة الموظف، مش مصروف فعلي خرج من الصندوق، فلا يجب أن
+                // تظهر كحركة "مصروف" هنا ولا تُخصم من رصيد الكاش.
                 var expensesQuery = _context.Expenses
-                    .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo);
+                    .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo && e.Category != "عهدة");
                 if (filterDept)
                     expensesQuery = expensesQuery.Where(e => e.Department == dept);
                 var expenses = await expensesQuery
@@ -775,12 +799,15 @@ namespace Salon.Controllers
                     PaymentMethod = e.PaymentMethod
                 }));
 
+                // القسم "الفعلي" للموظف يُحسب حسب: RevenueDepartment إن وُجد (لموظفي الأقسام غير
+                // الإيرادية كالإدارة)، وإلا فقسمه التنظيمي (DepartmentNav) — حتى تظهر سلف
+                // الإداريين التابعين لقسم حلاقة/مساج تحت نفس القسم مش بس سلف الموظفين المباشرين
                 var advancesQuery = _context.EmployeeAdvances
                     .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                     .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo
                              && (a.Status == "موافق عليها" || a.Status == "مسددة"));
                 if (filterDept)
-                    advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == dept);
+                    advancesQuery = advancesQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == dept);
                 var advances = await advancesQuery
                     .OrderByDescending(a => a.AdvanceDate)
                     .ToListAsync();
@@ -800,7 +827,7 @@ namespace Salon.Controllers
                     .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
                     .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= dateFrom && s.PaidDate.Value < dateTo);
                 if (filterDept)
-                    salariesQuery = salariesQuery.Where(s => s.Employee!.DepartmentNav!.Name == dept);
+                    salariesQuery = salariesQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == dept);
                 var salaries = await salariesQuery
                     .OrderByDescending(s => s.PaidDate)
                     .ToListAsync();
@@ -834,7 +861,8 @@ namespace Salon.Controllers
                     Description = d.Description,
                     Amount = d.Amount,
                     Category = d.Source,
-                    Notes = d.Notes
+                    Notes = d.Notes,
+                    PaymentMethod = d.PaymentMethod
                 }));
             }
 
@@ -928,11 +956,19 @@ namespace Salon.Controllers
             decimal totalSulfa = items.Where(i => i.Type == "سلفة").Sum(i => i.Amount);
             decimal totalRatib = items.Where(i => i.Type == "راتب").Sum(i => i.Amount);
             decimal totalExp = totalMasrouf + totalSulfa + totalRatib;
+            // تفصيل كاش/كي نت للمصروفات العامة والسلف (البطاقة والتحويل البنكي يُحسبان "كي نت" هنا)
+            decimal totalMasroufCash = items.Where(i => i.Type == "مصروف" && i.PaymentMethod == "نقدي").Sum(i => i.Amount);
+            decimal totalMasroufKNet = totalMasrouf - totalMasroufCash;
+            decimal totalSulfaCash = items.Where(i => i.Type == "سلفة" && i.PaymentMethod == "نقدي").Sum(i => i.Amount);
+            decimal totalSulfaKNet = totalSulfa - totalSulfaCash;
             // المصروفات النقدية فقط (لحساب رصيد الكاش)
             decimal totalCashExp = items.Where(i =>
                 (i.Type == "مصروف" || i.Type == "سلفة" || i.Type == "راتب")
                 && i.PaymentMethod == "نقدي").Sum(i => i.Amount);
             decimal totalDep = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount);
+            // إيداع بالتحويل البنكي أو البطاقة ميعديش على الكاش الفعلي في الدرج، فمينفعش يزود رصيد الكاش
+            decimal totalDepCash = items.Where(i => i.Type == "إيداع" && i.PaymentMethod == "نقدي").Sum(i => i.Amount);
+            decimal totalDepNonCash = totalDep - totalDepCash;
             decimal totalCashSales = items.Where(i => i.Type == "مبيعات كاش").Sum(i => i.Amount);
             decimal totalKNet = items.Where(i => i.Type == "كي نت").Sum(i => i.Amount);
             decimal totalWithdrawals = items.Where(i => i.Type == "سحب").Sum(i => i.Amount);
@@ -942,20 +978,28 @@ namespace Salon.Controllers
             ViewBag.SelectedType = type;
             ViewBag.SelectedDept = dept;
             ViewBag.TotalMasrouf = totalMasrouf;
+            ViewBag.TotalMasroufCash = totalMasroufCash;
+            ViewBag.TotalMasroufKNet = totalMasroufKNet;
             ViewBag.TotalSulfa = totalSulfa;
+            ViewBag.TotalSulfaCash = totalSulfaCash;
+            ViewBag.TotalSulfaKNet = totalSulfaKNet;
             ViewBag.TotalRatib = totalRatib;
             ViewBag.TotalExpenses = totalExp;
             ViewBag.TotalCashExpenses = totalCashExp;
             ViewBag.TotalNonCashExpenses = totalExp - totalCashExp;
             ViewBag.OpeningBalance = openingBalanceBeforePeriod;
             ViewBag.TotalDeposits = totalDep;
+            ViewBag.TotalDepositsCash = totalDepCash;
+            ViewBag.TotalDepositsNonCash = totalDepNonCash;
             ViewBag.TotalCashSales = totalCashSales;
             ViewBag.TotalKNet = totalKNet;
             ViewBag.TotalSales = totalCashSales + totalKNet;
             ViewBag.TotalWithdrawals = totalWithdrawals;
-            // رصيد الكاش = رصيد قبل الفترة + مبيعات كاش + إيداعات - مصروفات نقدية - سحوبات (الكي نت + المصروفات غير النقدية خارج الحساب)
-            ViewBag.CashBalance = openingBalanceBeforePeriod + totalCashSales + totalDep - totalCashExp - totalWithdrawals;
+            // رصيد الكاش = رصيد قبل الفترة + مبيعات كاش + إيداعات نقدي - مصروفات نقدية - سحوبات (الكي نت والإيداعات غير النقدية خارج الحساب)
+            ViewBag.CashBalance = openingBalanceBeforePeriod + totalCashSales + totalDepCash - totalCashExp - totalWithdrawals;
             ViewBag.NetBalance = ViewBag.CashBalance;
+            ViewBag.CurrentCustodies = currentCustodies;
+            ViewBag.TotalCurrentCustody = totalCurrentCustody;
 
             return View(items);
         }

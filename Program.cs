@@ -274,6 +274,9 @@ using (var scope = app.Services.CreateScope())
                 ProductName TEXT NOT NULL,
                 Quantity INTEGER NOT NULL DEFAULT 1,
                 FOREIGN KEY (PurchaseRequestId) REFERENCES PurchaseRequests(Id) ON DELETE CASCADE)");
+            // يمنع تكرار رقم الفاتورة عند طلبين متزامنين (double-click / إعادة إرسال) — لو فيه
+            // تكرار موجود بالفعل في البيانات هيفشل بصمت (TryExec) لحد ما يتصلّح يدويًا
+            TryExec("CREATE UNIQUE INDEX IF NOT EXISTS IX_Sales_InvoiceNumber ON Sales(InvoiceNumber) WHERE InvoiceNumber IS NOT NULL AND InvoiceNumber <> ''");
         }
         else
         {
@@ -429,6 +432,10 @@ using (var scope = app.Services.CreateScope())
                 Quantity INT NOT NULL DEFAULT 1,
                 CONSTRAINT FK_PurchaseRequestItems_PurchaseRequests FOREIGN KEY (PurchaseRequestId)
                     REFERENCES PurchaseRequests(Id) ON DELETE CASCADE)");
+            // يمنع تكرار رقم الفاتورة عند طلبين متزامنين (double-click / إعادة إرسال) — لو فيه
+            // تكرار موجود بالفعل في البيانات هيفشل بصمت (TryExec) لحد ما يتصلّح يدويًا
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_Sales_InvoiceNumber' AND object_id = OBJECT_ID('Sales'))
+                CREATE UNIQUE INDEX IX_Sales_InvoiceNumber ON Sales(InvoiceNumber) WHERE InvoiceNumber IS NOT NULL AND InvoiceNumber <> ''");
         }
 
         await SeedData.InitializeAsync(services);
