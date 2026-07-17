@@ -127,47 +127,18 @@ namespace Salon.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(EmployeeAdvance model, string? directStatus)
+        public async Task<IActionResult> Create(EmployeeAdvance model)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             bool isManager = await IsManagerAsync(currentUser);
 
-            if (!isManager)
-            {
-                model.Status = EmployeeAdvance.Statuses.PendingApproval;
-                model.PaymentMethod = "نقدي";
-            }
-            else
-            {
-                // إضافة مباشرة من المدير: إما تُرسل كطلب بانتظار الموافقة العادية، أو تُسجَّل
-                // كسلفة مصروفة بالفعل (لإدخال سلف قديمة/يدوية) فتُختم فوراً بنفس بيانات
-                // الصرف/التحويل التي يسجلها الكاشير أو منفذ التحويل عادةً.
-                if (directStatus == "Disbursed")
-                {
-                    model.PaymentMethod = "نقدي";
-                    model.Status = EmployeeAdvance.Statuses.Disbursed;
-                    model.CashierId = currentUser!.Id;
-                    model.CashierName = currentUser.FullName;
-                    model.DisbursedAt = DateTime.Now;
-                }
-                else if (directStatus == "Transferred")
-                {
-                    model.PaymentMethod = "تحويل بنكي";
-                    model.Status = EmployeeAdvance.Statuses.Transferred;
-                    model.TransferredById = currentUser!.Id;
-                    model.TransferredByName = currentUser.FullName;
-                    model.DisbursedAt = DateTime.Now;
-                }
-                else
-                {
-                    model.Status = EmployeeAdvance.Statuses.PendingApproval;
-                    model.PaymentMethod = "نقدي";
-                }
-            }
+            // مسار واحد فقط لتقديم طلب السلفة: يبدأ دائماً بانتظار موافقة المدير، بغض النظر عمّن
+            // يرسل الطلب. طريقة الصرف الفعلية تُحدَّد لاحقاً عند الموافقة.
+            model.Status = EmployeeAdvance.Statuses.PendingApproval;
+            model.PaymentMethod = "نقدي";
 
-            bool isEmployee = !isManager;
             int? linkedEmpId = currentUser?.LinkedEmployeeId;
-            if (isEmployee && linkedEmpId.HasValue && model.EmployeeId != linkedEmpId.Value)
+            if (!isManager && linkedEmpId.HasValue && model.EmployeeId != linkedEmpId.Value)
             {
                 TempData["Error"] = "لا يمكنك طلب سلفة لموظف آخر";
                 return RedirectToAction(nameof(Create));
@@ -181,13 +152,12 @@ namespace Salon.Controllers
 
                 var emp = await _context.Employees.Include(e => e.DepartmentNav).FirstOrDefaultAsync(e => e.Id == model.EmployeeId);
                 await _audit.LogAsync("Add", "Advances",
-                    $"{(isManager ? "إضافة" : "طلب")} سلفة للموظف: {emp?.FullName ?? model.EmployeeId.ToString()} بمبلغ {model.Amount:N3} KD | الحالة: {model.Status}",
+                    $"طلب سلفة للموظف: {emp?.FullName ?? model.EmployeeId.ToString()} بمبلغ {model.Amount:N3} KD",
                     model.Id);
 
-                if (!isManager)
-                    _ = _email.SendAdvanceRequestAsync(emp?.FullName ?? "-", emp?.DepartmentNav?.Name ?? "-", model.Amount, model.Reason, model.AdvanceDate);
+                _ = _email.SendAdvanceRequestAsync(emp?.FullName ?? "-", emp?.DepartmentNav?.Name ?? "-", model.Amount, model.Reason, model.AdvanceDate);
 
-                TempData["Success"] = isManager ? "تم إضافة السلفة بنجاح" : "تم إرسال طلب السلفة بنجاح، في انتظار موافقة المدير";
+                TempData["Success"] = "تم إرسال طلب السلفة بنجاح، في انتظار موافقة المدير";
                 return RedirectToAction(nameof(Index));
             }
 
