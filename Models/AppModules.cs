@@ -17,6 +17,7 @@ namespace Salon.Models
             ("Packages",          "الباقات",             "fas fa-box-open",         "التعريفات"),
             ("Inventory",         "المخزون",            "fas fa-boxes",            "التعريفات"),
             ("Shifts",            "الشفتات",            "fas fa-clock",            "المبيعات"),
+            ("DailyClosure",      "اعتماد اليومية",     "fas fa-clipboard-check",  "المالية"),
             ("Employees",         "الموظفين",           "fas fa-id-badge",         "الموظفون"),
             ("Salaries",          "الرواتب",            "fas fa-money-bill-wave",  "الموظفون"),
             ("Advances",          "السلف",              "fas fa-hand-holding-usd", "الموظفون"),

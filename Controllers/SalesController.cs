@@ -25,18 +25,21 @@ namespace Salon.Controllers
         private readonly IEmailService _emailService;
         private readonly IAuditService _audit;
         private readonly IPermissionService _perms;
+        private readonly IDailyClosureService _closure;
 
         public SalesController(ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
             IEmailService emailService,
             IAuditService audit,
-            IPermissionService perms)
+            IPermissionService perms,
+            IDailyClosureService closure)
         {
             _context = context;
             _userManager = userManager;
             _emailService = emailService;
             _audit = audit;
             _perms = perms;
+            _closure = closure;
         }
 
         // ===== قائمة الفواتير =====
@@ -509,6 +512,12 @@ namespace Salon.Controllers
                 .FirstOrDefaultAsync(s => s.Id == id);
             if (sale != null)
             {
+                if (await _closure.IsDateLockedAsync(sale.SaleDate))
+                {
+                    TempData["Error"] = "لا يمكن حذف فاتورة تخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 // فحص صلاحية الحذف حسب نوع الفاتورة
                 var permKey = sale.SaleType switch
                 {
@@ -548,6 +557,8 @@ namespace Salon.Controllers
         {
             var sale = await _context.Sales.FindAsync(id);
             if (sale == null) return Json(new { success = false, message = "الفاتورة غير موجودة" });
+            if (await _closure.IsDateLockedAsync(sale.SaleDate))
+                return Json(new { success = false, message = "لا يمكن تعديل فاتورة تخص يومية معتمدة" });
             sale.Notes = notes?.Trim();
             await _context.SaveChangesAsync();
             await _audit.LogAsync("Edit", "المبيعات", $"تعديل ملاحظات الفاتورة {sale.InvoiceNumber}", sale.Id);
@@ -559,6 +570,8 @@ namespace Salon.Controllers
         {
             var sale = await _context.Sales.FindAsync(id);
             if (sale == null) return Json(new { success = false, message = "الفاتورة غير موجودة" });
+            if (await _closure.IsDateLockedAsync(sale.SaleDate))
+                return Json(new { success = false, message = "لا يمكن تعديل فاتورة تخص يومية معتمدة" });
 
             var trimmed = receipt?.Trim();
             if (!string.IsNullOrEmpty(trimmed))

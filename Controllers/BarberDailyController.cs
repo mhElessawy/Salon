@@ -13,11 +13,13 @@ namespace Salon.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IDailyClosureService _closure;
 
-        public BarberDailyController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public BarberDailyController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IDailyClosureService closure)
         {
             _context = context;
             _userManager = userManager;
+            _closure = closure;
         }
 
         public async Task<IActionResult> Index(string? date, string? dept)
@@ -379,7 +381,7 @@ namespace Salon.Controllers
             if (shiftId > 0)
             {
                 var shift = await _context.Shifts.FindAsync(shiftId);
-                if (shift != null)
+                if (shift != null && !await _closure.IsDateLockedAsync(shift.ShiftDate))
                 {
                     shift.Notes = notes;
                     await _context.SaveChangesAsync();
@@ -392,7 +394,7 @@ namespace Salon.Controllers
         public async Task<IActionResult> UpdatePaymentSplit(int saleId, decimal cashAmount, decimal linkAmount, string date, string? dept)
         {
             var sale = await _context.Sales.FindAsync(saleId);
-            if (sale != null)
+            if (sale != null && !await _closure.IsDateLockedAsync(sale.SaleDate))
             {
                 sale.CashAmount = cashAmount;
                 sale.LinkAmount = linkAmount;

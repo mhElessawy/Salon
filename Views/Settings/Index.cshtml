@@ -45,6 +45,27 @@
             </div>
         </div>
     </div>
+    @if (ViewBag.IsAdmin == true)
+    {
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">اعتماد وإغلاق اليومية</div>
+                <div class="card-body">
+                    <form method="post" asp-action="UpdateClosureCutoff">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label">وقت الإغلاق التلقائي لليومية</label>
+                            <input type="time" name="cutoffTime" class="form-control" value="@ViewBag.DailyClosureCutoffTime" style="max-width:200px" />
+                            <div class="form-text">لو الكاشير ما اعتمدش اليومية قبل هذا الوقت، يقفلها النظام آلياً بحالة "بانتظار الاعتماد" وتحتاج مراجعة لاحقاً.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> حفظ
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">روابط سريعة</div>

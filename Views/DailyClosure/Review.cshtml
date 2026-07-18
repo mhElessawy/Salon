@@ -1,0 +1,310 @@
+@model DailyClosureViewModel
+@{
+    ViewData["Title"] = "مراجعة واعتماد اليومية";
+    var s = Model.Shift;
+    string badgeClass = s.ApprovalStatus switch
+    {
+        "معتمد" => "bg-success",
+        "معتمد - يوجد فروقات" => "bg-danger",
+        "مغلق آلياً - بانتظار الاعتماد" => "bg-warning text-dark",
+        _ => "bg-secondary"
+    };
+    string badgeIcon = s.ApprovalStatus switch
+    {
+        "معتمد" => "🟢",
+        "معتمد - يوجد فروقات" => "🔴",
+        "مغلق آلياً - بانتظار الاعتماد" => "🟡",
+        _ => "⚪"
+    };
+}
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1><i class="fas fa-clipboard-check me-2"></i>مراجعة واعتماد اليومية</h1>
+        <p>@Model.Date.ToString("yyyy/MM/dd") — @Model.Date.ToString("dddd", new System.Globalization.CultureInfo("ar-KW"))</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <form method="get" asp-action="Review" class="d-flex gap-2">
+            <input type="date" name="date" class="form-control" value="@Model.Date.ToString("yyyy-MM-dd")" />
+            <button type="submit" class="btn btn-outline-secondary"><i class="fas fa-search"></i></button>
+        </form>
+        <span class="badge @badgeClass fs-6">@badgeIcon @s.ApprovalStatus</span>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">@TempData["Success"] <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">@TempData["Error"] <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+}
+
+@if (s.ApprovalStatus == Shift.ApprovalStatuses.AutoClosedUnapproved)
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        توجد يومية سابقة أغلقت آلياً ولم يتم اعتمادها، يرجى مراجعتها واعتمادها قبل متابعة العمل.
+    </div>
+}
+
+@if (Model.IsLocked)
+{
+    <div class="card mb-3">
+        <div class="card-header">بيانات الاعتماد</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3"><strong>اعتمدها:</strong> @s.ApprovedByUserName</div>
+                <div class="col-md-3"><strong>وقت الاعتماد:</strong> @s.ApprovedAt?.ToString("yyyy/MM/dd HH:mm")</div>
+                <div class="col-md-3"><strong>الكاش المتوقع:</strong> @s.ExpectedCashBalance?.ToString("N3") د.ك</div>
+                <div class="col-md-3"><strong>الكاش الفعلي:</strong> @s.ClosingBalance?.ToString("N3") د.ك</div>
+                <div class="col-md-3"><strong>إجمالي KNET (نظام):</strong> @s.SystemKnetTotal?.ToString("N3") د.ك</div>
+                <div class="col-md-3"><strong>إجمالي KNET (جهاز):</strong> @s.DeviceKnetTotal?.ToString("N3") د.ك</div>
+                <div class="col-md-3"><strong>رقم إيصال الموازنة:</strong> @(s.KnetSettlementNumber ?? "-")</div>
+                <div class="col-md-3"><strong>ملاحظات:</strong> @(s.ApprovalNotes ?? "-")</div>
+                @if (!string.IsNullOrEmpty(s.CashDifferenceReason))
+                {
+                    <div class="col-12"><strong>سبب فرق الصندوق:</strong> @s.CashDifferenceReason</div>
+                }
+                @if (!string.IsNullOrEmpty(s.KnetDifferenceReason))
+                {
+                    <div class="col-12"><strong>سبب فرق KNET:</strong> @s.KnetDifferenceReason</div>
+                }
+                @if (!string.IsNullOrEmpty(s.ReopenReason))
+                {
+                    <div class="col-12 text-muted small">آخر إعادة فتح: @s.ReopenedByUserName بتاريخ @s.ReopenedAt?.ToString("yyyy/MM/dd HH:mm") — السبب: @s.ReopenReason</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (Model.CanReopen)
+    {
+        <button type="button" class="btn btn-outline-danger mb-3" data-bs-toggle="modal" data-bs-target="#reopenModal">
+            <i class="fas fa-unlock me-1"></i> إعادة فتح اليومية
+        </button>
+
+        <div class="modal fade" id="reopenModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="post" asp-action="Reopen">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="shiftId" value="@s.Id" />
+                        <div class="modal-header">
+                            <h5 class="modal-title">إعادة فتح اليومية</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <label class="form-label">سبب إعادة الفتح <span class="text-danger">*</span></label>
+                            <textarea name="reason" class="form-control" rows="3" required></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-danger">تأكيد إعادة الفتح</button>
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+}
+else
+{
+    var cashDiff = Model.ExpectedCashBalance - (s.ClosingBalance ?? 0);
+    <form method="post" asp-action="Approve" id="approveForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="shiftId" value="@s.Id" />
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <div class="card text-center"><div class="card-body">
+                    <div class="text-muted small">إجمالي الإيرادات</div>
+                    <div class="fs-5 fw-bold">@Model.TotalRevenue.ToString("N3")</div>
+                </div></div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center"><div class="card-body">
+                    <div class="text-muted small">إجمالي الكاش</div>
+                    <div class="fs-5 fw-bold">@Model.TotalCash.ToString("N3")</div>
+                </div></div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center"><div class="card-body">
+                    <div class="text-muted small">إجمالي KNET</div>
+                    <div class="fs-5 fw-bold">@Model.SystemKnetTotal.ToString("N3")</div>
+                </div></div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center"><div class="card-body">
+                    <div class="text-muted small">الرصيد المتوقع بالصندوق</div>
+                    <div class="fs-5 fw-bold">@Model.ExpectedCashBalance.ToString("N3")</div>
+                </div></div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">١. مراجعة بنود اليومية</div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <tbody>
+                            <tr>
+                                <td style="width:40px"><input type="checkbox" class="form-check-input" name="reviewedRevenue" value="true" required /></td>
+                                <td>إجمالي الإيرادات</td>
+                                <td class="text-end">@Model.TotalRevenue.ToString("N3") د.ك</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="form-check-input" name="reviewedCash" value="true" required /></td>
+                                <td>إجمالي الكاش</td>
+                                <td class="text-end">@Model.TotalCash.ToString("N3") د.ك</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="form-check-input" name="reviewedKnet" value="true" required /></td>
+                                <td>إجمالي KNET</td>
+                                <td class="text-end">@Model.SystemKnetTotal.ToString("N3") د.ك</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="form-check-input" name="reviewedExpenses" value="true" required /></td>
+                                <td>المصروفات التشغيلية (@Model.Expenses.Count)</td>
+                                <td class="text-end">@Model.TotalExpenses.ToString("N3") د.ك</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="form-check-input" name="reviewedWithdrawals" value="true" required /></td>
+                                <td>السحوبات (@Model.Withdrawals.Count)</td>
+                                <td class="text-end">@Model.TotalWithdrawals.ToString("N3") د.ك</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="form-check-input" name="reviewedDeposits" value="true" required /></td>
+                                <td>الإيداعات (@Model.Deposits.Count)</td>
+                                <td class="text-end">@Model.TotalDeposits.ToString("N3") د.ك</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="form-check-input" name="reviewedAdvances" value="true" required /></td>
+                                <td>سلف الموظفين اليوم (@Model.Advances.Count)</td>
+                                <td class="text-end">@Model.TotalAdvancesToday.ToString("N3") د.ك</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="form-check-input" name="reviewedEmployeeDebts" value="true" required /></td>
+                                <td>ديون الموظفين (الرصيد الحالي)</td>
+                                <td class="text-end">@Model.OutstandingEmployeeDebts.ToString("N3") د.ك</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="form-check-input" name="reviewedCustody" value="true" required /></td>
+                                <td>العهد المالية (المتبقي)</td>
+                                <td class="text-end">@Model.CustodyRemaining.ToString("N3") د.ك</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">٢. مطابقة الصندوق</div>
+                    <div class="card-body">
+                        <div class="mb-2"><strong>الرصيد المتوقع:</strong> @Model.ExpectedCashBalance.ToString("N3") د.ك</div>
+                        <div class="mb-2">
+                            <label class="form-label">الرصيد الفعلي الذي تم عدّه <span class="text-danger">*</span></label>
+                            <input type="number" step="0.001" name="actualCashBalance" id="actualCashBalance" class="form-control" required value="@((s.ClosingBalance ?? Model.ExpectedCashBalance).ToString("F3"))" />
+                        </div>
+                        <div id="cashDiffAlert" class="alert alert-warning d-none py-2 mb-2"></div>
+                        <div class="mb-2">
+                            <label class="form-label">سبب فرق الصندوق (إن وُجد)</label>
+                            <textarea name="cashDifferenceReason" id="cashDifferenceReason" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">٣. مطابقة جهاز KNET</div>
+                    <div class="card-body">
+                        <div class="mb-2"><strong>إجمالي KNET بالنظام:</strong> @Model.SystemKnetTotal.ToString("N3") د.ك</div>
+                        <div class="mb-2">
+                            <label class="form-label">إجمالي جهاز نقاط البيع <span class="text-danger">*</span></label>
+                            <input type="number" step="0.001" name="deviceKnetTotal" id="deviceKnetTotal" class="form-control" required value="@(Model.SystemKnetTotal.ToString("F3"))" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">رقم إيصال الموازنة (Settlement Number)</label>
+                            <input type="text" name="knetSettlementNumber" class="form-control" />
+                        </div>
+                        <div id="knetDiffAlert" class="alert alert-warning d-none py-2 mb-2"></div>
+                        <div class="mb-2">
+                            <label class="form-label">سبب فرق KNET (إن وُجد)</label>
+                            <textarea name="knetDifferenceReason" id="knetDifferenceReason" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">٤. الإقرار النهائي</div>
+            <div class="card-body">
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="form-check-input" id="confirmedNoDiscrepancies" name="confirmedNoDiscrepancies" value="true" />
+                    <label class="form-check-label" for="confirmedNoDiscrepancies">لا توجد فروقات</label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ملاحظات (اختياري)</label>
+                    <textarea name="approvalNotes" class="form-control" rows="2"></textarea>
+                </div>
+                @if (Model.CanApprove)
+                {
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-check-circle me-1"></i> اعتماد وإغلاق اليومي
+                    </button>
+                }
+                else
+                {
+                    <div class="text-muted">اعتماد اليومية متاح فقط للكاشير أو الإدارة.</div>
+                }
+            </div>
+        </div>
+    </form>
+
+    @section Scripts {
+        <script>
+            const expectedCash = @Model.ExpectedCashBalance.ToString("F3", System.Globalization.CultureInfo.InvariantCulture);
+            const systemKnet = @Model.SystemKnetTotal.ToString("F3", System.Globalization.CultureInfo.InvariantCulture);
+
+            function updateDiffs() {
+                const actual = parseFloat(document.getElementById('actualCashBalance').value) || 0;
+                const cashDiff = actual - expectedCash;
+                const cashAlert = document.getElementById('cashDiffAlert');
+                if (Math.abs(cashDiff) >= 0.001) {
+                    cashAlert.classList.remove('d-none');
+                    cashAlert.textContent = 'يوجد فرق في الصندوق: ' + cashDiff.toFixed(3) + ' د.ك';
+                    document.getElementById('cashDifferenceReason').required = true;
+                } else {
+                    cashAlert.classList.add('d-none');
+                    document.getElementById('cashDifferenceReason').required = false;
+                }
+
+                const device = parseFloat(document.getElementById('deviceKnetTotal').value) || 0;
+                const knetDiff = device - systemKnet;
+                const knetAlert = document.getElementById('knetDiffAlert');
+                if (Math.abs(knetDiff) >= 0.001) {
+                    knetAlert.classList.remove('d-none');
+                    knetAlert.textContent = 'يوجد فرق في مطابقة KNET: ' + knetDiff.toFixed(3) + ' د.ك';
+                    document.getElementById('knetDifferenceReason').required = true;
+                } else {
+                    knetAlert.classList.add('d-none');
+                    document.getElementById('knetDifferenceReason').required = false;
+                }
+
+                const hasDiscrepancy = Math.abs(cashDiff) >= 0.001 || Math.abs(knetDiff) >= 0.001;
+                document.getElementById('confirmedNoDiscrepancies').required = !hasDiscrepancy;
+                document.getElementById('confirmedNoDiscrepancies').disabled = hasDiscrepancy;
+                if (hasDiscrepancy) document.getElementById('confirmedNoDiscrepancies').checked = false;
+            }
+
+            document.getElementById('actualCashBalance').addEventListener('input', updateDiffs);
+            document.getElementById('deviceKnetTotal').addEventListener('input', updateDiffs);
+            updateDiffs();
+        </script>
+    }
+}

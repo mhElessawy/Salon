@@ -1049,17 +1049,57 @@ namespace Salon.Migrations
 
                 SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                b.Property<string>("ApprovalNotes")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("ApprovalStatus")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<DateTime?>("ApprovedAt")
+                    .HasColumnType("datetime2");
+
+                b.Property<string>("ApprovedByUserId")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("ApprovedByUserName")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<DateTime?>("AutoClosedAt")
+                    .HasColumnType("datetime2");
+
+                b.Property<string>("CashDifferenceReason")
+                    .HasColumnType("nvarchar(max)");
+
                 b.Property<string>("CashierName")
                     .HasColumnType("nvarchar(max)");
 
                 b.Property<decimal?>("ClosingBalance")
                     .HasColumnType("decimal(18,3)");
 
+                b.Property<bool>("ConfirmedNoDiscrepancies")
+                    .HasColumnType("bit");
+
                 b.Property<DateTime>("CreatedAt")
                     .HasColumnType("datetime2");
 
+                b.Property<decimal?>("DeviceKnetTotal")
+                    .HasColumnType("decimal(18,3)");
+
                 b.Property<TimeSpan?>("EndTime")
                     .HasColumnType("time");
+
+                b.Property<decimal?>("ExpectedCashBalance")
+                    .HasColumnType("decimal(18,3)");
+
+                b.Property<bool>("IsAutoClosed")
+                    .HasColumnType("bit");
+
+                b.Property<string>("KnetDifferenceReason")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("KnetSettlementNumber")
+                    .HasColumnType("nvarchar(max)");
 
                 b.Property<string>("Name")
                     .IsRequired()
@@ -1071,6 +1111,45 @@ namespace Salon.Migrations
                 b.Property<decimal>("OpeningBalance")
                     .HasColumnType("decimal(18,3)");
 
+                b.Property<string>("ReopenReason")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<DateTime?>("ReopenedAt")
+                    .HasColumnType("datetime2");
+
+                b.Property<string>("ReopenedByUserId")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("ReopenedByUserName")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<bool>("ReviewedAdvances")
+                    .HasColumnType("bit");
+
+                b.Property<bool>("ReviewedCash")
+                    .HasColumnType("bit");
+
+                b.Property<bool>("ReviewedCustody")
+                    .HasColumnType("bit");
+
+                b.Property<bool>("ReviewedDeposits")
+                    .HasColumnType("bit");
+
+                b.Property<bool>("ReviewedEmployeeDebts")
+                    .HasColumnType("bit");
+
+                b.Property<bool>("ReviewedExpenses")
+                    .HasColumnType("bit");
+
+                b.Property<bool>("ReviewedKnet")
+                    .HasColumnType("bit");
+
+                b.Property<bool>("ReviewedRevenue")
+                    .HasColumnType("bit");
+
+                b.Property<bool>("ReviewedWithdrawals")
+                    .HasColumnType("bit");
+
                 b.Property<DateTime>("ShiftDate")
                     .HasColumnType("datetime2");
 
@@ -1080,6 +1159,9 @@ namespace Salon.Migrations
                 b.Property<string>("Status")
                     .IsRequired()
                     .HasColumnType("nvarchar(max)");
+
+                b.Property<decimal?>("SystemKnetTotal")
+                    .HasColumnType("decimal(18,3)");
 
                 b.HasKey("Id");
 

@@ -15,12 +15,14 @@ namespace Salon.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IAuditService _audit;
+        private readonly IDailyClosureService _closure;
 
-        public ExpensesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IAuditService audit)
+        public ExpensesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IAuditService audit, IDailyClosureService closure)
         {
             _context = context;
             _userManager = userManager;
             _audit = audit;
+            _closure = closure;
         }
 
         public async Task<IActionResult> Index(string? from, string? to, string? department, string? paymentMethod)
@@ -155,6 +157,11 @@ namespace Salon.Controllers
         public async Task<IActionResult> Edit(int id, Expense model)
         {
             if (id != model.Id) return NotFound();
+            if (await _closure.IsDateLockedAsync(model.ExpenseDate))
+            {
+                TempData["Error"] = "لا يمكن تعديل مصروف يخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
+                return RedirectToAction(nameof(Index));
+            }
             if (ModelState.IsValid)
             {
                 _context.Update(model);
@@ -178,6 +185,12 @@ namespace Salon.Controllers
             var expense = await _context.Expenses.FindAsync(id);
             if (expense != null)
             {
+                if (await _closure.IsDateLockedAsync(expense.ExpenseDate))
+                {
+                    TempData["Error"] = "لا يمكن حذف مصروف يخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 var desc = $"{expense.Description} - {expense.Amount:F3} KD";
 
                 // بعض المصروفات القديمة (فئة "عهدة") كانت مولَّدة تلقائياً من عهدة موظف — احذف العهدة معها
