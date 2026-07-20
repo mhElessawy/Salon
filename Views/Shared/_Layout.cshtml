@@ -15,6 +15,11 @@
             .OrderByDescending(s => s.ShiftDate)
             .FirstOrDefaultAsync();
     }
+    var isOnPendingClosureReviewPage = pendingUnapprovedClosure != null
+        && string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "DailyClosure", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(ViewContext.RouteData.Values["action"]?.ToString(), "Review", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(Context.Request.Query["date"].ToString(), pendingUnapprovedClosure.ShiftDate.ToString("yyyy-MM-dd"), StringComparison.OrdinalIgnoreCase);
+
     var layoutRole = layoutRoles.FirstOrDefault() ?? "";
     var layoutRoleAr = layoutRole switch
     {
@@ -634,7 +639,7 @@
         })();
     </script>
 
-    @if (pendingUnapprovedClosure != null)
+    @if (pendingUnapprovedClosure != null && !isOnPendingClosureReviewPage)
     {
         <div class="modal fade" id="pendingClosureModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
             <div class="modal-dialog">
