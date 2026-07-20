@@ -215,6 +215,11 @@ namespace Salon.Controllers
                 .Include(c => c.PurchaseRequests)
                 .ToListAsync();
 
+            var pendingShift = await _context.Shifts
+                .Where(x => x.ApprovalStatus == Shift.ApprovalStatuses.AutoClosedUnapproved && x.ShiftDate.Date != day)
+                .OrderBy(x => x.ShiftDate)
+                .FirstOrDefaultAsync();
+
             return new DailyClosureViewModel
             {
                 Shift = shift,
@@ -237,7 +242,8 @@ namespace Salon.Controllers
                 Withdrawals = withdrawals,
                 Deposits = deposits,
                 Advances = advancesToday,
-                Custodies = custodies.Where(c => c.CustodyDate >= day && c.CustodyDate < dayEnd).ToList()
+                Custodies = custodies.Where(c => c.CustodyDate >= day && c.CustodyDate < dayEnd).ToList(),
+                PendingApprovalDate = pendingShift?.ShiftDate.Date
             };
         }
     }
