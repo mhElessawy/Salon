@@ -30,8 +30,12 @@ namespace Salon.Services
         {
             bool filterDept = !string.IsNullOrEmpty(dept);
 
+            // ملحوظة: هنا مقصود عدم استبعاد صفوف IsClosureRecord — الهدف من هذا الاستعلام تحديد
+            // أول تاريخ عندنا فيه بيانات مسجَّلة أصلاً (لترحيل رصيد الصندوق تراكمياً من قبلها)،
+            // مش قراءة رصيد افتتاحي يدوي حقيقي؛ فلو المحل ما استخدمش شاشة "الشفتات" اليدوية
+            // إطلاقاً واعتمد بس على شاشة اعتماد اليومية، استبعاد صفوف الإغلاق كان بيخلي هذا
+            // الاستعلام يرجع فاضي دايماً فيتصفّر رصيد ما قبل الفترة بالغلط.
             var firstShiftEver = await context.Shifts
-                .Where(s => !s.IsClosureRecord)
                 .OrderBy(s => s.ShiftDate).ThenBy(s => s.CreatedAt)
                 .FirstOrDefaultAsync();
 
