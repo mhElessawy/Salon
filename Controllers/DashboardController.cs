@@ -116,15 +116,31 @@ namespace Salon.Controllers
                 .Take(10)
                 .ToListAsync();
 
-            // اليوميات المغلقة آلياً بانتظار الاعتماد — تظهر للكاشير والإدارة كتنبيه فوري
+            // الأيام السابقة اللي فيها مبيعات ومالهاش سجل اعتماد معتمد — تظهر للكاشير والإدارة
+            // كتنبيه فوري. مش بس الحالة الحرفية "أُغلق آلياً" — أي يوم مش معتمد أصلاً (سواء
+            // مالوش سجل إغلاق خالص أو سجله لسه مفتوح) لازم يظهر برضو.
             var unapprovedClosureDates = new List<DateTime>();
             if (User.IsInRole("Cashier") || User.IsInRole("Admin") || User.IsInRole("Manager"))
             {
-                unapprovedClosureDates = await _context.Shifts
-                    .Where(s => s.IsClosureRecord && s.ApprovalStatus == Shift.ApprovalStatuses.AutoClosedUnapproved)
-                    .OrderBy(s => s.ShiftDate)
+                var lookbackStart = today.AddDays(-90);
+
+                var approvedDates = new HashSet<DateTime>(await _context.Shifts
+                    .Where(s => s.IsClosureRecord && s.ShiftDate >= lookbackStart && s.ShiftDate < today
+                        && (s.ApprovalStatus == Shift.ApprovalStatuses.Approved
+                            || s.ApprovalStatus == Shift.ApprovalStatuses.ApprovedWithDiscrepancy))
                     .Select(s => s.ShiftDate.Date)
+                    .ToListAsync());
+
+                var saleDates = await _context.Sales
+                    .Where(s => s.SaleDate >= lookbackStart && s.SaleDate < today && s.Status != "ملغي")
+                    .Select(s => s.SaleDate.Date)
+                    .Distinct()
                     .ToListAsync();
+
+                unapprovedClosureDates = saleDates
+                    .Where(d => !approvedDates.Contains(d))
+                    .OrderBy(d => d)
+                    .ToList();
             }
 
             // فواتير اليوم التي بها ملاحظات للموظف المرتبط بالمستخدم
