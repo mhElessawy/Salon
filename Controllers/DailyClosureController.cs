@@ -47,7 +47,7 @@ namespace Salon.Controllers
                 return Forbid();
 
             var shift = await _context.Shifts.FindAsync(shiftId);
-            if (shift == null) return NotFound();
+            if (shift == null || !shift.IsClosureRecord) return NotFound();
 
             var day = shift.ShiftDate.Date;
             var dateParam = day.ToString("yyyy-MM-dd");
@@ -136,7 +136,7 @@ namespace Salon.Controllers
         public async Task<IActionResult> Reopen(int shiftId, string reason)
         {
             var shift = await _context.Shifts.FindAsync(shiftId);
-            if (shift == null) return NotFound();
+            if (shift == null || !shift.IsClosureRecord) return NotFound();
 
             var dateParam = shift.ShiftDate.Date.ToString("yyyy-MM-dd");
 
@@ -215,10 +215,7 @@ namespace Salon.Controllers
                 .Include(c => c.PurchaseRequests)
                 .ToListAsync();
 
-            var pendingShift = await _context.Shifts
-                .Where(x => x.ApprovalStatus == Shift.ApprovalStatuses.AutoClosedUnapproved && x.ShiftDate.Date != day)
-                .OrderBy(x => x.ShiftDate)
-                .FirstOrDefaultAsync();
+            var pendingApprovalDate = await FindPendingApprovalDateAsync(day);
 
             return new DailyClosureViewModel
             {
@@ -243,8 +240,35 @@ namespace Salon.Controllers
                 Deposits = deposits,
                 Advances = advancesToday,
                 Custodies = custodies.Where(c => c.CustodyDate >= day && c.CustodyDate < dayEnd).ToList(),
-                PendingApprovalDate = pendingShift?.ShiftDate.Date
+                PendingApprovalDate = pendingApprovalDate
             };
+        }
+
+        // يوم "مغلق" فعلاً = له سجل اعتماد بحالة معتمد/معتمد بفروقات. أي يوم سابق فيه مبيعات
+        // ومالوش سجل اعتماد أصلاً (أو سجله لسه مفتوح/أُغلق آلياً بدون اعتماد) لازم يتنبّه عنه —
+        // مش بس الحالة الحرفية "أُغلق آلياً" القديمة. (نفس المنطق المستخدم في _Layout.cshtml)
+        private async Task<DateTime?> FindPendingApprovalDateAsync(DateTime excludeDay)
+        {
+            var lookbackStart = DateTime.Today.AddDays(-90);
+
+            var approvedDates = new HashSet<DateTime>(await _context.Shifts
+                .Where(s => s.IsClosureRecord && s.ShiftDate >= lookbackStart && s.ShiftDate < DateTime.Today
+                    && (s.ApprovalStatus == Shift.ApprovalStatuses.Approved
+                        || s.ApprovalStatus == Shift.ApprovalStatuses.ApprovedWithDiscrepancy))
+                .Select(s => s.ShiftDate.Date)
+                .ToListAsync());
+
+            var saleDates = await _context.Sales
+                .Where(s => s.SaleDate >= lookbackStart && s.SaleDate < DateTime.Today && s.Status != "ملغي")
+                .Select(s => s.SaleDate.Date)
+                .Distinct()
+                .ToListAsync();
+
+            return saleDates
+                .Where(d => d != excludeDay.Date && !approvedDates.Contains(d))
+                .OrderByDescending(d => d)
+                .Cast<DateTime?>()
+                .FirstOrDefault();
         }
     }
 }

@@ -499,7 +499,7 @@ namespace Salon.Controllers
                 .ToListAsync();
 
             var shift = await _context.Shifts
-                .Where(s => s.ShiftDate >= today && s.ShiftDate < tomorrow)
+                .Where(s => !s.IsClosureRecord && s.ShiftDate >= today && s.ShiftDate < tomorrow)
                 .OrderByDescending(s => s.CreatedAt)
                 .FirstOrDefaultAsync();
 
@@ -599,7 +599,7 @@ namespace Salon.Controllers
                     .ToListAsync();
 
                 var firstDayShift = await _context.Shifts
-                    .Where(s => s.ShiftDate >= monthStart && s.ShiftDate < monthStart.AddDays(1))
+                    .Where(s => !s.IsClosureRecord && s.ShiftDate >= monthStart && s.ShiftDate < monthStart.AddDays(1))
                     .OrderBy(s => s.CreatedAt)
                     .FirstOrDefaultAsync();
 
@@ -614,6 +614,7 @@ namespace Salon.Controllers
                 else
                 {
                     var firstShiftEver = await _context.Shifts
+                        .Where(s => !s.IsClosureRecord)
                         .OrderBy(s => s.ShiftDate).ThenBy(s => s.CreatedAt)
                         .FirstOrDefaultAsync();
                     if (firstShiftEver != null && firstShiftEver.ShiftDate.Date < monthStart)
@@ -1769,6 +1770,62 @@ namespace Salon.Controllers
             ViewBag.TotalCount = sales.Count(s => s.Status != "ملغي");
 
             return PartialView("_CustomerSalesDetail", sales);
+        }
+
+        public async Task<IActionResult> Closures(string? from, string? to)
+        {
+            DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
+            DateTime dateToInclusive = string.IsNullOrEmpty(to) ? DateTime.Today : DateTime.Parse(to);
+            DateTime dateTo = dateToInclusive.Date.AddDays(1);
+
+            var shifts = await _context.Shifts
+                .Where(s => s.IsClosureRecord && s.ShiftDate >= dateFrom && s.ShiftDate < dateTo)
+                .ToListAsync();
+            var shiftByDay = shifts
+                .GroupBy(s => s.ShiftDate.Date)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(s => s.CreatedAt).First());
+
+            var sales = await _context.Sales
+                .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي")
+                .ToListAsync();
+            var revenueByDay = sales
+                .GroupBy(s => s.SaleDate.Date)
+                .ToDictionary(g => g.Key, g => g.Sum(s => s.NetAmount));
+
+            var rows = new List<ClosureReportRow>();
+            for (var day = dateToInclusive.Date; day >= dateFrom.Date; day = day.AddDays(-1))
+            {
+                shiftByDay.TryGetValue(day, out var shift);
+                revenueByDay.TryGetValue(day, out var rev);
+
+                rows.Add(new ClosureReportRow
+                {
+                    ShiftId = shift?.Id ?? 0,
+                    Date = day,
+                    ApprovalStatus = shift?.ApprovalStatus ?? Shift.ApprovalStatuses.Open,
+                    CashierName = shift?.CashierName,
+                    TotalRevenue = rev,
+                    ExpectedCashBalance = shift?.ExpectedCashBalance,
+                    ActualCashBalance = shift?.ClosingBalance,
+                    SystemKnetTotal = shift?.SystemKnetTotal,
+                    DeviceKnetTotal = shift?.DeviceKnetTotal,
+                    CashDifferenceReason = shift?.CashDifferenceReason,
+                    KnetDifferenceReason = shift?.KnetDifferenceReason,
+                    ApprovedByUserName = shift?.ApprovedByUserName,
+                    ApprovedAt = shift?.ApprovedAt
+                });
+            }
+
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateToInclusive.ToString("yyyy-MM-dd");
+            ViewBag.TotalDays = rows.Count;
+            ViewBag.ApprovedCount = rows.Count(r => r.ApprovalStatus == Shift.ApprovalStatuses.Approved);
+            ViewBag.ApprovedWithDiscrepancyCount = rows.Count(r => r.ApprovalStatus == Shift.ApprovalStatuses.ApprovedWithDiscrepancy);
+            ViewBag.PendingCount = rows.Count(r => r.ApprovalStatus == Shift.ApprovalStatuses.AutoClosedUnapproved);
+            ViewBag.OpenCount = rows.Count(r => r.ApprovalStatus == Shift.ApprovalStatuses.Open);
+            ViewBag.TotalRevenue = rows.Sum(r => r.TotalRevenue);
+
+            return View(rows);
         }
     }
 }

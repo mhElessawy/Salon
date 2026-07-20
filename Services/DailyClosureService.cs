@@ -28,7 +28,7 @@ namespace Salon.Services
         {
             var day = date.Date;
             return await _context.Shifts
-                .Where(s => s.ShiftDate.Date == day)
+                .Where(s => s.ShiftDate.Date == day && s.IsClosureRecord)
                 .OrderByDescending(s => s.CreatedAt)
                 .FirstOrDefaultAsync();
         }
@@ -46,7 +46,8 @@ namespace Salon.Services
                 StartTime = TimeSpan.Zero,
                 OpeningBalance = 0,
                 CreatedAt = DateTime.Now,
-                ApprovalStatus = Shift.ApprovalStatuses.Open
+                ApprovalStatus = Shift.ApprovalStatuses.Open,
+                IsClosureRecord = true
             };
             _context.Shifts.Add(shift);
             await _context.SaveChangesAsync();

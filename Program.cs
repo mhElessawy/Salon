@@ -327,6 +327,9 @@ using (var scope = app.Services.CreateScope())
             // اليومية "المغلقة" حالياً (النظام القديم) تُعتبر معتمدة تلقائياً حتى لا تُقفل كل
             // بيانات الماضي فجأة بميزة القفل الجديدة.
             TryExec("UPDATE Shifts SET ApprovalStatus = 'معتمد' WHERE Status = 'مغلق' AND ApprovalStatus = 'مفتوح'");
+            // يفصل سجلات اعتماد الإغلاق عن سجلات "الشفتات" العادية حتى ما تبقاش الشاشتين شغالين
+            // على نفس الصف (انظر التعليق فوق تعريف IsClosureRecord في Shift.cs).
+            TryExec("ALTER TABLE Shifts ADD COLUMN IsClosureRecord INTEGER NOT NULL DEFAULT 0");
         }
         else
         {
@@ -533,7 +536,30 @@ using (var scope = app.Services.CreateScope())
             // اليومية "المغلقة" حالياً (النظام القديم) تُعتبر معتمدة تلقائياً حتى لا تُقفل كل
             // بيانات الماضي فجأة بميزة القفل الجديدة.
             TryExec("UPDATE Shifts SET ApprovalStatus = N'معتمد' WHERE Status = N'مغلق' AND ApprovalStatus = N'مفتوح'");
+            // يفصل سجلات اعتماد الإغلاق عن سجلات "الشفتات" العادية حتى ما تبقاش الشاشتين شغالين
+            // على نفس الصف (انظر التعليق فوق تعريف IsClosureRecord في Shift.cs).
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='IsClosureRecord') ALTER TABLE Shifts ADD IsClosureRecord BIT NOT NULL DEFAULT 0");
         }
+
+        // ترحيل لمرة واحدة: قبل هذا الفصل كانت شاشة "اعتماد اليومية" تعيد استخدام آخر صف Shift
+        // موجود لليوم (أياً كان مصدره) كأساس الإغلاق. بنحدد نفس الصف اللي كان النظام القديم
+        // شغال عليه (آخر صف بتاريخ الإنشاء لكل يوم) ونعلّمه IsClosureRecord = true حتى ما تضيعش
+        // حالة أي يومية سابقة. الشرط "لو مفيش أي صف متعلَّم أصلاً" يخلّي هذا الكود ميتكررش على
+        // بيانات جديدة بعد التفعيل (كل يومية جديدة بتتعلّم من كود DailyClosureService مباشرة).
+        try
+        {
+            bool anyClosureMarked = await context.Shifts.AnyAsync(s => s.IsClosureRecord);
+            if (!anyClosureMarked)
+            {
+                var legacyShifts = await context.Shifts.ToListAsync();
+                var legacyClosureRows = legacyShifts
+                    .GroupBy(s => s.ShiftDate.Date)
+                    .Select(g => g.OrderByDescending(s => s.CreatedAt).First());
+                foreach (var s in legacyClosureRows) s.IsClosureRecord = true;
+                await context.SaveChangesAsync();
+            }
+        }
+        catch { }
 
         await SeedData.InitializeAsync(services);
     }

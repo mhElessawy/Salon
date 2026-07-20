@@ -1,0 +1,339 @@
+﻿@model IEnumerable<Salon.Models.ClosureReportRow>
+@{
+    ViewData["Title"] = "تقرير الإغلاقات اليومية";
+
+    int totalDays = ViewBag.TotalDays is int td ? td : 0;
+    int approvedCount = ViewBag.ApprovedCount is int ac ? ac : 0;
+    int approvedDiscCount = ViewBag.ApprovedWithDiscrepancyCount is int adc ? adc : 0;
+    int pendingCount = ViewBag.PendingCount is int pc ? pc : 0;
+    int openCount = ViewBag.OpenCount is int oc ? oc : 0;
+    decimal totalRevenue = ViewBag.TotalRevenue is decimal tr ? tr : 0m;
+
+    string BadgeClass(string status) => status switch
+    {
+        "معتمد" => "bg-success",
+        "معتمد - يوجد فروقات" => "bg-danger",
+        "مغلق آلياً - بانتظار الاعتماد" => "bg-warning text-dark",
+        _ => "bg-secondary"
+    };
+    string BadgeIcon(string status) => status switch
+    {
+        "معتمد" => "🟢",
+        "معتمد - يوجد فروقات" => "🔴",
+        "مغلق آلياً - بانتظار الاعتماد" => "🟡",
+        _ => "⚪"
+    };
+}
+
+@* ======= STYLES ======= *@
+<style>
+    @@media print {
+        .no-print {
+            display: none !important;
+        }
+
+        body {
+            direction: rtl;
+        }
+
+        .print-header {
+            display: block !important;
+        }
+
+        .app-wrapper, .main-content, .page-content {
+            display: block !important;
+            min-height: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
+            margin: 0 !important;
+        }
+
+        .card:not(.no-exist) {
+            display: block !important;
+            box-shadow: none !important;
+            border: 1px solid #dee2e6 !important;
+        }
+
+        .table-responsive {
+            overflow: visible !important;
+        }
+
+        .rev-stat {
+            box-shadow: none !important;
+            border: 1px solid #e5e7eb;
+        }
+
+        * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
+
+    .print-header {
+        display: none;
+    }
+
+    .rev-stat {
+        background: #fff;
+        border-radius: 14px;
+        padding: 14px 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,.07);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 100%;
+    }
+
+    .rev-stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .rev-stat-label {
+        font-size: .74rem;
+        color: #6b7280;
+        margin-bottom: 2px;
+    }
+
+    .rev-stat-value {
+        font-size: 1.05rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .rev-table thead th {
+        background: #f8fafc;
+        font-size: .82rem;
+        font-weight: 600;
+        color: #374151;
+        border-bottom: 2px solid #e5e7eb;
+        white-space: nowrap;
+        padding: 10px 14px;
+    }
+
+    .rev-table tbody td {
+        padding: 9px 14px;
+        font-size: .88rem;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+
+    .rev-table tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    .rev-table tbody tr.discrepancy-row {
+        background: #fff5f5;
+    }
+</style>
+
+@* ======= PRINT HEADER ======= *@
+<div class="print-header text-center mb-3">
+    <h4 class="fw-bold" data-i18n-en="Daily Closures Report">تقرير الإغلاقات اليومية</h4>
+    <p class="mb-0"><span data-i18n-en="Period:">الفترة:</span> @ViewBag.From <span data-i18n-en="to">إلى</span> @ViewBag.To</p>
+</div>
+
+@* ======= HEADER ======= *@
+<div class="d-flex justify-content-between align-items-start mb-3 no-print flex-wrap gap-2">
+    <div>
+        <h1 class="h4 mb-0 fw-bold">
+            <i class="fas fa-clipboard-check me-2" style="color:#F7941D;"></i>
+            <span data-i18n-en="Daily Closures Report">تقرير الإغلاقات اليومية</span>
+        </h1>
+        <p class="text-muted small mb-0">
+            <span data-i18n-en="Approval status of each day's closure, with cash and KNET discrepancies">حالة اعتماد إغلاق كل يوم مع فروقات الصندوق و KNET</span>
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <button onclick="window.print()" class="btn btn-dark btn-sm">
+            <i class="fas fa-print me-1"></i><span data-i18n-en="Print">طباعة</span>
+        </button>
+        <button onclick="exportClosuresCSV()" class="btn btn-success btn-sm">
+            <i class="fas fa-file-excel me-1"></i>Excel
+        </button>
+    </div>
+</div>
+
+@* ======= FILTERS ======= *@
+<div class="card mb-3 no-print">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label mb-1 small" data-i18n-en="From Date">من تاريخ</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                    <input type="date" name="from" value="@ViewBag.From" class="form-control" style="max-width:160px;" />
+                </div>
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1 small" data-i18n-en="To Date">إلى تاريخ</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                    <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:160px;" />
+                </div>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-search me-1"></i><span data-i18n-en="Search">بحث</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* ======= SUMMARY CARDS ======= *@
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-2">
+        <div class="rev-stat" style="border:2px solid #1a1a2e;">
+            <div class="rev-stat-icon" style="background:#e0e7ff;color:#1a1a2e;"><i class="fas fa-calendar-days"></i></div>
+            <div>
+                <div class="rev-stat-label" data-i18n-en="Total Days">إجمالي الأيام</div>
+                <div class="rev-stat-value" style="color:#1a1a2e;">@totalDays</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="rev-stat">
+            <div class="rev-stat-icon" style="background:#dcfce7;color:#16a34a;"><i class="fas fa-check-circle"></i></div>
+            <div>
+                <div class="rev-stat-label" data-i18n-en="Approved">معتمدة سليمة</div>
+                <div class="rev-stat-value" style="color:#16a34a;">@approvedCount</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="rev-stat">
+            <div class="rev-stat-icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-exclamation-circle"></i></div>
+            <div>
+                <div class="rev-stat-label" data-i18n-en="Approved w/ Discrepancy">معتمدة بفروقات</div>
+                <div class="rev-stat-value" style="color:#dc2626;">@approvedDiscCount</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="rev-stat">
+            <div class="rev-stat-icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-hourglass-half"></i></div>
+            <div>
+                <div class="rev-stat-label" data-i18n-en="Pending Approval">بانتظار الاعتماد</div>
+                <div class="rev-stat-value" style="color:#b45309;">@pendingCount</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="rev-stat">
+            <div class="rev-stat-icon" style="background:#f1f5f9;color:#64748b;"><i class="fas fa-lock-open"></i></div>
+            <div>
+                <div class="rev-stat-label" data-i18n-en="Open">مفتوحة</div>
+                <div class="rev-stat-value" style="color:#64748b;">@openCount</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="rev-stat" style="border:2px solid #16a34a;">
+            <div class="rev-stat-icon" style="background:#dcfce7;color:#16a34a;"><i class="fas fa-sack-dollar"></i></div>
+            <div>
+                <div class="rev-stat-label" data-i18n-en="Total Revenue">إجمالي الإيراد</div>
+                <div class="rev-stat-value" style="color:#16a34a;">@totalRevenue.ToString("N3")</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ======= TABLE ======= *@
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center py-2">
+        <h6 class="fw-bold mb-0"><i class="fas fa-table me-2"></i><span data-i18n-en="Closures by Day">الإغلاقات حسب اليوم</span></h6>
+        <span class="badge bg-secondary">@Model.Count() <span data-i18n-en="days">يوم</span></span>
+    </div>
+    <div class="table-responsive">
+        <table class="table rev-table mb-0" id="closuresTable">
+            <thead>
+                <tr>
+                    <th data-i18n-en="Date">التاريخ</th>
+                    <th data-i18n-en="Status">الحالة</th>
+                    <th data-i18n-en="Cashier">الكاشير</th>
+                    <th data-i18n-en="Revenue">الإيراد</th>
+                    <th data-i18n-en="Expected Cash">الكاش المتوقع</th>
+                    <th data-i18n-en="Actual Cash">الكاش الفعلي</th>
+                    <th data-i18n-en="Cash Diff.">فرق الصندوق</th>
+                    <th data-i18n-en="KNET Diff.">فرق KNET</th>
+                    <th data-i18n-en="Approved By">اعتمدها</th>
+                    <th data-i18n-en="Approved At">وقت الاعتماد</th>
+                    <th class="no-print" data-i18n-en="">&nbsp;</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="11" class="text-center text-muted py-4">
+                            <span data-i18n-en="No closures in this period">لا توجد إغلاقات في هذه الفترة</span>
+                        </td>
+                    </tr>
+                }
+                @foreach (var r in Model)
+                {
+                    <tr class="@(r.HasDiscrepancy ? "discrepancy-row" : "")">
+                        <td><strong>@r.Date.ToString("yyyy/MM/dd")</strong></td>
+                        <td><span class="badge @BadgeClass(r.ApprovalStatus)">@BadgeIcon(r.ApprovalStatus) @r.ApprovalStatus</span></td>
+                        <td>@(r.CashierName ?? "-")</td>
+                        <td><strong class="text-success">@r.TotalRevenue.ToString("N3")</strong></td>
+                        <td>@(r.ExpectedCashBalance?.ToString("N3") ?? "-")</td>
+                        <td>@(r.ActualCashBalance?.ToString("N3") ?? "-")</td>
+                        <td>
+                            @if (r.CashDifference.HasValue)
+                            {
+                                <span class="@(Math.Abs(r.CashDifference.Value) >= 0.001m ? "text-danger fw-bold" : "text-muted")">@r.CashDifference.Value.ToString("N3")</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </td>
+                        <td>
+                            @if (r.KnetDifference.HasValue)
+                            {
+                                <span class="@(Math.Abs(r.KnetDifference.Value) >= 0.001m ? "text-danger fw-bold" : "text-muted")">@r.KnetDifference.Value.ToString("N3")</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </td>
+                        <td>@(r.ApprovedByUserName ?? "-")</td>
+                        <td>@(r.ApprovedAt?.ToString("yyyy/MM/dd HH:mm") ?? "-")</td>
+                        <td class="no-print">
+                            <a href="@Url.Action("Review", "DailyClosure", new { date = r.Date.ToString("yyyy-MM-dd") })" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function exportClosuresCSV() {
+            const rows = document.querySelectorAll('#closuresTable tbody tr, #closuresTable thead tr');
+            let csv = '﻿';
+            rows.forEach(row => {
+                const cells = Array.from(row.querySelectorAll('td,th')).filter(c => !c.classList.contains('no-print'));
+                csv += cells.map(c => '"' + c.innerText.trim().replace(/"/g, '""') + '"').join(',') + '\n';
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'closures-@(ViewBag.From)-@(ViewBag.To).csv';
+            a.click();
+        }
+    </script>
+}

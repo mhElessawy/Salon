@@ -98,7 +98,7 @@ namespace Salon.Controllers
 
             // 1. Closed shifts — cash difference or normal close
             var closedShifts = await _context.Shifts
-                .Where(s => s.Status == "مغلق" && s.ShiftDate >= weekAgo && s.ClosingBalance.HasValue)
+                .Where(s => !s.IsClosureRecord && s.Status == "مغلق" && s.ShiftDate >= weekAgo && s.ClosingBalance.HasValue)
                 .OrderByDescending(s => s.ShiftDate).ThenByDescending(s => s.CreatedAt)
                 .Take(10).ToListAsync();
 
@@ -176,7 +176,7 @@ namespace Salon.Controllers
             if (viewerIsManager)
             {
                 var closureUpdates = await _context.Shifts
-                    .Where(s => s.ShiftDate >= weekAgo && (
+                    .Where(s => s.IsClosureRecord && s.ShiftDate >= weekAgo && (
                         s.ApprovalStatus == Shift.ApprovalStatuses.Approved
                         || s.ApprovalStatus == Shift.ApprovalStatuses.ApprovedWithDiscrepancy
                         || s.ApprovalStatus == Shift.ApprovalStatuses.AutoClosedUnapproved))
