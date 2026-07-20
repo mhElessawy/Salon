@@ -160,8 +160,10 @@ namespace Salon.Controllers
             // component below is scoped by filterDept using the exact same rules as the
             // "today" queries above, so a department's opening balance stays its own running
             // share of the safe (matching Reports/CashMovement) rather than the whole register.
+            // ملحوظة: عدم استبعاد صفوف IsClosureRecord هنا مقصود — نفس السبب الموضّح في
+            // CashBoxCalculator.GetSnapshotAsync (تحديد أول تاريخ عندنا فيه بيانات، مش رصيد
+            // افتتاحي يدوي حقيقي بالضرورة).
             var firstShiftEver = await _context.Shifts
-                .Where(s => !s.IsClosureRecord)
                 .OrderBy(s => s.ShiftDate).ThenBy(s => s.CreatedAt)
                 .FirstOrDefaultAsync();
             bool hasBaseline = firstShiftEver != null && firstShiftEver.ShiftDate.Date <= today;

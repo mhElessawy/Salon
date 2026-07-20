@@ -613,8 +613,10 @@ namespace Salon.Controllers
                 }
                 else
                 {
+                    // ملحوظة: عدم استبعاد صفوف IsClosureRecord هنا مقصود — نفس السبب الموضّح في
+                    // CashBoxCalculator.GetSnapshotAsync (تحديد أول تاريخ عندنا فيه بيانات، مش
+                    // رصيد افتتاحي يدوي حقيقي بالضرورة).
                     var firstShiftEver = await _context.Shifts
-                        .Where(s => !s.IsClosureRecord)
                         .OrderBy(s => s.ShiftDate).ThenBy(s => s.CreatedAt)
                         .FirstOrDefaultAsync();
                     if (firstShiftEver != null && firstShiftEver.ShiftDate.Date < monthStart)
