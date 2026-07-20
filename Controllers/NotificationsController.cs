@@ -172,8 +172,9 @@ namespace Salon.Controllers
                 }
             }
 
-            // 1b. نتيجة اعتماد/إغلاق اليومية — إشعار صاحب المحل فقط (لا يعتمد بنفسه، يستقبل النتيجة)
-            if (viewerIsManager)
+            // 1b. اليوميات غير المعتمدة (أغلقت آلياً بانتظار المراجعة) — تصل للكاشير والإدارة معاً
+            //     أما نتيجة الاعتماد (تمت الموافقة/يوجد فروقات) فتصل لصاحب المحل (الإدارة) فقط
+            if (viewerIsCashier)
             {
                 var closureUpdates = await _context.Shifts
                     .Where(s => s.ShiftDate >= weekAgo && (
@@ -208,7 +209,7 @@ namespace Salon.Controllers
                             Key = NotifKey("closure-auto-closed", notifDate, sub)
                         });
                     }
-                    else
+                    else if (viewerIsManager)
                     {
                         bool hasDiscrepancy = shift.ApprovalStatus == Shift.ApprovalStatuses.ApprovedWithDiscrepancy;
                         var notifDate = shift.ApprovedAt ?? shift.ShiftDate;
