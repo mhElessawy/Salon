@@ -276,7 +276,10 @@ namespace Salon.Controllers
                 : outstandingDebtsQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == department);
             var outstandingDebts = (await outstandingDebtsQuery.ToListAsync()).Sum(a => a.Amount - a.DeductedAmount);
 
-            var custodiesQuery = _context.Custodies.Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
+            // ملحوظة: النوع المصرَّح به IQueryable<Custody> (مش var) عمداً — لو سبناه var هيتحدد
+            // نوعه IIncludableQueryable بسبب الـ Include المتتالي، وإعادة تعيينه بـ .Where() تاني
+            // (اللي بترجّع IQueryable عادي) بترمي InvalidCastException وقت التشغيل.
+            IQueryable<Custody> custodiesQuery = _context.Custodies.Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Include(c => c.PurchaseRequests);
             custodiesQuery = isShared
                 ? custodiesQuery.Where(c => (c.Employee!.RevenueDepartment ?? c.Employee!.DepartmentNav!.Name) != Shift.ClosureDepartments.Haircut
