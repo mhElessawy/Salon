@@ -104,38 +104,20 @@
     <p>نظرة عامة على أداء القسم اليوم</p>
 </div>
 
-@{
-    string DeptLabel(string d) => d switch
-    {
-        "حلاقة" => "✂ حلاقة",
-        "مساج" => "🌿 مساج",
-        _ => "🗂 عام (مشترك)"
-    };
-}
 @if (Model.UnapprovedClosures.Any())
 {
-    <div class="alert alert-warning alert-dismissible fade show">
-        <i class="fas fa-exclamation-triangle me-1"></i>
-        @if (Model.UnapprovedClosures.Count == 1)
-        {
-            <span>
-                توجد يومية (@DeptLabel(Model.UnapprovedClosures[0].Department)) بتاريخ @Model.UnapprovedClosures[0].Date.ToString("yyyy/MM/dd") لم يتم اعتمادها،
-                <a asp-controller="DailyClosure" asp-action="Review" asp-route-date="@Model.UnapprovedClosures[0].Date.ToString("yyyy-MM-dd")" asp-route-dept="@Model.UnapprovedClosures[0].Department" class="alert-link">اضغط هنا للمراجعة</a>.
-            </span>
-        }
-        else
-        {
-            <span>
-                توجد @Model.UnapprovedClosures.Count يوميات لم يتم اعتمادها، يرجى مراجعتها:
-                @for (int i = 0; i < Model.UnapprovedClosures.Count; i++)
-                {
-                    <a asp-controller="DailyClosure" asp-action="Review" asp-route-date="@Model.UnapprovedClosures[i].Date.ToString("yyyy-MM-dd")" asp-route-dept="@Model.UnapprovedClosures[i].Department" class="alert-link">@DeptLabel(Model.UnapprovedClosures[i].Department) @Model.UnapprovedClosures[i].Date.ToString("yyyy/MM/dd")</a>
-                    @(i < Model.UnapprovedClosures.Count - 1 ? "، " : "")
-                }
-            </span>
-        }
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
+    <a asp-controller="Reports" asp-action="Closures" class="text-decoration-none">
+        <div class="stat-card mb-3" style="border-right:4px solid #f59e0b; max-width:240px; cursor:pointer;">
+            <div class="stat-card-header">
+                <span class="stat-label">يوميات بانتظار الاعتماد</span>
+                <div class="stat-icon" style="background:#f59e0b;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+            </div>
+            <div class="stat-value" style="color:#b45309;">@Model.UnapprovedClosures.Count</div>
+            <div class="stat-sub">اضغط للمراجعة</div>
+        </div>
+    </a>
 }
 
 @if (!Model.HasAccess)
