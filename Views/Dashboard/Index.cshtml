@@ -104,18 +104,45 @@
     <p>نظرة عامة على أداء القسم اليوم</p>
 </div>
 
+@{
+    string DeptLabel(string d) => d switch
+    {
+        "حلاقة" => "✂ حلاقة",
+        "مساج" => "🌿 مساج",
+        _ => "🗂 عام"
+    };
+    var closuresByDept = Model.UnapprovedClosures
+        .GroupBy(c => c.Department)
+        .OrderBy(g => g.Key == "حلاقة" ? 0 : g.Key == "مساج" ? 1 : 2)
+        .ToList();
+}
 @if (Model.UnapprovedClosures.Any())
 {
     <a asp-controller="Reports" asp-action="Closures" class="text-decoration-none">
-        <div class="stat-card mb-3" style="border-right:4px solid #f59e0b; max-width:240px; cursor:pointer;">
+        <div class="stat-card mb-3" style="border-right:4px solid #f59e0b; max-width:260px; cursor:pointer;">
             <div class="stat-card-header">
                 <span class="stat-label">يوميات بانتظار الاعتماد</span>
                 <div class="stat-icon" style="background:#f59e0b;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;">
                     <i class="fas fa-exclamation-triangle"></i>
                 </div>
             </div>
-            <div class="stat-value" style="color:#b45309;">@Model.UnapprovedClosures.Count</div>
-            <div class="stat-sub">اضغط للمراجعة</div>
+            @if (closuresByDept.Count > 1)
+            {
+                <div class="d-flex gap-4">
+                    @foreach (var g in closuresByDept)
+                    {
+                        <div>
+                            <div class="stat-value" style="color:#b45309;font-size:20px;">@g.Count()</div>
+                            <div class="stat-sub">@DeptLabel(g.Key)</div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="stat-value" style="color:#b45309;">@Model.UnapprovedClosures.Count</div>
+                <div class="stat-sub">@DeptLabel(closuresByDept[0].Key) — اضغط للمراجعة</div>
+            }
         </div>
     </a>
 }
