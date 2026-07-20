@@ -7,7 +7,6 @@
     int approvedDiscCount = ViewBag.ApprovedWithDiscrepancyCount is int adc ? adc : 0;
     int pendingCount = ViewBag.PendingCount is int pc ? pc : 0;
     int openCount = ViewBag.OpenCount is int oc ? oc : 0;
-    int noRecordCount = ViewBag.NoRecordCount is int nrc ? nrc : 0;
     decimal totalRevenue = ViewBag.TotalRevenue is decimal tr ? tr : 0m;
 
     string BadgeClass(string status) => status switch
@@ -15,7 +14,6 @@
         "معتمد" => "bg-success",
         "معتمد - يوجد فروقات" => "bg-danger",
         "مغلق آلياً - بانتظار الاعتماد" => "bg-warning text-dark",
-        Salon.Controllers.ReportsController.NoClosureRecordStatus => "bg-light text-muted border",
         _ => "bg-secondary"
     };
     string BadgeIcon(string status) => status switch
@@ -23,7 +21,6 @@
         "معتمد" => "🟢",
         "معتمد - يوجد فروقات" => "🔴",
         "مغلق آلياً - بانتظار الاعتماد" => "🟡",
-        Salon.Controllers.ReportsController.NoClosureRecordStatus => "➖",
         _ => "⚪"
     };
 }
@@ -167,15 +164,6 @@
             <div>
                 <div class="rev-stat-label" data-i18n-en="Open">مفتوحة</div>
                 <div class="rev-stat-value" style="color:#64748b;">@openCount</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-md-2">
-        <div class="rev-stat">
-            <div class="rev-stat-icon" style="background:#f8fafc;color:#94a3b8;"><i class="fas fa-minus"></i></div>
-            <div>
-                <div class="rev-stat-label" data-i18n-en="No Record">لا يوجد سجل</div>
-                <div class="rev-stat-value" style="color:#94a3b8;">@noRecordCount</div>
             </div>
         </div>
     </div>

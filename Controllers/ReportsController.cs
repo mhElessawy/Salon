@@ -1772,8 +1772,6 @@ namespace Salon.Controllers
             return PartialView("_CustomerSalesDetail", sales);
         }
 
-        public const string NoClosureRecordStatus = "لا يوجد سجل";
-
         public async Task<IActionResult> Closures(string? from, string? to)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
@@ -1804,7 +1802,7 @@ namespace Salon.Controllers
                 {
                     ShiftId = shift?.Id ?? 0,
                     Date = day,
-                    ApprovalStatus = shift?.ApprovalStatus ?? NoClosureRecordStatus,
+                    ApprovalStatus = shift?.ApprovalStatus ?? Shift.ApprovalStatuses.Open,
                     CashierName = shift?.CashierName,
                     TotalRevenue = rev,
                     ExpectedCashBalance = shift?.ExpectedCashBalance,
@@ -1825,7 +1823,6 @@ namespace Salon.Controllers
             ViewBag.ApprovedWithDiscrepancyCount = rows.Count(r => r.ApprovalStatus == Shift.ApprovalStatuses.ApprovedWithDiscrepancy);
             ViewBag.PendingCount = rows.Count(r => r.ApprovalStatus == Shift.ApprovalStatuses.AutoClosedUnapproved);
             ViewBag.OpenCount = rows.Count(r => r.ApprovalStatus == Shift.ApprovalStatuses.Open);
-            ViewBag.NoRecordCount = rows.Count(r => r.ApprovalStatus == NoClosureRecordStatus);
             ViewBag.TotalRevenue = rows.Sum(r => r.TotalRevenue);
 
             return View(rows);
