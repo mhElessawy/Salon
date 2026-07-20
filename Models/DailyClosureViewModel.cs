@@ -24,6 +24,9 @@
         public bool CanApprove { get; set; }
         public bool CanReopen { get; set; }
 
+        /// <summary>تاريخ يومية سابقة أُغلقت آلياً بدون اعتماد (غير اليومية المعروضة حالياً)، لتنبيه المستخدم بها فور الدخول.</summary>
+        public DateTime? PendingApprovalDate { get; set; }
+
         public List<Expense> Expenses { get; set; } = new();
         public List<Withdrawal> Withdrawals { get; set; } = new();
         public List<Deposit> Deposits { get; set; } = new();

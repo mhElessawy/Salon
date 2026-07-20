@@ -116,6 +116,17 @@ namespace Salon.Controllers
                 .Take(10)
                 .ToListAsync();
 
+            // اليوميات المغلقة آلياً بانتظار الاعتماد — تظهر للكاشير والإدارة كتنبيه فوري
+            var unapprovedClosureDates = new List<DateTime>();
+            if (User.IsInRole("Cashier") || User.IsInRole("Admin") || User.IsInRole("Manager"))
+            {
+                unapprovedClosureDates = await _context.Shifts
+                    .Where(s => s.ApprovalStatus == Shift.ApprovalStatuses.AutoClosedUnapproved)
+                    .OrderBy(s => s.ShiftDate)
+                    .Select(s => s.ShiftDate.Date)
+                    .ToListAsync();
+            }
+
             // فواتير اليوم التي بها ملاحظات للموظف المرتبط بالمستخدم
             var invoicesWithNotes = new List<Sale>();
             if ((userDept == "حلاقة" || userDept == "مساج") && currentUser?.LinkedEmployeeId.HasValue == true)
@@ -142,7 +153,8 @@ namespace Salon.Controllers
                 UpcomingBirthdays = birthdayList,
                 ExpiringProducts = expiringProducts,
                 UserDepartment = userDept,
-                InvoicesWithNotes = invoicesWithNotes
+                InvoicesWithNotes = invoicesWithNotes,
+                UnapprovedClosureDates = unapprovedClosureDates
             };
 
             return View(vm);

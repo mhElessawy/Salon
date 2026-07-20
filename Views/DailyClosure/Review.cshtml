@@ -1,4 +1,4 @@
-﻿@model DailyClosureViewModel
+﻿@model  DailyClosureViewModel
 @{
     ViewData["Title"] = "مراجعة واعتماد اليومية";
     var s = Model.Shift;
@@ -46,6 +46,14 @@
     <div class="alert alert-warning">
         <i class="fas fa-exclamation-triangle me-1"></i>
         توجد يومية سابقة أغلقت آلياً ولم يتم اعتمادها، يرجى مراجعتها واعتمادها قبل متابعة العمل.
+    </div>
+}
+else if (Model.PendingApprovalDate != null)
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        توجد يومية بتاريخ @Model.PendingApprovalDate.Value.ToString("yyyy/MM/dd") أغلقت آلياً ولم يتم اعتمادها، يرجى مراجعتها واعتمادها قبل متابعة العمل.
+        <a asp-action="Review" asp-route-date="@Model.PendingApprovalDate.Value.ToString("yyyy-MM-dd")" class="alert-link">اضغط هنا للمراجعة</a>
     </div>
 }
 
