@@ -151,7 +151,7 @@ namespace Salon.Controllers
             var withdrawals = await withdrawalsQuery.ToListAsync();
 
             var shift = await _context.Shifts
-                .Where(s => s.ShiftDate >= today && s.ShiftDate < tomorrow)
+                .Where(s => !s.IsClosureRecord && s.ShiftDate >= today && s.ShiftDate < tomorrow)
                 .OrderByDescending(s => s.CreatedAt)
                 .FirstOrDefaultAsync();
 
@@ -161,6 +161,7 @@ namespace Salon.Controllers
             // "today" queries above, so a department's opening balance stays its own running
             // share of the safe (matching Reports/CashMovement) rather than the whole register.
             var firstShiftEver = await _context.Shifts
+                .Where(s => !s.IsClosureRecord)
                 .OrderBy(s => s.ShiftDate).ThenBy(s => s.CreatedAt)
                 .FirstOrDefaultAsync();
             bool hasBaseline = firstShiftEver != null && firstShiftEver.ShiftDate.Date <= today;

@@ -47,7 +47,7 @@ namespace Salon.Controllers
                 return Forbid();
 
             var shift = await _context.Shifts.FindAsync(shiftId);
-            if (shift == null) return NotFound();
+            if (shift == null || !shift.IsClosureRecord) return NotFound();
 
             var day = shift.ShiftDate.Date;
             var dateParam = day.ToString("yyyy-MM-dd");
@@ -136,7 +136,7 @@ namespace Salon.Controllers
         public async Task<IActionResult> Reopen(int shiftId, string reason)
         {
             var shift = await _context.Shifts.FindAsync(shiftId);
-            if (shift == null) return NotFound();
+            if (shift == null || !shift.IsClosureRecord) return NotFound();
 
             var dateParam = shift.ShiftDate.Date.ToString("yyyy-MM-dd");
 
@@ -216,7 +216,7 @@ namespace Salon.Controllers
                 .ToListAsync();
 
             var pendingShift = await _context.Shifts
-                .Where(x => x.ApprovalStatus == Shift.ApprovalStatuses.AutoClosedUnapproved && x.ShiftDate.Date != day)
+                .Where(x => x.IsClosureRecord && x.ApprovalStatus == Shift.ApprovalStatuses.AutoClosedUnapproved && x.ShiftDate.Date != day)
                 .OrderBy(x => x.ShiftDate)
                 .FirstOrDefaultAsync();
 

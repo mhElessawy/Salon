@@ -49,6 +49,11 @@ namespace Salon.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
+        // يميّز الصف اللي أنشأته شاشة "اعتماد اليومية" (DailyClosureService) عن صفوف "الشفتات"
+        // العادية اللي بتتفتح يدوياً من شاشة إدارة الشفتات — الاتنين بيشتغلوا على صفوف منفصلة
+        // تماماً في نفس الجدول حتى لا تتأثر شاشة بالتانية.
+        public bool IsClosureRecord { get; set; }
+
         // ===== اعتماد وإغلاق اليومية =====
 
         [Display(Name = "حالة الاعتماد")]

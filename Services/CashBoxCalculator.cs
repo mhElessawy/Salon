@@ -31,6 +31,7 @@ namespace Salon.Services
             bool filterDept = !string.IsNullOrEmpty(dept);
 
             var firstShiftEver = await context.Shifts
+                .Where(s => !s.IsClosureRecord)
                 .OrderBy(s => s.ShiftDate).ThenBy(s => s.CreatedAt)
                 .FirstOrDefaultAsync();
 

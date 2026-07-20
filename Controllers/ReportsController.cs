@@ -499,7 +499,7 @@ namespace Salon.Controllers
                 .ToListAsync();
 
             var shift = await _context.Shifts
-                .Where(s => s.ShiftDate >= today && s.ShiftDate < tomorrow)
+                .Where(s => !s.IsClosureRecord && s.ShiftDate >= today && s.ShiftDate < tomorrow)
                 .OrderByDescending(s => s.CreatedAt)
                 .FirstOrDefaultAsync();
 
@@ -599,7 +599,7 @@ namespace Salon.Controllers
                     .ToListAsync();
 
                 var firstDayShift = await _context.Shifts
-                    .Where(s => s.ShiftDate >= monthStart && s.ShiftDate < monthStart.AddDays(1))
+                    .Where(s => !s.IsClosureRecord && s.ShiftDate >= monthStart && s.ShiftDate < monthStart.AddDays(1))
                     .OrderBy(s => s.CreatedAt)
                     .FirstOrDefaultAsync();
 
@@ -614,6 +614,7 @@ namespace Salon.Controllers
                 else
                 {
                     var firstShiftEver = await _context.Shifts
+                        .Where(s => !s.IsClosureRecord)
                         .OrderBy(s => s.ShiftDate).ThenBy(s => s.CreatedAt)
                         .FirstOrDefaultAsync();
                     if (firstShiftEver != null && firstShiftEver.ShiftDate.Date < monthStart)
@@ -1780,7 +1781,7 @@ namespace Salon.Controllers
             DateTime dateTo = dateToInclusive.Date.AddDays(1);
 
             var shifts = await _context.Shifts
-                .Where(s => s.ShiftDate >= dateFrom && s.ShiftDate < dateTo)
+                .Where(s => s.IsClosureRecord && s.ShiftDate >= dateFrom && s.ShiftDate < dateTo)
                 .ToListAsync();
             var shiftByDay = shifts
                 .GroupBy(s => s.ShiftDate.Date)

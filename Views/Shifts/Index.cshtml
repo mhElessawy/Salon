@@ -27,24 +27,16 @@
                         <th>الكاشير</th>
                         <th>رصيد الفتح</th>
                         <th>رصيد الإغلاق</th>
-                        <th>حالة الاعتماد</th>
-                        <th>الإجراءات</th>
+                        <th>الحالة</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="10" class="text-center text-muted py-4">لا توجد شفتات مسجلة</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted py-4">لا توجد شفتات مسجلة</td></tr>
                     }
                     @foreach (var s in Model)
                     {
-                        string badgeClass = s.ApprovalStatus switch
-                        {
-                            "معتمد" => "bg-success",
-                            "معتمد - يوجد فروقات" => "bg-danger",
-                            "مغلق آلياً - بانتظار الاعتماد" => "bg-warning text-dark",
-                            _ => "bg-secondary"
-                        };
                         <tr>
                             <td>@s.Id</td>
                             <td><strong>@s.Name</strong></td>
@@ -55,12 +47,7 @@
                             <td>@s.OpeningBalance.ToString("N3") د.ك</td>
                             <td>@(s.ClosingBalance?.ToString("N3") + " د.ك" ?? "-")</td>
                             <td>
-                                <span class="badge @badgeClass">@s.ApprovalStatus</span>
-                            </td>
-                            <td>
-                                <a href="@Url.Action("Review", "DailyClosure", new { date = s.ShiftDate.ToString("yyyy-MM-dd") })" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-clipboard-check"></i> مراجعة واعتماد
-                                </a>
+                                <span class="badge @(s.Status == "مغلق" ? "bg-secondary" : "bg-success")">@s.Status</span>
                             </td>
                         </tr>
                     }

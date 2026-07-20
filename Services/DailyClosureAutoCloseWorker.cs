@@ -53,7 +53,7 @@ namespace Salon.Services
 
             var today = now.Date;
             var shift = await context.Shifts
-                .Where(s => s.ShiftDate.Date == today)
+                .Where(s => s.ShiftDate.Date == today && s.IsClosureRecord)
                 .OrderByDescending(s => s.CreatedAt)
                 .FirstOrDefaultAsync();
 

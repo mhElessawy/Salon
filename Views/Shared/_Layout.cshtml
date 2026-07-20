@@ -11,7 +11,7 @@
         && (layoutRoles.Contains("Cashier") || layoutRoles.Contains("Admin") || layoutRoles.Contains("Manager")))
     {
         pendingUnapprovedClosure = await LayoutDbContext.Shifts
-            .Where(s => s.ApprovalStatus == Salon.Models.Shift.ApprovalStatuses.AutoClosedUnapproved && s.ShiftDate < DateTime.Today)
+            .Where(s => s.IsClosureRecord && s.ApprovalStatus == Salon.Models.Shift.ApprovalStatuses.AutoClosedUnapproved && s.ShiftDate < DateTime.Today)
             .OrderByDescending(s => s.ShiftDate)
             .FirstOrDefaultAsync();
     }

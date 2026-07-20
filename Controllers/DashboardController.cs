@@ -121,7 +121,7 @@ namespace Salon.Controllers
             if (User.IsInRole("Cashier") || User.IsInRole("Admin") || User.IsInRole("Manager"))
             {
                 unapprovedClosureDates = await _context.Shifts
-                    .Where(s => s.ApprovalStatus == Shift.ApprovalStatuses.AutoClosedUnapproved)
+                    .Where(s => s.IsClosureRecord && s.ApprovalStatus == Shift.ApprovalStatuses.AutoClosedUnapproved)
                     .OrderBy(s => s.ShiftDate)
                     .Select(s => s.ShiftDate.Date)
                     .ToListAsync();

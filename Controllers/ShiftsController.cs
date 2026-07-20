@@ -22,6 +22,7 @@ namespace Salon.Controllers
         public async Task<IActionResult> Index()
         {
             var shifts = await _context.Shifts
+                .Where(s => !s.IsClosureRecord)
                 .OrderByDescending(s => s.ShiftDate)
                 .ThenByDescending(s => s.CreatedAt)
                 .Take(50)
@@ -41,6 +42,7 @@ namespace Salon.Controllers
             if (ModelState.IsValid)
             {
                 model.CreatedAt = DateTime.Now;
+                model.IsClosureRecord = false;
                 _context.Shifts.Add(model);
                 await _context.SaveChangesAsync();
                 await _audit.LogAsync("Open", "Shifts", $"Open shift: {model.ShiftDate:yyyy/MM/dd} {model.StartTime}", model.Id);
@@ -54,7 +56,7 @@ namespace Salon.Controllers
         public async Task<IActionResult> Close(int id, decimal closingBalance, string? notes)
         {
             var shift = await _context.Shifts.FindAsync(id);
-            if (shift != null)
+            if (shift != null && !shift.IsClosureRecord)
             {
                 shift.EndTime = TimeSpan.FromTicks(DateTime.Now.TimeOfDay.Ticks);
                 shift.ClosingBalance = closingBalance;
@@ -73,7 +75,7 @@ namespace Salon.Controllers
             var nextDay = filterDate.AddDays(1);
 
             var shifts = await _context.Shifts
-                .Where(s => s.ShiftDate >= filterDate && s.ShiftDate < nextDay)
+                .Where(s => !s.IsClosureRecord && s.ShiftDate >= filterDate && s.ShiftDate < nextDay)
                 .ToListAsync();
 
             ViewBag.FilterDate = filterDate.ToString("yyyy-MM-dd");
