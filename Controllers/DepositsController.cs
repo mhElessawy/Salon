@@ -14,12 +14,14 @@ namespace Salon.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _audit;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IDailyClosureService _closure;
 
-        public DepositsController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager)
+        public DepositsController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager, IDailyClosureService closure)
         {
             _context = context;
             _audit = audit;
             _userManager = userManager;
+            _closure = closure;
         }
 
         public async Task<IActionResult> Index(string? from, string? to, string? department, string? paymentMethod)
@@ -111,6 +113,12 @@ namespace Salon.Controllers
         {
             if (id != model.Id) return NotFound();
 
+            if (await _closure.IsDateLockedAsync(model.DepositDate))
+            {
+                TempData["Error"] = "لا يمكن تعديل إيداع يخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
+                return RedirectToAction(nameof(Index));
+            }
+
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
 
@@ -138,6 +146,12 @@ namespace Salon.Controllers
             var deposit = await _context.Deposits.FindAsync(id);
             if (deposit != null)
             {
+                if (await _closure.IsDateLockedAsync(deposit.DepositDate))
+                {
+                    TempData["Error"] = "لا يمكن حذف إيداع يخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 var desc = $"{deposit.Description} - {deposit.Amount:F3} KD";
                 _context.Deposits.Remove(deposit);
                 await _context.SaveChangesAsync();

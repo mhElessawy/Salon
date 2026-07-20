@@ -17,7 +17,7 @@
     bool IsGroupOpen(params string[] controllers)
         => controllers.Any(c => ctrl == c.ToLower());
 
-    bool shiftsOpen = IsGroupOpen("shifts");
+    bool shiftsOpen = IsGroupOpen("shifts", "dailyclosure");
     bool salesOpen = IsGroupOpen("sales", "appointments");
     bool defsOpen = IsGroupOpen("services", "servicecategories", "departments", "packages");
     bool inventoryOpen = IsGroupOpen("inventory", "suppliers");
@@ -59,7 +59,7 @@
         }
 
         @* الشفتات *@
-        @if (canSee("Shifts"))
+        @if (canSee("Shifts") || canSee("DailyClosure"))
         {
             <li class="has-submenu @(shiftsOpen ? "open" : "")">
                 <a href="#" class="submenu-toggle @(shiftsOpen ? "active-parent" : "")"
@@ -69,18 +69,30 @@
                     <i class="fas fa-chevron-left arrow-icon"></i>
                 </a>
                 <ul class="submenu @(shiftsOpen ? "show" : "")">
-                    <li>
-                        <a href="@Url.Action("Index", "Shifts")" class="@IsActive("Shifts", "Index")">
-                            <i class="fas fa-play-circle"></i>
-                            <span data-i18n-en="Manage Shifts">إدارة الشفتات</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="@Url.Action("Reports", "Shifts")" class="@IsActive("Shifts", "Reports")">
-                            <i class="fas fa-file-alt"></i>
-                            <span data-i18n-en="Shift Reports">تقارير الشفتات</span>
-                        </a>
-                    </li>
+                    @if (canSee("Shifts"))
+                    {
+                        <li>
+                            <a href="@Url.Action("Index", "Shifts")" class="@IsActive("Shifts", "Index")">
+                                <i class="fas fa-play-circle"></i>
+                                <span data-i18n-en="Manage Shifts">إدارة الشفتات</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Reports", "Shifts")" class="@IsActive("Shifts", "Reports")">
+                                <i class="fas fa-file-alt"></i>
+                                <span data-i18n-en="Shift Reports">تقارير الشفتات</span>
+                            </a>
+                        </li>
+                    }
+                    @if (canSee("DailyClosure"))
+                    {
+                        <li>
+                            <a href="@Url.Action("Review", "DailyClosure")" class="@IsActive("DailyClosure", "Review")">
+                                <i class="fas fa-clipboard-check"></i>
+                                <span data-i18n-en="Approve Daily Closure">اعتماد اليومية</span>
+                            </a>
+                        </li>
+                    }
                 </ul>
             </li>
         }

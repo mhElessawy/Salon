@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+ï»¿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
@@ -19,10 +19,14 @@ namespace Salon.Controllers
         public async Task<IActionResult> Index()
         {
             var settings = await _context.AppSettings.ToDictionaryAsync(s => s.Key, s => s.Value);
-            ViewBag.SalonName = settings.GetValueOrDefault("SalonName", "ãÚåÏ ãæÓ");
+            ViewBag.SalonName = settings.GetValueOrDefault("SalonName", "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½");
             ViewBag.SalonNameEn = settings.GetValueOrDefault("SalonNameEn", "Mos Institute");
             ViewBag.SalonPhone = settings.GetValueOrDefault("SalonPhone", "");
             ViewBag.SalonAddress = settings.GetValueOrDefault("SalonAddress", "");
+            ViewBag.DailyClosureCutoffTime = settings.GetValueOrDefault(
+                Salon.Services.DailyClosureAutoCloseWorker.CutoffSettingKey,
+                Salon.Services.DailyClosureAutoCloseWorker.DefaultCutoff);
+            ViewBag.IsAdmin = User.IsInRole("Admin");
             return View();
         }
 
@@ -35,7 +39,22 @@ namespace Salon.Controllers
             await UpsertSetting("SalonAddress", salonAddress ?? "");
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Êã ÍİÙ ÇáÅÚÏÇÏÇÊ ÈäÌÇÍ";
+            TempData["Success"] = "ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost, ValidateAntiForgeryToken, Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateClosureCutoff(string cutoffTime)
+        {
+            if (!TimeSpan.TryParse(cutoffTime, out _))
+            {
+                TempData["Error"] = "ØµÙŠØºØ© Ø§Ù„ÙˆÙ‚Øª ØºÙŠØ± ØµØ­ÙŠØ­Ø©";
+                return RedirectToAction(nameof(Index));
+            }
+
+            await UpsertSetting(Salon.Services.DailyClosureAutoCloseWorker.CutoffSettingKey, cutoffTime);
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "ØªÙ… Ø­ÙØ¸ ÙˆÙ‚Øª Ø§Ù„Ø¥ØºÙ„Ø§Ù‚ Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ Ù„Ù„ÙŠÙˆÙ…ÙŠØ©";
             return RedirectToAction(nameof(Index));
         }
 

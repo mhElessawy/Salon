@@ -15,12 +15,14 @@ namespace Salon.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _audit;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IDailyClosureService _closure;
 
-        public CustodyController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager)
+        public CustodyController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager, IDailyClosureService closure)
         {
             _context = context;
             _audit = audit;
             _userManager = userManager;
+            _closure = closure;
         }
 
         private async Task<bool> IsManagerAsync(ApplicationUser? user)
@@ -141,6 +143,12 @@ namespace Salon.Controllers
             var custody = await _context.Custodies.Include(c => c.Employee).Include(c => c.PurchaseRequests).FirstOrDefaultAsync(c => c.Id == id);
             if (custody != null)
             {
+                if (await _closure.IsDateLockedAsync(custody.CustodyDate))
+                {
+                    TempData["Error"] = "لا يمكن حذف عهدة تخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 if (custody.PurchaseRequests.Any())
                 {
                     TempData["Error"] = "لا يمكن حذف عهدة لها طلبات شراء مرتبطة — احذف طلبات الشراء أولاً";

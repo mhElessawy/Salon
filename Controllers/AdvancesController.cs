@@ -16,13 +16,15 @@ namespace Salon.Controllers
         private readonly IAuditService _audit;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailService _email;
+        private readonly IDailyClosureService _closure;
 
-        public AdvancesController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager, IEmailService email)
+        public AdvancesController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager, IEmailService email, IDailyClosureService closure)
         {
             _context = context;
             _audit = audit;
             _userManager = userManager;
             _email = email;
+            _closure = closure;
         }
 
         private async Task<bool> IsManagerAsync(ApplicationUser? user)
@@ -477,6 +479,12 @@ namespace Salon.Controllers
             var advance = await _context.EmployeeAdvances.Include(a => a.Employee).FirstOrDefaultAsync(a => a.Id == id);
             if (advance != null)
             {
+                if (await _closure.IsDateLockedAsync(advance.AdvanceDate))
+                {
+                    TempData["Error"] = "لا يمكن حذف سلفة تخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 string empName = advance.Employee?.FullName ?? advance.EmployeeId.ToString();
                 decimal amount = advance.Amount;
 

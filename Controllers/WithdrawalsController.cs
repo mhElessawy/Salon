@@ -14,12 +14,14 @@ namespace Salon.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _audit;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IDailyClosureService _closure;
 
-        public WithdrawalsController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager)
+        public WithdrawalsController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager, IDailyClosureService closure)
         {
             _context = context;
             _audit = audit;
             _userManager = userManager;
+            _closure = closure;
         }
 
         public async Task<IActionResult> Index(string? from, string? to, string? dept)
@@ -95,6 +97,12 @@ namespace Salon.Controllers
         {
             if (id != model.Id) return NotFound();
 
+            if (await _closure.IsDateLockedAsync(model.WithdrawalDate))
+            {
+                TempData["Error"] = "لا يمكن تعديل سحب يخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
+                return RedirectToAction(nameof(Index));
+            }
+
             if (string.IsNullOrEmpty(model.Department))
                 ModelState.AddModelError("Department", "يرجى اختيار القسم");
 
@@ -118,6 +126,12 @@ namespace Salon.Controllers
             var w = await _context.Withdrawals.FindAsync(id);
             if (w != null)
             {
+                if (await _closure.IsDateLockedAsync(w.WithdrawalDate))
+                {
+                    TempData["Error"] = "لا يمكن حذف سحب يخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 var desc = $"[{w.Department}] {w.Description} - {w.Amount:F3} KD";
                 _context.Withdrawals.Remove(w);
                 await _context.SaveChangesAsync();

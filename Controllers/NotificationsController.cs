@@ -172,6 +172,71 @@ namespace Salon.Controllers
                 }
             }
 
+            // 1b. نتيجة اعتماد/إغلاق اليومية — إشعار صاحب المحل فقط (لا يعتمد بنفسه، يستقبل النتيجة)
+            if (viewerIsManager)
+            {
+                var closureUpdates = await _context.Shifts
+                    .Where(s => s.ShiftDate >= weekAgo && (
+                        s.ApprovalStatus == Shift.ApprovalStatuses.Approved
+                        || s.ApprovalStatus == Shift.ApprovalStatuses.ApprovedWithDiscrepancy
+                        || s.ApprovalStatus == Shift.ApprovalStatuses.AutoClosedUnapproved))
+                    .OrderByDescending(s => s.ShiftDate)
+                    .Take(10).ToListAsync();
+
+                foreach (var shift in closureUpdates)
+                {
+                    if (shift.ApprovalStatus == Shift.ApprovalStatuses.AutoClosedUnapproved)
+                    {
+                        var notifDate = shift.AutoClosedAt ?? shift.ShiftDate;
+                        var sub = $"يومية {shift.ShiftDate:yyyy/MM/dd}";
+                        list.Add(new NotificationItem
+                        {
+                            Type = "closure-auto-closed",
+                            Category = "مهمة",
+                            Title = "لم يتم اعتماد اليومية",
+                            TitleEn = "Daily Closure Not Approved",
+                            SubTitle = sub,
+                            SubTitleEn = $"Closure {shift.ShiftDate:yyyy/MM/dd}",
+                            Body = "لم يتم اعتماد اليومية من الكاشير وتم إغلاقها آلياً، وهي بانتظار المراجعة.",
+                            BodyEn = "The cashier did not approve the daily closure; it was auto-closed and awaits review.",
+                            IconClass = "fas fa-exclamation-triangle",
+                            IconBg = "#ffc107",
+                            Date = notifDate,
+                            ActionUrl = Url.Action("Review", "DailyClosure", new { date = shift.ShiftDate.ToString("yyyy-MM-dd") }),
+                            ActionText = "مراجعة اليومية",
+                            ActionTextEn = "Review Closure",
+                            Key = NotifKey("closure-auto-closed", notifDate, sub)
+                        });
+                    }
+                    else
+                    {
+                        bool hasDiscrepancy = shift.ApprovalStatus == Shift.ApprovalStatuses.ApprovedWithDiscrepancy;
+                        var notifDate = shift.ApprovedAt ?? shift.ShiftDate;
+                        var sub = $"المعتمد: {shift.ApprovedByUserName ?? "غير معروف"}";
+                        list.Add(new NotificationItem
+                        {
+                            Type = "closure-approved",
+                            Category = hasDiscrepancy ? "مهمة" : "تشغيلية",
+                            Title = "تم اعتماد وإغلاق اليومية بنجاح",
+                            TitleEn = "Daily Closure Approved",
+                            SubTitle = sub,
+                            SubTitleEn = $"Approved by: {shift.ApprovedByUserName ?? "Unknown"}",
+                            Body = (hasDiscrepancy ? "🟠 توجد فروقات وتم تسجيلها. " : "🟢 اليومية سليمة. ")
+                                + $"بتاريخ {shift.ShiftDate:yyyy/MM/dd} — {notifDate:HH:mm}",
+                            BodyEn = (hasDiscrepancy ? "Discrepancies were found and recorded. " : "Closure is balanced. ")
+                                + $"Date {shift.ShiftDate:yyyy/MM/dd} — {notifDate:HH:mm}",
+                            IconClass = hasDiscrepancy ? "fas fa-exclamation-circle" : "fas fa-check-circle",
+                            IconBg = hasDiscrepancy ? "#dc3545" : "#198754",
+                            Date = notifDate,
+                            ActionUrl = Url.Action("Review", "DailyClosure", new { date = shift.ShiftDate.ToString("yyyy-MM-dd") }),
+                            ActionText = "عرض التفاصيل",
+                            ActionTextEn = "View Details",
+                            Key = NotifKey("closure-approved", notifDate, sub)
+                        });
+                    }
+                }
+            }
+
             // 2. Products at or below minimum stock
             var lowStock = await _context.Products
                 .Where(p => p.IsActive && p.StockQuantity <= p.MinStockLevel)

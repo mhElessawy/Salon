@@ -62,6 +62,7 @@ builder.Services.AddSession(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IDailyClosureService, DailyClosureService>();
 
 // Email service
 var emailSettings = builder.Configuration.GetSection("EmailSettings").Get<Salon.Services.EmailSettings>()
@@ -69,6 +70,7 @@ var emailSettings = builder.Configuration.GetSection("EmailSettings").Get<Salon.
 builder.Services.AddSingleton(emailSettings);
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddHostedService<Salon.Services.ReminderWorker>();
+builder.Services.AddHostedService<Salon.Services.DailyClosureAutoCloseWorker>();
 
 builder.Services.AddMemoryCache();
 builder.Services.AddControllersWithViews();
@@ -293,6 +295,38 @@ using (var scope = app.Services.CreateScope())
             // يمنع تكرار رقم الفاتورة عند طلبين متزامنين (double-click / إعادة إرسال) — لو فيه
             // تكرار موجود بالفعل في البيانات هيفشل بصمت (TryExec) لحد ما يتصلّح يدويًا
             TryExec("CREATE UNIQUE INDEX IF NOT EXISTS IX_Sales_InvoiceNumber ON Sales(InvoiceNumber) WHERE InvoiceNumber IS NOT NULL AND InvoiceNumber <> ''");
+
+            // نظام اعتماد وإغلاق اليومية
+            TryExec("ALTER TABLE Shifts ADD COLUMN ApprovalStatus TEXT NOT NULL DEFAULT 'مفتوح'");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ExpectedCashBalance REAL NULL");
+            TryExec("ALTER TABLE Shifts ADD COLUMN CashDifferenceReason TEXT NULL");
+            TryExec("ALTER TABLE Shifts ADD COLUMN SystemKnetTotal REAL NULL");
+            TryExec("ALTER TABLE Shifts ADD COLUMN DeviceKnetTotal REAL NULL");
+            TryExec("ALTER TABLE Shifts ADD COLUMN KnetSettlementNumber TEXT NULL");
+            TryExec("ALTER TABLE Shifts ADD COLUMN KnetDifferenceReason TEXT NULL");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ReviewedRevenue INTEGER NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ReviewedCash INTEGER NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ReviewedKnet INTEGER NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ReviewedExpenses INTEGER NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ReviewedWithdrawals INTEGER NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ReviewedDeposits INTEGER NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ReviewedAdvances INTEGER NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ReviewedEmployeeDebts INTEGER NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ReviewedCustody INTEGER NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ConfirmedNoDiscrepancies INTEGER NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ApprovalNotes TEXT NULL");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ApprovedByUserId TEXT NULL");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ApprovedByUserName TEXT NULL");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ApprovedAt TEXT NULL");
+            TryExec("ALTER TABLE Shifts ADD COLUMN IsAutoClosed INTEGER NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Shifts ADD COLUMN AutoClosedAt TEXT NULL");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ReopenedByUserId TEXT NULL");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ReopenedByUserName TEXT NULL");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ReopenedAt TEXT NULL");
+            TryExec("ALTER TABLE Shifts ADD COLUMN ReopenReason TEXT NULL");
+            // اليومية "المغلقة" حالياً (النظام القديم) تُعتبر معتمدة تلقائياً حتى لا تُقفل كل
+            // بيانات الماضي فجأة بميزة القفل الجديدة.
+            TryExec("UPDATE Shifts SET ApprovalStatus = 'معتمد' WHERE Status = 'مغلق' AND ApprovalStatus = 'مفتوح'");
         }
         else
         {
@@ -467,6 +501,38 @@ using (var scope = app.Services.CreateScope())
             // تكرار موجود بالفعل في البيانات هيفشل بصمت (TryExec) لحد ما يتصلّح يدويًا
             TryExec(@"IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_Sales_InvoiceNumber' AND object_id = OBJECT_ID('Sales'))
                 CREATE UNIQUE INDEX IX_Sales_InvoiceNumber ON Sales(InvoiceNumber) WHERE InvoiceNumber IS NOT NULL AND InvoiceNumber <> ''");
+
+            // نظام اعتماد وإغلاق اليومية
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ApprovalStatus') ALTER TABLE Shifts ADD ApprovalStatus NVARCHAR(100) NOT NULL DEFAULT N'مفتوح'");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ExpectedCashBalance') ALTER TABLE Shifts ADD ExpectedCashBalance DECIMAL(18,3) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='CashDifferenceReason') ALTER TABLE Shifts ADD CashDifferenceReason NVARCHAR(MAX) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='SystemKnetTotal') ALTER TABLE Shifts ADD SystemKnetTotal DECIMAL(18,3) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='DeviceKnetTotal') ALTER TABLE Shifts ADD DeviceKnetTotal DECIMAL(18,3) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='KnetSettlementNumber') ALTER TABLE Shifts ADD KnetSettlementNumber NVARCHAR(200) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='KnetDifferenceReason') ALTER TABLE Shifts ADD KnetDifferenceReason NVARCHAR(MAX) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ReviewedRevenue') ALTER TABLE Shifts ADD ReviewedRevenue BIT NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ReviewedCash') ALTER TABLE Shifts ADD ReviewedCash BIT NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ReviewedKnet') ALTER TABLE Shifts ADD ReviewedKnet BIT NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ReviewedExpenses') ALTER TABLE Shifts ADD ReviewedExpenses BIT NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ReviewedWithdrawals') ALTER TABLE Shifts ADD ReviewedWithdrawals BIT NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ReviewedDeposits') ALTER TABLE Shifts ADD ReviewedDeposits BIT NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ReviewedAdvances') ALTER TABLE Shifts ADD ReviewedAdvances BIT NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ReviewedEmployeeDebts') ALTER TABLE Shifts ADD ReviewedEmployeeDebts BIT NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ReviewedCustody') ALTER TABLE Shifts ADD ReviewedCustody BIT NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ConfirmedNoDiscrepancies') ALTER TABLE Shifts ADD ConfirmedNoDiscrepancies BIT NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ApprovalNotes') ALTER TABLE Shifts ADD ApprovalNotes NVARCHAR(MAX) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ApprovedByUserId') ALTER TABLE Shifts ADD ApprovedByUserId NVARCHAR(450) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ApprovedByUserName') ALTER TABLE Shifts ADD ApprovedByUserName NVARCHAR(MAX) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ApprovedAt') ALTER TABLE Shifts ADD ApprovedAt DATETIME NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='IsAutoClosed') ALTER TABLE Shifts ADD IsAutoClosed BIT NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='AutoClosedAt') ALTER TABLE Shifts ADD AutoClosedAt DATETIME NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ReopenedByUserId') ALTER TABLE Shifts ADD ReopenedByUserId NVARCHAR(450) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ReopenedByUserName') ALTER TABLE Shifts ADD ReopenedByUserName NVARCHAR(MAX) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ReopenedAt') ALTER TABLE Shifts ADD ReopenedAt DATETIME NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ReopenReason') ALTER TABLE Shifts ADD ReopenReason NVARCHAR(MAX) NULL");
+            // اليومية "المغلقة" حالياً (النظام القديم) تُعتبر معتمدة تلقائياً حتى لا تُقفل كل
+            // بيانات الماضي فجأة بميزة القفل الجديدة.
+            TryExec("UPDATE Shifts SET ApprovalStatus = N'معتمد' WHERE Status = N'مغلق' AND ApprovalStatus = N'مفتوح'");
         }
 
         await SeedData.InitializeAsync(services);

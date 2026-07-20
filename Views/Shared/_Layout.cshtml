@@ -1,8 +1,20 @@
+@using Microsoft.EntityFrameworkCore
 @inject Microsoft.AspNetCore.Identity.UserManager<Salon.Models.ApplicationUser> LayoutUserManager
+@inject Salon.Data.ApplicationDbContext LayoutDbContext
 @{
     var layoutUser = await LayoutUserManager.GetUserAsync(User);
     var layoutFullName = layoutUser?.FullName ?? User.Identity?.Name?.Split('@').FirstOrDefault() ?? "المستخدم";
     var layoutRoles = layoutUser != null ? await LayoutUserManager.GetRolesAsync(layoutUser) : new List<string>();
+
+    Salon.Models.Shift? pendingUnapprovedClosure = null;
+    if (User.Identity?.IsAuthenticated == true
+        && (layoutRoles.Contains("Cashier") || layoutRoles.Contains("Admin") || layoutRoles.Contains("Manager")))
+    {
+        pendingUnapprovedClosure = await LayoutDbContext.Shifts
+            .Where(s => s.ApprovalStatus == Salon.Models.Shift.ApprovalStatuses.AutoClosedUnapproved && s.ShiftDate < DateTime.Today)
+            .OrderByDescending(s => s.ShiftDate)
+            .FirstOrDefaultAsync();
+    }
     var layoutRole = layoutRoles.FirstOrDefault() ?? "";
     var layoutRoleAr = layoutRole switch
     {
@@ -621,5 +633,31 @@
                 .catch(function () { });
         })();
     </script>
+
+    @if (pendingUnapprovedClosure != null)
+    {
+        <div class="modal fade" id="pendingClosureModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning">
+                        <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>يومية سابقة بانتظار الاعتماد</h5>
+                    </div>
+                    <div class="modal-body">
+                        توجد يومية سابقة (@pendingUnapprovedClosure.ShiftDate.ToString("yyyy/MM/dd")) أُغلقت آلياً ولم يتم اعتمادها، يرجى مراجعتها واعتمادها قبل متابعة العمل.
+                    </div>
+                    <div class="modal-footer">
+                        <a href="@Url.Action("Review", "DailyClosure", new { date = pendingUnapprovedClosure.ShiftDate.ToString("yyyy-MM-dd") })" class="btn btn-warning">
+                            <i class="fas fa-clipboard-check me-1"></i> مراجعة اليومية الآن
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                new bootstrap.Modal(document.getElementById('pendingClosureModal')).show();
+            });
+        </script>
+    }
 </body>
 </html>
