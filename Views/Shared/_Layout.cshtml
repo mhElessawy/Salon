@@ -667,9 +667,10 @@
                         <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>يومية سابقة بانتظار الاعتماد</h5>
                     </div>
                     <div class="modal-body">
-                        توجد يومية سابقة (@pendingClosureDate.Value.ToString("yyyy/MM/dd")) لم يتم اعتمادها، يرجى مراجعتها واعتمادها قبل متابعة العمل.
+                        توجد يومية سابقة (@pendingClosureDate.Value.ToString("yyyy/MM/dd")) لم يتم اعتمادها، يرجى مراجعتها واعتمادها.
                     </div>
                     <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" onclick="dismissPendingClosureAlert()">لاحقاً</button>
                         <a href="@Url.Action("Review", "DailyClosure", new { date = pendingClosureDate.Value.ToString("yyyy-MM-dd") })" class="btn btn-warning">
                             <i class="fas fa-clipboard-check me-1"></i> مراجعة اليومية الآن
                         </a>
@@ -678,9 +679,24 @@
             </div>
         </div>
         <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                new bootstrap.Modal(document.getElementById('pendingClosureModal')).show();
-            });
+            (function () {
+                var pendingDate = '@pendingClosureDate.Value.ToString("yyyy-MM-dd")';
+                var dismissedKey = 'dismissedClosureAlertDate';
+
+                if (localStorage.getItem(dismissedKey) === pendingDate) return;
+
+                document.addEventListener('DOMContentLoaded', function () {
+                    var modalEl = document.getElementById('pendingClosureModal');
+                    if (modalEl) new bootstrap.Modal(modalEl).show();
+                });
+
+                window.dismissPendingClosureAlert = function () {
+                    localStorage.setItem(dismissedKey, pendingDate);
+                    var modalEl = document.getElementById('pendingClosureModal');
+                    var instance = modalEl && bootstrap.Modal.getInstance(modalEl);
+                    if (instance) instance.hide();
+                };
+            })();
         </script>
     }
 </body>
