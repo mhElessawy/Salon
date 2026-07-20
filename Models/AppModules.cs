@@ -35,6 +35,7 @@ namespace Salon.Models
             ("Audit",             "سجل الأنشطة",        "fas fa-history",          "الإدارة"),
             ("Discount",          "تطبيق الخصم",        "fas fa-percent",          "المبيعات"),
             ("CustomerDebt",      "دين على العميل",     "fas fa-user-minus",       "المبيعات"),
+            ("SalesInvoiceEdit",  "تعديل بيانات الفاتورة (التاريخ / طريقة الدفع / الموظف)", "fas fa-edit", "المبيعات"),
         };
 
         // الشاشات التي تدعم صلاحية الإضافة
