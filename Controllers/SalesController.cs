@@ -131,6 +131,7 @@ namespace Salon.Controllers
             ViewBag.CanDeleteBarber = await _perms.HasAccessAsync("BarberInvoiceDelete");
             ViewBag.CanDeleteMassage = await _perms.HasAccessAsync("MassageInvoiceDelete");
             ViewBag.CanDeleteProduct = await _perms.HasAccessAsync("ProductInvoiceDelete");
+            ViewBag.CanEditSaleDetails = await _perms.HasAccessAsync("SalesInvoiceEdit");
 
             // قوائم الفلاتر
             var empQuery = _context.Employees.Where(e => e.IsActive);
@@ -586,6 +587,76 @@ namespace Salon.Controllers
             await _context.SaveChangesAsync();
             await _audit.LogAsync("Edit", "المبيعات", $"تسجيل رقم إيصال كي نت للفاتورة {sale.InvoiceNumber}", sale.Id);
             return Json(new { success = true, receipt = sale.KnetReceiptNumber ?? "" });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateSaleDetails(
+            int id, string saleDate, string paymentMethod, int? employeeId,
+            decimal? cashAmount, int? debtEmployeeId)
+        {
+            if (!await _perms.HasAccessAsync("SalesInvoiceEdit"))
+                return Json(new { success = false, message = "ليس لديك صلاحية تعديل بيانات الفاتورة" });
+
+            var sale = await _context.Sales.Include(s => s.Employee).FirstOrDefaultAsync(s => s.Id == id);
+            if (sale == null) return Json(new { success = false, message = "الفاتورة غير موجودة" });
+
+            if (sale.Status == "ملغي")
+                return Json(new { success = false, message = "لا يمكن تعديل فاتورة ملغاة" });
+
+            if (!DateTime.TryParse(saleDate, out var newDateOnly))
+                return Json(new { success = false, message = "تاريخ غير صحيح" });
+
+            var newSaleDate = newDateOnly.Date + sale.SaleDate.TimeOfDay;
+
+            if (await _closure.IsDateLockedAsync(sale.SaleDate) || await _closure.IsDateLockedAsync(newSaleDate))
+                return Json(new { success = false, message = "لا يمكن تعديل فاتورة تخص يومية معتمدة" });
+
+            if (string.IsNullOrWhiteSpace(paymentMethod))
+                return Json(new { success = false, message = "طريقة الدفع مطلوبة" });
+
+            if (paymentMethod == "كي نت و كاش")
+            {
+                if (!cashAmount.HasValue || cashAmount.Value < 0 || cashAmount.Value > sale.NetAmount)
+                    return Json(new { success = false, message = "مبلغ الكاش غير صحيح" });
+                sale.CashAmount = cashAmount.Value;
+                sale.LinkAmount = sale.NetAmount - cashAmount.Value;
+            }
+            else
+            {
+                sale.CashAmount = null;
+                sale.LinkAmount = null;
+            }
+
+            if (paymentMethod == "دين على الموظف")
+            {
+                if (!debtEmployeeId.HasValue)
+                    return Json(new { success = false, message = "يجب اختيار الموظف المدين" });
+                sale.DebtEmployeeId = debtEmployeeId;
+            }
+            else
+            {
+                sale.DebtEmployeeId = null;
+            }
+
+            var oldDate = sale.SaleDate;
+            var oldPayment = sale.PaymentMethod;
+            var oldEmployee = sale.Employee?.FullName ?? "-";
+
+            sale.SaleDate = newSaleDate;
+            sale.PaymentMethod = paymentMethod;
+            sale.EmployeeId = employeeId is null or 0 ? null : employeeId;
+
+            await _context.SaveChangesAsync();
+
+            var newEmployeeName = sale.EmployeeId.HasValue
+                ? (await _context.Employees.FindAsync(sale.EmployeeId.Value))?.FullName ?? "-"
+                : "-";
+
+            await _audit.LogAsync("Edit", "المبيعات",
+                $"تعديل بيانات الفاتورة {sale.InvoiceNumber} — التاريخ: {oldDate:yyyy/MM/dd} ← {newSaleDate:yyyy/MM/dd}، الدفع: {oldPayment} ← {paymentMethod}، الموظف: {oldEmployee} ← {newEmployeeName}",
+                sale.Id);
+
+            return Json(new { success = true });
         }
 
         // ===== Helpers =====

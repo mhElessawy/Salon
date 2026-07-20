@@ -9,6 +9,7 @@
     bool canDelBarber = ViewBag.CanDeleteBarber != false;
     bool canDelMassage = ViewBag.CanDeleteMassage != false;
     bool canDelProduct = ViewBag.CanDeleteProduct != false;
+    bool canEditSale = ViewBag.CanEditSaleDetails == true;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -306,6 +307,14 @@
                                     <i class="fas fa-print"></i>
                                     <span style="font-size:0.65rem;line-height:1.2;margin-top:2px;">طباعة</span>
                                 </a>
+                                @if (s.Status != "ملغي" && canEditSale)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-secondary me-1 d-inline-flex flex-column align-items-center" style="min-width:52px;" title="تعديل بيانات الفاتورة"
+                                            onclick="openEditSaleModal(@s.Id, '@s.SaleDate.ToString("yyyy-MM-dd")', '@Html.Raw(s.PaymentMethod.Replace("'", "\\'"))', @(s.EmployeeId ?? 0), @(s.DebtEmployeeId ?? 0), @((s.CashAmount ?? 0).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)))">
+                                        <i class="fas fa-edit"></i>
+                                        <span style="font-size:0.65rem;line-height:1.2;margin-top:2px;">تعديل</span>
+                                    </button>
+                                }
                                 @{
                                     bool canDelThis = s.SaleType == "مساج" ? canDelMassage
                                     : s.SaleType == "منتجات" ? canDelProduct
@@ -376,6 +385,77 @@
         </div>
     </div>
 </div>
+
+@if (canEditSale)
+{
+    <!-- Edit Sale Modal -->
+    <div class="modal fade" id="editSaleModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title fw-bold"><i class="fas fa-edit me-2 text-secondary"></i>تعديل بيانات الفاتورة</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="form-label mb-1" style="font-size:12px">التاريخ</label>
+                        <input type="date" id="editSaleDate" class="form-control" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label mb-1" style="font-size:12px">طريقة الدفع</label>
+                        <select id="editSalePaymentMethod" class="form-select" onchange="onEditPaymentMethodChange()">
+                            <option value="كاش">كاش</option>
+                            <option value="كي نت">كي نت</option>
+                            <option value="كي نت و كاش">كي نت و كاش</option>
+                            <option value="دين على العميل">دين على العميل</option>
+                            <option value="دين على الموظف">دين على الموظف</option>
+                            <option value="دين على الإدارة">دين على الإدارة</option>
+                            <option value="مناصفة">مناصفة</option>
+                            <option value="آجل">آجل</option>
+                        </select>
+                    </div>
+                    <div class="mb-2" id="editSaleCashWrap" style="display:none;">
+                        <label class="form-label mb-1" style="font-size:12px">مبلغ الكاش (من إجمالي الفاتورة)</label>
+                        <input type="number" id="editSaleCashAmount" class="form-control" step="0.001" min="0" />
+                    </div>
+                    <div class="mb-2" id="editSaleDebtEmpWrap" style="display:none;">
+                        <label class="form-label mb-1" style="font-size:12px">الموظف المدين</label>
+                        <select id="editSaleDebtEmployee" class="form-select">
+                            <option value="0">— اختر —</option>
+                            @if (ViewBag.Employees != null)
+                            {
+                                @foreach (var emp in (IEnumerable<dynamic>)ViewBag.Employees)
+                                {
+                                    <option value="@emp.Id">@emp.FullName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label mb-1" style="font-size:12px">الموظف</label>
+                        <select id="editSaleEmployee" class="form-select">
+                            <option value="0">بدون موظف</option>
+                            @if (ViewBag.Employees != null)
+                            {
+                                @foreach (var emp in (IEnumerable<dynamic>)ViewBag.Employees)
+                                {
+                                    <option value="@emp.Id">@emp.FullName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div id="editSaleError" class="text-danger small mt-1" style="display:none;"></div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-secondary btn-sm fw-bold px-4" onclick="saveSaleEdit()">
+                        <i class="fas fa-save me-1"></i> حفظ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
@@ -520,6 +600,59 @@
                 if (data.success) {
                     document.getElementById('notes-text-' + _notesSaleId).textContent = data.notes;
                     if (_notesModalInstance) _notesModalInstance.hide();
+                } else {
+                    errEl.textContent = data.message || 'حدث خطأ';
+                    errEl.style.display = 'block';
+                }
+            })
+            .catch(function() { errEl.textContent = 'تعذّر الاتصال بالخادم'; errEl.style.display = 'block'; });
+        }
+
+        // ── Edit Sale (date / payment method / employee) ──────────────
+        var _editSaleId = null;
+        var _editSaleModalInstance = null;
+        function onEditPaymentMethodChange() {
+            var pm = document.getElementById('editSalePaymentMethod').value;
+            document.getElementById('editSaleCashWrap').style.display = (pm === 'كي نت و كاش') ? '' : 'none';
+            document.getElementById('editSaleDebtEmpWrap').style.display = (pm === 'دين على الموظف') ? '' : 'none';
+        }
+        function openEditSaleModal(saleId, saleDate, paymentMethod, employeeId, debtEmployeeId, cashAmount) {
+            _editSaleId = saleId;
+            document.getElementById('editSaleDate').value = saleDate;
+            document.getElementById('editSalePaymentMethod').value = paymentMethod;
+            document.getElementById('editSaleEmployee').value = employeeId || 0;
+            document.getElementById('editSaleDebtEmployee').value = debtEmployeeId || 0;
+            document.getElementById('editSaleCashAmount').value = cashAmount || '';
+            document.getElementById('editSaleError').style.display = 'none';
+            onEditPaymentMethodChange();
+            _editSaleModalInstance = new bootstrap.Modal(document.getElementById('editSaleModal'));
+            _editSaleModalInstance.show();
+        }
+        function saveSaleEdit() {
+            var errEl = document.getElementById('editSaleError');
+            errEl.style.display = 'none';
+            var pm = document.getElementById('editSalePaymentMethod').value;
+            var payload = {
+                id: _editSaleId,
+                saleDate: document.getElementById('editSaleDate').value,
+                paymentMethod: pm,
+                employeeId: document.getElementById('editSaleEmployee').value || 0
+            };
+            if (pm === 'كي نت و كاش') payload.cashAmount = document.getElementById('editSaleCashAmount').value || 0;
+            if (pm === 'دين على الموظف') payload.debtEmployeeId = document.getElementById('editSaleDebtEmployee').value || 0;
+
+            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            payload.__RequestVerificationToken = token;
+            fetch('@Url.Action("UpdateSaleDetails", "Sales")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                body: new URLSearchParams(payload)
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    if (_editSaleModalInstance) _editSaleModalInstance.hide();
+                    location.reload();
                 } else {
                     errEl.textContent = data.message || 'حدث خطأ';
                     errEl.style.display = 'block';
