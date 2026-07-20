@@ -330,6 +330,9 @@ using (var scope = app.Services.CreateScope())
             // يفصل سجلات اعتماد الإغلاق عن سجلات "الشفتات" العادية حتى ما تبقاش الشاشتين شغالين
             // على نفس الصف (انظر التعليق فوق تعريف IsClosureRecord في Shift.cs).
             TryExec("ALTER TABLE Shifts ADD COLUMN IsClosureRecord INTEGER NOT NULL DEFAULT 0");
+            // يفصل يومية كل قسم (حلاقة/مساج) عن التانية، والبنود المشتركة بدون قسم في نطاق "عام"
+            // (انظر التعليق فوق تعريف ClosureDepartments في Shift.cs).
+            TryExec("ALTER TABLE Shifts ADD COLUMN ClosureDepartment TEXT NULL");
         }
         else
         {
@@ -539,6 +542,9 @@ using (var scope = app.Services.CreateScope())
             // يفصل سجلات اعتماد الإغلاق عن سجلات "الشفتات" العادية حتى ما تبقاش الشاشتين شغالين
             // على نفس الصف (انظر التعليق فوق تعريف IsClosureRecord في Shift.cs).
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='IsClosureRecord') ALTER TABLE Shifts ADD IsClosureRecord BIT NOT NULL DEFAULT 0");
+            // يفصل يومية كل قسم (حلاقة/مساج) عن التانية، والبنود المشتركة بدون قسم في نطاق "عام"
+            // (انظر التعليق فوق تعريف ClosureDepartments في Shift.cs).
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ClosureDepartment') ALTER TABLE Shifts ADD ClosureDepartment NVARCHAR(50) NULL");
         }
 
         // ترحيل لمرة واحدة: قبل هذا الفصل كانت شاشة "اعتماد اليومية" تعيد استخدام آخر صف Shift
@@ -556,6 +562,23 @@ using (var scope = app.Services.CreateScope())
                     .GroupBy(s => s.ShiftDate.Date)
                     .Select(g => g.OrderByDescending(s => s.CreatedAt).First());
                 foreach (var s in legacyClosureRows) s.IsClosureRecord = true;
+                await context.SaveChangesAsync();
+            }
+        }
+        catch { }
+
+        // ترحيل لمرة واحدة (منفصل عن اللي فوق): قبل تقسيم اليومية على الأقسام، كل يومية كانت
+        // تمثّل المحل بالكامل مجمّعاً، فبنحطها في نطاق "عام" بدل ما تتحذف أو تفضل بدون قسم.
+        // كل يومية جديدة بعد كده بتتحدد قسمها (حلاقة/مساج/عام) وقت الإنشاء من DailyClosureService.
+        try
+        {
+            bool anyDepartmentMarked = await context.Shifts.AnyAsync(s => s.IsClosureRecord && s.ClosureDepartment != null);
+            if (!anyDepartmentMarked)
+            {
+                var unassigned = await context.Shifts
+                    .Where(s => s.IsClosureRecord && s.ClosureDepartment == null)
+                    .ToListAsync();
+                foreach (var s in unassigned) s.ClosureDepartment = Shift.ClosureDepartments.Shared;
                 await context.SaveChangesAsync();
             }
         }

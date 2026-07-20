@@ -8,6 +8,16 @@
     int pendingCount = ViewBag.PendingCount is int pc ? pc : 0;
     int openCount = ViewBag.OpenCount is int oc ? oc : 0;
     decimal totalRevenue = ViewBag.TotalRevenue is decimal tr ? tr : 0m;
+    string department = ViewBag.Department is string dp ? dp : "حلاقة";
+    bool canPickDepartment = ViewBag.CanPickDepartment is bool cpd && cpd;
+    var availableDepartments = ViewBag.AvailableDepartments as IEnumerable<string> ?? new List<string>();
+
+    string DeptLabel(string d) => d switch
+    {
+        "حلاقة" => "✂ حلاقة",
+        "مساج" => "🌿 مساج",
+        _ => "🗂 عام (مشترك)"
+    };
 
     string BadgeClass(string status) => status switch
     {
@@ -81,6 +91,7 @@
         </h1>
         <p class="text-muted small mb-0">
             <span data-i18n-en="Approval status of each day's closure, with cash and KNET discrepancies">حالة اعتماد إغلاق كل يوم مع فروقات الصندوق و KNET</span>
+            — @DeptLabel(department)
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
@@ -110,6 +121,23 @@
                     <span class="input-group-text"><i class="fas fa-calendar"></i></span>
                     <input type="date" name="to" value="@ViewBag.To" class="form-control" style="max-width:160px;" />
                 </div>
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1 small" data-i18n-en="Department">القسم</label>
+                @if (canPickDepartment)
+                {
+                    <select name="dept" class="form-select form-select-sm" style="min-width:150px;">
+                        @foreach (var d in availableDepartments)
+                        {
+                            <option value="@d" selected="@(d == department)">@DeptLabel(d)</option>
+                        }
+                    </select>
+                }
+                else
+                {
+                    <input type="hidden" name="dept" value="@department" />
+                    <div class="form-control form-control-sm bg-light">@DeptLabel(department)</div>
+                }
             </div>
             <div class="col-auto">
                 <button type="submit" class="btn btn-primary btn-sm">
@@ -242,7 +270,7 @@
                         <td>@(r.ApprovedByUserName ?? "-")</td>
                         <td>@(r.ApprovedAt?.ToString("yyyy/MM/dd HH:mm") ?? "-")</td>
                         <td class="no-print">
-                            <a href="@Url.Action("Review", "DailyClosure", new { date = r.Date.ToString("yyyy-MM-dd") })" class="btn btn-sm btn-outline-primary">
+                            <a href="@Url.Action("Review", "DailyClosure", new { date = r.Date.ToString("yyyy-MM-dd"), dept = department })" class="btn btn-sm btn-outline-primary">
                                 <i class="fas fa-eye"></i>
                             </a>
                         </td>

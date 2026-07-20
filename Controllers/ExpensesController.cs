@@ -157,7 +157,7 @@ namespace Salon.Controllers
         public async Task<IActionResult> Edit(int id, Expense model)
         {
             if (id != model.Id) return NotFound();
-            if (await _closure.IsDateLockedAsync(model.ExpenseDate))
+            if (await _closure.IsDateLockedAsync(model.ExpenseDate, model.Department))
             {
                 TempData["Error"] = "لا يمكن تعديل مصروف يخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
                 return RedirectToAction(nameof(Index));
@@ -185,7 +185,7 @@ namespace Salon.Controllers
             var expense = await _context.Expenses.FindAsync(id);
             if (expense != null)
             {
-                if (await _closure.IsDateLockedAsync(expense.ExpenseDate))
+                if (await _closure.IsDateLockedAsync(expense.ExpenseDate, expense.Department))
                 {
                     TempData["Error"] = "لا يمكن حذف مصروف يخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
                     return RedirectToAction(nameof(Index));

@@ -1,43 +1,45 @@
 @using Microsoft.EntityFrameworkCore
 @inject Microsoft.AspNetCore.Identity.UserManager<Salon.Models.ApplicationUser> LayoutUserManager
 @inject Salon.Data.ApplicationDbContext LayoutDbContext
+@inject Salon.Services.IDailyClosureService LayoutClosureService
 @{
     var layoutUser = await LayoutUserManager.GetUserAsync(User);
     var layoutFullName = layoutUser?.FullName ?? User.Identity?.Name?.Split('@').FirstOrDefault() ?? "المستخدم";
     var layoutRoles = layoutUser != null ? await LayoutUserManager.GetRolesAsync(layoutUser) : new List<string>();
 
-    // يوم "مغلق" فعلاً = له سجل اعتماد بحالة معتمد/معتمد بفروقات. أي يوم سابق فيه مبيعات
-    // ومالوش سجل اعتماد أصلاً (أو سجله لسه مفتوح/أُغلق آلياً بدون اعتماد) لازم يتنبّه عنه —
-    // مش بس الحالة الحرفية "أُغلق آلياً" القديمة.
+    // يوم "مغلق" فعلاً (لقسم معيّن) = له سجل اعتماد بحالة معتمد/معتمد بفروقات. أي يوم سابق فيه
+    // مبيعات لقسم ومالوش سجل اعتماد أصلاً (أو سجله لسه مفتوح/أُغلق آلياً بدون اعتماد) لازم
+    // يتنبّه عنه — مش بس الحالة الحرفية "أُغلق آلياً" القديمة. كل قسم (حلاقة/مساج/عام) مستقل.
     DateTime? pendingClosureDate = null;
-    if (User.Identity?.IsAuthenticated == true
-        && (layoutRoles.Contains("Cashier") || layoutRoles.Contains("Admin") || layoutRoles.Contains("Manager")))
+    string? pendingClosureDept = null;
+    bool layoutIsAdminOrManager = layoutRoles.Contains("Admin") || layoutRoles.Contains("Manager");
+    if (User.Identity?.IsAuthenticated == true)
     {
-        var lookbackStart = DateTime.Today.AddDays(-90);
+        List<string> layoutDepartmentsToCheck;
+        if (!layoutIsAdminOrManager
+            && (layoutUser?.UserDepartment == Salon.Models.Shift.ClosureDepartments.Haircut
+                || layoutUser?.UserDepartment == Salon.Models.Shift.ClosureDepartments.Massage))
+        {
+            layoutDepartmentsToCheck = new List<string> { layoutUser.UserDepartment! };
+        }
+        else if (layoutIsAdminOrManager || layoutRoles.Contains("Cashier"))
+        {
+            layoutDepartmentsToCheck = Salon.Models.Shift.ClosureDepartments.All.ToList();
+        }
+        else
+        {
+            layoutDepartmentsToCheck = new List<string>();
+        }
 
-        var approvedDates = new HashSet<DateTime>(await LayoutDbContext.Shifts
-            .Where(s => s.IsClosureRecord && s.ShiftDate >= lookbackStart && s.ShiftDate < DateTime.Today
-                && (s.ApprovalStatus == Salon.Models.Shift.ApprovalStatuses.Approved
-                    || s.ApprovalStatus == Salon.Models.Shift.ApprovalStatuses.ApprovedWithDiscrepancy))
-            .Select(s => s.ShiftDate.Date)
-            .ToListAsync());
-
-        var saleDates = await LayoutDbContext.Sales
-            .Where(s => s.SaleDate >= lookbackStart && s.SaleDate < DateTime.Today && s.Status != "ملغي")
-            .Select(s => s.SaleDate.Date)
-            .Distinct()
-            .ToListAsync();
-
-        pendingClosureDate = saleDates
-            .Where(d => !approvedDates.Contains(d))
-            .OrderByDescending(d => d)
-            .Cast<DateTime?>()
-            .FirstOrDefault();
+        var pendingResult = await LayoutClosureService.FindMostRecentPendingApprovalAsync(layoutDepartmentsToCheck);
+        pendingClosureDate = pendingResult?.Date;
+        pendingClosureDept = pendingResult?.Department;
     }
     var isOnPendingClosureReviewPage = pendingClosureDate.HasValue
         && string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "DailyClosure", StringComparison.OrdinalIgnoreCase)
         && string.Equals(ViewContext.RouteData.Values["action"]?.ToString(), "Review", StringComparison.OrdinalIgnoreCase)
-        && string.Equals(Context.Request.Query["date"].ToString(), pendingClosureDate.Value.ToString("yyyy-MM-dd"), StringComparison.OrdinalIgnoreCase);
+        && string.Equals(Context.Request.Query["date"].ToString(), pendingClosureDate.Value.ToString("yyyy-MM-dd"), StringComparison.OrdinalIgnoreCase)
+        && string.Equals(Context.Request.Query["dept"].ToString(), pendingClosureDept, StringComparison.OrdinalIgnoreCase);
 
     var layoutRole = layoutRoles.FirstOrDefault() ?? "";
     var layoutRoleAr = layoutRole switch
@@ -660,6 +662,12 @@
 
     @if (pendingClosureDate.HasValue && !isOnPendingClosureReviewPage)
     {
+        var pendingClosureDeptLabel = pendingClosureDept switch
+        {
+            "حلاقة" => "✂ حلاقة",
+            "مساج" => "🌿 مساج",
+            _ => "🗂 عام (مشترك)"
+        };
         <div class="modal fade" id="pendingClosureModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -667,11 +675,11 @@
                         <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>يومية سابقة بانتظار الاعتماد</h5>
                     </div>
                     <div class="modal-body">
-                        توجد يومية سابقة (@pendingClosureDate.Value.ToString("yyyy/MM/dd")) لم يتم اعتمادها، يرجى مراجعتها واعتمادها.
+                        توجد يومية سابقة (@pendingClosureDeptLabel) بتاريخ @pendingClosureDate.Value.ToString("yyyy/MM/dd") لم يتم اعتمادها، يرجى مراجعتها واعتمادها.
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline-secondary" onclick="dismissPendingClosureAlert()">لاحقاً</button>
-                        <a href="@Url.Action("Review", "DailyClosure", new { date = pendingClosureDate.Value.ToString("yyyy-MM-dd") })" class="btn btn-warning">
+                        <a href="@Url.Action("Review", "DailyClosure", new { date = pendingClosureDate.Value.ToString("yyyy-MM-dd"), dept = pendingClosureDept })" class="btn btn-warning">
                             <i class="fas fa-clipboard-check me-1"></i> مراجعة اليومية الآن
                         </a>
                     </div>
@@ -681,9 +689,10 @@
         <script>
             (function () {
                 var pendingDate = '@pendingClosureDate.Value.ToString("yyyy-MM-dd")';
-                var dismissedKey = 'dismissedClosureAlertDate';
+                var pendingDept = '@pendingClosureDept';
+                var dismissedKey = 'dismissedClosureAlertDateDept';
 
-                if (localStorage.getItem(dismissedKey) === pendingDate) return;
+                if (localStorage.getItem(dismissedKey) === (pendingDate + '|' + pendingDept)) return;
 
                 document.addEventListener('DOMContentLoaded', function () {
                     var modalEl = document.getElementById('pendingClosureModal');
@@ -691,7 +700,7 @@
                 });
 
                 window.dismissPendingClosureAlert = function () {
-                    localStorage.setItem(dismissedKey, pendingDate);
+                    localStorage.setItem(dismissedKey, pendingDate + '|' + pendingDept);
                     var modalEl = document.getElementById('pendingClosureModal');
                     var instance = modalEl && bootstrap.Modal.getInstance(modalEl);
                     if (instance) instance.hide();

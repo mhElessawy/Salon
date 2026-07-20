@@ -384,7 +384,7 @@ namespace Salon.Controllers
             if (shiftId > 0)
             {
                 var shift = await _context.Shifts.FindAsync(shiftId);
-                if (shift != null && !await _closure.IsDateLockedAsync(shift.ShiftDate))
+                if (shift != null && !await _closure.IsDateLockedAsync(shift.ShiftDate, null))
                 {
                     shift.Notes = notes;
                     await _context.SaveChangesAsync();
@@ -397,7 +397,7 @@ namespace Salon.Controllers
         public async Task<IActionResult> UpdatePaymentSplit(int saleId, decimal cashAmount, decimal linkAmount, string date, string? dept)
         {
             var sale = await _context.Sales.FindAsync(saleId);
-            if (sale != null && !await _closure.IsDateLockedAsync(sale.SaleDate))
+            if (sale != null && !await _closure.IsDateLockedAsync(sale.SaleDate, sale.SaleType))
             {
                 sale.CashAmount = cashAmount;
                 sale.LinkAmount = linkAmount;

@@ -104,25 +104,33 @@
     <p>نظرة عامة على أداء القسم اليوم</p>
 </div>
 
-@if (Model.UnapprovedClosureDates.Any())
+@{
+    string DeptLabel(string d) => d switch
+    {
+        "حلاقة" => "✂ حلاقة",
+        "مساج" => "🌿 مساج",
+        _ => "🗂 عام (مشترك)"
+    };
+}
+@if (Model.UnapprovedClosures.Any())
 {
     <div class="alert alert-warning alert-dismissible fade show">
         <i class="fas fa-exclamation-triangle me-1"></i>
-        @if (Model.UnapprovedClosureDates.Count == 1)
+        @if (Model.UnapprovedClosures.Count == 1)
         {
             <span>
-                توجد يومية بتاريخ @Model.UnapprovedClosureDates[0].ToString("yyyy/MM/dd") أغلقت آلياً ولم يتم اعتمادها،
-                <a asp-controller="DailyClosure" asp-action="Review" asp-route-date="@Model.UnapprovedClosureDates[0].ToString("yyyy-MM-dd")" class="alert-link">اضغط هنا للمراجعة</a>.
+                توجد يومية (@DeptLabel(Model.UnapprovedClosures[0].Department)) بتاريخ @Model.UnapprovedClosures[0].Date.ToString("yyyy/MM/dd") لم يتم اعتمادها،
+                <a asp-controller="DailyClosure" asp-action="Review" asp-route-date="@Model.UnapprovedClosures[0].Date.ToString("yyyy-MM-dd")" asp-route-dept="@Model.UnapprovedClosures[0].Department" class="alert-link">اضغط هنا للمراجعة</a>.
             </span>
         }
         else
         {
             <span>
-                توجد @Model.UnapprovedClosureDates.Count أيام أغلقت آلياً ولم يتم اعتمادها، يرجى مراجعتها:
-                @for (int i = 0; i < Model.UnapprovedClosureDates.Count; i++)
+                توجد @Model.UnapprovedClosures.Count يوميات لم يتم اعتمادها، يرجى مراجعتها:
+                @for (int i = 0; i < Model.UnapprovedClosures.Count; i++)
                 {
-                    <a asp-controller="DailyClosure" asp-action="Review" asp-route-date="@Model.UnapprovedClosureDates[i].ToString("yyyy-MM-dd")" class="alert-link">@Model.UnapprovedClosureDates[i].ToString("yyyy/MM/dd")</a>
-                    @(i < Model.UnapprovedClosureDates.Count - 1 ? "، " : "")
+                    <a asp-controller="DailyClosure" asp-action="Review" asp-route-date="@Model.UnapprovedClosures[i].Date.ToString("yyyy-MM-dd")" asp-route-dept="@Model.UnapprovedClosures[i].Department" class="alert-link">@DeptLabel(Model.UnapprovedClosures[i].Department) @Model.UnapprovedClosures[i].Date.ToString("yyyy/MM/dd")</a>
+                    @(i < Model.UnapprovedClosures.Count - 1 ? "، " : "")
                 }
             </span>
         }

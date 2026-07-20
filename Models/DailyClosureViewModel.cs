@@ -8,6 +8,15 @@
         public Shift Shift { get; set; } = null!;
         public DateTime Date { get; set; }
 
+        /// <summary>القسم المعروض حالياً: حلاقة/مساج/عام.</summary>
+        public string Department { get; set; } = Shift.ClosureDepartments.Shared;
+
+        /// <summary>true للأدمن/المدير — يظهر لهم فلتر اختيار القسم. الكاشير يشوف قسمه فقط بدون فلتر.</summary>
+        public bool CanPickDepartment { get; set; }
+
+        /// <summary>الأقسام المتاحة للفلتر (للأدمن/المدير فقط).</summary>
+        public List<string> AvailableDepartments { get; set; } = new();
+
         public decimal TotalRevenue { get; set; }
         public decimal TotalCash { get; set; }
         public decimal SystemKnetTotal { get; set; }

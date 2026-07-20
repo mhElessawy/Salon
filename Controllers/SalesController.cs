@@ -513,7 +513,7 @@ namespace Salon.Controllers
                 .FirstOrDefaultAsync(s => s.Id == id);
             if (sale != null)
             {
-                if (await _closure.IsDateLockedAsync(sale.SaleDate))
+                if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.SaleType))
                 {
                     TempData["Error"] = "لا يمكن حذف فاتورة تخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
                     return RedirectToAction(nameof(Index));
@@ -558,7 +558,7 @@ namespace Salon.Controllers
         {
             var sale = await _context.Sales.FindAsync(id);
             if (sale == null) return Json(new { success = false, message = "الفاتورة غير موجودة" });
-            if (await _closure.IsDateLockedAsync(sale.SaleDate))
+            if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.SaleType))
                 return Json(new { success = false, message = "لا يمكن تعديل فاتورة تخص يومية معتمدة" });
             sale.Notes = notes?.Trim();
             await _context.SaveChangesAsync();
@@ -571,7 +571,7 @@ namespace Salon.Controllers
         {
             var sale = await _context.Sales.FindAsync(id);
             if (sale == null) return Json(new { success = false, message = "الفاتورة غير موجودة" });
-            if (await _closure.IsDateLockedAsync(sale.SaleDate))
+            if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.SaleType))
                 return Json(new { success = false, message = "لا يمكن تعديل فاتورة تخص يومية معتمدة" });
 
             var trimmed = receipt?.Trim();
@@ -608,7 +608,7 @@ namespace Salon.Controllers
 
             var newSaleDate = newDateOnly.Date + sale.SaleDate.TimeOfDay;
 
-            if (await _closure.IsDateLockedAsync(sale.SaleDate) || await _closure.IsDateLockedAsync(newSaleDate))
+            if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.SaleType) || await _closure.IsDateLockedAsync(newSaleDate, sale.SaleType))
                 return Json(new { success = false, message = "لا يمكن تعديل فاتورة تخص يومية معتمدة" });
 
             if (string.IsNullOrWhiteSpace(paymentMethod))
