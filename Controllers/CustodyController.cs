@@ -140,10 +140,14 @@ namespace Salon.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var custody = await _context.Custodies.Include(c => c.Employee).Include(c => c.PurchaseRequests).FirstOrDefaultAsync(c => c.Id == id);
+            var custody = await _context.Custodies
+                .Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Include(c => c.PurchaseRequests)
+                .FirstOrDefaultAsync(c => c.Id == id);
             if (custody != null)
             {
-                if (await _closure.IsDateLockedAsync(custody.CustodyDate))
+                var custodyDept = custody.Employee?.RevenueDepartment ?? custody.Employee?.DepartmentNav?.Name;
+                if (await _closure.IsDateLockedAsync(custody.CustodyDate, custodyDept))
                 {
                     TempData["Error"] = "لا يمكن حذف عهدة تخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
                     return RedirectToAction(nameof(Index));

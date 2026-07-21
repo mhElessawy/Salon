@@ -185,10 +185,11 @@ namespace Salon.Controllers
 
                 foreach (var shift in closureUpdates)
                 {
+                    var dept = shift.ClosureDepartment ?? Shift.ClosureDepartments.Shared;
                     if (shift.ApprovalStatus == Shift.ApprovalStatuses.AutoClosedUnapproved)
                     {
                         var notifDate = shift.AutoClosedAt ?? shift.ShiftDate;
-                        var sub = $"يومية {shift.ShiftDate:yyyy/MM/dd}";
+                        var sub = $"يومية {dept} {shift.ShiftDate:yyyy/MM/dd}";
                         list.Add(new NotificationItem
                         {
                             Type = "closure-auto-closed",
@@ -196,13 +197,13 @@ namespace Salon.Controllers
                             Title = "لم يتم اعتماد اليومية",
                             TitleEn = "Daily Closure Not Approved",
                             SubTitle = sub,
-                            SubTitleEn = $"Closure {shift.ShiftDate:yyyy/MM/dd}",
+                            SubTitleEn = $"Closure {dept} {shift.ShiftDate:yyyy/MM/dd}",
                             Body = "لم يتم اعتماد اليومية من الكاشير وتم إغلاقها آلياً، وهي بانتظار المراجعة.",
                             BodyEn = "The cashier did not approve the daily closure; it was auto-closed and awaits review.",
                             IconClass = "fas fa-exclamation-triangle",
                             IconBg = "#ffc107",
                             Date = notifDate,
-                            ActionUrl = Url.Action("Review", "DailyClosure", new { date = shift.ShiftDate.ToString("yyyy-MM-dd") }),
+                            ActionUrl = Url.Action("Review", "DailyClosure", new { date = shift.ShiftDate.ToString("yyyy-MM-dd"), dept }),
                             ActionText = "مراجعة اليومية",
                             ActionTextEn = "Review Closure",
                             Key = NotifKey("closure-auto-closed", notifDate, sub)
@@ -212,7 +213,7 @@ namespace Salon.Controllers
                     {
                         bool hasDiscrepancy = shift.ApprovalStatus == Shift.ApprovalStatuses.ApprovedWithDiscrepancy;
                         var notifDate = shift.ApprovedAt ?? shift.ShiftDate;
-                        var sub = $"المعتمد: {shift.ApprovedByUserName ?? "غير معروف"}";
+                        var sub = $"{dept} — المعتمد: {shift.ApprovedByUserName ?? "غير معروف"}";
                         list.Add(new NotificationItem
                         {
                             Type = "closure-approved",
@@ -220,7 +221,7 @@ namespace Salon.Controllers
                             Title = "تم اعتماد وإغلاق اليومية بنجاح",
                             TitleEn = "Daily Closure Approved",
                             SubTitle = sub,
-                            SubTitleEn = $"Approved by: {shift.ApprovedByUserName ?? "Unknown"}",
+                            SubTitleEn = $"{dept} — Approved by: {shift.ApprovedByUserName ?? "Unknown"}",
                             Body = (hasDiscrepancy ? "🟠 توجد فروقات وتم تسجيلها. " : "🟢 اليومية سليمة. ")
                                 + $"بتاريخ {shift.ShiftDate:yyyy/MM/dd} — {notifDate:HH:mm}",
                             BodyEn = (hasDiscrepancy ? "Discrepancies were found and recorded. " : "Closure is balanced. ")
@@ -228,7 +229,7 @@ namespace Salon.Controllers
                             IconClass = hasDiscrepancy ? "fas fa-exclamation-circle" : "fas fa-check-circle",
                             IconBg = hasDiscrepancy ? "#dc3545" : "#198754",
                             Date = notifDate,
-                            ActionUrl = Url.Action("Review", "DailyClosure", new { date = shift.ShiftDate.ToString("yyyy-MM-dd") }),
+                            ActionUrl = Url.Action("Review", "DailyClosure", new { date = shift.ShiftDate.ToString("yyyy-MM-dd"), dept }),
                             ActionText = "عرض التفاصيل",
                             ActionTextEn = "View Details",
                             Key = NotifKey("closure-approved", notifDate, sub)

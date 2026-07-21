@@ -15,6 +15,6 @@ namespace Salon.Models
         public List<Product> ExpiringProducts { get; set; } = new();
         public string? UserDepartment { get; set; }
         public List<Sale> InvoicesWithNotes { get; set; } = new();
-        public List<DateTime> UnapprovedClosureDates { get; set; } = new();
+        public List<(string Department, DateTime Date)> UnapprovedClosures { get; set; } = new();
     }
 }

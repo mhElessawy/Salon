@@ -97,7 +97,7 @@ namespace Salon.Controllers
         {
             if (id != model.Id) return NotFound();
 
-            if (await _closure.IsDateLockedAsync(model.WithdrawalDate))
+            if (await _closure.IsDateLockedAsync(model.WithdrawalDate, model.Department))
             {
                 TempData["Error"] = "لا يمكن تعديل سحب يخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
                 return RedirectToAction(nameof(Index));
@@ -126,7 +126,7 @@ namespace Salon.Controllers
             var w = await _context.Withdrawals.FindAsync(id);
             if (w != null)
             {
-                if (await _closure.IsDateLockedAsync(w.WithdrawalDate))
+                if (await _closure.IsDateLockedAsync(w.WithdrawalDate, w.Department))
                 {
                     TempData["Error"] = "لا يمكن حذف سحب يخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
                     return RedirectToAction(nameof(Index));

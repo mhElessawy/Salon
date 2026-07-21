@@ -14,6 +14,7 @@ namespace Salon.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IPermissionService _permissionService;
+        private readonly IDailyClosureService _closure;
 
         private static readonly TimeZoneInfo _kuwaitTz =
             TimeZoneInfo.CreateCustomTimeZone("Kuwait Standard Time",
@@ -22,11 +23,13 @@ namespace Salon.Controllers
         private static DateTime KuwaitToday =>
             TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _kuwaitTz).Date;
 
-        public DashboardController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IPermissionService permissionService)
+        public DashboardController(ApplicationDbContext context, UserManager<ApplicationUser> userManager,
+            IPermissionService permissionService, IDailyClosureService closure)
         {
             _context = context;
             _userManager = userManager;
             _permissionService = permissionService;
+            _closure = closure;
         }
 
         public async Task<IActionResult> Index()
@@ -117,31 +120,19 @@ namespace Salon.Controllers
                 .ToListAsync();
 
             // الأيام السابقة اللي فيها مبيعات ومالهاش سجل اعتماد معتمد — تظهر للكاشير والإدارة
-            // كتنبيه فوري. مش بس الحالة الحرفية "أُغلق آلياً" — أي يوم مش معتمد أصلاً (سواء
-            // مالوش سجل إغلاق خالص أو سجله لسه مفتوح) لازم يظهر برضو.
-            var unapprovedClosureDates = new List<DateTime>();
-            if (User.IsInRole("Cashier") || User.IsInRole("Admin") || User.IsInRole("Manager"))
-            {
-                var lookbackStart = today.AddDays(-90);
+            // كتنبيه فوري، لكل قسم لوحده (كاشير مرتبط بقسم يشوف قسمه بس).
+            var unapprovedClosures = new List<(string Department, DateTime Date)>();
+            bool isAdminOrManager = User.IsInRole("Admin") || User.IsInRole("Manager");
+            List<string> departmentsToCheck;
+            if (!isAdminOrManager && (userDept == Shift.ClosureDepartments.Haircut || userDept == Shift.ClosureDepartments.Massage))
+                departmentsToCheck = new List<string> { userDept! };
+            else if (isAdminOrManager || User.IsInRole("Cashier"))
+                departmentsToCheck = Shift.ClosureDepartments.All.ToList();
+            else
+                departmentsToCheck = new List<string>();
 
-                var approvedDates = new HashSet<DateTime>(await _context.Shifts
-                    .Where(s => s.IsClosureRecord && s.ShiftDate >= lookbackStart && s.ShiftDate < today
-                        && (s.ApprovalStatus == Shift.ApprovalStatuses.Approved
-                            || s.ApprovalStatus == Shift.ApprovalStatuses.ApprovedWithDiscrepancy))
-                    .Select(s => s.ShiftDate.Date)
-                    .ToListAsync());
-
-                var saleDates = await _context.Sales
-                    .Where(s => s.SaleDate >= lookbackStart && s.SaleDate < today && s.Status != "ملغي")
-                    .Select(s => s.SaleDate.Date)
-                    .Distinct()
-                    .ToListAsync();
-
-                unapprovedClosureDates = saleDates
-                    .Where(d => !approvedDates.Contains(d))
-                    .OrderBy(d => d)
-                    .ToList();
-            }
+            if (departmentsToCheck.Count > 0)
+                unapprovedClosures = await _closure.FindAllPendingApprovalsAsync(departmentsToCheck);
 
             // فواتير اليوم التي بها ملاحظات للموظف المرتبط بالمستخدم
             var invoicesWithNotes = new List<Sale>();
@@ -170,7 +161,7 @@ namespace Salon.Controllers
                 ExpiringProducts = expiringProducts,
                 UserDepartment = userDept,
                 InvoicesWithNotes = invoicesWithNotes,
-                UnapprovedClosureDates = unapprovedClosureDates
+                UnapprovedClosures = unapprovedClosures
             };
 
             return View(vm);

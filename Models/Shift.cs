@@ -14,6 +14,23 @@ namespace Salon.Models
             public const string AutoClosedUnapproved = "مغلق آلياً - بانتظار الاعتماد";
         }
 
+        // نطاق اعتماد الإغلاق: كل قسم إيرادي (حلاقة/مساج) له يومية مستقلة، وأي بند مالوش قسم
+        // محدد (مصروفات مشتركة، مبيعات منتجات، سلف/عهد موظفي الإدارة) بيتجمّع في نطاق "عام"
+        // ما يشوفه ويعتمده إلا الأدمن/المدير.
+        public static class ClosureDepartments
+        {
+            public const string Haircut = "حلاقة";
+            public const string Massage = "مساج";
+            public const string Shared = "عام";
+
+            public static readonly string[] All = { Haircut, Massage, Shared };
+
+            // بيرجّع "حلاقة"/"مساج" لو القيمة مطابقة لقسم إيرادي معروف، وإلا "عام" (يشمل
+            // الفاضي/null والمنتجات وأي قسم إداري تاني).
+            public static string Normalize(string? department) =>
+                department == Haircut || department == Massage ? department : Shared;
+        }
+
         public int Id { get; set; }
 
         [Required(ErrorMessage = "اسم الشفت مطلوب")]
@@ -55,6 +72,11 @@ namespace Salon.Models
         public bool IsClosureRecord { get; set; }
 
         // ===== اعتماد وإغلاق اليومية =====
+
+        // قيمتها دايماً "حلاقة" أو "مساج" أو "عام" لصفوف الإغلاق (IsClosureRecord = true)،
+        // وفاضية لصفوف "الشفتات" العادية اللي مالهاش علاقة بالتقسيم ده.
+        [Display(Name = "القسم")]
+        public string? ClosureDepartment { get; set; }
 
         [Display(Name = "حالة الاعتماد")]
         public string ApprovalStatus { get; set; } = ApprovalStatuses.Open;

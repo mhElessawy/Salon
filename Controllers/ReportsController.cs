@@ -1774,22 +1774,55 @@ namespace Salon.Controllers
             return PartialView("_CustomerSalesDetail", sales);
         }
 
-        public async Task<IActionResult> Closures(string? from, string? to)
+        public async Task<IActionResult> Closures(string? from, string? to, string? dept)
         {
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
             DateTime dateToInclusive = string.IsNullOrEmpty(to) ? DateTime.Today : DateTime.Parse(to);
             DateTime dateTo = dateToInclusive.Date.AddDays(1);
 
+            bool isAdminOrManager = User.IsInRole("Admin") || User.IsInRole("Manager");
+            string department;
+            bool canPickDepartment;
+            if (!isAdminOrManager)
+            {
+                var currentUser = await _userManager.GetUserAsync(User);
+                if (currentUser?.UserDepartment == Shift.ClosureDepartments.Haircut
+                    || currentUser?.UserDepartment == Shift.ClosureDepartments.Massage)
+                {
+                    department = currentUser.UserDepartment!;
+                    canPickDepartment = false;
+                }
+                else
+                {
+                    department = Shift.ClosureDepartments.Haircut;
+                    canPickDepartment = true;
+                }
+            }
+            else
+            {
+                department = dept switch
+                {
+                    Shift.ClosureDepartments.Haircut => Shift.ClosureDepartments.Haircut,
+                    Shift.ClosureDepartments.Massage => Shift.ClosureDepartments.Massage,
+                    Shift.ClosureDepartments.Shared => Shift.ClosureDepartments.Shared,
+                    _ => Shift.ClosureDepartments.Haircut
+                };
+                canPickDepartment = true;
+            }
+            bool isShared = department == Shift.ClosureDepartments.Shared;
+
             var shifts = await _context.Shifts
-                .Where(s => s.IsClosureRecord && s.ShiftDate >= dateFrom && s.ShiftDate < dateTo)
+                .Where(s => s.IsClosureRecord && s.ClosureDepartment == department && s.ShiftDate >= dateFrom && s.ShiftDate < dateTo)
                 .ToListAsync();
             var shiftByDay = shifts
                 .GroupBy(s => s.ShiftDate.Date)
                 .ToDictionary(g => g.Key, g => g.OrderByDescending(s => s.CreatedAt).First());
 
-            var sales = await _context.Sales
-                .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي")
-                .ToListAsync();
+            var salesQuery = _context.Sales.Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
+            salesQuery = isShared
+                ? salesQuery.Where(s => s.SaleType != Shift.ClosureDepartments.Haircut && s.SaleType != Shift.ClosureDepartments.Massage)
+                : salesQuery.Where(s => s.SaleType == department);
+            var sales = await salesQuery.ToListAsync();
             var revenueByDay = sales
                 .GroupBy(s => s.SaleDate.Date)
                 .ToDictionary(g => g.Key, g => g.Sum(s => s.NetAmount));
@@ -1820,6 +1853,9 @@ namespace Salon.Controllers
 
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateToInclusive.ToString("yyyy-MM-dd");
+            ViewBag.Department = department;
+            ViewBag.CanPickDepartment = canPickDepartment;
+            ViewBag.AvailableDepartments = Shift.ClosureDepartments.All;
             ViewBag.TotalDays = rows.Count;
             ViewBag.ApprovedCount = rows.Count(r => r.ApprovalStatus == Shift.ApprovalStatuses.Approved);
             ViewBag.ApprovedWithDiscrepancyCount = rows.Count(r => r.ApprovalStatus == Shift.ApprovalStatuses.ApprovedWithDiscrepancy);

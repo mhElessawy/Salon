@@ -52,23 +52,28 @@ namespace Salon.Services
             if (now.TimeOfDay < cutoff) return;
 
             var today = now.Date;
-            var shift = await context.Shifts
-                .Where(s => s.ShiftDate.Date == today && s.IsClosureRecord)
-                .OrderByDescending(s => s.CreatedAt)
-                .FirstOrDefaultAsync();
+            // كل قسم له يومية مستقلة — بنقفل آلياً أي قسم عنده يومية "مفتوحة" اليوم ولسه محدش
+            // اعتمدها، من غير ما نأثر على باقي الأقسام.
+            var openShifts = await context.Shifts
+                .Where(s => s.ShiftDate.Date == today && s.IsClosureRecord && s.ApprovalStatus == Shift.ApprovalStatuses.Open)
+                .ToListAsync();
 
-            if (shift == null || shift.ApprovalStatus != Shift.ApprovalStatuses.Open) return;
+            if (openShifts.Count == 0) return;
 
-            shift.ApprovalStatus = Shift.ApprovalStatuses.AutoClosedUnapproved;
-            shift.IsAutoClosed = true;
-            shift.AutoClosedAt = now;
-            shift.Status = "مغلق";
+            foreach (var shift in openShifts)
+            {
+                shift.ApprovalStatus = Shift.ApprovalStatuses.AutoClosedUnapproved;
+                shift.IsAutoClosed = true;
+                shift.AutoClosedAt = now;
+                shift.Status = "مغلق";
+
+                await audit.LogAsync("AutoClose", "Shifts",
+                    $"إغلاق آلي ليومية {shift.ClosureDepartment} بتاريخ {shift.ShiftDate:yyyy/MM/dd} — لم يتم اعتمادها من الكاشير", shift.Id);
+
+                _logger.LogInformation("Auto-closed unapproved daily closure for {Department} on {Date}", shift.ClosureDepartment, shift.ShiftDate);
+            }
+
             await context.SaveChangesAsync();
-
-            await audit.LogAsync("AutoClose", "Shifts",
-                $"إغلاق آلي لليومية بتاريخ {shift.ShiftDate:yyyy/MM/dd} — لم يتم اعتمادها من الكاشير", shift.Id);
-
-            _logger.LogInformation("Auto-closed unapproved daily closure for {Date}", shift.ShiftDate);
         }
     }
 }

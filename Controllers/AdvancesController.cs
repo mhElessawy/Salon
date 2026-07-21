@@ -476,10 +476,13 @@ namespace Salon.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var advance = await _context.EmployeeAdvances.Include(a => a.Employee).FirstOrDefaultAsync(a => a.Id == id);
+            var advance = await _context.EmployeeAdvances
+                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                .FirstOrDefaultAsync(a => a.Id == id);
             if (advance != null)
             {
-                if (await _closure.IsDateLockedAsync(advance.AdvanceDate))
+                var advanceDept = advance.Employee?.RevenueDepartment ?? advance.Employee?.DepartmentNav?.Name;
+                if (await _closure.IsDateLockedAsync(advance.AdvanceDate, advanceDept))
                 {
                     TempData["Error"] = "لا يمكن حذف سلفة تخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
                     return RedirectToAction(nameof(Index));

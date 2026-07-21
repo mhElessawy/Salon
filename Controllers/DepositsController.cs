@@ -113,7 +113,7 @@ namespace Salon.Controllers
         {
             if (id != model.Id) return NotFound();
 
-            if (await _closure.IsDateLockedAsync(model.DepositDate))
+            if (await _closure.IsDateLockedAsync(model.DepositDate, model.Department))
             {
                 TempData["Error"] = "لا يمكن تعديل إيداع يخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
                 return RedirectToAction(nameof(Index));
@@ -146,7 +146,7 @@ namespace Salon.Controllers
             var deposit = await _context.Deposits.FindAsync(id);
             if (deposit != null)
             {
-                if (await _closure.IsDateLockedAsync(deposit.DepositDate))
+                if (await _closure.IsDateLockedAsync(deposit.DepositDate, deposit.Department))
                 {
                     TempData["Error"] = "لا يمكن حذف إيداع يخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
                     return RedirectToAction(nameof(Index));
