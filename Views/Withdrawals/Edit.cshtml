@@ -1,4 +1,4 @@
-﻿@model Salon.Models.Withdrawal
+﻿@model  Salon.Models.Withdrawal
 @{
     ViewData["Title"] = "تعديل السحب";
     var userDept = ViewBag.UserDepartment as string;
@@ -44,6 +44,13 @@
                         <option>دفع فاتورة</option>
                         <option>مصروف طارئ</option>
                         <option>أخرى</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="PaymentMethod" class="form-label"></label>
+                    <select asp-for="PaymentMethod" class="form-select">
+                        <option value="نقدي">💵 نقدي</option>
+                        <option value="لينك">🔗 لينك</option>
                     </select>
                 </div>
                 <div class="col-md-6">

@@ -18,6 +18,8 @@
     decimal totalCashSales = ViewBag.TotalCashSales is decimal tcs ? tcs : 0m;
     decimal totalKNet = ViewBag.TotalKNet is decimal tkn ? tkn : 0m;
     decimal totalWithdrawals = ViewBag.TotalWithdrawals is decimal tw ? tw : 0m;
+    decimal totalWithdrawalsCash = ViewBag.TotalWithdrawalsCash is decimal twc ? twc : 0m;
+    decimal totalWithdrawalsNonCash = ViewBag.TotalWithdrawalsNonCash is decimal twnc ? twnc : 0m;
     decimal cashBalance = ViewBag.CashBalance is decimal cb ? cb : 0m;
     decimal openingBalance = ViewBag.OpeningBalance is decimal ob ? ob : 0m;
     string selectedType = ViewBag.SelectedType ?? "";
@@ -29,21 +31,24 @@
     // مبيعات الكاش دايمًا نقدي، أما الإيداع فبيتحقق من طريقة الدفع بتاعته لوحده تحت
     string[] cashCreditTypes = { "مبيعات كاش" };
 
-    // رصيد كاش جاري بعد كل حركة (يبدأ من رصيد الكاش قبل الفترة، ويستثني الكي نت والإيداعات/المصروفات غير النقدية)
+    // شاشة صرف الرواتب بتخزّن "كاش" (مش "نقدي") كقيمة الدفع النقدي؛ فبنقبل الاتنين هنا
+    bool IsCashPayment(Salon.Models.CashMovementReportItem i) => i.Type == "راتب"
+        ? (i.PaymentMethod == "كاش" || i.PaymentMethod == "نقدي")
+        : i.PaymentMethod == "نقدي";
+
+    // رصيد كاش جاري بعد كل حركة (يبدأ من رصيد الكاش قبل الفترة، ويستثني الكي نت والحركات غير النقدية)
     var ascItems = Model.OrderBy(i => i.Date).ThenBy(i => i.Type).ToList();
     var itemBalance = new Dictionary<Salon.Models.CashMovementReportItem, decimal>();
     decimal runBal = openingBalance;
     foreach (var itm in ascItems)
     {
-        // السحب دايمًا نقدي - المصروف/السلفة/الراتب فقط لو طريقة الدفع نقدي
-        bool affectsCash = itm.Type == "سحب" ||
-            (debitTypes.Contains(itm.Type) && itm.PaymentMethod == "نقدي");
+        bool affectsCash = debitTypes.Contains(itm.Type) && IsCashPayment(itm);
         bool isCashDeposit = itm.Type == "إيداع" && itm.PaymentMethod == "نقدي";
         if (affectsCash)
             runBal -= itm.Amount;
         else if (cashCreditTypes.Contains(itm.Type) || isCashDeposit)
             runBal += itm.Amount;
-        // كي نت والمصروفات/الإيداعات غير النقدية لا تؤثر على رصيد الكاش
+        // كي نت والحركات غير النقدية لا تؤثر على رصيد الكاش
         itemBalance[itm] = runBal;
     }
 }
@@ -227,8 +232,13 @@
                 <div class="mb-1" style="font-size:24px; color:#dc2626;"><i class="fas fa-hand-holding-usd"></i></div>
                 <div class="text-muted small">السحوبات</div>
                 <div class="fw-bold fs-6 mt-1" style="color:#dc2626;">@totalWithdrawals.ToString("N3") <small>د.ك</small></div>
-                <div class="text-muted mt-2 pt-2" style="border-top:1px dashed #fca5a5; font-size:11px;">
-                    <i class="fas fa-money-bill-wave me-1 text-danger"></i>نقدي بالكامل
+                <div class="d-flex justify-content-between mt-2 pt-2" style="border-top:1px dashed #fca5a5; font-size:11px;">
+                    <span class="text-muted"><i class="fas fa-money-bill-wave me-1 text-danger"></i>نقدي</span>
+                    <span class="fw-semibold text-danger">@totalWithdrawalsCash.ToString("N3")</span>
+                </div>
+                <div class="d-flex justify-content-between" style="font-size:11px;">
+                    <span class="text-muted"><i class="fas fa-link me-1" style="color:#0ea5e9;"></i>لينك <span class="text-muted">(خارج الرصيد)</span></span>
+                    <span class="fw-semibold" style="color:#0ea5e9;">@totalWithdrawalsNonCash.ToString("N3")</span>
                 </div>
             </div>
         </div>
@@ -236,9 +246,9 @@
 </div>
 
 @{
-    // السحب دايمًا نقدي، فهو يُضاف لعمود "نقدي" في التفصيل بحيث يظل مجموع العمودين مطابقاً للإجمالي أعلاه
     decimal totalExpensesWithWithdrawals = totalExpenses + totalWithdrawals;
-    decimal totalCashExpensesWithWithdrawals = totalCashExpenses + totalWithdrawals;
+    decimal totalCashExpensesWithWithdrawals = totalCashExpenses + totalWithdrawalsCash;
+    decimal totalNonCashExpensesWithWithdrawals = totalNonCashExpenses + totalWithdrawalsNonCash;
 }
 @* خط فاصل وإجمالي المصروفات (شامل السحوبات) مع تفصيل نقدي/غير نقدي *@
 <div class="alert alert-danger py-2 px-3 mb-1 d-flex justify-content-between align-items-center">
@@ -254,8 +264,8 @@
     </div>
     <div class="col-6">
         <div class="d-flex justify-content-between align-items-center px-3 py-2 rounded" style="background:#f9fafb; border:1px solid #d1d5db;">
-            <span class="small"><i class="fas fa-university me-1 text-muted"></i> بطاقة / تحويل <span class="text-muted">(خارج الرصيد)</span></span>
-            <strong class="text-muted">@totalNonCashExpenses.ToString("N3") د.ك</strong>
+            <span class="small"><i class="fas fa-university me-1 text-muted"></i> بطاقة / تحويل / لينك <span class="text-muted">(خارج الرصيد)</span></span>
+            <strong class="text-muted">@totalNonCashExpensesWithWithdrawals.ToString("N3") د.ك</strong>
         </div>
     </div>
 </div>
@@ -270,7 +280,7 @@
                 </div>
                 <div class="text-muted" style="font-size:12px;">
                     رصيد قبل الفترة (@openingBalance.ToString("N3")) + مبيعات كاش (@totalCashSales.ToString("N3")) + إيداعات نقدي (@totalDepositsCash.ToString("N3"))
-                    − مصروفات نقدي (@totalCashExpenses.ToString("N3")) − سحوبات (@totalWithdrawals.ToString("N3"))
+                    − مصروفات نقدي (@totalCashExpenses.ToString("N3")) − سحوبات نقدي (@totalWithdrawalsCash.ToString("N3"))
                 </div>
             </div>
             <div class="col-auto">
@@ -372,7 +382,7 @@
                             bool isKNet = item.Type == "كي نت";
                             bool isDeposit = item.Type == "إيداع";
                             bool isWithdrawal = item.Type == "سحب";
-                            bool isNonCashExpense = isDebit && !isWithdrawal && item.PaymentMethod != "نقدي";
+                            bool isNonCashExpense = isDebit && !IsCashPayment(item);
                             bool isNonCashDeposit = isDeposit && item.PaymentMethod != "نقدي";
                             decimal bal = itemBalance.TryGetValue(item, out decimal b) ? b : 0m;
 
@@ -408,7 +418,7 @@
                                             <span class="badge px-2 py-1" style="background:rgba(111,66,193,0.12); color:#6f42c1;">
                                                 <i class="fas fa-money-bill-wave me-1"></i>راتب
                                             </span>
-                                            @if (item.PaymentMethod != "نقدي")
+                                            @if (!IsCashPayment(item))
                                             {
                                                 <small class="text-muted ms-1">(@item.PaymentMethod)</small>
                                             }
@@ -427,6 +437,10 @@
                                             <span class="badge px-2 py-1" style="background:rgba(220,38,38,0.12); color:#dc2626;">
                                                 <i class="fas fa-hand-holding-usd me-1"></i>سحب
                                             </span>
+                                            @if (item.PaymentMethod != "نقدي")
+                                            {
+                                                <small class="text-muted ms-1">(@item.PaymentMethod)</small>
+                                            }
                                             break;
                                         default:
                                             <span class="badge bg-success bg-opacity-10 text-success px-2 py-1">
@@ -457,7 +471,6 @@
                             decimal tMasrouf = Model.Where(i => i.Type == "مصروف").Sum(i => i.Amount);
                             decimal tSulfa = Model.Where(i => i.Type == "سلفة").Sum(i => i.Amount);
                             decimal tRatib = Model.Where(i => i.Type == "راتب").Sum(i => i.Amount);
-                            decimal tSahb = Model.Where(i => i.Type == "سحب").Sum(i => i.Amount);
                         }
                         <tr>
                             <td colspan="6" class="text-end text-muted">رصيد الكاش قبل الفترة</td>
@@ -493,11 +506,11 @@
                             <td class="text-end text-danger fw-bold">-@totalExpenses.ToString("N3")</td>
                             <td></td>
                         </tr>
-                        @if (tSahb > 0)
+                        @if (totalWithdrawalsCash > 0)
                         {
                             <tr>
-                                <td colspan="6" class="text-end text-muted">السحوبات</td>
-                                <td class="text-end text-danger">-@tSahb.ToString("N3")</td>
+                                <td colspan="6" class="text-end text-muted">السحوبات (نقدي)</td>
+                                <td class="text-end text-danger">-@totalWithdrawalsCash.ToString("N3")</td>
                                 <td></td>
                             </tr>
                         }
@@ -533,9 +546,17 @@
                                 <td></td>
                             </tr>
                         }
+                        @if (totalWithdrawalsNonCash > 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="text-end text-muted">السحوبات (لينك — مستقل)</td>
+                                <td class="text-end" style="color:#0ea5e9;">-@totalWithdrawalsNonCash.ToString("N3")</td>
+                                <td></td>
+                            </tr>
+                        }
                         <tr style="background:#eff6ff;">
                             <td colspan="6" class="text-end fw-bold" style="color:#1d4ed8;">
-                                <i class="fas fa-wallet me-1"></i> رصيد الكاش (رصيد قبل الفترة + كاش + إيداعات نقدي − مصروفات نقدي − سحوبات)
+                                <i class="fas fa-wallet me-1"></i> رصيد الكاش (رصيد قبل الفترة + كاش + إيداعات نقدي − مصروفات نقدي − سحوبات نقدي)
                             </td>
                             <td class="text-end fw-bold" style="color:@(cashBalance >= 0 ? "#1d4ed8" : "#dc2626"); font-size:1.05em;">
                                 @cashBalance.ToString("N3")
