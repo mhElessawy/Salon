@@ -23,7 +23,7 @@
     bool inventoryOpen = IsGroupOpen("inventory", "suppliers");
     bool hrOpen = IsGroupOpen("employees", "salaries", "advances", "custody", "purchaserequests", "attendance");
     bool cashOpen = IsGroupOpen("expenses", "deposits", "withdrawals") ||
-                    (ctrl == "reports" && act == "cashmovement");
+                    (ctrl == "reports" && (act == "cashmovement" || act == "bankmovement"));
     bool settingsOpen = IsGroupOpen("settings", "users");
 }
 
@@ -422,6 +422,12 @@
                             <a href="@Url.Action("CashMovement", "Reports")" class="@IsActive("Reports", "CashMovement")">
                                 <i class="fas fa-chart-bar" style="color:#6f42c1;"></i>
                                 <span data-i18n-en="Cash Movement Report">تقرير حركة الصندوق</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("BankMovement", "Reports")" class="@IsActive("Reports", "BankMovement")">
+                                <i class="fas fa-university" style="color:#0ea5e9;"></i>
+                                <span data-i18n-en="Bank Movement Report">تقرير حركة البنك</span>
                             </a>
                         </li>
                     }

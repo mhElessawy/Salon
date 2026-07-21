@@ -47,6 +47,7 @@
                         <th>القسم</th>
                         <th>البيان</th>
                         <th>السبب</th>
+                        <th>طريقة السحب</th>
                         <th>المبلغ</th>
                         <th>التاريخ</th>
                         <th>ملاحظات</th>
@@ -56,7 +57,7 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="8" class="text-center text-muted py-4">لا توجد سحوبات في هذا اليوم</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted py-4">لا توجد سحوبات في هذا اليوم</td></tr>
                     }
                     @foreach (var w in Model)
                     {
@@ -78,6 +79,16 @@
                             </td>
                             <td>@w.Description</td>
                             <td>@(w.Reason ?? "-")</td>
+                            <td>
+                                @if (w.PaymentMethod == "نقدي")
+                                {
+                                    <span class="badge bg-danger bg-opacity-10 text-danger"><i class="fas fa-money-bill-wave me-1"></i>نقدي</span>
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background:rgba(14,165,233,0.12); color:#0ea5e9;"><i class="fas fa-link me-1"></i>لينك</span>
+                                }
+                            </td>
                             <td><strong class="text-danger">@w.Amount.ToString("N3") د.ك</strong></td>
                             <td>@w.WithdrawalDate.ToString("yyyy/MM/dd")</td>
                             <td class="text-muted small">@w.Notes</td>
@@ -97,7 +108,7 @@
                 {
                     <tfoot class="table-light fw-bold">
                         <tr>
-                            <td colspan="4" class="text-end">الإجمالي</td>
+                            <td colspan="5" class="text-end">الإجمالي</td>
                             <td class="text-danger">@ViewBag.Total?.ToString("N3") د.ك</td>
                             <td colspan="3"></td>
                         </tr>

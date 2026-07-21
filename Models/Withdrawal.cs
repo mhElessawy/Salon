@@ -21,6 +21,9 @@ namespace Salon.Models
         [Display(Name = "السبب")]
         public string? Reason { get; set; }
 
+        [Display(Name = "طريقة السحب")]
+        public string PaymentMethod { get; set; } = "نقدي";
+
         [Display(Name = "تاريخ السحب")]
         [DataType(DataType.Date)]
         public DateTime WithdrawalDate { get; set; } = DateTime.Today;
