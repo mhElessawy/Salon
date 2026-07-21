@@ -949,25 +949,31 @@ namespace Salon.Controllers
                     Description = w.Description,
                     Amount = w.Amount,
                     Category = w.Reason,
-                    Notes = w.Notes
+                    Notes = w.Notes,
+                    PaymentMethod = w.PaymentMethod
                 }));
             }
 
             items = items.OrderByDescending(i => i.Date).ThenBy(i => i.Type).ToList();
+
+            // شاشة صرف الرواتب بتخزّن "كاش" (مش "نقدي") كقيمة الدفع النقدي؛ فبنقبل الاتنين هنا
+            // عشان بيانات قديمة محتملة كانت بالقيمة الافتراضية "نقدي".
+            bool IsCashPayment(CashMovementReportItem i) => i.Type == "راتب"
+                ? (i.PaymentMethod == "كاش" || i.PaymentMethod == "نقدي")
+                : i.PaymentMethod == "نقدي";
 
             decimal totalMasrouf = items.Where(i => i.Type == "مصروف").Sum(i => i.Amount);
             decimal totalSulfa = items.Where(i => i.Type == "سلفة").Sum(i => i.Amount);
             decimal totalRatib = items.Where(i => i.Type == "راتب").Sum(i => i.Amount);
             decimal totalExp = totalMasrouf + totalSulfa + totalRatib;
             // تفصيل كاش/كي نت للمصروفات العامة والسلف (البطاقة والتحويل البنكي يُحسبان "كي نت" هنا)
-            decimal totalMasroufCash = items.Where(i => i.Type == "مصروف" && i.PaymentMethod == "نقدي").Sum(i => i.Amount);
+            decimal totalMasroufCash = items.Where(i => i.Type == "مصروف" && IsCashPayment(i)).Sum(i => i.Amount);
             decimal totalMasroufKNet = totalMasrouf - totalMasroufCash;
-            decimal totalSulfaCash = items.Where(i => i.Type == "سلفة" && i.PaymentMethod == "نقدي").Sum(i => i.Amount);
+            decimal totalSulfaCash = items.Where(i => i.Type == "سلفة" && IsCashPayment(i)).Sum(i => i.Amount);
             decimal totalSulfaKNet = totalSulfa - totalSulfaCash;
+            decimal totalRatibCash = items.Where(i => i.Type == "راتب" && IsCashPayment(i)).Sum(i => i.Amount);
             // المصروفات النقدية فقط (لحساب رصيد الكاش)
-            decimal totalCashExp = items.Where(i =>
-                (i.Type == "مصروف" || i.Type == "سلفة" || i.Type == "راتب")
-                && i.PaymentMethod == "نقدي").Sum(i => i.Amount);
+            decimal totalCashExp = totalMasroufCash + totalSulfaCash + totalRatibCash;
             decimal totalDep = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount);
             // إيداع بالتحويل البنكي أو البطاقة ميعديش على الكاش الفعلي في الدرج، فمينفعش يزود رصيد الكاش
             decimal totalDepCash = items.Where(i => i.Type == "إيداع" && i.PaymentMethod == "نقدي").Sum(i => i.Amount);
@@ -975,6 +981,9 @@ namespace Salon.Controllers
             decimal totalCashSales = items.Where(i => i.Type == "مبيعات كاش").Sum(i => i.Amount);
             decimal totalKNet = items.Where(i => i.Type == "كي نت").Sum(i => i.Amount);
             decimal totalWithdrawals = items.Where(i => i.Type == "سحب").Sum(i => i.Amount);
+            // السحب بطريقة "لينك" مش نقدي فعلي، فمابيخصمش من رصيد الكاش
+            decimal totalWithdrawalsCash = items.Where(i => i.Type == "سحب" && i.PaymentMethod == "نقدي").Sum(i => i.Amount);
+            decimal totalWithdrawalsNonCash = totalWithdrawals - totalWithdrawalsCash;
 
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
@@ -998,11 +1007,248 @@ namespace Salon.Controllers
             ViewBag.TotalKNet = totalKNet;
             ViewBag.TotalSales = totalCashSales + totalKNet;
             ViewBag.TotalWithdrawals = totalWithdrawals;
-            // رصيد الكاش = رصيد قبل الفترة + مبيعات كاش + إيداعات نقدي - مصروفات نقدية - سحوبات (الكي نت والإيداعات غير النقدية خارج الحساب)
-            ViewBag.CashBalance = openingBalanceBeforePeriod + totalCashSales + totalDepCash - totalCashExp - totalWithdrawals;
+            ViewBag.TotalWithdrawalsCash = totalWithdrawalsCash;
+            ViewBag.TotalWithdrawalsNonCash = totalWithdrawalsNonCash;
+            // رصيد الكاش = رصيد قبل الفترة + مبيعات كاش + إيداعات نقدي - مصروفات نقدية - سحوبات نقدي (الكي نت والإيداعات/السحوبات غير النقدية خارج الحساب)
+            ViewBag.CashBalance = openingBalanceBeforePeriod + totalCashSales + totalDepCash - totalCashExp - totalWithdrawalsCash;
             ViewBag.NetBalance = ViewBag.CashBalance;
             ViewBag.CurrentCustodies = currentCustodies;
             ViewBag.TotalCurrentCustody = totalCurrentCustody;
+
+            return View(items);
+        }
+
+        private record BankFlows(decimal BankRevenue, decimal Deposits, decimal Expenses, decimal Advances, decimal Salaries, decimal Withdrawals);
+
+        // معادلة موحّدة لحركة البنك (كل ما هو غير نقدي: كي نت/لينك مبيعات، إيداعات/مصروفات/سلف/رواتب/سحوبات
+        // بغير طريقة الدفع "نقدي") يستخدمها تقرير حركة البنك لحساب الرصيد الحالي والرصيد قبل الفترة معاً.
+        private async Task<BankFlows> ComputeBankFlowsAsync(DateTime from, DateTime to, string? dept, bool filterDept)
+        {
+            var salesQuery = _context.Sales.Where(s => s.SaleDate >= from && s.SaleDate < to && s.Status != "ملغي");
+            if (filterDept) salesQuery = salesQuery.Where(s => s.SaleType == dept);
+            var sales = await salesQuery.ToListAsync();
+            decimal bankRevenue = sales.Sum(s =>
+                s.PaymentMethod == "كي نت" ? s.NetAmount :
+                s.PaymentMethod == "كي نت و كاش" ? (s.LinkAmount ?? 0) : 0m);
+
+            var depositsQuery = _context.Deposits.Where(d => d.DepositDate >= from && d.DepositDate < to && d.PaymentMethod != "نقدي");
+            if (filterDept) depositsQuery = depositsQuery.Where(d => d.Department == dept);
+            decimal deposits = (await depositsQuery.ToListAsync()).Sum(d => d.Amount);
+
+            var expQuery = _context.Expenses.Where(e => e.ExpenseDate >= from && e.ExpenseDate < to
+                     && e.PaymentMethod != "نقدي" && e.Category != "عهدة");
+            if (filterDept) expQuery = expQuery.Where(e => e.Department == dept);
+            decimal expenses = (await expQuery.ToListAsync()).Sum(e => e.Amount);
+
+            var advQuery = _context.EmployeeAdvances.Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Where(a => a.AdvanceDate >= from && a.AdvanceDate < to
+                         && EmployeeAdvance.Statuses.Realized.Contains(a.Status) && a.PaymentMethod != "نقدي");
+            if (filterDept) advQuery = advQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == dept);
+            decimal advances = (await advQuery.ToListAsync()).Sum(a => a.Amount);
+
+            var salQuery = _context.Salaries.Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= from && s.PaidDate.Value < to
+                         && s.PaymentMethod != "كاش" && s.PaymentMethod != "نقدي");
+            if (filterDept) salQuery = salQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == dept);
+            decimal salaries = (await salQuery.ToListAsync()).Sum(s => s.NetSalary);
+
+            var wdQuery = _context.Withdrawals.Where(w => w.WithdrawalDate >= from && w.WithdrawalDate < to && w.PaymentMethod != "نقدي");
+            if (filterDept) wdQuery = wdQuery.Where(w => w.Department == dept);
+            decimal withdrawals = (await wdQuery.ToListAsync()).Sum(w => w.Amount);
+
+            return new BankFlows(bankRevenue, deposits, expenses, advances, salaries, withdrawals);
+        }
+
+        public async Task<IActionResult> BankMovement(string? from, string? to, string? type, string? dept)
+        {
+            DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
+            DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
+            if ((userDept == "مساج" || userDept == "حلاقة") && string.IsNullOrEmpty(dept))
+                dept = userDept;
+
+            var items = new List<CashMovementReportItem>();
+
+            bool showExpenses = string.IsNullOrEmpty(type) || type == "مصروف";
+            bool showDeposits = string.IsNullOrEmpty(type) || type == "إيداع";
+            bool showSales = string.IsNullOrEmpty(type) || type == "كي نت";
+            bool showWithdrawals = string.IsNullOrEmpty(type) || type == "سحب";
+            bool filterDept = !string.IsNullOrEmpty(dept);
+
+            // رصيد البنك قبل الفترة = صافي كل الحركات غير النقدية منذ أول تاريخ مسجَّل عندنا بيانات
+            // فيه (بنفس منطق تثبيت البداية المستخدم في CashBoxCalculator) وحتى بداية الفترة. لا يوجد
+            // رصيد افتتاحي يدوي للبنك (بعكس الكاش اللي بيتعدّ يدوياً بشاشة الشفتات)، فرصيد البداية = 0.
+            var firstShiftEver = await _context.Shifts.OrderBy(s => s.ShiftDate).ThenBy(s => s.CreatedAt).FirstOrDefaultAsync();
+            DateTime baseDate = (firstShiftEver != null && firstShiftEver.ShiftDate.Date <= dateFrom) ? firstShiftEver.ShiftDate.Date : dateFrom;
+            var prior = await ComputeBankFlowsAsync(baseDate, dateFrom, dept, filterDept);
+            decimal openingBalanceBeforePeriod = prior.BankRevenue + prior.Deposits - prior.Expenses - prior.Advances - prior.Salaries - prior.Withdrawals;
+
+            if (showExpenses)
+            {
+                var expensesQuery = _context.Expenses
+                    .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo && e.Category != "عهدة" && e.PaymentMethod != "نقدي");
+                if (filterDept)
+                    expensesQuery = expensesQuery.Where(e => e.Department == dept);
+                var expenses = await expensesQuery
+                    .OrderByDescending(e => e.ExpenseDate)
+                    .ToListAsync();
+
+                items.AddRange(expenses.Select(e => new CashMovementReportItem
+                {
+                    Date = e.ExpenseDate,
+                    Type = "مصروف",
+                    Description = e.Description,
+                    Amount = e.Amount,
+                    Category = e.Category,
+                    Notes = e.Notes,
+                    PaymentMethod = e.PaymentMethod
+                }));
+
+                var advancesQuery = _context.EmployeeAdvances
+                    .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                    .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo
+                             && EmployeeAdvance.Statuses.Realized.Contains(a.Status) && a.PaymentMethod != "نقدي");
+                if (filterDept)
+                    advancesQuery = advancesQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == dept);
+                var advances = await advancesQuery
+                    .OrderByDescending(a => a.AdvanceDate)
+                    .ToListAsync();
+
+                items.AddRange(advances.Select(a => new CashMovementReportItem
+                {
+                    Date = a.AdvanceDate,
+                    Type = "سلفة",
+                    Description = $"سلفة - {a.Employee?.FullName ?? ""}".Trim(' ', '-'),
+                    Amount = a.Amount,
+                    Category = "سلف الموظفين",
+                    Notes = a.Reason,
+                    PaymentMethod = a.PaymentMethod
+                }));
+
+                var salariesQuery = _context.Salaries
+                    .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
+                    .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= dateFrom && s.PaidDate.Value < dateTo
+                             && s.PaymentMethod != "كاش" && s.PaymentMethod != "نقدي");
+                if (filterDept)
+                    salariesQuery = salariesQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == dept);
+                var salaries = await salariesQuery
+                    .OrderByDescending(s => s.PaidDate)
+                    .ToListAsync();
+
+                items.AddRange(salaries.Select(s => new CashMovementReportItem
+                {
+                    Date = s.PaidDate!.Value,
+                    Type = "راتب",
+                    Description = $"راتب - {s.Employee?.FullName ?? ""}".Trim(' ', '-'),
+                    Amount = s.NetSalary,
+                    Category = "رواتب الموظفين",
+                    Notes = s.Notes,
+                    PaymentMethod = s.PaymentMethod
+                }));
+            }
+
+            if (showDeposits)
+            {
+                var depositsQuery = _context.Deposits
+                    .Where(d => d.DepositDate >= dateFrom && d.DepositDate < dateTo && d.PaymentMethod != "نقدي");
+                if (filterDept)
+                    depositsQuery = depositsQuery.Where(d => d.Department == dept);
+                var deposits = await depositsQuery
+                    .OrderByDescending(d => d.DepositDate)
+                    .ToListAsync();
+
+                items.AddRange(deposits.Select(d => new CashMovementReportItem
+                {
+                    Date = d.DepositDate,
+                    Type = "إيداع",
+                    Description = d.Description,
+                    Amount = d.Amount,
+                    Category = d.Source,
+                    Notes = d.Notes,
+                    PaymentMethod = d.PaymentMethod
+                }));
+            }
+
+            if (showSales)
+            {
+                var salesQuery = _context.Sales
+                    .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
+                if (filterDept)
+                    salesQuery = salesQuery.Where(s => s.SaleType == dept);
+                var salesRaw = await salesQuery.ToListAsync();
+
+                var dailyKNet = salesRaw
+                    .GroupBy(s => s.SaleDate.Date)
+                    .Select(g => new
+                    {
+                        Date = g.Key,
+                        Amount = g.Sum(s => s.PaymentMethod == "كي نت"
+                            ? s.NetAmount
+                            : s.PaymentMethod == "كي نت و كاش"
+                                ? (s.LinkAmount ?? 0)
+                                : 0m),
+                        Count = g.Count(s => s.PaymentMethod == "كي نت" || s.PaymentMethod == "كي نت و كاش")
+                    })
+                    .Where(d => d.Amount > 0);
+
+                items.AddRange(dailyKNet.Select(d => new CashMovementReportItem
+                {
+                    Date = d.Date,
+                    Type = "كي نت",
+                    Description = $"مبيعات كي نت {d.Date:yyyy/MM/dd}",
+                    Amount = d.Amount,
+                    Category = $"{d.Count} فاتورة",
+                    Notes = ""
+                }));
+            }
+
+            if (showWithdrawals)
+            {
+                var wQuery = _context.Withdrawals
+                    .Where(w => w.WithdrawalDate >= dateFrom && w.WithdrawalDate < dateTo && w.PaymentMethod != "نقدي");
+                if (filterDept)
+                    wQuery = wQuery.Where(w => w.Department == dept);
+                var withdrawals = await wQuery.OrderByDescending(w => w.WithdrawalDate).ToListAsync();
+
+                items.AddRange(withdrawals.Select(w => new CashMovementReportItem
+                {
+                    Date = w.WithdrawalDate,
+                    Type = "سحب",
+                    Description = w.Description,
+                    Amount = w.Amount,
+                    Category = w.Reason,
+                    Notes = w.Notes,
+                    PaymentMethod = w.PaymentMethod
+                }));
+            }
+
+            items = items.OrderByDescending(i => i.Date).ThenBy(i => i.Type).ToList();
+
+            decimal totalMasrouf = items.Where(i => i.Type == "مصروف").Sum(i => i.Amount);
+            decimal totalSulfa = items.Where(i => i.Type == "سلفة").Sum(i => i.Amount);
+            decimal totalRatib = items.Where(i => i.Type == "راتب").Sum(i => i.Amount);
+            decimal totalExp = totalMasrouf + totalSulfa + totalRatib;
+            decimal totalDep = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount);
+            decimal totalKNet = items.Where(i => i.Type == "كي نت").Sum(i => i.Amount);
+            decimal totalWithdrawals = items.Where(i => i.Type == "سحب").Sum(i => i.Amount);
+
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
+            ViewBag.SelectedType = type;
+            ViewBag.SelectedDept = dept;
+            ViewBag.TotalMasrouf = totalMasrouf;
+            ViewBag.TotalSulfa = totalSulfa;
+            ViewBag.TotalRatib = totalRatib;
+            ViewBag.TotalExpenses = totalExp;
+            ViewBag.OpeningBalance = openingBalanceBeforePeriod;
+            ViewBag.TotalDeposits = totalDep;
+            ViewBag.TotalKNet = totalKNet;
+            ViewBag.TotalWithdrawals = totalWithdrawals;
+            // رصيد البنك = رصيد قبل الفترة + مبيعات كي نت/لينك + إيداعات غير نقدية - مصروفات/سلف/رواتب غير نقدية - سحوبات لينك
+            ViewBag.BankBalance = openingBalanceBeforePeriod + totalKNet + totalDep - totalExp - totalWithdrawals;
 
             return View(items);
         }

@@ -108,14 +108,18 @@ namespace Salon.Services
             else if (filterDept) advQuery = advQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == dept);
             decimal cashAdvances = (await advQuery.ToListAsync()).Sum(a => a.Amount);
 
+            // ملحوظة: شاشة صرف الرواتب فعليًا بتخزّن "كاش" (مش "نقدي") كقيمة الدفع النقدي، والقيمة
+            // الافتراضية القديمة على الموديل "نقدي" فضلت موجودة في بيانات قديمة محتملة — فبنقبل الاتنين.
             var salQuery = context.Salaries.Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
-                .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= from && s.PaidDate.Value < to && s.PaymentMethod == "نقدي");
+                .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= from && s.PaidDate.Value < to
+                         && (s.PaymentMethod == "كاش" || s.PaymentMethod == "نقدي"));
             if (sharedOnly) salQuery = salQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) != "حلاقة"
                      && (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) != "مساج");
             else if (filterDept) salQuery = salQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == dept);
             decimal cashSalaries = (await salQuery.ToListAsync()).Sum(s => s.NetSalary);
 
-            var wdQuery = context.Withdrawals.Where(w => w.WithdrawalDate >= from && w.WithdrawalDate < to);
+            // السحب بطريقة "لينك" مش نقدي فعلي بيطلع من الدرج، فمينفعش يخصم من رصيد الكاش.
+            var wdQuery = context.Withdrawals.Where(w => w.WithdrawalDate >= from && w.WithdrawalDate < to && w.PaymentMethod == "نقدي");
             if (sharedOnly) wdQuery = wdQuery.Where(w => w.Department != "حلاقة" && w.Department != "مساج");
             else if (filterDept) wdQuery = wdQuery.Where(w => w.Department == dept);
             decimal withdrawals = (await wdQuery.ToListAsync()).Sum(w => w.Amount);
