@@ -1381,8 +1381,6 @@ namespace Salon.Migrations
                     .IsRequired();
 
                 b.Navigation("Employee");
-
-                b.Navigation("Permissions");
             });
 
             modelBuilder.Entity("Salon.Models.AttendancePermission", b =>
@@ -1537,6 +1535,11 @@ namespace Salon.Migrations
                 b.Navigation("Appointments");
 
                 b.Navigation("Sales");
+            });
+
+            modelBuilder.Entity("Salon.Models.Attendance", b =>
+            {
+                b.Navigation("Permissions");
             });
 
             modelBuilder.Entity("Salon.Models.Department", b =>

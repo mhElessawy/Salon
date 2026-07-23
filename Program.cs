@@ -334,6 +334,47 @@ using (var scope = app.Services.CreateScope())
             // يفصل يومية كل قسم (حلاقة/مساج) عن التانية، والبنود المشتركة بدون قسم في نطاق "عام"
             // (انظر التعليق فوق تعريف ClosureDepartments في Shift.cs).
             TryExec("ALTER TABLE Shifts ADD COLUMN ClosureDepartment TEXT NULL");
+
+            // شراء آجل من المورد — ذمة مستحقة بدل خصم فوري من العهدة/الصندوق/البنك (انظر
+            // PurchaseRequest.PurchaseMethods وSupplierInvoice)
+            TryExec("ALTER TABLE PurchaseRequests ADD COLUMN PurchaseMethod TEXT NOT NULL DEFAULT 'نقدًا من العهدة'");
+            TryExec("ALTER TABLE PurchaseRequests ADD COLUMN SupplierInvoiceId INTEGER NULL");
+            TryExec(@"CREATE TABLE IF NOT EXISTS SupplierInvoices (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                SupplierId INTEGER NOT NULL,
+                PurchaseRequestId INTEGER NULL,
+                InvoiceNumber TEXT NOT NULL,
+                InvoiceDate TEXT NOT NULL DEFAULT (date('now')),
+                TotalAmount REAL NOT NULL DEFAULT 0,
+                Notes TEXT NULL,
+                CreatedByUserId TEXT NULL,
+                CreatedByName TEXT NULL,
+                CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+                FOREIGN KEY (SupplierId) REFERENCES Suppliers(Id),
+                FOREIGN KEY (PurchaseRequestId) REFERENCES PurchaseRequests(Id))");
+            TryExec(@"CREATE TABLE IF NOT EXISTS SupplierInvoiceInstallments (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                SupplierInvoiceId INTEGER NOT NULL,
+                SequenceNo INTEGER NOT NULL DEFAULT 1,
+                Amount REAL NOT NULL DEFAULT 0,
+                DueDate TEXT NOT NULL DEFAULT (date('now')),
+                FOREIGN KEY (SupplierInvoiceId) REFERENCES SupplierInvoices(Id) ON DELETE CASCADE)");
+            TryExec(@"CREATE TABLE IF NOT EXISTS SupplierInvoicePayments (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                SupplierInvoiceId INTEGER NOT NULL,
+                Amount REAL NOT NULL DEFAULT 0,
+                PaymentDate TEXT NOT NULL DEFAULT (date('now')),
+                Source TEXT NOT NULL DEFAULT 'الصندوق',
+                CustodyId INTEGER NULL,
+                ReferenceNumber TEXT NULL,
+                Notes TEXT NULL,
+                ExpenseId INTEGER NULL,
+                PaidByUserId TEXT NULL,
+                PaidByName TEXT NULL,
+                CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+                FOREIGN KEY (SupplierInvoiceId) REFERENCES SupplierInvoices(Id) ON DELETE CASCADE,
+                FOREIGN KEY (CustodyId) REFERENCES Custodies(Id),
+                FOREIGN KEY (ExpenseId) REFERENCES Expenses(Id))");
         }
         else
         {
@@ -547,6 +588,53 @@ using (var scope = app.Services.CreateScope())
             // يفصل يومية كل قسم (حلاقة/مساج) عن التانية، والبنود المشتركة بدون قسم في نطاق "عام"
             // (انظر التعليق فوق تعريف ClosureDepartments في Shift.cs).
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Shifts' AND COLUMN_NAME='ClosureDepartment') ALTER TABLE Shifts ADD ClosureDepartment NVARCHAR(50) NULL");
+
+            // شراء آجل من المورد — ذمة مستحقة بدل خصم فوري من العهدة/الصندوق/البنك (انظر
+            // PurchaseRequest.PurchaseMethods وSupplierInvoice)
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='PurchaseRequests' AND COLUMN_NAME='PurchaseMethod') ALTER TABLE PurchaseRequests ADD PurchaseMethod NVARCHAR(100) NOT NULL DEFAULT N'نقدًا من العهدة'");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='PurchaseRequests' AND COLUMN_NAME='SupplierInvoiceId') ALTER TABLE PurchaseRequests ADD SupplierInvoiceId INT NULL");
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='SupplierInvoices')
+                CREATE TABLE SupplierInvoices (Id INT IDENTITY PRIMARY KEY,
+                SupplierId INT NOT NULL,
+                PurchaseRequestId INT NULL,
+                InvoiceNumber NVARCHAR(200) NOT NULL,
+                InvoiceDate DATE NOT NULL DEFAULT GETDATE(),
+                TotalAmount DECIMAL(18,3) NOT NULL DEFAULT 0,
+                Notes NVARCHAR(MAX) NULL,
+                CreatedByUserId NVARCHAR(450) NULL,
+                CreatedByName NVARCHAR(MAX) NULL,
+                CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                CONSTRAINT FK_SupplierInvoices_Suppliers FOREIGN KEY (SupplierId)
+                    REFERENCES Suppliers(Id),
+                CONSTRAINT FK_SupplierInvoices_PurchaseRequests FOREIGN KEY (PurchaseRequestId)
+                    REFERENCES PurchaseRequests(Id))");
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='SupplierInvoiceInstallments')
+                CREATE TABLE SupplierInvoiceInstallments (Id INT IDENTITY PRIMARY KEY,
+                SupplierInvoiceId INT NOT NULL,
+                SequenceNo INT NOT NULL DEFAULT 1,
+                Amount DECIMAL(18,3) NOT NULL DEFAULT 0,
+                DueDate DATE NOT NULL DEFAULT GETDATE(),
+                CONSTRAINT FK_SupplierInvoiceInstallments_SupplierInvoices FOREIGN KEY (SupplierInvoiceId)
+                    REFERENCES SupplierInvoices(Id) ON DELETE CASCADE)");
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='SupplierInvoicePayments')
+                CREATE TABLE SupplierInvoicePayments (Id INT IDENTITY PRIMARY KEY,
+                SupplierInvoiceId INT NOT NULL,
+                Amount DECIMAL(18,3) NOT NULL DEFAULT 0,
+                PaymentDate DATE NOT NULL DEFAULT GETDATE(),
+                Source NVARCHAR(50) NOT NULL DEFAULT N'الصندوق',
+                CustodyId INT NULL,
+                ReferenceNumber NVARCHAR(200) NULL,
+                Notes NVARCHAR(MAX) NULL,
+                ExpenseId INT NULL,
+                PaidByUserId NVARCHAR(450) NULL,
+                PaidByName NVARCHAR(MAX) NULL,
+                CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                CONSTRAINT FK_SupplierInvoicePayments_SupplierInvoices FOREIGN KEY (SupplierInvoiceId)
+                    REFERENCES SupplierInvoices(Id) ON DELETE CASCADE,
+                CONSTRAINT FK_SupplierInvoicePayments_Custodies FOREIGN KEY (CustodyId)
+                    REFERENCES Custodies(Id),
+                CONSTRAINT FK_SupplierInvoicePayments_Expenses FOREIGN KEY (ExpenseId)
+                    REFERENCES Expenses(Id))");
         }
 
         // ترحيل لمرة واحدة: قبل هذا الفصل كانت شاشة "اعتماد اليومية" تعيد استخدام آخر صف Shift

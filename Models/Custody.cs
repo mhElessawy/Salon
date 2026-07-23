@@ -46,11 +46,18 @@ namespace Salon.Models
         // طلبات الشراء المصروفة من هذه العهدة — لازم تُحمَّل (Include) في أي استعلام يستخدم الخصائص المحسوبة تحت
         public List<PurchaseRequest> PurchaseRequests { get; set; } = new();
 
-        // المبلغ المصروف فعلياً — طلبات الشراء المعتمَدة (بعد مطابقة الكاشير) فقط
+        // دفعات فواتير موردين آجلة سُدِّدت من هذه العهدة — لازم تُحمَّل (Include) أيضاً في نفس الاستعلامات
+        public List<SupplierInvoicePayment> InvoicePayments { get; set; } = new();
+
+        // المبلغ المصروف فعلياً — طلبات الشراء المعتمَدة (بعد مطابقة الكاشير) المموَّلة نقداً من
+        // العهدة مباشرة، بالإضافة لأي دفعات فواتير موردين آجلة سُدِّدت من هذه العهدة. طلبات الشراء
+        // بطريقة "آجل من المورد" مستبعدة هنا لأنها لم تُخصم من العهدة وقت الاعتماد، وتُخصم فقط عند
+        // سداد دفعاتها الفعلية (المحسوبة في InvoicePayments)
         [NotMapped]
         public decimal SpentAmount => PurchaseRequests
-            .Where(p => p.Status == PurchaseRequest.Statuses.Completed)
-            .Sum(p => p.ActualAmount ?? 0);
+            .Where(p => p.Status == PurchaseRequest.Statuses.Completed && p.PurchaseMethod != PurchaseRequest.PurchaseMethods.Deferred)
+            .Sum(p => p.ActualAmount ?? 0)
+            + InvoicePayments.Sum(ip => ip.Amount);
 
         // محجوز لطلبات شراء بانتظار الموافقة أو الشراء (تقديرياً، لم يُخصم بعد)
         [NotMapped]

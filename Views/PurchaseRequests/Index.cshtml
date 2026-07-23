@@ -212,10 +212,18 @@
                                                 <div class="mt-2 p-2 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;">
                                                     <div><strong>رقم الفاتورة:</strong> @p.InvoiceNumber</div>
                                                     <div><strong>المبلغ الفعلي:</strong> <span class="text-success fw-bold">@p.ActualAmount?.ToString("N3") د.ك</span></div>
+                                                    <div><strong>طريقة الشراء:</strong> @p.PurchaseMethod</div>
                                                     <div><strong>راجعها:</strong> @p.ReviewedByName — @p.ReviewedAt?.ToString("HH:mm  yyyy/MM/dd")</div>
                                                     @if (!string.IsNullOrEmpty(p.InvoicePhotoPath))
                                                     {
                                                         <div class="mt-1"><a href="@p.InvoicePhotoPath" target="_blank"><i class="fas fa-image me-1"></i>عرض صورة الفاتورة</a></div>
+                                                    }
+                                                    @if (p.SupplierInvoice != null)
+                                                    {
+                                                        <div class="mt-2 pt-2" style="border-top:1px dashed #bbf7d0;">
+                                                            <div><strong>ذمة المورد:</strong> المدفوع @p.SupplierInvoice.PaidAmount.ToString("N3") / المتبقي @p.SupplierInvoice.RemainingAmount.ToString("N3") د.ك — <span class="badge bg-secondary">@p.SupplierInvoice.Status</span></div>
+                                                            <a href="@Url.Action("Index", "SupplierInvoices")" class="small">عرض في فواتير الموردين الآجلة</a>
+                                                        </div>
                                                     }
                                                 </div>
                                             }
@@ -279,10 +287,23 @@
                                 <strong id="cashierEstimated" class="fs-6 text-warning"></strong>
                                 <span class="text-muted small">د.ك</span>
                             </div>
-                            <div class="d-flex justify-content-between align-items-center mt-2">
+                            <div class="d-flex justify-content-between align-items-center mt-2" id="cashierCustodyRemainingRow">
                                 <span class="text-muted">المتبقي في العهدة</span>
                                 <strong id="cashierCustodyRemaining" class="fs-6 text-success"></strong>
                                 <span class="text-muted small">د.ك</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">طريقة الشراء</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="purchaseMethod" id="pmCustody" value="نقدًا من العهدة" checked>
+                                    <label class="form-check-label" for="pmCustody">نقدًا من العهدة</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="purchaseMethod" id="pmDeferred" value="آجل من المورد">
+                                    <label class="form-check-label" for="pmDeferred">آجل من المورد</label>
+                                </div>
                             </div>
                         </div>
                         <div class="mb-3">
@@ -290,8 +311,8 @@
                             <input type="text" name="invoiceNumber" class="form-control" required />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">المورد</label>
-                            <select name="supplierId" class="form-select">
+                            <label class="form-label fw-bold">المورد <span class="text-danger d-none" id="cashierSupplierRequiredMark">*</span></label>
+                            <select name="supplierId" id="cashierSupplierId" class="form-select">
                                 <option value="">-- غير محدد --</option>
                                 @foreach (SelectListItem sup in (IEnumerable<SelectListItem>)ViewBag.Suppliers)
                                 {
@@ -310,6 +331,20 @@
                         <div class="mb-1">
                             <label class="form-label fw-bold">ملاحظات</label>
                             <textarea name="notes" class="form-control" rows="2"></textarea>
+                        </div>
+
+                        <div id="cashierInstallmentsSection" class="d-none mt-3 p-3 rounded" style="background:#fff7ed;border:1px solid #fed7aa;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label fw-bold mb-0">دفعات السداد للمورد</label>
+                                <button type="button" class="btn btn-xs btn-outline-warning" id="cashierAddInstallmentBtn">
+                                    <i class="fas fa-plus"></i> إضافة دفعة
+                                </button>
+                            </div>
+                            <div id="cashierInstallmentsRows"></div>
+                            <div class="small mt-1 d-flex justify-content-between">
+                                <span>إجمالي الدفعات: <strong id="cashierInstallmentsTotal">0.000</strong> د.ك</span>
+                                <span id="cashierInstallmentsWarning" class="text-danger d-none">مجموع الدفعات لا يساوي المبلغ الفعلي</span>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -370,7 +405,9 @@
             document.getElementById('cashierEmpName').textContent = empName;
             document.getElementById('cashierEstimated').textContent = estimated.toFixed(3);
             document.getElementById('cashierCustodyRemaining').textContent = custodyRemaining.toFixed(3);
-            document.getElementById('cashierActualAmount').max = custodyRemaining;
+            document.getElementById('pmCustody').checked = true;
+            document.getElementById('cashierInstallmentsRows').innerHTML = '';
+            updatePurchaseMethodUI();
             new bootstrap.Modal(document.getElementById('cashierModal')).show();
         }
 
@@ -383,6 +420,69 @@
                     parseFloat(btn.dataset.cashierRemaining)
                 );
             });
+        });
+
+        function isDeferredSelected() {
+            return document.getElementById('pmDeferred').checked;
+        }
+
+        function updatePurchaseMethodUI() {
+            var deferred = isDeferredSelected();
+            document.getElementById('cashierActualAmount').removeAttribute('max');
+            document.getElementById('cashierCustodyRemainingRow').classList.toggle('d-none', deferred);
+            document.getElementById('cashierInstallmentsSection').classList.toggle('d-none', !deferred);
+            document.getElementById('cashierSupplierRequiredMark').classList.toggle('d-none', !deferred);
+            var supplierSelect = document.getElementById('cashierSupplierId');
+            if (deferred) supplierSelect.setAttribute('required', 'required');
+            else supplierSelect.removeAttribute('required');
+            updateInstallmentsTotal();
+        }
+
+        document.getElementById('pmCustody').addEventListener('change', updatePurchaseMethodUI);
+        document.getElementById('pmDeferred').addEventListener('change', updatePurchaseMethodUI);
+
+        function addInstallmentRow() {
+            var container = document.getElementById('cashierInstallmentsRows');
+            var row = document.createElement('div');
+            row.className = 'row g-2 mb-2 align-items-center cashier-installment-row';
+            row.innerHTML =
+                '<div class="col-5"><input type="number" step="0.001" min="0.001" name="installmentAmount" class="form-control form-control-sm" placeholder="المبلغ" /></div>' +
+                '<div class="col-5"><input type="date" name="installmentDueDate" class="form-control form-control-sm" /></div>' +
+                '<div class="col-2"><button type="button" class="btn btn-xs btn-outline-danger js-remove-installment"><i class="fas fa-times"></i></button></div>';
+            container.appendChild(row);
+            row.querySelector('.js-remove-installment').addEventListener('click', function () {
+                row.remove();
+                updateInstallmentsTotal();
+            });
+            row.querySelector('input[name="installmentAmount"]').addEventListener('input', updateInstallmentsTotal);
+        }
+
+        document.getElementById('cashierAddInstallmentBtn').addEventListener('click', addInstallmentRow);
+
+        function updateInstallmentsTotal() {
+            var amounts = document.querySelectorAll('#cashierInstallmentsRows input[name="installmentAmount"]');
+            var total = 0;
+            amounts.forEach(function (input) { total += parseFloat(input.value) || 0; });
+            document.getElementById('cashierInstallmentsTotal').textContent = total.toFixed(3);
+            var actual = parseFloat(document.getElementById('cashierActualAmount').value) || 0;
+            var hasRows = amounts.length > 0;
+            var mismatch = isDeferredSelected() && hasRows && Math.abs(total - actual) > 0.001;
+            document.getElementById('cashierInstallmentsWarning').classList.toggle('d-none', !mismatch);
+        }
+
+        document.getElementById('cashierActualAmount').addEventListener('input', updateInstallmentsTotal);
+
+        document.getElementById('cashierForm').addEventListener('submit', function (e) {
+            if (!isDeferredSelected()) return;
+            var amounts = document.querySelectorAll('#cashierInstallmentsRows input[name="installmentAmount"]');
+            if (amounts.length === 0) return; // بدون دفعات = دفعة واحدة بكامل المبلغ تلقائياً
+            var total = 0;
+            amounts.forEach(function (input) { total += parseFloat(input.value) || 0; });
+            var actual = parseFloat(document.getElementById('cashierActualAmount').value) || 0;
+            if (Math.abs(total - actual) > 0.001) {
+                e.preventDefault();
+                alert('مجموع الدفعات يجب أن يساوي المبلغ الفعلي');
+            }
         });
 
         function confirmDelete(id, empName, isCompleted) {

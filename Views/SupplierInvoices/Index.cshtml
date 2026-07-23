@@ -1,0 +1,315 @@
+@model IEnumerable<Salon.Models.SupplierInvoice>
+@{
+    ViewData["Title"] = "فواتير الموردين الآجلة";
+    bool canPay = (bool)(ViewBag.CanPay ?? false);
+    bool isManager = (bool)(ViewBag.IsManager ?? false);
+    decimal totalOutstanding = (decimal)ViewBag.TotalOutstanding;
+    int overdueCount = (int)ViewBag.OverdueCount;
+
+    string StatusBadge(string status) => status switch
+    {
+        "غير مدفوعة" => "bg-secondary",
+        "مدفوعة جزئيًا" => "bg-warning text-dark",
+        "مدفوعة بالكامل" => "bg-success",
+        "متأخرة" => "bg-danger",
+        _ => "bg-secondary"
+    };
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="fas fa-file-invoice-dollar me-2"></i>فواتير الموردين الآجلة</h1>
+        <p>ذمم مستحقة للموردين نشأت من مشتريات آجلة — تُسدَّد على دفعة أو أكثر من الصندوق أو البنك أو عهدة موظف</p>
+    </div>
+    <a href="@Url.Action("Index", "PurchaseRequests")" class="btn btn-outline-secondary">
+        <i class="fas fa-shopping-cart me-1"></i> طلبات الشراء
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-md-4">
+        <div class="card border-0 shadow-sm h-100" style="border-right:4px solid #dc2626 !important;">
+            <div class="card-body">
+                <div class="text-muted small mb-1"><i class="fas fa-exclamation-triangle me-1" style="color:#dc2626;"></i>فواتير متأخرة</div>
+                <div class="fw-bold fs-4" style="color:#dc2626;">@overdueCount</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-4">
+        <div class="card border-0 shadow-sm h-100" style="border-right:4px solid #d97706 !important;">
+            <div class="card-body">
+                <div class="text-muted small mb-1"><i class="fas fa-hand-holding-usd me-1" style="color:#d97706;"></i>إجمالي المتبقي على الموردين</div>
+                <div class="fw-bold fs-4" style="color:#d97706;">@totalOutstanding.ToString("N3") <small class="text-muted">د.ك</small></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+            <label class="form-label mb-0">المورد:</label>
+            <select name="supplierId" class="form-select" style="max-width:220px;" onchange="this.form.submit()">
+                <option value="">-- الكل --</option>
+                @foreach (SelectListItem sup in (IEnumerable<SelectListItem>)ViewBag.Suppliers)
+                {
+                    <option value="@sup.Value" selected="@(sup.Selected ? "selected" : null)">@sup.Text</option>
+                }
+            </select>
+            <label class="form-label mb-0">الحالة:</label>
+            <select name="status" class="form-select" style="max-width:220px;" onchange="this.form.submit()">
+                <option value="">-- الكل --</option>
+                <option value="غير مدفوعة" selected="@(ViewBag.Status == "غير مدفوعة" ? "selected" : null)">غير مدفوعة</option>
+                <option value="مدفوعة جزئيًا" selected="@(ViewBag.Status == "مدفوعة جزئيًا" ? "selected" : null)">مدفوعة جزئيًا</option>
+                <option value="مدفوعة بالكامل" selected="@(ViewBag.Status == "مدفوعة بالكامل" ? "selected" : null)">مدفوعة بالكامل</option>
+                <option value="متأخرة" selected="@(ViewBag.Status == "متأخرة" ? "selected" : null)">متأخرة</option>
+            </select>
+            @if (ViewBag.SupplierId != null || !string.IsNullOrEmpty(ViewBag.Status))
+            {
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">إعادة تعيين</a>
+            }
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>المورد</th>
+                        <th>رقم الفاتورة</th>
+                        <th>تاريخ الفاتورة</th>
+                        <th>القيمة</th>
+                        <th>المدفوع</th>
+                        <th>المتبقي</th>
+                        <th>الاستحقاق القادم</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="10" class="text-center text-muted py-4">لا توجد فواتير موردين آجلة</td></tr>
+                    }
+                    @foreach (var inv in Model)
+                    {
+                        var rowId = "inv-" + inv.Id;
+                        <tr>
+                            <td>@inv.Id</td>
+                            <td>@(inv.Supplier?.Name ?? "-")</td>
+                            <td>
+                                <a href="javascript:void(0)" onclick="toggleDetails('@rowId')" class="text-decoration-none">
+                                    @inv.InvoiceNumber <i class="fas fa-chevron-down small text-muted"></i>
+                                </a>
+                            </td>
+                            <td>@inv.InvoiceDate.ToString("yyyy/MM/dd")</td>
+                            <td>@inv.TotalAmount.ToString("N3") د.ك</td>
+                            <td class="text-success">@inv.PaidAmount.ToString("N3") د.ك</td>
+                            <td class="@(inv.RemainingAmount > 0 ? "text-danger fw-bold" : "text-muted")">@inv.RemainingAmount.ToString("N3") د.ك</td>
+                            <td>@(inv.NextDueDate?.ToString("yyyy/MM/dd") ?? "-")</td>
+                            <td><span class="badge @StatusBadge(inv.Status)">@inv.Status</span></td>
+                            <td class="text-nowrap">
+                                @if (canPay && inv.RemainingAmount > 0)
+                                {
+                                    <button type="button" class="btn btn-xs btn-primary js-pay-btn" title="تسجيل دفعة"
+                                            data-invoice-id="@inv.Id"
+                                            data-invoice-supplier="@(inv.Supplier?.Name ?? "-")"
+                                            data-invoice-number="@inv.InvoiceNumber"
+                                            data-invoice-remaining="@inv.RemainingAmount.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)">
+                                        <i class="fas fa-money-bill-wave"></i> تسجيل دفعة
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                        <tr class="d-none" id="@rowId">
+                            <td colspan="10" class="bg-light">
+                                <div class="p-2">
+                                    <div class="row g-3 small">
+                                        <div class="col-md-6">
+                                            @if (inv.PurchaseRequest != null)
+                                            {
+                                                <div><strong>نشأت من طلب شراء رقم:</strong> #@inv.PurchaseRequest.Id — @(inv.PurchaseRequest.Employee?.FullName ?? "-")</div>
+                                            }
+                                            @if (!string.IsNullOrEmpty(inv.Notes))
+                                            {
+                                                <div><strong>ملاحظات:</strong> @inv.Notes</div>
+                                            }
+                                            <div><strong>أنشأها:</strong> @inv.CreatedByName — @inv.CreatedAt.ToString("HH:mm  yyyy/MM/dd")</div>
+                                            @if (inv.Installments.Any())
+                                            {
+                                                <div class="mt-2">
+                                                    <strong>جدول الدفعات المخطَّط:</strong>
+                                                    <ul class="mb-0 mt-1">
+                                                        @foreach (var inst in inv.Installments.OrderBy(i => i.DueDate))
+                                                        {
+                                                            <li>@inst.Amount.ToString("N3") د.ك — استحقاق @inst.DueDate.ToString("yyyy/MM/dd")</li>
+                                                        }
+                                                    </ul>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong>الدفعات المسجَّلة:</strong>
+                                            @if (!inv.Payments.Any())
+                                            {
+                                                <div class="text-muted mt-1">لا توجد دفعات مسجَّلة بعد</div>
+                                            }
+                                            else
+                                            {
+                                                <ul class="mb-0 mt-1">
+                                                    @foreach (var p in inv.Payments.OrderByDescending(p => p.PaymentDate).ThenByDescending(p => p.CreatedAt))
+                                                    {
+                                                        <li>
+                                                            @p.Amount.ToString("N3") د.ك — @p.Source — @p.PaymentDate.ToString("yyyy/MM/dd")
+                                                            @if (!string.IsNullOrEmpty(p.ReferenceNumber)) { <text> — مرجع: @p.ReferenceNumber</text> }
+                                                            <span class="text-muted">(@p.PaidByName — @p.CreatedAt.ToString("HH:mm"))</span>
+                                                            @if (isManager)
+                                                            {
+                                                                <form method="post" asp-action="DeletePayment" asp-controller="SupplierInvoices" style="display:inline;"
+                                                                      onsubmit="return confirm('حذف هذه الدفعة؟');">
+                                                                    @Html.AntiForgeryToken()
+                                                                    <input type="hidden" name="id" value="@p.Id" />
+                                                                    <button type="submit" class="btn btn-link btn-sm text-danger p-0 ms-1" title="حذف الدفعة"><i class="fas fa-trash"></i></button>
+                                                                </form>
+                                                            }
+                                                        </li>
+                                                    }
+                                                </ul>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (canPay)
+{
+    <!-- Modal تسجيل دفعة -->
+    <div class="modal fade" id="payModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#0d6efd;color:#fff;">
+                    <h5 class="modal-title"><i class="fas fa-money-bill-wave me-2"></i>تسجيل دفعة للمورد</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="payForm" method="post" asp-action="RegisterPayment">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="invoiceId" id="payInvoiceId" />
+                    <div class="modal-body">
+                        <div class="mb-3 p-3 rounded" style="background:#f0f9ff;border:1px solid #bae6fd;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted">المورد</span>
+                                <strong id="paySupplierName" class="fs-6"></strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="text-muted">رقم الفاتورة</span>
+                                <strong id="payInvoiceNumber" class="fs-6"></strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="text-muted">المتبقي</span>
+                                <strong id="payRemaining" class="fs-6 text-danger"></strong>
+                                <span class="text-muted small">د.ك</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">مبلغ الدفعة <span class="text-danger">*</span></label>
+                            <input type="number" step="0.001" min="0.001" name="amount" id="payAmount" class="form-control" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">تاريخ الدفع</label>
+                            <input type="date" name="paymentDate" id="payDate" class="form-control" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">مصدر الدفع <span class="text-danger">*</span></label>
+                            <select name="source" id="paySource" class="form-select" required>
+                                <option value="الصندوق">الصندوق</option>
+                                <option value="البنك">البنك</option>
+                                <option value="عهدة">عهدة موظف</option>
+                            </select>
+                        </div>
+                        <div class="mb-3 d-none" id="payCustodyRow">
+                            <label class="form-label fw-bold">العهدة <span class="text-danger">*</span></label>
+                            <select name="custodyId" id="payCustodyId" class="form-select">
+                                <option value="">-- اختر العهدة --</option>
+                                @foreach (var c in (IEnumerable<Salon.Models.Custody>)ViewBag.Custodies)
+                                {
+                                    <option value="@c.Id" data-remaining="@c.RemainingAmount.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)">
+                                        @(c.Employee?.FullName ?? "-") — متبقي @c.RemainingAmount.ToString("N3") د.ك
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">رقم المرجع</label>
+                            <input type="text" name="referenceNumber" class="form-control" placeholder="رقم التحويل / الإيصال (اختياري)" />
+                        </div>
+                        <div class="mb-1">
+                            <label class="form-label fw-bold">ملاحظات</label>
+                            <textarea name="notes" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-primary px-4"><i class="fas fa-check me-1"></i> تسجيل الدفعة</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function toggleDetails(rowId) {
+            document.getElementById(rowId).classList.toggle('d-none');
+        }
+
+        function openPayModal(id, supplierName, invoiceNumber, remaining) {
+            document.getElementById('payInvoiceId').value = id;
+            document.getElementById('paySupplierName').textContent = supplierName;
+            document.getElementById('payInvoiceNumber').textContent = invoiceNumber;
+            document.getElementById('payRemaining').textContent = remaining.toFixed(3);
+            document.getElementById('payAmount').max = remaining;
+            document.getElementById('payAmount').value = '';
+            document.getElementById('paySource').value = 'الصندوق';
+            document.getElementById('payCustodyRow').classList.add('d-none');
+            document.getElementById('payDate').valueAsDate = new Date();
+            new bootstrap.Modal(document.getElementById('payModal')).show();
+        }
+
+        document.querySelectorAll('.js-pay-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                openPayModal(
+                    parseInt(btn.dataset.invoiceId, 10),
+                    btn.dataset.invoiceSupplier,
+                    btn.dataset.invoiceNumber,
+                    parseFloat(btn.dataset.invoiceRemaining)
+                );
+            });
+        });
+
+        var paySourceEl = document.getElementById('paySource');
+        if (paySourceEl) {
+            paySourceEl.addEventListener('change', function () {
+                var isCustody = this.value === 'عهدة';
+                document.getElementById('payCustodyRow').classList.toggle('d-none', !isCustody);
+            });
+        }
+    </script>
+    <style>
+        .btn-xs {
+            padding: 0.15rem 0.4rem;
+            font-size: 0.75rem;
+        }
+    </style>
+}

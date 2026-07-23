@@ -355,6 +355,12 @@
                                 <span data-i18n-en="Purchase Requests">طلبات الشراء</span>
                             </a>
                         </li>
+                        <li>
+                            <a href="@Url.Action("Index", "SupplierInvoices")" class="@IsActive("SupplierInvoices", "Index")">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                                <span data-i18n-en="Supplier Invoices">فواتير الموردين الآجلة</span>
+                            </a>
+                        </li>
                     }
                     @if (canSee("Attendance"))
                     {

@@ -766,6 +766,7 @@ namespace Salon.Controllers
             var custodyQuery = _context.Custodies
                 .Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Include(c => c.PurchaseRequests)
+                .Include(c => c.InvoicePayments)
                 .AsQueryable();
             if (filterDept)
                 custodyQuery = custodyQuery.Where(c => (c.Employee!.RevenueDepartment ?? c.Employee!.DepartmentNav!.Name) == dept);

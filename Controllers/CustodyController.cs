@@ -42,6 +42,7 @@ namespace Salon.Controllers
             var query = _context.Custodies
                 .Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Include(c => c.PurchaseRequests)
+                .Include(c => c.InvoicePayments)
                 .AsQueryable();
 
             if (userDept == "حلاقة" || userDept == "مساج")
@@ -143,6 +144,7 @@ namespace Salon.Controllers
             var custody = await _context.Custodies
                 .Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Include(c => c.PurchaseRequests)
+                .Include(c => c.InvoicePayments)
                 .FirstOrDefaultAsync(c => c.Id == id);
             if (custody != null)
             {
@@ -191,6 +193,7 @@ namespace Salon.Controllers
             var query = _context.Custodies
                 .Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Include(c => c.PurchaseRequests)
+                .Include(c => c.InvoicePayments)
                 .AsQueryable();
 
             if (userDept == "حلاقة" || userDept == "مساج")

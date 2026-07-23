@@ -42,6 +42,9 @@ namespace Salon.Data
         public DbSet<CustomerPackageTransaction> CustomerPackageTransactions { get; set; }
         public DbSet<AppSetting> AppSettings { get; set; }
         public DbSet<AppointmentReminder> AppointmentReminders { get; set; }
+        public DbSet<SupplierInvoice> SupplierInvoices { get; set; }
+        public DbSet<SupplierInvoiceInstallment> SupplierInvoiceInstallments { get; set; }
+        public DbSet<SupplierInvoicePayment> SupplierInvoicePayments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -190,6 +193,42 @@ namespace Salon.Data
             builder.Entity<PurchaseRequest>()
                 .Property(p => p.ActualAmount)
                 .HasColumnType("decimal(18,3)");
+
+            builder.Entity<SupplierInvoice>()
+                .Property(i => i.TotalAmount)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<SupplierInvoiceInstallment>()
+                .Property(i => i.Amount)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<SupplierInvoicePayment>()
+                .Property(p => p.Amount)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<SupplierInvoicePayment>()
+                .HasOne(p => p.Custody)
+                .WithMany(c => c.InvoicePayments)
+                .HasForeignKey(p => p.CustodyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<SupplierInvoicePayment>()
+                .HasOne(p => p.SupplierInvoice)
+                .WithMany(i => i.Payments)
+                .HasForeignKey(p => p.SupplierInvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<SupplierInvoiceInstallment>()
+                .HasOne(i => i.SupplierInvoice)
+                .WithMany(inv => inv.Installments)
+                .HasForeignKey(i => i.SupplierInvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<PurchaseRequest>()
+                .HasOne(p => p.SupplierInvoice)
+                .WithMany()
+                .HasForeignKey(p => p.SupplierInvoiceId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }
