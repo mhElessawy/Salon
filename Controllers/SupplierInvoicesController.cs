@@ -83,6 +83,81 @@ namespace Salon.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(int supplierId, string invoiceNumber, DateTime invoiceDate, decimal totalAmount,
+            string? notes, List<decimal>? installmentAmount, List<DateTime>? installmentDueDate)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (!await IsCashierOrManagerAsync(currentUser))
+            {
+                TempData["Error"] = "غير مصرح لك بإضافة فواتير موردين آجلة";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var supplier = await _context.Suppliers.FindAsync(supplierId);
+            if (supplier == null)
+            {
+                TempData["Error"] = "المورد المختار غير موجود";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (string.IsNullOrWhiteSpace(invoiceNumber))
+            {
+                TempData["Error"] = "رقم الفاتورة مطلوب";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (totalAmount <= 0)
+            {
+                TempData["Error"] = "قيمة الفاتورة يجب أن تكون أكبر من صفر";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var installments = new List<SupplierInvoiceInstallment>();
+            if (installmentAmount != null)
+            {
+                for (int i = 0; i < installmentAmount.Count; i++)
+                {
+                    if (installmentAmount[i] <= 0) continue;
+                    var dueDate = (installmentDueDate != null && i < installmentDueDate.Count && installmentDueDate[i] != default)
+                        ? installmentDueDate[i] : DateTime.Today;
+                    installments.Add(new SupplierInvoiceInstallment { SequenceNo = installments.Count + 1, Amount = installmentAmount[i], DueDate = dueDate });
+                }
+            }
+
+            if (installments.Count == 0)
+                installments.Add(new SupplierInvoiceInstallment { SequenceNo = 1, Amount = totalAmount, DueDate = invoiceDate == default ? DateTime.Today : invoiceDate });
+
+            decimal installmentsTotal = installments.Sum(x => x.Amount);
+            if (Math.Abs(installmentsTotal - totalAmount) > 0.001m)
+            {
+                TempData["Error"] = $"مجموع الدفعات ({installmentsTotal:N3}) يجب أن يساوي قيمة الفاتورة ({totalAmount:N3}) د.ك";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var invoice = new SupplierInvoice
+            {
+                SupplierId = supplierId,
+                InvoiceNumber = invoiceNumber.Trim(),
+                InvoiceDate = invoiceDate == default ? DateTime.Today : invoiceDate,
+                TotalAmount = totalAmount,
+                Notes = notes,
+                CreatedByUserId = currentUser?.Id,
+                CreatedByName = currentUser?.FullName ?? currentUser?.UserName,
+                CreatedAt = DateTime.Now,
+                Installments = installments
+            };
+            _context.SupplierInvoices.Add(invoice);
+            await _context.SaveChangesAsync();
+
+            await _audit.LogAsync("Add", "SupplierInvoice",
+                $"فاتورة مورد آجلة جديدة: {supplier.Name} | رقم الفاتورة: {invoice.InvoiceNumber} | القيمة: {totalAmount:N3} KD",
+                invoice.Id);
+
+            TempData["Success"] = "تم تسجيل فاتورة المورد الآجلة بنجاح";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> RegisterPayment(int invoiceId, decimal amount, DateTime paymentDate,
             string source, int? custodyId, string? referenceNumber, string? notes)
         {
