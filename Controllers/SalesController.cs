@@ -758,14 +758,20 @@ namespace Salon.Controllers
             ViewBag.PresentEmpIds = presentEmpIds;
 
             // Queue positions — employees who haven't checked out (today or yesterday)
-            var todayQueue = await (
+            // An employee can have an open attendance row from yesterday *and* today
+            // (e.g. never checked out yesterday, then checked in again today), so group
+            // by employee and keep the most recent one to avoid duplicate-key errors.
+            var todayQueueRows = await (
                 from a in _context.Attendances
                 join e in _context.Employees on a.EmployeeId equals e.Id
                 join d in _context.Departments on e.DepartmentId equals d.Id
                 where a.AttendanceDate >= yesterday && a.QueuePosition != null && d.Name == dept
                       && e.IsActive && a.CheckOut == null
-                select new { a.EmployeeId, QueuePos = (int)a.QueuePosition! }
-            ).ToDictionaryAsync(x => x.EmployeeId, x => x.QueuePos);
+                select new { a.EmployeeId, a.AttendanceDate, QueuePos = (int)a.QueuePosition! }
+            ).ToListAsync();
+            var todayQueue = todayQueueRows
+                .GroupBy(x => x.EmployeeId)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.AttendanceDate).First().QueuePos);
 
             // Check-in times — employees who haven't checked out (today or yesterday)
             var checkInRows = await (
