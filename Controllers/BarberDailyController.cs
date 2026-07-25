@@ -114,6 +114,7 @@ namespace Salon.Controllers
             var allCustodiesQuery = _context.Custodies
                 .Include(c => c.Employee)
                 .Include(c => c.PurchaseRequests)
+                .Include(c => c.InvoicePayments)
                 .AsQueryable();
 
             if (!isEmployee)

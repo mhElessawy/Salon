@@ -15,6 +15,13 @@ namespace Salon.Models
             public const string Completed = "معتمدة";
         }
 
+        // طريقة تمويل الشراء الفعلي — تُحدَّد وقت مطابقة الكاشير (وليس وقت الطلب)
+        public static class PurchaseMethods
+        {
+            public const string Custody = "نقدًا من العهدة";
+            public const string Deferred = "آجل من المورد";
+        }
+
         public int Id { get; set; }
 
         [Required]
@@ -68,6 +75,9 @@ namespace Salon.Models
         public DateTime? ApprovedAt { get; set; }
 
         // بيانات مطابقة واستلام الكاشير
+        [Display(Name = "طريقة الشراء")]
+        public string PurchaseMethod { get; set; } = PurchaseMethods.Custody;
+
         [Display(Name = "رقم الفاتورة")]
         public string? InvoiceNumber { get; set; }
 
@@ -86,11 +96,19 @@ namespace Salon.Models
         [Display(Name = "تاريخ المطابقة")]
         public DateTime? ReviewedAt { get; set; }
 
-        // مصروف فعلي يُنشأ تلقائياً عند اعتماد وتسجيل الكاشير — يمثل الشراء الحقيقي المؤيَّد بفاتورة
+        // مصروف فعلي يُنشأ تلقائياً عند اعتماد وتسجيل الكاشير (شراء نقدي من العهدة فقط) — يمثل
+        // الشراء الحقيقي المؤيَّد بفاتورة
         public int? ExpenseId { get; set; }
 
         [ForeignKey("ExpenseId")]
         public Expense? Expense { get; set; }
+
+        // ذمة مورد آجلة تُنشأ تلقائياً عند اعتماد وتسجيل الكاشير باختيار طريقة الشراء "آجل من
+        // المورد" — بديل عن ExpenseId، الاثنان لا يجتمعان أبداً في نفس الطلب
+        public int? SupplierInvoiceId { get; set; }
+
+        [ForeignKey("SupplierInvoiceId")]
+        public SupplierInvoice? SupplierInvoice { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
