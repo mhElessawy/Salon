@@ -38,7 +38,7 @@ bld/
 # Uncomment if you have tasks that create the project's static files in wwwroot
 #wwwroot/
 
-# ÕæÑ ÇáİæÇÊíÑ ÇáãÑİæÚÉ ãä ÔÇÔÉ ØáÈÇÊ ÇáÔÑÇÁ
+# ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 wwwroot/uploads/
 
 # Visual Studio 2017 auto generated files
@@ -367,3 +367,8 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Local/server secrets - never commit real connection strings or passwords.
+# Create this file directly on the server with the real values instead.
+appsettings.Production.json
+appsettings.*.Local.json

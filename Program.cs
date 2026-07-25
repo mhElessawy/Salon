@@ -7,7 +7,13 @@ using Salon.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add EF Core - Use SQLite on Linux, SQL Server on Windows
-var connStr = builder.Configuration.GetConnectionString("DefaultConnection")!;
+var connStr = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connStr))
+{
+    throw new InvalidOperationException(
+        "ConnectionStrings:DefaultConnection is not set. Provide it via the " +
+        "ConnectionStrings__DefaultConnection environment variable (or appsettings.Production.json on the server).");
+}
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     if (connStr.StartsWith("Data Source=") || connStr.EndsWith(".db"))
