@@ -371,6 +371,7 @@ FodyWeavers.xsd
 # Local/server secrets - never commit real connection strings or passwords.
 # Create this file directly on the server with the real values instead.
 appsettings.Production.json
+appsettings.Local.json
 appsettings.*.Local.json
 
 # Local dev SQLite database (created automatically the first time you run the app)

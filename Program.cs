@@ -6,6 +6,11 @@ using Salon.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// تحميل appsettings.Local.json لو موجود (مش متتبّع في git — انظر .gitignore). بيسمح
+// لأي مطوّر إنه يشغّل المشروع لوكل على قاعدة بيانات السيرفر الحقيقية من غير ما يحط
+// أي باسورد جوا ملف متتبّع بالغلط.
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
 // Add EF Core - Use SQLite on Linux, SQL Server on Windows
 var connStr = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connStr))
