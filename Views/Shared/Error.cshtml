@@ -1,4 +1,4 @@
-﻿@model ErrorViewModel
+﻿@model  ErrorViewModel
 @{
     ViewData["Title"] = "Error";
 }
@@ -11,6 +11,15 @@
     <p>
         <strong>Request ID:</strong> <code>@Model.RequestId</code>
     </p>
+}
+
+@if (Model.ShowExceptionDetails)
+{
+    <div class="alert alert-danger" style="white-space: pre-wrap; text-align: left; direction: ltr;">
+        <p><strong>@Model.ExceptionType:</strong> @Model.ExceptionMessage</p>
+        <hr />
+        <pre style="white-space: pre-wrap;">@Model.StackTrace</pre>
+    </div>
 }
 
 <h3>Development Mode</h3>
