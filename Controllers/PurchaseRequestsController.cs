@@ -417,6 +417,7 @@ namespace Salon.Controllers
                     InvoiceNumber = invoiceNumber.Trim(),
                     InvoiceDate = DateTime.Today,
                     TotalAmount = actualAmount,
+                    AttachmentPath = photoPath,
                     Notes = notes,
                     CreatedByUserId = currentUser?.Id,
                     CreatedByName = currentUser?.FullName ?? currentUser?.UserName,
@@ -424,6 +425,8 @@ namespace Salon.Controllers
                     Installments = installments
                 };
                 _context.SupplierInvoices.Add(invoice);
+                await _context.SaveChangesAsync();
+                invoice.Reference = $"SINV-{invoice.Id:D6}";
                 await _context.SaveChangesAsync();
                 supplierInvoiceId = invoice.Id;
             }

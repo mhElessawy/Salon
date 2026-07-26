@@ -45,6 +45,7 @@ namespace Salon.Data
         public DbSet<SupplierInvoice> SupplierInvoices { get; set; }
         public DbSet<SupplierInvoiceInstallment> SupplierInvoiceInstallments { get; set; }
         public DbSet<SupplierInvoicePayment> SupplierInvoicePayments { get; set; }
+        public DbSet<SupplierInvoiceItem> SupplierInvoiceItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -198,6 +199,14 @@ namespace Salon.Data
                 .Property(i => i.TotalAmount)
                 .HasColumnType("decimal(18,3)");
 
+            builder.Entity<SupplierInvoice>()
+                .Property(i => i.DiscountAmount)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<SupplierInvoice>()
+                .Property(i => i.ExtraExpenses)
+                .HasColumnType("decimal(18,3)");
+
             builder.Entity<SupplierInvoiceInstallment>()
                 .Property(i => i.Amount)
                 .HasColumnType("decimal(18,3)");
@@ -205,6 +214,26 @@ namespace Salon.Data
             builder.Entity<SupplierInvoicePayment>()
                 .Property(p => p.Amount)
                 .HasColumnType("decimal(18,3)");
+
+            builder.Entity<SupplierInvoiceItem>()
+                .Property(i => i.UnitPrice)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<SupplierInvoiceItem>()
+                .Property(i => i.Discount)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<SupplierInvoiceItem>()
+                .HasOne(i => i.SupplierInvoice)
+                .WithMany(inv => inv.Items)
+                .HasForeignKey(i => i.SupplierInvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<SupplierInvoiceItem>()
+                .HasOne(i => i.Product)
+                .WithMany()
+                .HasForeignKey(i => i.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<SupplierInvoicePayment>()
                 .HasOne(p => p.Custody)

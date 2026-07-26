@@ -8,10 +8,12 @@ namespace Salon.Models
     {
         public static class Statuses
         {
+            public const string Draft = "مسودة";
             public const string Unpaid = "غير مدفوعة";
             public const string PartiallyPaid = "مدفوعة جزئيًا";
             public const string FullyPaid = "مدفوعة بالكامل";
             public const string Overdue = "متأخرة";
+            public const string Cancelled = "ملغاة";
         }
 
         public int Id { get; set; }
@@ -42,6 +44,39 @@ namespace Salon.Models
         [DataType(DataType.Currency)]
         public decimal TotalAmount { get; set; }
 
+        // مرجع داخلي يولّده النظام تلقائياً بعد الحفظ بصيغة SINV-000123
+        [Display(Name = "المرجع الداخلي")]
+        public string? Reference { get; set; }
+
+        // خصم إجمالي على مستوى الفاتورة (بخلاف خصم كل سطر منتج)
+        [Display(Name = "الخصم الإجمالي")]
+        [DataType(DataType.Currency)]
+        public decimal DiscountAmount { get; set; }
+
+        // مصاريف إضافية على الفاتورة (شحن، جمارك، ...)
+        [Display(Name = "مصاريف إضافية")]
+        [DataType(DataType.Currency)]
+        public decimal ExtraExpenses { get; set; }
+
+        [Display(Name = "مرفق الفاتورة")]
+        public string? AttachmentPath { get; set; }
+
+        // مسودة: تُحفظ الفاتورة والمنتجات بدون أي أثر على المخزون أو الصندوق/البنك حتى تُعتمد
+        [Display(Name = "مسودة")]
+        public bool IsDraft { get; set; }
+
+        [Display(Name = "ملغاة")]
+        public bool IsCancelled { get; set; }
+
+        [Display(Name = "تاريخ الإلغاء")]
+        public DateTime? CancelledAt { get; set; }
+
+        [Display(Name = "ألغاها")]
+        public string? CancelledByName { get; set; }
+
+        [Display(Name = "سبب الإلغاء")]
+        public string? CancelReason { get; set; }
+
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
 
@@ -52,8 +87,15 @@ namespace Salon.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
+        public List<SupplierInvoiceItem> Items { get; set; } = new();
         public List<SupplierInvoiceInstallment> Installments { get; set; } = new();
         public List<SupplierInvoicePayment> Payments { get; set; } = new();
+
+        [NotMapped]
+        public decimal ItemsSubtotal => Items.Sum(i => i.Quantity * i.UnitPrice);
+
+        [NotMapped]
+        public decimal ItemsDiscount => Items.Sum(i => i.Discount);
 
         [NotMapped]
         public decimal PaidAmount => Payments.Sum(p => p.Amount);
@@ -85,6 +127,7 @@ namespace Salon.Models
         {
             get
             {
+                if (IsDraft || IsCancelled) return false;
                 if (RemainingAmount <= 0.001m) return false;
                 decimal covered = PaidAmount;
                 decimal dueByToday = Installments
@@ -95,11 +138,32 @@ namespace Salon.Models
             }
         }
 
+        // عدد أيام التأخير عن أقرب موعد استحقاق غير مغطَّى (لتقرير أعمار الديون) — 0 لو غير متأخرة
+        [NotMapped]
+        public int OverdueDays
+        {
+            get
+            {
+                if (!IsOverdue) return 0;
+                decimal covered = PaidAmount;
+                decimal cumulative = 0;
+                foreach (var inst in Installments.OrderBy(i => i.DueDate).ThenBy(i => i.Id))
+                {
+                    cumulative += inst.Amount;
+                    if (cumulative > covered + 0.001m)
+                        return Math.Max(0, (DateTime.Today - inst.DueDate.Date).Days);
+                }
+                return 0;
+            }
+        }
+
         [NotMapped]
         public string Status
         {
             get
             {
+                if (IsDraft) return Statuses.Draft;
+                if (IsCancelled) return Statuses.Cancelled;
                 if (RemainingAmount <= 0.001m) return Statuses.FullyPaid;
                 if (IsOverdue) return Statuses.Overdue;
                 if (PaidAmount > 0.001m) return Statuses.PartiallyPaid;
