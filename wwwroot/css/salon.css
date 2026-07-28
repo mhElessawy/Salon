@@ -385,6 +385,16 @@ body.sidebar-collapsed .main-content {
     z-index: 1060;
 }
 
+/* الشريط العلوي (topbar) أعلى من نافذة Bootstrap الافتراضية (1050/1055)،
+   فترفع النوافذ المنبثقة فوقه حتى لا يغطي عليها */
+.modal-backdrop {
+    z-index: 1065;
+}
+
+.modal {
+    z-index: 1070;
+}
+
 .topbar-right {
     display: flex;
     align-items: center;
