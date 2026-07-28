@@ -265,6 +265,50 @@ namespace Salon.Controllers
             return Json(new { success = true, id = supplier.Id, name = supplier.Name });
         }
 
+        // بيانات القوائم المشتركة اللازمة لعرض فورم "فاتورة مورد آجلة جديدة" (المورد/المنتجات/العُهد)
+        private async Task PopulateCreateFormViewBagAsync(int? selectedSupplierId = null)
+        {
+            ViewBag.Suppliers = new SelectList(await _context.Suppliers.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync(), "Id", "Name", selectedSupplierId);
+            ViewBag.Products = await _context.Products.Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync();
+            ViewBag.Custodies = await GetCustodyOptionsAsync();
+        }
+
+        // ===== فاتورة مورد آجلة جديدة — تُفتح كنافذة منبثقة (Popup Window) مستقلة عن الصفحة الرئيسية =====
+        [HttpGet]
+        public async Task<IActionResult> Create()
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (!await IsCashierOrManagerAsync(currentUser))
+                return Forbid();
+
+            await PopulateCreateFormViewBagAsync();
+            var model = new SupplierInvoiceCreateViewModel
+            {
+                InvoiceDate = DateTime.Today,
+                DueDate = DateTime.Today,
+                Items = new List<SupplierInvoiceItemInput> { new SupplierInvoiceItemInput() }
+            };
+            return View(model);
+        }
+
+        // صفحة صغيرة تُغلق النافذة المنبثقة نفسها وتُحدِّث صفحة القائمة في النافذة الأصلية (opener)
+        private IActionResult ClosePopupAndRefresh()
+        {
+            var indexUrl = Url.Action(nameof(Index));
+            return Content($@"<!DOCTYPE html><html><head><meta charset='utf-8'></head><body>
+<script>
+(function() {{
+    if (window.opener && !window.opener.closed) {{
+        try {{ window.opener.location.reload(); }} catch (e) {{ }}
+        window.close();
+    }} else {{
+        window.location.href = '{indexUrl}';
+    }}
+}})();
+</script>
+</body></html>", "text/html");
+        }
+
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(int supplierId, string invoiceNumber, DateTime invoiceDate, DateTime dueDate,
             decimal totalAmount, decimal discountAmount, decimal extraExpenses, string? notes, bool isDraft,
@@ -276,25 +320,71 @@ namespace Salon.Controllers
             string? paymentSource = null, int? paymentCustodyId = null, string? paymentReference = null,
             string? paymentNotes = null, IFormFile? paymentAttachment = null)
         {
+            // يعيد عرض نفس الفورم (داخل النافذة المنبثقة) مع القيم التي أدخلها المستخدم ورسالة الخطأ،
+            // بدل الرجوع لصفحة القائمة الرئيسية وفقدان كل ما أُدخل
+            async Task<IActionResult> CreateError(string message)
+            {
+                await PopulateCreateFormViewBagAsync(supplierId);
+                ViewBag.Error = message;
+                var redisplay = new SupplierInvoiceCreateViewModel
+                {
+                    SupplierId = supplierId,
+                    InvoiceNumber = invoiceNumber,
+                    InvoiceDate = invoiceDate == default ? DateTime.Today : invoiceDate,
+                    DueDate = dueDate == default ? DateTime.Today : dueDate,
+                    DiscountAmount = discountAmount,
+                    ExtraExpenses = extraExpenses,
+                    Notes = notes,
+                    IsDraft = isDraft,
+                    PaymentOption = paymentOption,
+                    PaymentAmount = paymentAmount,
+                    PaymentDate = paymentDate,
+                    PaymentSource = paymentSource ?? "الصندوق",
+                    PaymentCustodyId = paymentCustodyId,
+                    PaymentReference = paymentReference,
+                    PaymentNotes = paymentNotes
+                };
+                if (itemProductName != null)
+                {
+                    for (int i = 0; i < itemProductName.Count; i++)
+                    {
+                        redisplay.Items.Add(new SupplierInvoiceItemInput
+                        {
+                            ProductId = itemProductId != null && i < itemProductId.Count ? itemProductId[i] : null,
+                            ProductName = itemProductName[i],
+                            Unit = itemUnit != null && i < itemUnit.Count ? itemUnit[i] : null,
+                            Quantity = itemQuantity != null && i < itemQuantity.Count ? itemQuantity[i] : 1,
+                            UnitPrice = itemUnitPrice != null && i < itemUnitPrice.Count ? itemUnitPrice[i] : 0,
+                            Discount = itemDiscount != null && i < itemDiscount.Count ? itemDiscount[i] : 0
+                        });
+                    }
+                }
+                if (redisplay.Items.Count == 0)
+                    redisplay.Items.Add(new SupplierInvoiceItemInput());
+                if (installmentAmount != null)
+                {
+                    for (int i = 0; i < installmentAmount.Count; i++)
+                    {
+                        redisplay.Installments.Add(new SupplierInvoiceInstallmentInput
+                        {
+                            Amount = installmentAmount[i],
+                            DueDate = installmentDueDate != null && i < installmentDueDate.Count ? installmentDueDate[i] : (DateTime?)null
+                        });
+                    }
+                }
+                return View("Create", redisplay);
+            }
+
             var currentUser = await _userManager.GetUserAsync(User);
             if (!await IsCashierOrManagerAsync(currentUser))
-            {
-                TempData["Error"] = "غير مصرح لك بإضافة فواتير موردين آجلة";
-                return RedirectToAction(nameof(Index));
-            }
+                return Forbid();
 
             var supplier = await _context.Suppliers.FindAsync(supplierId);
             if (supplier == null)
-            {
-                TempData["Error"] = "المورد المختار غير موجود";
-                return RedirectToAction(nameof(Index));
-            }
+                return await CreateError("المورد المختار غير موجود");
 
             if (string.IsNullOrWhiteSpace(invoiceNumber))
-            {
-                TempData["Error"] = "رقم الفاتورة مطلوب";
-                return RedirectToAction(nameof(Index));
-            }
+                return await CreateError("رقم الفاتورة مطلوب");
 
             // بناء أسطر المنتجات من القوائم المتوازية القادمة من جدول القسم الثاني
             var items = new List<SupplierInvoiceItem>();
@@ -332,10 +422,7 @@ namespace Salon.Controllers
             }
 
             if (computedTotal <= 0)
-            {
-                TempData["Error"] = "قيمة الفاتورة يجب أن تكون أكبر من صفر";
-                return RedirectToAction(nameof(Index));
-            }
+                return await CreateError("قيمة الفاتورة يجب أن تكون أكبر من صفر");
 
             var installments = new List<SupplierInvoiceInstallment>();
             if (installmentAmount != null)
@@ -354,20 +441,14 @@ namespace Salon.Controllers
 
             decimal installmentsTotal = installments.Sum(x => x.Amount);
             if (Math.Abs(installmentsTotal - computedTotal) > 0.001m)
-            {
-                TempData["Error"] = $"مجموع دفعات جدول السداد ({installmentsTotal:N3}) يجب أن يساوي قيمة الفاتورة ({computedTotal:N3}) د.ك";
-                return RedirectToAction(nameof(Index));
-            }
+                return await CreateError($"مجموع دفعات جدول السداد ({installmentsTotal:N3}) يجب أن يساوي قيمة الفاتورة ({computedTotal:N3}) د.ك");
 
             string? attachmentPath = null;
             if (attachment != null)
             {
                 var (path, error) = await SaveAttachmentAsync(attachment, "supplier-invoices");
                 if (error != null)
-                {
-                    TempData["Error"] = error;
-                    return RedirectToAction(nameof(Index));
-                }
+                    return await CreateError(error);
                 attachmentPath = path;
             }
 
@@ -407,8 +488,13 @@ namespace Salon.Controllers
                     paymentCustodyId, paymentReference, paymentNotes, paymentAttachment, currentUser);
                 if (!ok)
                 {
+                    // الفاتورة اتحفظت فعلاً بنجاح، الدفعة بس اللي فشلت — رجوع لفورم الإنشاء هيكرر الفاتورة، فبنقفل
+                    // النافذة المنبثقة وبنعرض التحذير في الصفحة الرئيسية بدل كده
+                    await _audit.LogAsync("Add", "SupplierInvoice",
+                        $"فاتورة مورد آجلة جديدة: {supplier.Name} | رقم الفاتورة: {invoice.InvoiceNumber} | المرجع: {invoice.Reference} | القيمة: {computedTotal:N3} KD",
+                        invoice.Id);
                     TempData["Error"] = $"تم حفظ الفاتورة، لكن تعذَّر تسجيل الدفعة: {error}";
-                    return RedirectToAction(nameof(Index));
+                    return ClosePopupAndRefresh();
                 }
                 paymentMsg = " مع تسجيل الدفعة";
             }
@@ -419,7 +505,7 @@ namespace Salon.Controllers
                 invoice.Id);
 
             TempData["Success"] = isDraft ? "تم حفظ مسودة الفاتورة بنجاح" : $"تم تسجيل فاتورة المورد الآجلة بنجاح{paymentMsg}";
-            return RedirectToAction(nameof(Index));
+            return ClosePopupAndRefresh();
         }
 
         // اعتماد فاتورة محفوظة كمسودة — يطبّق أثرها على المخزون (لا يوجد دفع وقت الاعتماد، يُسجَّل لاحقاً)
