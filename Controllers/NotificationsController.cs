@@ -692,6 +692,38 @@ namespace Salon.Controllers
                 }
             }
 
+            // 9. فواتير موردين آجلة جديدة (آخر يومين) — تصل للكاشير/المدير
+            if (viewerIsCashier)
+            {
+                var recentSupplierInvoices = await _context.SupplierInvoices
+                    .Include(i => i.Supplier)
+                    .Where(i => i.CreatedAt >= today.AddDays(-2))
+                    .OrderByDescending(i => i.CreatedAt).Take(8).ToListAsync();
+
+                foreach (var inv in recentSupplierInvoices)
+                {
+                    var supplierName = inv.Supplier?.Name ?? "غير محدد";
+                    var subInv = $"المورد: {supplierName}";
+                    list.Add(new NotificationItem
+                    {
+                        Type = "supplier-invoice-new",
+                        Category = "مالية",
+                        Title = "فاتورة مورد آجلة جديدة",
+                        TitleEn = "New Deferred Supplier Invoice",
+                        SubTitle = subInv,
+                        SubTitleEn = $"Supplier: {supplierName}",
+                        Body = $"رقم الفاتورة: {inv.InvoiceNumber} | القيمة: {inv.TotalAmount:N3} د.ك | أنشأها: {inv.CreatedByName ?? "-"}",
+                        BodyEn = $"Invoice #: {inv.InvoiceNumber} | Amount: {inv.TotalAmount:N3} KD | By: {inv.CreatedByName ?? "-"}",
+                        IconClass = "fas fa-file-invoice",
+                        IconBg = "#fd7e14",
+                        Date = inv.CreatedAt,
+                        ActionUrl = Url.Action("Index", "SupplierInvoices"),
+                        ActionText = "عرض الفاتورة",
+                        ActionTextEn = "View Invoice",
+                        Key = NotifKey("supplier-invoice-new", inv.CreatedAt, subInv)
+                    });
+                }
+            }
             return list.OrderByDescending(n => n.Date).ToList();
         }
     }

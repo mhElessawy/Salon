@@ -46,6 +46,9 @@ namespace Salon.Models
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
 
+        [Display(Name = "مرفق الإيصال")]
+        public string? AttachmentPath { get; set; }
+
         // المصروف المرتبط تلقائياً على الصندوق أو البنك (لا يُنشأ لما Source = عهدة)
         public int? ExpenseId { get; set; }
 

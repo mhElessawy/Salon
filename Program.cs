@@ -390,6 +390,30 @@ using (var scope = app.Services.CreateScope())
                 FOREIGN KEY (SupplierInvoiceId) REFERENCES SupplierInvoices(Id) ON DELETE CASCADE,
                 FOREIGN KEY (CustodyId) REFERENCES Custodies(Id),
                 FOREIGN KEY (ExpenseId) REFERENCES Expenses(Id))");
+
+            // تطوير فواتير الموردين الآجلة: أسطر منتجات مرتبطة بالمخزون + مرفقات + خصم/مصاريف
+            // إضافية + مسودة/إلغاء + مرجع داخلي تلقائي (انظر SupplierInvoice وSupplierInvoiceItem)
+            TryExec("ALTER TABLE SupplierInvoices ADD COLUMN Reference TEXT NULL");
+            TryExec("ALTER TABLE SupplierInvoices ADD COLUMN DiscountAmount REAL NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE SupplierInvoices ADD COLUMN ExtraExpenses REAL NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE SupplierInvoices ADD COLUMN AttachmentPath TEXT NULL");
+            TryExec("ALTER TABLE SupplierInvoices ADD COLUMN IsDraft INTEGER NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE SupplierInvoices ADD COLUMN IsCancelled INTEGER NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE SupplierInvoices ADD COLUMN CancelledAt TEXT NULL");
+            TryExec("ALTER TABLE SupplierInvoices ADD COLUMN CancelledByName TEXT NULL");
+            TryExec("ALTER TABLE SupplierInvoices ADD COLUMN CancelReason TEXT NULL");
+            TryExec("ALTER TABLE SupplierInvoicePayments ADD COLUMN AttachmentPath TEXT NULL");
+            TryExec(@"CREATE TABLE IF NOT EXISTS SupplierInvoiceItems (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                SupplierInvoiceId INTEGER NOT NULL,
+                ProductId INTEGER NULL,
+                ProductName TEXT NOT NULL,
+                Unit TEXT NULL,
+                Quantity INTEGER NOT NULL DEFAULT 1,
+                UnitPrice REAL NOT NULL DEFAULT 0,
+                Discount REAL NOT NULL DEFAULT 0,
+                FOREIGN KEY (SupplierInvoiceId) REFERENCES SupplierInvoices(Id) ON DELETE CASCADE,
+                FOREIGN KEY (ProductId) REFERENCES Products(Id))");
         }
         else
         {
@@ -650,6 +674,32 @@ using (var scope = app.Services.CreateScope())
                     REFERENCES Custodies(Id),
                 CONSTRAINT FK_SupplierInvoicePayments_Expenses FOREIGN KEY (ExpenseId)
                     REFERENCES Expenses(Id))");
+
+            // تطوير فواتير الموردين الآجلة: أسطر منتجات مرتبطة بالمخزون + مرفقات + خصم/مصاريف
+            // إضافية + مسودة/إلغاء + مرجع داخلي تلقائي (انظر SupplierInvoice وSupplierInvoiceItem)
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='SupplierInvoices' AND COLUMN_NAME='Reference') ALTER TABLE SupplierInvoices ADD Reference NVARCHAR(50) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='SupplierInvoices' AND COLUMN_NAME='DiscountAmount') ALTER TABLE SupplierInvoices ADD DiscountAmount DECIMAL(18,3) NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='SupplierInvoices' AND COLUMN_NAME='ExtraExpenses') ALTER TABLE SupplierInvoices ADD ExtraExpenses DECIMAL(18,3) NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='SupplierInvoices' AND COLUMN_NAME='AttachmentPath') ALTER TABLE SupplierInvoices ADD AttachmentPath NVARCHAR(500) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='SupplierInvoices' AND COLUMN_NAME='IsDraft') ALTER TABLE SupplierInvoices ADD IsDraft BIT NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='SupplierInvoices' AND COLUMN_NAME='IsCancelled') ALTER TABLE SupplierInvoices ADD IsCancelled BIT NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='SupplierInvoices' AND COLUMN_NAME='CancelledAt') ALTER TABLE SupplierInvoices ADD CancelledAt DATETIME NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='SupplierInvoices' AND COLUMN_NAME='CancelledByName') ALTER TABLE SupplierInvoices ADD CancelledByName NVARCHAR(MAX) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='SupplierInvoices' AND COLUMN_NAME='CancelReason') ALTER TABLE SupplierInvoices ADD CancelReason NVARCHAR(MAX) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='SupplierInvoicePayments' AND COLUMN_NAME='AttachmentPath') ALTER TABLE SupplierInvoicePayments ADD AttachmentPath NVARCHAR(500) NULL");
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='SupplierInvoiceItems')
+                CREATE TABLE SupplierInvoiceItems (Id INT IDENTITY PRIMARY KEY,
+                SupplierInvoiceId INT NOT NULL,
+                ProductId INT NULL,
+                ProductName NVARCHAR(300) NOT NULL,
+                Unit NVARCHAR(50) NULL,
+                Quantity INT NOT NULL DEFAULT 1,
+                UnitPrice DECIMAL(18,3) NOT NULL DEFAULT 0,
+                Discount DECIMAL(18,3) NOT NULL DEFAULT 0,
+                CONSTRAINT FK_SupplierInvoiceItems_SupplierInvoices FOREIGN KEY (SupplierInvoiceId)
+                    REFERENCES SupplierInvoices(Id) ON DELETE CASCADE,
+                CONSTRAINT FK_SupplierInvoiceItems_Products FOREIGN KEY (ProductId)
+                    REFERENCES Products(Id))");
         }
 
         // ترحيل لمرة واحدة: قبل هذا الفصل كانت شاشة "اعتماد اليومية" تعيد استخدام آخر صف Shift

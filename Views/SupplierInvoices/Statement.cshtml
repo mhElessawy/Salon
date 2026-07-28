@@ -1,0 +1,121 @@
+﻿@model Salon.Controllers.SupplierStatementViewModel
+@{
+    ViewData["Title"] = "كشف حساب المورد";
+    int? supplierId = ViewBag.SupplierId;
+}
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 d-print-none">
+    <div>
+        <h1><i class="fas fa-file-invoice me-2"></i>كشف حساب المورد</h1>
+        <p>حركة مشتريات ومدفوعات المورد مع الرصيد التراكمي</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع للفواتير</a>
+    </div>
+</div>
+
+<div class="card mb-3 d-print-none">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-6 col-md-3">
+                <label class="form-label mb-1 small">المورد</label>
+                <select name="supplierId" class="form-select form-select-sm" required onchange="this.form.submit()">
+                    <option value="">-- اختر المورد --</option>
+                    @foreach (Microsoft.AspNetCore.Mvc.Rendering.SelectListItem sup in (IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.Suppliers)
+                    {
+                        <option value="@sup.Value" selected="@(sup.Selected ? "selected" : null)">@sup.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label mb-1 small">من تاريخ</label>
+                <input type="date" name="fromDate" class="form-control form-control-sm" value="@(ViewBag.FromDate != null ? ((DateTime)ViewBag.FromDate).ToString("yyyy-MM-dd") : "")" />
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label mb-1 small">إلى تاريخ</label>
+                <input type="date" name="toDate" class="form-control form-control-sm" value="@(ViewBag.ToDate != null ? ((DateTime)ViewBag.ToDate).ToString("yyyy-MM-dd") : "")" />
+            </div>
+            <div class="col-6 col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-search me-1"></i> عرض</button>
+                @if (supplierId.HasValue)
+                {
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()"><i class="fas fa-print me-1"></i> طباعة</button>
+                    <a class="btn btn-sm btn-outline-success" href="@Url.Action("StatementExport", new { supplierId = supplierId, fromDate = (DateTime?)ViewBag.FromDate, toDate = (DateTime?)ViewBag.ToDate })"><i class="fas fa-file-excel me-1"></i> Excel</a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (Model.Supplier == null)
+{
+    <div class="card"><div class="card-body text-center text-muted py-5">اختر مورداً لعرض كشف حسابه</div></div>
+}
+else
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <h5 class="fw-bold mb-1">@Model.Supplier.Name</h5>
+                    <div class="text-muted small">@(Model.Supplier.Phone ?? "-") — @(Model.Supplier.Address ?? "-")</div>
+                    <div class="mt-1"><span class="badge @(Model.Supplier.IsActive ? "bg-success" : "bg-secondary")">@(Model.Supplier.IsActive ? "نشط" : "غير نشط")</span></div>
+                </div>
+                <div class="col-md-6">
+                    <div class="row g-2 text-center">
+                        <div class="col-4">
+                            <div class="text-muted small">إجمالي المشتريات</div>
+                            <div class="fw-bold">@Model.TotalPurchases.ToString("N3")</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-muted small">إجمالي المدفوعات</div>
+                            <div class="fw-bold text-success">@Model.TotalPayments.ToString("N3")</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-muted small">الرصيد الحالي</div>
+                            <div class="fw-bold @(Model.CurrentBalance > 0 ? "text-danger" : "text-success")">@Model.CurrentBalance.ToString("N3")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table align-middle table-sm">
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>النوع</th>
+                            <th>رقم المستند</th>
+                            <th>البيان</th>
+                            <th>مدين</th>
+                            <th>دائن</th>
+                            <th>الرصيد</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Entries.Any())
+                        {
+                            <tr><td colspan="7" class="text-center text-muted py-4">لا توجد حركات في هذه الفترة</td></tr>
+                        }
+                        @foreach (var e in Model.Entries)
+                        {
+                            <tr>
+                                <td>@e.Date.ToString("yyyy/MM/dd")</td>
+                                <td>@e.Type</td>
+                                <td>@e.DocumentNumber</td>
+                                <td>@e.Description</td>
+                                <td>@(e.Debit > 0 ? e.Debit.ToString("N3") : "-")</td>
+                                <td>@(e.Credit > 0 ? e.Credit.ToString("N3") : "-")</td>
+                                <td class="fw-bold">@e.Balance.ToString("N3")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
