@@ -246,11 +246,10 @@
                                 }
                                 @if (isManager && inv.IsDraft)
                                 {
-                                    <form method="post" asp-action="ConfirmDraft" style="display:inline;" onsubmit="return confirm('اعتماد هذه الفاتورة؟ سيتم تحديث المخزون فوراً.');">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@inv.Id" />
-                                        <button type="submit" class="btn btn-xs btn-success" title="اعتماد المسودة"><i class="fas fa-check"></i> اعتماد</button>
-                                    </form>
+                                    <button type="button" class="btn btn-xs btn-success js-approve-btn" title="اعتماد المسودة"
+                                            data-invoice-id="@inv.Id" data-invoice-number="@inv.InvoiceNumber">
+                                        <i class="fas fa-check"></i> اعتماد
+                                    </button>
                                     <button type="button" class="btn btn-xs btn-outline-warning js-return-btn" title="إرجاع للتعديل"
                                             data-invoice-id="@inv.Id" data-invoice-number="@inv.InvoiceNumber">
                                         <i class="fas fa-undo"></i> إرجاع
@@ -319,11 +318,10 @@
                     }
                     @if (isManager && inv.IsDraft)
                     {
-                        <form method="post" asp-action="ConfirmDraft" onsubmit="return confirm('اعتماد هذه الفاتورة؟');">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@inv.Id" />
-                            <button type="submit" class="btn btn-xs btn-success"><i class="fas fa-check"></i> اعتماد</button>
-                        </form>
+                        <button type="button" class="btn btn-xs btn-success js-approve-btn"
+                                data-invoice-id="@inv.Id" data-invoice-number="@inv.InvoiceNumber">
+                            <i class="fas fa-check"></i> اعتماد
+                        </button>
                         <button type="button" class="btn btn-xs btn-outline-warning js-return-btn"
                                 data-invoice-id="@inv.Id" data-invoice-number="@inv.InvoiceNumber">
                             <i class="fas fa-undo"></i> إرجاع للتعديل
@@ -710,6 +708,29 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">تراجع</button>
                         <button type="submit" class="btn btn-danger px-4"><i class="fas fa-ban me-1"></i> تأكيد الإلغاء</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal تأكيد اعتماد فاتورة -->
+    <div class="modal fade" id="approveInvoiceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#198754;color:#fff;">
+                    <h5 class="modal-title"><i class="fas fa-check me-2"></i>اعتماد فاتورة مورد</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" asp-action="ConfirmDraft" id="approveInvoiceForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="approveInvoiceId" />
+                    <div class="modal-body">
+                        <p class="mb-0">سيتم اعتماد الفاتورة رقم <strong id="approveInvoiceNumber"></strong> وتحديث المخزون فوراً.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">تراجع</button>
+                        <button type="submit" class="btn btn-success px-4"><i class="fas fa-check me-1"></i> تأكيد الاعتماد</button>
                     </div>
                 </form>
             </div>
@@ -1120,6 +1141,15 @@
                 document.getElementById('cancelInvoiceId').value = btn.dataset.invoiceId;
                 document.getElementById('cancelInvoiceNumber').textContent = btn.dataset.invoiceNumber;
                 new bootstrap.Modal(document.getElementById('cancelModal')).show();
+            });
+        });
+
+        // ===== اعتماد فاتورة =====
+        document.querySelectorAll('.js-approve-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.getElementById('approveInvoiceId').value = btn.dataset.invoiceId;
+                document.getElementById('approveInvoiceNumber').textContent = btn.dataset.invoiceNumber;
+                new bootstrap.Modal(document.getElementById('approveInvoiceModal')).show();
             });
         });
 
