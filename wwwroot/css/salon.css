@@ -385,6 +385,16 @@ body.sidebar-collapsed .main-content {
     z-index: 1060;
 }
 
+/* التوب بار z-index أعلى من قيمة Bootstrap الافتراضية للمودال (1055)، فكانت المودالات
+   بتظهر تحته بدل ما تغطي الشاشة كلها — نرفع قيمة المودال والخلفية فوق التوب بار */
+.modal-backdrop {
+    z-index: 1065;
+}
+
+.modal {
+    z-index: 1070;
+}
+
 .topbar-right {
     display: flex;
     align-items: center;
