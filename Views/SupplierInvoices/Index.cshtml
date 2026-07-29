@@ -16,6 +16,7 @@
     string StatusBadge(string status) => status switch
     {
         "مسودة" => "bg-secondary",
+        "أُرجعت للتعديل" => "bg-warning text-dark",
         "غير مدفوعة" => "bg-light text-dark border",
         "مدفوعة جزئيًا" => "bg-warning text-dark",
         "مدفوعة بالكامل" => "bg-success",
@@ -27,6 +28,7 @@
     (string icon, string color) StatusIconColor(string status) => status switch
     {
         "مسودة" => ("fa-pen", "#6c757d"),
+        "أُرجعت للتعديل" => ("fa-undo", "#d97706"),
         "غير مدفوعة" => ("fa-exclamation-circle", "#dc2626"),
         "مدفوعة جزئيًا" => ("fa-exclamation-circle", "#d97706"),
         "مدفوعة بالكامل" => ("fa-check-circle", "#198754"),
@@ -157,7 +159,7 @@
                     <label class="form-label mb-1 small">حالة الفاتورة</label>
                     <select name="status" class="form-select form-select-sm">
                         <option value="">-- الكل --</option>
-                        @foreach (var s in new[] { "غير مدفوعة", "مدفوعة جزئيًا", "مدفوعة بالكامل", "متأخرة", "مسودة", "ملغاة" })
+                        @foreach (var s in new[] { "غير مدفوعة", "مدفوعة جزئيًا", "مدفوعة بالكامل", "متأخرة", "مسودة", "أُرجعت للتعديل", "ملغاة" })
                         {
                             <option value="@s" selected="@(ViewBag.Status == s ? "selected" : null)">@s</option>
                         }
@@ -235,13 +237,24 @@
                                         data-bs-toggle="modal" data-bs-target="#viewInvoiceModal-@inv.Id">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                @if (canPay && inv.IsDraft)
+                                @if (canPay && inv.IsDraft && !inv.IsCancelled)
+                                {
+                                    <button type="button" class="btn btn-xs btn-outline-secondary js-edit-btn" title="تعديل الفاتورة"
+                                            data-invoice-id="@inv.Id">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                }
+                                @if (isManager && inv.IsDraft)
                                 {
                                     <form method="post" asp-action="ConfirmDraft" style="display:inline;" onsubmit="return confirm('اعتماد هذه الفاتورة؟ سيتم تحديث المخزون فوراً.');">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@inv.Id" />
                                         <button type="submit" class="btn btn-xs btn-success" title="اعتماد المسودة"><i class="fas fa-check"></i> اعتماد</button>
                                     </form>
+                                    <button type="button" class="btn btn-xs btn-outline-warning js-return-btn" title="إرجاع للتعديل"
+                                            data-invoice-id="@inv.Id" data-invoice-number="@inv.InvoiceNumber">
+                                        <i class="fas fa-undo"></i> إرجاع
+                                    </button>
                                 }
                                 @if (canPay && !inv.IsDraft && !inv.IsCancelled && inv.RemainingAmount > 0)
                                 {
@@ -298,13 +311,23 @@
                             data-bs-toggle="modal" data-bs-target="#viewInvoiceModal-@inv.Id">
                         <i class="fas fa-eye"></i> عرض
                     </button>
-                    @if (canPay && inv.IsDraft)
+                    @if (canPay && inv.IsDraft && !inv.IsCancelled)
+                    {
+                        <button type="button" class="btn btn-xs btn-outline-secondary js-edit-btn" data-invoice-id="@inv.Id">
+                            <i class="fas fa-edit"></i> تعديل
+                        </button>
+                    }
+                    @if (isManager && inv.IsDraft)
                     {
                         <form method="post" asp-action="ConfirmDraft" onsubmit="return confirm('اعتماد هذه الفاتورة؟');">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@inv.Id" />
                             <button type="submit" class="btn btn-xs btn-success"><i class="fas fa-check"></i> اعتماد</button>
                         </form>
+                        <button type="button" class="btn btn-xs btn-outline-warning js-return-btn"
+                                data-invoice-id="@inv.Id" data-invoice-number="@inv.InvoiceNumber">
+                            <i class="fas fa-undo"></i> إرجاع للتعديل
+                        </button>
                     }
                     @if (canPay && !inv.IsDraft && !inv.IsCancelled && inv.RemainingAmount > 0)
                     {
@@ -475,6 +498,10 @@
                                     {
                                         <div class="py-1 text-danger"><span class="d-block"><strong>ملغاة:</strong> @inv.CancelledByName — @(inv.CancelledAt?.ToString("yyyy/MM/dd HH:mm"))</span>@(!string.IsNullOrEmpty(inv.CancelReason) ? $"سبب الإلغاء: {inv.CancelReason}" : "")</div>
                                     }
+                                    @if (!string.IsNullOrEmpty(inv.ReturnReason))
+                                    {
+                                        <div class="py-1 text-warning-emphasis"><span class="d-block"><strong>أُرجعت للتعديل بواسطة:</strong> @inv.ReturnedByName — @(inv.ReturnedAt?.ToString("yyyy/MM/dd HH:mm"))</span>سبب الإرجاع: @inv.ReturnReason</div>
+                                    }
                                 </div>
                             </div>
                         </div>
@@ -564,6 +591,25 @@
             </div>
         </div>
     </div>
+    @if (inv.IsDraft && !inv.IsCancelled)
+    {
+        <script type="application/json" id="invoiceEditData-@inv.Id">
+@Html.Raw(JsonSerializer.Serialize(new
+{
+    id = inv.Id,
+    supplierId = inv.SupplierId,
+    invoiceNumber = inv.InvoiceNumber,
+    invoiceDate = inv.InvoiceDate.ToString("yyyy-MM-dd"),
+    dueDate = (inv.NextDueDate ?? inv.InvoiceDate).ToString("yyyy-MM-dd"),
+    discountAmount = inv.DiscountAmount,
+    extraExpenses = inv.ExtraExpenses,
+    notes = inv.Notes ?? "",
+    returnReason = inv.ReturnReason ?? "",
+    items = inv.Items.Select(it => new { productId = it.ProductId, productName = it.ProductName, unit = it.Unit ?? "", quantity = it.Quantity, unitPrice = it.UnitPrice, discount = it.Discount }),
+    installments = inv.Installments.OrderBy(x => x.DueDate).Select(x => new { amount = x.Amount, dueDate = x.DueDate.ToString("yyyy-MM-dd") })
+}))
+        </script>
+    }
 }
 
 @if (canPay)
@@ -664,6 +710,31 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">تراجع</button>
                         <button type="submit" class="btn btn-danger px-4"><i class="fas fa-ban me-1"></i> تأكيد الإلغاء</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal إرجاع فاتورة للتعديل -->
+    <div class="modal fade" id="returnForEditModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#d97706;color:#fff;">
+                    <h5 class="modal-title"><i class="fas fa-undo me-2"></i>إرجاع فاتورة للتعديل</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" asp-action="ReturnForEdit" id="returnForEditForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="returnInvoiceId" />
+                    <div class="modal-body">
+                        <p>سيتم إرجاع الفاتورة رقم <strong id="returnInvoiceNumber"></strong> للتعديل بدلاً من اعتمادها، وتبقى بانتظار الاعتماد حتى يُعاد تعديلها.</p>
+                        <label class="form-label fw-bold">سبب الإرجاع للتعديل <span class="text-danger">*</span></label>
+                        <textarea name="reason" id="returnReasonText" class="form-control" rows="2" required></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">تراجع</button>
+                        <button type="submit" class="btn btn-warning px-4"><i class="fas fa-undo me-1"></i> تأكيد الإرجاع للتعديل</button>
                     </div>
                 </form>
             </div>
@@ -875,6 +946,135 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal تعديل فاتورة مورد آجلة (متاح فقط قبل الاعتماد) -->
+    <div class="modal fade" id="editInvoiceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#0d6efd;color:#fff;">
+                    <h5 class="modal-title"><i class="fas fa-edit me-2"></i>تعديل فاتورة مورد آجلة</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="editInvoiceForm" method="post" asp-action="Edit" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="editInvoiceId" />
+                    <div class="modal-body">
+
+                        <div class="alert alert-warning d-none" id="editReturnReasonBox">
+                            <i class="fas fa-undo me-1"></i> <strong>أُرجعت هذه الفاتورة للتعديل:</strong>
+                            <span id="editReturnReasonText"></span>
+                        </div>
+
+                        <!-- القسم 1: بيانات المورد والفاتورة -->
+                        <h6 class="fw-bold text-primary"><i class="fas fa-truck me-1"></i> 1. بيانات المورد والفاتورة</h6>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-5">
+                                <label class="form-label fw-bold">المورد <span class="text-danger">*</span></label>
+                                <select name="supplierId" id="editSupplierSelect" class="form-select" required>
+                                    <option value="">-- اختر المورد --</option>
+                                    @foreach (SelectListItem sup in (IEnumerable<SelectListItem>)ViewBag.Suppliers)
+                                    {
+                                        <option value="@sup.Value">@sup.Text</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">رقم فاتورة المورد <span class="text-danger">*</span></label>
+                                <input type="text" name="invoiceNumber" id="editInvoiceNumber" class="form-control" required />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">تاريخ الفاتورة</label>
+                                <input type="date" name="invoiceDate" id="editInvoiceDate" class="form-control" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">تاريخ الاستحقاق</label>
+                                <input type="date" name="dueDate" id="editDueDate" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3 p-3 rounded" style="background:#fff7ed;border:1px solid #fed7aa;">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="editSplitInstallmentsToggle">
+                                <label class="form-check-label fw-bold" for="editSplitInstallmentsToggle">
+                                    تقسيم الفاتورة على أكثر من دفعة مستحقة (كل دفعة بتاريخ استحقاق مستقل)
+                                </label>
+                            </div>
+                            <div class="d-none" id="editSplitInstallmentsBox">
+                                <div id="editInstallmentsRows"></div>
+                                <button type="button" class="btn btn-sm btn-outline-warning" id="editAddInstallmentBtn">
+                                    <i class="fas fa-plus me-1"></i> إضافة دفعة
+                                </button>
+                                <div class="small mt-2 d-flex justify-content-between">
+                                    <span>إجمالي الدفعات: <strong id="editInstallmentsTotal">0.000</strong> د.ك — قيمة الفاتورة: <strong id="editInstallmentsTarget">0.000</strong> د.ك</span>
+                                    <span id="editInstallmentsWarning" class="text-danger d-none">مجموع الدفعات لا يساوي قيمة الفاتورة</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- القسم 2: تفاصيل المنتجات -->
+                        <h6 class="fw-bold text-primary"><i class="fas fa-boxes me-1"></i> 2. تفاصيل المنتجات</h6>
+                        <div class="table-responsive mb-2">
+                            <table class="table table-sm align-middle" id="editItemsTable">
+                                <thead>
+                                    <tr>
+                                        <th style="min-width:220px;">المنتج</th>
+                                        <th style="width:140px;">الكمية</th>
+                                        <th style="width:110px;">الوحدة</th>
+                                        <th style="width:120px;">سعر الشراء</th>
+                                        <th style="width:110px;">الخصم</th>
+                                        <th style="width:110px;">الإجمالي</th>
+                                        <th style="width:40px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="editItemsBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex gap-2 mb-3">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddEditItemRow"><i class="fas fa-plus me-1"></i> إضافة منتج</button>
+                        </div>
+
+                        <!-- القسم 3: ملخص الفاتورة -->
+                        <h6 class="fw-bold text-primary"><i class="fas fa-calculator me-1"></i> 3. ملخص الفاتورة</h6>
+                        <div class="row g-3 mb-2 p-3 rounded" style="background:#f8fafc;border:1px solid #e2e8f0;">
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small mb-1">إجمالي المنتجات</label>
+                                <div class="fw-bold" id="editSumItemsSubtotal">0.000 د.ك</div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small mb-1">الخصم الإجمالي</label>
+                                <input type="number" step="0.001" min="0" name="discountAmount" id="editSumDiscountAmount" class="form-control form-control-sm" value="0" />
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small mb-1">مصاريف إضافية</label>
+                                <input type="number" step="0.001" min="0" name="extraExpenses" id="editSumExtraExpenses" class="form-control form-control-sm" value="0" />
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small mb-1">الإجمالي النهائي</label>
+                                <div class="fw-bold fs-6 text-success" id="editSumFinalTotal">0.000 د.ك</div>
+                            </div>
+                        </div>
+
+                        <!-- القسم 4: مرفق وملاحظات -->
+                        <h6 class="fw-bold text-primary"><i class="fas fa-sticky-note me-1"></i> 4. مرفق وملاحظات</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small mb-1">مرفق جديد للفاتورة (اختياري — يستبدل الحالي)</label>
+                                <input type="file" name="attachment" class="form-control" accept=".jpg,.jpeg,.png,.webp,.pdf" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small mb-1">ملاحظات</label>
+                                <textarea name="notes" id="editNotes" class="form-control" rows="1"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save me-1"></i> حفظ التعديلات</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 }
 
 @section Scripts {
@@ -922,6 +1122,201 @@
                 new bootstrap.Modal(document.getElementById('cancelModal')).show();
             });
         });
+
+        // ===== إرجاع فاتورة للتعديل =====
+        document.querySelectorAll('.js-return-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.getElementById('returnInvoiceId').value = btn.dataset.invoiceId;
+                document.getElementById('returnInvoiceNumber').textContent = btn.dataset.invoiceNumber;
+                document.getElementById('returnReasonText').value = '';
+                new bootstrap.Modal(document.getElementById('returnForEditModal')).show();
+            });
+        });
+
+        // ===== تعديل فاتورة قبل الاعتماد =====
+        var editItemRowCounter = 0;
+        var editInvoiceModalEl = document.getElementById('editInvoiceModal');
+        if (editInvoiceModalEl) {
+
+            function addEditItemRow(item) {
+                editItemRowCounter++;
+                var tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td><input type="hidden" name="itemProductId" class="edit-item-product-id" />' +
+                    '<input type="text" name="itemProductName" list="productsDatalist" class="form-control form-control-sm edit-item-product-name" placeholder="اسم المنتج" /></td>' +
+                    '<td><input type="number" step="1" min="1" name="itemQuantity" value="1" class="form-control form-control-sm edit-item-qty" /></td>' +
+                    '<td><input type="text" name="itemUnit" class="form-control form-control-sm edit-item-unit" /></td>' +
+                    '<td><input type="number" step="0.001" min="0" name="itemUnitPrice" value="0" class="form-control form-control-sm edit-item-price" /></td>' +
+                    '<td><input type="number" step="0.001" min="0" name="itemDiscount" value="0" class="form-control form-control-sm edit-item-discount" /></td>' +
+                    '<td class="edit-item-total fw-bold">0.000</td>' +
+                    '<td><button type="button" class="btn btn-sm btn-outline-danger edit-item-remove"><i class="fas fa-times"></i></button></td>';
+                document.getElementById('editItemsBody').appendChild(tr);
+
+                if (item) {
+                    tr.querySelector('.edit-item-product-id').value = item.productId || '';
+                    tr.querySelector('.edit-item-product-name').value = item.productName || '';
+                    tr.querySelector('.edit-item-unit').value = item.unit || '';
+                    tr.querySelector('.edit-item-qty').value = item.quantity || 1;
+                    tr.querySelector('.edit-item-price').value = (item.unitPrice || 0).toFixed(3);
+                    tr.querySelector('.edit-item-discount').value = (item.discount || 0).toFixed(3);
+                }
+
+                var nameInput = tr.querySelector('.edit-item-product-name');
+                nameInput.addEventListener('input', function () {
+                    var match = PRODUCTS.find(function (p) { return p.name === nameInput.value; });
+                    if (match) {
+                        tr.querySelector('.edit-item-product-id').value = match.id;
+                        tr.querySelector('.edit-item-unit').value = match.unit || '';
+                        tr.querySelector('.edit-item-price').value = match.purchasePrice.toFixed(3);
+                    } else {
+                        tr.querySelector('.edit-item-product-id').value = '';
+                    }
+                    recalcEditInvoice();
+                });
+
+                tr.querySelectorAll('.edit-item-qty, .edit-item-price, .edit-item-discount').forEach(function (input) {
+                    input.addEventListener('input', recalcEditInvoice);
+                });
+
+                tr.querySelector('.edit-item-remove').addEventListener('click', function () {
+                    tr.remove();
+                    recalcEditInvoice();
+                });
+            }
+
+            document.getElementById('btnAddEditItemRow').addEventListener('click', function () { addEditItemRow(null); recalcEditInvoice(); });
+
+            function addEditInstallmentRow(inst) {
+                var row = document.createElement('div');
+                row.className = 'row g-2 mb-2 align-items-center';
+                row.innerHTML =
+                    '<div class="col-5"><input type="number" step="0.001" min="0.001" name="installmentAmount" class="form-control form-control-sm edit-installment-amount" placeholder="المبلغ" /></div>' +
+                    '<div class="col-5"><input type="date" name="installmentDueDate" class="form-control form-control-sm edit-installment-date" /></div>' +
+                    '<div class="col-2"><button type="button" class="btn btn-sm btn-outline-danger edit-installment-remove"><i class="fas fa-times"></i></button></div>';
+                document.getElementById('editInstallmentsRows').appendChild(row);
+                if (inst) {
+                    row.querySelector('.edit-installment-amount').value = inst.amount;
+                    row.querySelector('.edit-installment-date').value = inst.dueDate;
+                }
+                row.querySelector('.edit-installment-amount').addEventListener('input', updateEditInstallmentsTotal);
+                row.querySelector('.edit-installment-remove').addEventListener('click', function () {
+                    row.remove();
+                    updateEditInstallmentsTotal();
+                });
+            }
+
+            document.getElementById('editAddInstallmentBtn').addEventListener('click', function () { addEditInstallmentRow(null); });
+
+            document.getElementById('editSplitInstallmentsToggle').addEventListener('change', function () {
+                document.getElementById('editSplitInstallmentsBox').classList.toggle('d-none', !this.checked);
+                if (this.checked && document.querySelectorAll('#editInstallmentsRows > div').length === 0) {
+                    addEditInstallmentRow(null);
+                }
+                updateEditInstallmentsTotal();
+            });
+
+            function updateEditInstallmentsTotal() {
+                var total = 0;
+                document.querySelectorAll('.edit-installment-amount').forEach(function (input) {
+                    total += parseFloat(input.value) || 0;
+                });
+                var target = parseFloat(document.getElementById('editSumFinalTotal').dataset.value) || 0;
+                document.getElementById('editInstallmentsTotal').textContent = total.toFixed(3);
+                document.getElementById('editInstallmentsTarget').textContent = target.toFixed(3);
+                var mismatch = document.getElementById('editSplitInstallmentsToggle').checked && Math.abs(total - target) > 0.001;
+                document.getElementById('editInstallmentsWarning').classList.toggle('d-none', !mismatch);
+            }
+
+            function recalcEditInvoice() {
+                var subtotal = 0;
+                document.querySelectorAll('#editItemsBody tr').forEach(function (tr) {
+                    var qty = parseFloat(tr.querySelector('.edit-item-qty').value) || 0;
+                    var price = parseFloat(tr.querySelector('.edit-item-price').value) || 0;
+                    var discount = parseFloat(tr.querySelector('.edit-item-discount').value) || 0;
+                    var total = Math.max(0, (qty * price) - discount);
+                    tr.querySelector('.edit-item-total').textContent = total.toFixed(3);
+                    subtotal += total;
+                });
+
+                var invDiscount = parseFloat(document.getElementById('editSumDiscountAmount').value) || 0;
+                var extra = parseFloat(document.getElementById('editSumExtraExpenses').value) || 0;
+                var finalTotal = Math.max(0, subtotal - invDiscount + extra);
+
+                document.getElementById('editSumItemsSubtotal').textContent = subtotal.toFixed(3) + ' د.ك';
+                document.getElementById('editSumFinalTotal').textContent = finalTotal.toFixed(3) + ' د.ك';
+                document.getElementById('editSumFinalTotal').dataset.value = finalTotal.toFixed(3);
+                updateEditInstallmentsTotal();
+            }
+
+            document.getElementById('editSumDiscountAmount').addEventListener('input', recalcEditInvoice);
+            document.getElementById('editSumExtraExpenses').addEventListener('input', recalcEditInvoice);
+
+            document.querySelectorAll('.js-edit-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var dataEl = document.getElementById('invoiceEditData-' + btn.dataset.invoiceId);
+                    if (!dataEl) return;
+                    var inv = JSON.parse(dataEl.textContent);
+
+                    document.getElementById('editInvoiceForm').reset();
+                    document.getElementById('editItemsBody').innerHTML = '';
+                    document.getElementById('editInstallmentsRows').innerHTML = '';
+
+                    document.getElementById('editInvoiceId').value = inv.id;
+                    document.getElementById('editSupplierSelect').value = inv.supplierId;
+                    document.getElementById('editInvoiceNumber').value = inv.invoiceNumber;
+                    document.getElementById('editInvoiceDate').value = inv.invoiceDate;
+                    document.getElementById('editDueDate').value = inv.dueDate;
+                    document.getElementById('editSumDiscountAmount').value = inv.discountAmount;
+                    document.getElementById('editSumExtraExpenses').value = inv.extraExpenses;
+                    document.getElementById('editNotes').value = inv.notes;
+
+                    if (inv.returnReason) {
+                        document.getElementById('editReturnReasonText').textContent = inv.returnReason;
+                        document.getElementById('editReturnReasonBox').classList.remove('d-none');
+                    } else {
+                        document.getElementById('editReturnReasonBox').classList.add('d-none');
+                    }
+
+                    if (inv.items && inv.items.length > 0) {
+                        inv.items.forEach(function (item) { addEditItemRow(item); });
+                    } else {
+                        addEditItemRow(null);
+                    }
+
+                    var splitToggle = document.getElementById('editSplitInstallmentsToggle');
+                    if (inv.installments && inv.installments.length > 1) {
+                        splitToggle.checked = true;
+                        document.getElementById('editSplitInstallmentsBox').classList.remove('d-none');
+                        inv.installments.forEach(function (inst) { addEditInstallmentRow(inst); });
+                    } else {
+                        splitToggle.checked = false;
+                        document.getElementById('editSplitInstallmentsBox').classList.add('d-none');
+                    }
+
+                    recalcEditInvoice();
+                    new bootstrap.Modal(editInvoiceModalEl).show();
+                });
+            });
+
+            document.getElementById('editInvoiceForm').addEventListener('submit', function (e) {
+                if (document.getElementById('editSplitInstallmentsToggle').checked) {
+                    var target = parseFloat(document.getElementById('editSumFinalTotal').dataset.value) || 0;
+                    var rows = document.querySelectorAll('.edit-installment-amount');
+                    if (rows.length === 0) {
+                        e.preventDefault();
+                        alert('يرجى إضافة دفعة واحدة على الأقل عند تفعيل التقسيم على دفعات');
+                        return;
+                    }
+                    var sum = 0;
+                    rows.forEach(function (input) { sum += parseFloat(input.value) || 0; });
+                    if (Math.abs(sum - target) > 0.001) {
+                        e.preventDefault();
+                        alert('مجموع الدفعات (' + sum.toFixed(3) + ') يجب أن يساوي قيمة الفاتورة (' + target.toFixed(3) + ')');
+                        return;
+                    }
+                }
+            });
+        }
 
         // ===== فاتورة مورد جديدة =====
         var createInvoiceModalEl = document.getElementById('createInvoiceModal');
