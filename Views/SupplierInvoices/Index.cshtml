@@ -1,4 +1,4 @@
-﻿@model IEnumerable<Salon.Models.SupplierInvoice>
+﻿@model  IEnumerable<Salon.Models.SupplierInvoice>
 @using System.Text.Json
 @{
     ViewData["Title"] = "فواتير الموردين الآجلة";
@@ -22,6 +22,17 @@
         "متأخرة" => "bg-danger",
         "ملغاة" => "bg-dark",
         _ => "bg-secondary"
+    };
+
+    (string icon, string color) StatusIconColor(string status) => status switch
+    {
+        "مسودة" => ("fa-pen", "#6c757d"),
+        "غير مدفوعة" => ("fa-exclamation-circle", "#dc2626"),
+        "مدفوعة جزئيًا" => ("fa-exclamation-circle", "#d97706"),
+        "مدفوعة بالكامل" => ("fa-check-circle", "#198754"),
+        "متأخرة" => ("fa-exclamation-triangle", "#dc2626"),
+        "ملغاة" => ("fa-ban", "#343a40"),
+        _ => ("fa-info-circle", "#6c757d")
     };
 }
 
@@ -203,14 +214,11 @@
                     }
                     @foreach (var inv in Model)
                     {
-                        var rowId = "inv-" + inv.Id;
                         <tr>
                             <td>@inv.Id</td>
                             <td>@(inv.Supplier?.Name ?? "-")</td>
                             <td>
-                                <a href="javascript:void(0)" onclick="toggleDetails('@rowId')" class="text-decoration-none">
-                                    @inv.InvoiceNumber <i class="fas fa-chevron-down small text-muted"></i>
-                                </a>
+                                @inv.InvoiceNumber
                                 @if (!string.IsNullOrEmpty(inv.Reference))
                                 {
                                     <div class="text-muted small">@inv.Reference</div>
@@ -223,6 +231,10 @@
                             <td class="@(inv.RemainingAmount > 0 ? "text-danger fw-bold" : "text-muted")">@inv.RemainingAmount.ToString("N3") د.ك</td>
                             <td><span class="badge @StatusBadge(inv.Status)">@inv.Status</span></td>
                             <td class="text-nowrap">
+                                <button type="button" class="btn btn-xs btn-outline-primary" title="عرض تفاصيل الفاتورة"
+                                        data-bs-toggle="modal" data-bs-target="#viewInvoiceModal-@inv.Id">
+                                    <i class="fas fa-eye"></i>
+                                </button>
                                 @if (canPay && inv.IsDraft)
                                 {
                                     <form method="post" asp-action="ConfirmDraft" style="display:inline;" onsubmit="return confirm('اعتماد هذه الفاتورة؟ سيتم تحديث المخزون فوراً.');">
@@ -248,106 +260,6 @@
                                         <i class="fas fa-ban"></i>
                                     </button>
                                 }
-                            </td>
-                        </tr>
-                        <tr class="d-none" id="@rowId">
-                            <td colspan="10" class="bg-light">
-                                <div class="p-2">
-                                    <div class="row g-3 small">
-                                        <div class="col-md-6">
-                                            @if (inv.PurchaseRequest != null)
-                                            {
-                                                <div><strong>نشأت من طلب شراء رقم:</strong> #@inv.PurchaseRequest.Id — @(inv.PurchaseRequest.Employee?.FullName ?? "-")</div>
-                                            }
-                                            @if (inv.Items.Any())
-                                            {
-                                                <div class="mt-1">
-                                                    <strong>المنتجات:</strong>
-                                                    <ul class="mb-0 mt-1">
-                                                        @foreach (var it in inv.Items)
-                                                        {
-                                                            <li>@it.ProductName — @it.Quantity @it.Unit × @it.UnitPrice.ToString("N3") = @it.Total.ToString("N3") د.ك</li>
-                                                        }
-                                                    </ul>
-                                                </div>
-                                            }
-                                            @if (inv.DiscountAmount > 0 || inv.ExtraExpenses > 0)
-                                            {
-                                                <div class="mt-1">
-                                                    @if (inv.DiscountAmount > 0)
-                                                    {
-                                                        <div>خصم إجمالي: @inv.DiscountAmount.ToString("N3") د.ك</div>
-                                                    }
-                                                    @if (inv.ExtraExpenses > 0)
-                                                    {
-                                                        <div>مصاريف إضافية: @inv.ExtraExpenses.ToString("N3") د.ك</div>
-                                                    }
-                                                </div>
-                                            }
-                                            @if (!string.IsNullOrEmpty(inv.AttachmentPath))
-                                            {
-                                                <div class="mt-1"><a href="@inv.AttachmentPath" target="_blank"><i class="fas fa-paperclip me-1"></i>مرفق الفاتورة</a></div>
-                                            }
-                                            @if (!string.IsNullOrEmpty(inv.Notes))
-                                            {
-                                                <div class="mt-1"><strong>ملاحظات:</strong> @inv.Notes</div>
-                                            }
-                                            @if (inv.IsCancelled)
-                                            {
-                                                <div class="mt-1 text-danger"><strong>ملغاة:</strong> @inv.CancelledByName — @(inv.CancelledAt?.ToString("yyyy/MM/dd HH:mm")) @(!string.IsNullOrEmpty(inv.CancelReason) ? $"— {inv.CancelReason}" : "")</div>
-                                            }
-                                            <div class="mt-1"><strong>أنشأها:</strong> @inv.CreatedByName — @inv.CreatedAt.ToString("HH:mm  yyyy/MM/dd")</div>
-                                            @if (inv.Installments.Count > 1)
-                                            {
-                                                <div class="mt-2">
-                                                    <strong>جدول الدفعات المخطَّط:</strong>
-                                                    <ul class="mb-0 mt-1">
-                                                        @foreach (var inst in inv.Installments.OrderBy(i => i.DueDate))
-                                                        {
-                                                            <li>@inst.Amount.ToString("N3") د.ك — استحقاق @inst.DueDate.ToString("yyyy/MM/dd")</li>
-                                                        }
-                                                    </ul>
-                                                </div>
-                                            }
-                                        </div>
-                                        <div class="col-md-6">
-                                            <strong>الدفعات المسجَّلة:</strong>
-                                            @if (!inv.Payments.Any())
-                                            {
-                                                <div class="text-muted mt-1">لا توجد دفعات مسجَّلة بعد</div>
-                                            }
-                                            else
-                                            {
-                                                <ul class="mb-0 mt-1">
-                                                    @foreach (var p in inv.Payments.OrderByDescending(p => p.PaymentDate).ThenByDescending(p => p.CreatedAt))
-                                                    {
-                                                        <li>
-                                                            @p.Amount.ToString("N3") د.ك — @p.Source — @p.PaymentDate.ToString("yyyy/MM/dd")
-                                                            @if (!string.IsNullOrEmpty(p.ReferenceNumber))
-                                                            {
-                                                                <text> — مرجع: @p.ReferenceNumber</text>
-                                                            }
-                                                            @if (!string.IsNullOrEmpty(p.AttachmentPath))
-                                                            {
-                                                                <a href="@p.AttachmentPath" target="_blank" class="ms-1"><i class="fas fa-paperclip"></i></a>
-                                                            }
-                                                            <span class="text-muted">(@p.PaidByName — @p.CreatedAt.ToString("HH:mm"))</span>
-                                                            @if (isManager)
-                                                            {
-                                                                <form method="post" asp-action="DeletePayment" asp-controller="SupplierInvoices" style="display:inline;"
-                                                                      onsubmit="return confirm('حذف هذه الدفعة؟');">
-                                                                    @Html.AntiForgeryToken()
-                                                                    <input type="hidden" name="id" value="@p.Id" />
-                                                                    <button type="submit" class="btn btn-link btn-sm text-danger p-0 ms-1" title="حذف الدفعة"><i class="fas fa-trash"></i></button>
-                                                                </form>
-                                                            }
-                                                        </li>
-                                                    }
-                                                </ul>
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
                             </td>
                         </tr>
                     }
@@ -382,6 +294,10 @@
                     <div class="col-12"><span class="text-muted">المتبقي:</span> <span class="@(inv.RemainingAmount > 0 ? "text-danger fw-bold" : "text-muted")">@inv.RemainingAmount.ToString("N3") د.ك</span></div>
                 </div>
                 <div class="d-flex gap-2 mt-2 flex-wrap">
+                    <button type="button" class="btn btn-xs btn-outline-primary" title="عرض تفاصيل الفاتورة"
+                            data-bs-toggle="modal" data-bs-target="#viewInvoiceModal-@inv.Id">
+                        <i class="fas fa-eye"></i> عرض
+                    </button>
                     @if (canPay && inv.IsDraft)
                     {
                         <form method="post" asp-action="ConfirmDraft" onsubmit="return confirm('اعتماد هذه الفاتورة؟');">
@@ -411,6 +327,244 @@
         </div>
     }
 </div>
+
+<!-- Modals: عرض تفاصيل الفاتورة -->
+@foreach (var inv in Model)
+{
+    var (statusIcon, statusColor) = StatusIconColor(inv.Status);
+    var orderedInstallments = inv.Installments.OrderBy(i => i.DueDate).ToList();
+    <div class="modal fade" id="viewInvoiceModal-@inv.Id" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-invoice me-2"></i>
+                        فاتورة @inv.InvoiceNumber — @(inv.Supplier?.Name ?? "-")
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- بطاقات الملخص -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-6 col-md-3">
+                            <div class="card h-100 border-0 shadow-sm si-view-card">
+                                <div class="card-body d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="text-muted small mb-1">حالة الفاتورة</div>
+                                        <span class="badge @StatusBadge(inv.Status)">@inv.Status</span>
+                                    </div>
+                                    <i class="fas @statusIcon fa-lg" style="color:@statusColor;"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card h-100 border-0 shadow-sm si-view-card">
+                                <div class="card-body d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="text-muted small mb-1">المتبقي</div>
+                                        <div class="fw-bold fs-6 @(inv.RemainingAmount > 0 ? "text-danger" : "text-muted")">@inv.RemainingAmount.ToString("N3") د.ك</div>
+                                    </div>
+                                    <i class="fas fa-chart-pie fa-lg text-primary"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card h-100 border-0 shadow-sm si-view-card">
+                                <div class="card-body d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="text-muted small mb-1">المدفوع</div>
+                                        <div class="fw-bold fs-6 text-success">@inv.PaidAmount.ToString("N3") د.ك</div>
+                                    </div>
+                                    <i class="fas fa-wallet fa-lg text-success"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card h-100 border-0 shadow-sm si-view-card">
+                                <div class="card-body d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="text-muted small mb-1">إجمالي الفاتورة</div>
+                                        <div class="fw-bold fs-6">@inv.TotalAmount.ToString("N3") د.ك</div>
+                                    </div>
+                                    <i class="fas fa-file-invoice fa-lg text-secondary"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- المنتجات -->
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-white fw-bold"><i class="fas fa-boxes me-1 text-muted"></i> المنتجات</div>
+                                <div class="card-body p-2">
+                                    @if (!inv.Items.Any())
+                                    {
+                                        <div class="text-muted small text-center py-2">لا توجد منتجات مسجَّلة</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-sm mb-0 small">
+                                                <thead>
+                                                    <tr>
+                                                        <th>المنتج</th>
+                                                        <th>الكمية</th>
+                                                        <th>سعر الوحدة</th>
+                                                        <th>الإجمالي</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var it in inv.Items)
+                                                    {
+                                                        <tr>
+                                                            <td>@it.ProductName</td>
+                                                            <td>@it.Quantity @it.Unit</td>
+                                                            <td>@it.UnitPrice.ToString("N3") د.ك</td>
+                                                            <td class="fw-bold">@it.Total.ToString("N3") د.ك</td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                                <tfoot>
+                                                    <tr>
+                                                        <th colspan="3">الإجمالي</th>
+                                                        <th>@inv.TotalAmount.ToString("N3") د.ك</th>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                    }
+                                    @if (inv.DiscountAmount > 0)
+                                    {
+                                        <div class="small mt-1">خصم إجمالي: @inv.DiscountAmount.ToString("N3") د.ك</div>
+                                    }
+                                    @if (inv.ExtraExpenses > 0)
+                                    {
+                                        <div class="small mt-1">مصاريف إضافية: @inv.ExtraExpenses.ToString("N3") د.ك</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- معلومات الفاتورة -->
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-white fw-bold"><i class="fas fa-info-circle me-1 text-muted"></i> معلومات الفاتورة</div>
+                                <div class="card-body p-2 small">
+                                    <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">أنشأها</span><span>@inv.CreatedByName</span></div>
+                                    <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">تاريخ الإنشاء</span><span>@inv.CreatedAt.ToString("yyyy/MM/dd")</span></div>
+                                    <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">الوقت</span><span>@inv.CreatedAt.ToString("HH:mm")</span></div>
+                                    <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">رقم الفاتورة</span><span>@inv.InvoiceNumber</span></div>
+                                    @if (!string.IsNullOrEmpty(inv.Reference))
+                                    {
+                                        <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">رقم المرجع</span><span>@inv.Reference</span></div>
+                                    }
+                                    @if (inv.PurchaseRequest != null)
+                                    {
+                                        <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">طلب شراء</span><span>#@inv.PurchaseRequest.Id — @(inv.PurchaseRequest.Employee?.FullName ?? "-")</span></div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(inv.AttachmentPath))
+                                    {
+                                        <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">مرفق</span><a href="@inv.AttachmentPath" target="_blank"><i class="fas fa-paperclip me-1"></i>عرض المرفق</a></div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(inv.Notes))
+                                    {
+                                        <div class="py-1"><span class="text-muted d-block">ملاحظات</span>@inv.Notes</div>
+                                    }
+                                    @if (inv.IsCancelled)
+                                    {
+                                        <div class="py-1 text-danger"><span class="d-block"><strong>ملغاة:</strong> @inv.CancelledByName — @(inv.CancelledAt?.ToString("yyyy/MM/dd HH:mm"))</span>@(!string.IsNullOrEmpty(inv.CancelReason) ? $"سبب الإلغاء: {inv.CancelReason}" : "")</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- خطة السداد -->
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-white fw-bold"><i class="fas fa-calendar-check me-1 text-muted"></i> خطة السداد</div>
+                                <div class="card-body p-2">
+                                    @if (!orderedInstallments.Any())
+                                    {
+                                        <div class="text-muted small text-center py-2">لا توجد خطة سداد مسجَّلة</div>
+                                    }
+                                    else
+                                    {
+                                        decimal runningPaid = inv.PaidAmount;
+                                        <ul class="list-unstyled si-payment-timeline mb-0">
+                                            @foreach (var inst in orderedInstallments)
+                                            {
+                                                string instIcon; string instColor; string instLabel;
+                                                if (runningPaid >= inst.Amount - 0.001m)
+                                                {
+                                                    instIcon = "fa-check"; instColor = "#198754"; instLabel = "مدفوعة";
+                                                }
+                                                else if (inst.DueDate.Date < DateTime.Today)
+                                                {
+                                                    instIcon = "fa-exclamation"; instColor = "#dc2626"; instLabel = "متأخرة";
+                                                }
+                                                else
+                                                {
+                                                    instIcon = "fa-clock"; instColor = "#d97706"; instLabel = "مستحقة";
+                                                }
+                                                runningPaid = Math.Max(0, runningPaid - inst.Amount);
+                                                <li class="d-flex align-items-start mb-3">
+                                                    <span class="si-timeline-icon me-2" style="background:@instColor;"><i class="fas @instIcon"></i></span>
+                                                    <div>
+                                                        <div class="fw-bold">@inst.DueDate.ToString("yyyy/MM/dd") — @inst.Amount.ToString("N3") د.ك</div>
+                                                        <div class="small" style="color:@instColor;">@instLabel</div>
+                                                    </div>
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (inv.Payments.Any())
+                    {
+                        <div class="card mt-3">
+                            <div class="card-header bg-white fw-bold"><i class="fas fa-money-check-alt me-1 text-muted"></i> الدفعات المسجَّلة</div>
+                            <div class="card-body p-2">
+                                <ul class="mb-0 small">
+                                    @foreach (var p in inv.Payments.OrderByDescending(p => p.PaymentDate).ThenByDescending(p => p.CreatedAt))
+                                    {
+                                        <li>
+                                            @p.Amount.ToString("N3") د.ك — @p.Source — @p.PaymentDate.ToString("yyyy/MM/dd")
+                                            @if (!string.IsNullOrEmpty(p.ReferenceNumber))
+                                            {
+                                                <text> — مرجع: @p.ReferenceNumber</text>
+                                            }
+                                            @if (!string.IsNullOrEmpty(p.AttachmentPath))
+                                            {
+                                                <a href="@p.AttachmentPath" target="_blank" class="ms-1"><i class="fas fa-paperclip"></i></a>
+                                            }
+                                            <span class="text-muted">(@p.PaidByName — @p.CreatedAt.ToString("HH:mm"))</span>
+                                            @if (isManager)
+                                            {
+                                                <form method="post" asp-action="DeletePayment" asp-controller="SupplierInvoices" style="display:inline;"
+                                                      onsubmit="return confirm('حذف هذه الدفعة؟');">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@p.Id" />
+                                                    <button type="submit" class="btn btn-link btn-sm text-danger p-0 ms-1" title="حذف الدفعة"><i class="fas fa-trash"></i></button>
+                                                </form>
+                                            }
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 @if (canPay)
 {
@@ -596,7 +750,7 @@
                                 <thead>
                                     <tr>
                                         <th style="min-width:220px;">المنتج</th>
-                                        <th style="width:90px;">الكمية</th>
+                                        <th style="width:140px;">الكمية</th>
                                         <th style="width:110px;">الوحدة</th>
                                         <th style="width:120px;">سعر الشراء</th>
                                         <th style="width:110px;">الخصم</th>
@@ -727,10 +881,6 @@
     <script>
         var PRODUCTS = @Html.Raw(productsJson);
         var itemRowCounter = 0;
-
-        function toggleDetails(rowId) {
-            document.getElementById(rowId).classList.toggle('d-none');
-        }
 
         // ===== تسجيل دفعة =====
         function openPayModal(id, supplierName, invoiceNumber, remaining) {
@@ -1056,6 +1206,41 @@
 
         .si-card .card-body {
             padding: 0.9rem 1rem;
+        }
+
+        .si-view-card .card-body {
+            padding: 0.85rem 1rem;
+        }
+
+        .si-payment-timeline {
+            position: relative;
+        }
+
+        .si-payment-timeline li:not(:last-child) {
+            position: relative;
+        }
+
+        .si-payment-timeline li:not(:last-child)::before {
+            content: "";
+            position: absolute;
+            top: 26px;
+            right: 13px;
+            width: 2px;
+            height: calc(100% - 6px);
+            background: #dee2e6;
+        }
+
+        .si-timeline-icon {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.7rem;
+            z-index: 1;
         }
     </style>
 }
