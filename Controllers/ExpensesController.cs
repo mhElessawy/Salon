@@ -208,6 +208,15 @@ namespace Salon.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
+                // مصروف مولَّد تلقائياً من تسجيل دفعة على فاتورة مورد آجلة — لا يُحذف إلا من شاشة فواتير الموردين
+                // حتى لا يبقى سجل دفعة يشير لمصروف محذوف.
+                var linkedSupplierPayment = await _context.SupplierInvoicePayments.FirstOrDefaultAsync(p => p.ExpenseId == id);
+                if (linkedSupplierPayment != null)
+                {
+                    TempData["Error"] = "لا يمكن حذف هذا المصروف — مرتبط بدفعة على فاتورة مورد آجلة. احذف الدفعة أولاً من شاشة فواتير الموردين";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 _context.Expenses.Remove(expense);
                 await _context.SaveChangesAsync();
                 await _audit.LogAsync("Delete", "Expenses", desc, id);
