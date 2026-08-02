@@ -252,6 +252,18 @@ namespace Salon.Controllers
                 }
 
                 model.NetSalary = model.BasicSalary + model.CommissionAmount + model.Allowances + (model.GiftAmount ?? 0) + (model.HadiyaAmount ?? 0) - model.Deductions - model.AdvanceDeducted - model.EmployeeDebtDeducted;
+
+                if (model.NetSalary < 0)
+                {
+                    ModelState.AddModelError("", "لا يمكن حفظ الراتب لأن الصافي أقل من صفر");
+                    var cuNeg = await _userManager.GetUserAsync(User);
+                    var udNeg = cuNeg?.UserDepartment;
+                    var eqNeg = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+                    if (udNeg == "حلاقة" || udNeg == "مساج") eqNeg = eqNeg.Where(e => e.DepartmentNav!.Name == udNeg);
+                    ViewBag.Employees = new SelectList(await eqNeg.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName");
+                    return View(model);
+                }
+
                 model.CreatedAt = DateTime.Now;
                 if (model.PaidDate.HasValue)
                 {
@@ -283,6 +295,12 @@ namespace Salon.Controllers
             var salary = await _context.Salaries.Include(s => s.Employee).FirstOrDefaultAsync(s => s.Id == id);
             if (salary != null)
             {
+                if (salary.NetSalary < 0)
+                {
+                    TempData["Error"] = "لا يمكن صرف راتب صافيه أقل من صفر";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 salary.Status = "مصروف";
                 salary.PaidDate = DateTime.Today;
 
