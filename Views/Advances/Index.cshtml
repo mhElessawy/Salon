@@ -387,6 +387,15 @@ else
                                                                 <i class="fas fa-university"></i> تم التحويل
                                                             </button>
                                                         }
+                                                        @if ((adv.Status == "تم الصرف" || adv.Status == "تم التحويل") && remaining > 0 && isCashier)
+                                                        {
+                                                            <a href="@Url.Action("PayDirect", new { id = adv.Id })"
+                                                               class="btn btn-xs btn-outline-success ms-1"
+                                                               onclick="event.stopPropagation();"
+                                                               title="سداد مباشر">
+                                                                <i class="fas fa-money-check-alt"></i> سداد
+                                                            </a>
+                                                        }
                                                         @if (isManager)
                                                         {
                                                             <button type="button" class="btn btn-xs btn-outline-danger ms-1"
