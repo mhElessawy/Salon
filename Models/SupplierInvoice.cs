@@ -9,6 +9,7 @@ namespace Salon.Models
         public static class Statuses
         {
             public const string Draft = "مسودة";
+            public const string ReturnedForEdit = "أُرجعت للتعديل";
             public const string Unpaid = "غير مدفوعة";
             public const string PartiallyPaid = "مدفوعة جزئيًا";
             public const string FullyPaid = "مدفوعة بالكامل";
@@ -76,6 +77,17 @@ namespace Salon.Models
 
         [Display(Name = "سبب الإلغاء")]
         public string? CancelReason { get; set; }
+
+        // يُملأ عندما يُرجع المدير الفاتورة للتعديل بدلاً من اعتمادها — تبقى الفاتورة مسودة قابلة
+        // للتعديل، ويُمسح هذا الحقل تلقائياً عند حفظ التعديل أو عند الاعتماد
+        [Display(Name = "سبب الإرجاع للتعديل")]
+        public string? ReturnReason { get; set; }
+
+        [Display(Name = "تاريخ الإرجاع للتعديل")]
+        public DateTime? ReturnedAt { get; set; }
+
+        [Display(Name = "أرجعها للتعديل")]
+        public string? ReturnedByName { get; set; }
 
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
@@ -162,7 +174,7 @@ namespace Salon.Models
         {
             get
             {
-                if (IsDraft) return Statuses.Draft;
+                if (IsDraft) return !string.IsNullOrEmpty(ReturnReason) ? Statuses.ReturnedForEdit : Statuses.Draft;
                 if (IsCancelled) return Statuses.Cancelled;
                 if (RemainingAmount <= 0.001m) return Statuses.FullyPaid;
                 if (IsOverdue) return Statuses.Overdue;

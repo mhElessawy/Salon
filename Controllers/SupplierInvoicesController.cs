@@ -422,14 +422,14 @@ namespace Salon.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // اعتماد فاتورة محفوظة كمسودة — يطبّق أثرها على المخزون (لا يوجد دفع وقت الاعتماد، يُسجَّل لاحقاً)
+        // اعتماد فاتورة محفوظة كمسودة — من حق المدير فقط، يطبّق أثرها على المخزون (لا يوجد دفع وقت الاعتماد، يُسجَّل لاحقاً)
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> ConfirmDraft(int id)
         {
             var currentUser = await _userManager.GetUserAsync(User);
-            if (!await IsCashierOrManagerAsync(currentUser))
+            if (!await IsManagerAsync(currentUser))
             {
-                TempData["Error"] = "غير مصرح لك باعتماد فواتير الموردين";
+                TempData["Error"] = "اعتماد فواتير الموردين من صلاحيات المدير فقط";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -441,12 +441,195 @@ namespace Salon.Controllers
 
             PostInvoiceItemsToInventory(invoice);
             invoice.IsDraft = false;
+            invoice.ReturnReason = null;
+            invoice.ReturnedAt = null;
+            invoice.ReturnedByName = null;
             await _context.SaveChangesAsync();
 
             await _audit.LogAsync("Edit", "SupplierInvoice",
                 $"اعتماد مسودة فاتورة المورد {invoice.Supplier?.Name ?? "-"} رقم {invoice.InvoiceNumber}", invoice.Id);
 
             TempData["Success"] = "تم اعتماد الفاتورة وتحديث المخزون";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // إرجاع فاتورة للتعديل بدلاً من اعتمادها — من حق المدير فقط، ويجب ذكر السبب. تبقى الفاتورة
+        // مسودة قابلة للتعديل حتى تُعاد للمدير مجدداً
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReturnForEdit(int id, string? reason)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (!await IsManagerAsync(currentUser))
+            {
+                TempData["Error"] = "إرجاع فواتير الموردين للتعديل من صلاحيات المدير فقط";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                TempData["Error"] = "يجب ذكر سبب إرجاع الفاتورة للتعديل";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var invoice = await _context.SupplierInvoices
+                .Include(i => i.Supplier)
+                .FirstOrDefaultAsync(i => i.Id == id);
+            if (invoice == null) return RedirectToAction(nameof(Index));
+
+            if (!invoice.IsDraft || invoice.IsCancelled)
+            {
+                TempData["Error"] = "لا يمكن إرجاع فاتورة معتمدة أو ملغاة للتعديل";
+                return RedirectToAction(nameof(Index));
+            }
+
+            invoice.ReturnReason = reason.Trim();
+            invoice.ReturnedAt = DateTime.Now;
+            invoice.ReturnedByName = currentUser?.FullName ?? currentUser?.UserName;
+            await _context.SaveChangesAsync();
+
+            await _audit.LogAsync("Reject", "SupplierInvoice",
+                $"إرجاع فاتورة المورد {invoice.Supplier?.Name ?? "-"} رقم {invoice.InvoiceNumber} للتعديل | السبب: {invoice.ReturnReason}",
+                invoice.Id);
+
+            TempData["Success"] = "تم إرجاع الفاتورة للتعديل";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // تعديل فاتورة لا تزال بانتظار الاعتماد (مسودة) — يُمسح سبب الإرجاع تلقائياً بعد التعديل
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, int supplierId, string invoiceNumber, DateTime invoiceDate, DateTime dueDate,
+            decimal discountAmount, decimal extraExpenses, string? notes,
+            IFormFile? attachment,
+            List<int?>? itemProductId, List<string>? itemProductName, List<string?>? itemUnit,
+            List<int>? itemQuantity, List<decimal>? itemUnitPrice, List<decimal>? itemDiscount,
+            List<decimal>? installmentAmount, List<DateTime>? installmentDueDate)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (!await IsCashierOrManagerAsync(currentUser))
+            {
+                TempData["Error"] = "غير مصرح لك بتعديل فواتير الموردين";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var invoice = await _context.SupplierInvoices
+                .Include(i => i.Items)
+                .Include(i => i.Installments)
+                .FirstOrDefaultAsync(i => i.Id == id);
+            if (invoice == null) return RedirectToAction(nameof(Index));
+
+            if (!invoice.IsDraft || invoice.IsCancelled)
+            {
+                TempData["Error"] = "لا يمكن تعديل فاتورة معتمدة أو ملغاة";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var supplier = await _context.Suppliers.FindAsync(supplierId);
+            if (supplier == null)
+            {
+                TempData["Error"] = "المورد المختار غير موجود";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (string.IsNullOrWhiteSpace(invoiceNumber))
+            {
+                TempData["Error"] = "رقم الفاتورة مطلوب";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var items = new List<SupplierInvoiceItem>();
+            if (itemProductName != null)
+            {
+                for (int i = 0; i < itemProductName.Count; i++)
+                {
+                    var pName = itemProductName[i]?.Trim();
+                    var qty = itemQuantity != null && i < itemQuantity.Count ? itemQuantity[i] : 0;
+                    if (string.IsNullOrWhiteSpace(pName) || qty <= 0) continue;
+
+                    items.Add(new SupplierInvoiceItem
+                    {
+                        ProductId = itemProductId != null && i < itemProductId.Count ? itemProductId[i] : null,
+                        ProductName = pName,
+                        Unit = itemUnit != null && i < itemUnit.Count ? itemUnit[i] : null,
+                        Quantity = qty,
+                        UnitPrice = itemUnitPrice != null && i < itemUnitPrice.Count ? itemUnitPrice[i] : 0,
+                        Discount = itemDiscount != null && i < itemDiscount.Count ? itemDiscount[i] : 0
+                    });
+                }
+            }
+
+            decimal computedTotal;
+            if (items.Count > 0)
+            {
+                var itemsSubtotal = items.Sum(x => x.Quantity * x.UnitPrice);
+                var itemsDiscount = items.Sum(x => x.Discount);
+                computedTotal = itemsSubtotal - itemsDiscount - discountAmount + extraExpenses;
+            }
+            else
+            {
+                computedTotal = invoice.TotalAmount - discountAmount + extraExpenses;
+            }
+
+            if (computedTotal <= 0)
+            {
+                TempData["Error"] = "قيمة الفاتورة يجب أن تكون أكبر من صفر";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var installments = new List<SupplierInvoiceInstallment>();
+            if (installmentAmount != null)
+            {
+                for (int i = 0; i < installmentAmount.Count; i++)
+                {
+                    if (installmentAmount[i] <= 0) continue;
+                    var dDate = (installmentDueDate != null && i < installmentDueDate.Count && installmentDueDate[i] != default)
+                        ? installmentDueDate[i] : dueDate;
+                    installments.Add(new SupplierInvoiceInstallment { SequenceNo = installments.Count + 1, Amount = installmentAmount[i], DueDate = dDate });
+                }
+            }
+
+            if (installments.Count == 0)
+                installments.Add(new SupplierInvoiceInstallment { SequenceNo = 1, Amount = computedTotal, DueDate = dueDate == default ? invoiceDate : dueDate });
+
+            decimal installmentsTotal = installments.Sum(x => x.Amount);
+            if (Math.Abs(installmentsTotal - computedTotal) > 0.001m)
+            {
+                TempData["Error"] = $"مجموع دفعات جدول السداد ({installmentsTotal:N3}) يجب أن يساوي قيمة الفاتورة ({computedTotal:N3}) د.ك";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (attachment != null)
+            {
+                var (path, error) = await SaveAttachmentAsync(attachment, "supplier-invoices");
+                if (error != null)
+                {
+                    TempData["Error"] = error;
+                    return RedirectToAction(nameof(Index));
+                }
+                invoice.AttachmentPath = path;
+            }
+
+            _context.SupplierInvoiceItems.RemoveRange(invoice.Items);
+            _context.SupplierInvoiceInstallments.RemoveRange(invoice.Installments);
+
+            invoice.SupplierId = supplierId;
+            invoice.InvoiceNumber = invoiceNumber.Trim();
+            invoice.InvoiceDate = invoiceDate == default ? invoice.InvoiceDate : invoiceDate;
+            invoice.TotalAmount = computedTotal;
+            invoice.DiscountAmount = discountAmount;
+            invoice.ExtraExpenses = extraExpenses;
+            invoice.Notes = notes;
+            invoice.Items = items;
+            invoice.Installments = installments;
+            invoice.ReturnReason = null;
+            invoice.ReturnedAt = null;
+            invoice.ReturnedByName = null;
+
+            await _context.SaveChangesAsync();
+
+            await _audit.LogAsync("Edit", "SupplierInvoice",
+                $"تعديل فاتورة المورد {supplier.Name} رقم {invoice.InvoiceNumber} | المرجع: {invoice.Reference}", invoice.Id);
+
+            TempData["Success"] = "تم حفظ التعديلات بنجاح";
             return RedirectToAction(nameof(Index));
         }
 
