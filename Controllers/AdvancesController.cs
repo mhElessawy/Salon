@@ -432,6 +432,104 @@ namespace Salon.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // شاشة سداد سلفة مباشر (خارج خصم الراتب) — يعرض المبلغ المتبقي ويطلب اختيار طريقة الدفع.
+        public async Task<IActionResult> PayDirect(int id)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (!await IsCashierOrManagerAsync(currentUser))
+            {
+                TempData["Error"] = "غير مصرح لك بتسجيل سداد السلف";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var advance = await _context.EmployeeAdvances.Include(a => a.Employee).FirstOrDefaultAsync(a => a.Id == id);
+            if (advance == null) return RedirectToAction(nameof(Index));
+
+            if (!EmployeeAdvance.Statuses.Realized.Contains(advance.Status) || advance.Status == EmployeeAdvance.Statuses.Repaid)
+            {
+                TempData["Error"] = "لا يمكن تسجيل سداد لسلفة لم تُصرف بعد أو تم سدادها بالكامل";
+                return RedirectToAction(nameof(Index));
+            }
+
+            return View(advance);
+        }
+
+        // تسجيل دفعة سداد مباشرة (نقدي أو تحويل بنكي) — تُخصم من رصيد السلفة المتبقي فوراً
+        // وتُسجَّل كإيداع في الصندوق (نقدي) أو للتوثيق فقط (تحويل بنكي) حتى تظهر في تقارير الصندوق.
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> PayDirect(int id, decimal payAmount, string paymentMethod, string? transferReference)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (!await IsCashierOrManagerAsync(currentUser))
+            {
+                TempData["Error"] = "غير مصرح لك بتسجيل سداد السلف";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (paymentMethod != "نقدي" && paymentMethod != "تحويل بنكي")
+            {
+                TempData["Error"] = "طريقة الدفع غير صحيحة";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (paymentMethod == "تحويل بنكي" && string.IsNullOrWhiteSpace(transferReference))
+            {
+                TempData["Error"] = "رقم مرجع التحويل مطلوب";
+                return RedirectToAction(nameof(PayDirect), new { id });
+            }
+
+            var advance = await _context.EmployeeAdvances.Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                .FirstOrDefaultAsync(a => a.Id == id);
+            if (advance == null) return RedirectToAction(nameof(Index));
+
+            if (!EmployeeAdvance.Statuses.Realized.Contains(advance.Status) || advance.Status == EmployeeAdvance.Statuses.Repaid)
+            {
+                TempData["Error"] = "لا يمكن تسجيل سداد لسلفة لم تُصرف بعد أو تم سدادها بالكامل";
+                return RedirectToAction(nameof(Index));
+            }
+
+            decimal remaining = advance.Amount - advance.DeductedAmount;
+            if (payAmount <= 0 || payAmount > remaining)
+            {
+                TempData["Error"] = "مبلغ الدفعة غير صحيح";
+                return RedirectToAction(nameof(PayDirect), new { id });
+            }
+
+            advance.DeductedAmount += payAmount;
+            if (advance.DeductedAmount >= advance.Amount)
+            {
+                advance.Status = EmployeeAdvance.Statuses.Repaid;
+                advance.PaidDate = DateTime.Today;
+            }
+
+            string empName = advance.Employee?.FullName ?? advance.EmployeeId.ToString();
+            string depositDescription = $"سداد سلفة - {empName}" +
+                (paymentMethod == "تحويل بنكي" ? $" | مرجع التحويل: {transferReference!.Trim()}" : "");
+
+            _context.Deposits.Add(new Deposit
+            {
+                Amount = payAmount,
+                Description = depositDescription,
+                Source = "سداد سلفة موظف",
+                PaymentMethod = paymentMethod,
+                DepositDate = DateTime.Today,
+                Department = advance.Employee?.RevenueDepartment ?? advance.Employee?.DepartmentNav?.Name ?? "إدارة",
+                CreatedAt = DateTime.Now
+            });
+
+            await _context.SaveChangesAsync();
+
+            await _audit.LogAsync("PayDirect", "Advances",
+                $"سداد مباشر لسلفة الموظف: {empName} بمبلغ {payAmount:N3} KD | طريقة الدفع: {paymentMethod}" +
+                (paymentMethod == "تحويل بنكي" ? $" | مرجع: {transferReference!.Trim()}" : ""),
+                advance.Id);
+
+            TempData["Success"] = advance.Status == EmployeeAdvance.Statuses.Repaid
+                ? "تم تسجيل السداد بالكامل، السلفة مسددة الآن"
+                : "تم تسجيل الدفعة بنجاح";
+            return RedirectToAction(nameof(Index));
+        }
+
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Cancel(int id)
         {

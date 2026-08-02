@@ -1,4 +1,4 @@
-﻿@model Salon.Models.EmployeeAdvance
+﻿@model  Salon.Models.EmployeeAdvance
 @{
     ViewData["Title"] = "سداد سلفة";
     decimal remaining = Model.Amount - Model.AmountPaid;
@@ -39,6 +39,17 @@
                         </div>
                         <div class="form-text">الحد الأقصى: @remaining.ToString("N3") د.ك</div>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">طريقة الدفع</label>
+                        <select name="paymentMethod" id="paymentMethod" class="form-select form-select-lg" onchange="toggleTransferRef()">
+                            <option value="نقدي">💵 نقدي</option>
+                            <option value="تحويل بنكي">🏦 تحويل بنكي</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 d-none" id="transferRefGroup">
+                        <label class="form-label fw-bold">رقم مرجع التحويل <span class="text-danger">*</span></label>
+                        <input type="text" name="transferReference" id="transferReference" class="form-control" />
+                    </div>
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-success"
                                 onclick="return confirm('تأكيد تسجيل الدفعة؟')">
@@ -49,6 +60,13 @@
                         </a>
                     </div>
                 </form>
+                <script>
+                    function toggleTransferRef() {
+                        var isBank = document.getElementById('paymentMethod').value === 'تحويل بنكي';
+                        document.getElementById('transferRefGroup').classList.toggle('d-none', !isBank);
+                        document.getElementById('transferReference').required = isBank;
+                    }
+                </script>
             </div>
         </div>
     </div>

@@ -12,6 +12,7 @@
     <div class="card-body">
         <form asp-action="Create" method="post">
             @Html.AntiForgeryToken()
+            <div asp-validation-summary="All" class="text-danger"></div>
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">الموظف</label>
@@ -101,6 +102,9 @@
                 <div class="col-md-4">
                     <label class="form-label">الصافي</label>
                     <input type="number" name="NetSalary" id="netSalary" step="0.001" class="form-control" value="0" readonly style="background:#f0fff0; font-weight:bold;" />
+                    <div id="negativeNetAlert" class="alert alert-danger mt-2 py-2 d-none">
+                        <i class="fas fa-exclamation-triangle me-1"></i> الصافي أقل من صفر — لا يمكن حفظ أو صرف الراتب
+                    </div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">تاريخ الصرف <small class="text-muted fw-normal">(اختياري - إذا تم الصرف)</small></label>
@@ -228,7 +232,19 @@
             const ded    = parseFloat(document.getElementById('deductions').value)            || 0;
             const adv    = parseFloat(document.getElementById('advanceDeducted').value)       || 0;
             const debt   = parseFloat(document.getElementById('employeeDebtDeducted').value)  || 0;
-            document.getElementById('netSalary').value = (basic + comm + allow + gift + hadiya - ded - adv - debt).toFixed(3);
+            const net = basic + comm + allow + gift + hadiya - ded - adv - debt;
+            document.getElementById('netSalary').value = net.toFixed(3);
+
+            const negativeAlert = document.getElementById('negativeNetAlert');
+            const submitBtn = document.querySelector('button[type="submit"]');
+            const alreadyPaid = !document.getElementById('alreadyPaidAlert').classList.contains('d-none');
+            if (net < 0) {
+                negativeAlert.classList.remove('d-none');
+                submitBtn.disabled = true;
+            } else {
+                negativeAlert.classList.add('d-none');
+                submitBtn.disabled = alreadyPaid;
+            }
         }
 
         async function loadSalary() {
@@ -236,7 +252,6 @@
             const month = document.getElementById('monthSelect').value;
             const year  = document.getElementById('yearInput').value;
             const alertEl   = document.getElementById('alreadyPaidAlert');
-            const submitBtn = document.querySelector('button[type="submit"]');
 
             if (!empId) {
                 alertEl.classList.add('d-none');
@@ -372,15 +387,13 @@
                     cancelledCard.classList.add('d-none');
                 }
 
-                calcNet();
-
                 if (data.alreadyPaid) {
                     alertEl.classList.remove('d-none');
-                    submitBtn.disabled = true;
                 } else {
                     alertEl.classList.add('d-none');
-                    submitBtn.disabled = false;
                 }
+
+                calcNet();
             } catch (e) {
                 console.error('خطأ في جلب بيانات الموظف', e);
             }
