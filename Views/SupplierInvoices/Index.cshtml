@@ -199,6 +199,7 @@
                     <tr>
                         <th>#</th>
                         <th>اسم المورد</th>
+                        <th>القسم</th>
                         <th>رقم الفاتورة</th>
                         <th>تاريخ الفاتورة</th>
                         <th>تاريخ الاستحقاق</th>
@@ -212,13 +213,14 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="10" class="text-center text-muted py-4">لا توجد فواتير موردين آجلة</td></tr>
+                        <tr><td colspan="11" class="text-center text-muted py-4">لا توجد فواتير موردين آجلة</td></tr>
                     }
                     @foreach (var inv in Model)
                     {
                         <tr>
                             <td>@inv.Id</td>
                             <td>@(inv.Supplier?.Name ?? "-")</td>
+                            <td>@(string.IsNullOrEmpty(inv.Department) ? "-" : inv.Department)</td>
                             <td>
                                 @inv.InvoiceNumber
                                 @if (!string.IsNullOrEmpty(inv.Reference))
@@ -599,6 +601,7 @@
     invoiceNumber = inv.InvoiceNumber,
     invoiceDate = inv.InvoiceDate.ToString("yyyy-MM-dd"),
     dueDate = (inv.NextDueDate ?? inv.InvoiceDate).ToString("yyyy-MM-dd"),
+    department = inv.Department ?? "",
     discountAmount = inv.DiscountAmount,
     extraExpenses = inv.ExtraExpenses,
     notes = inv.Notes ?? "",
@@ -810,7 +813,15 @@
                                 <label class="form-label fw-bold">تاريخ الاستحقاق</label>
                                 <input type="date" name="dueDate" id="createDueDate" class="form-control" />
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">القسم <span class="text-danger">*</span></label>
+                                <select name="department" class="form-select" required>
+                                    <option value="">-- اختر القسم --</option>
+                                    <option value="حلاقة">حلاقة</option>
+                                    <option value="مساج">مساج</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
                                 <label class="form-label fw-bold">المرجع الداخلي</label>
                                 <input type="text" class="form-control" value="سيُنشأ تلقائياً بعد الحفظ" disabled />
                             </div>
@@ -1010,6 +1021,14 @@
                             <div class="col-md-2">
                                 <label class="form-label fw-bold">تاريخ الاستحقاق</label>
                                 <input type="date" name="dueDate" id="editDueDate" class="form-control" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">القسم <span class="text-danger">*</span></label>
+                                <select name="department" id="editDepartment" class="form-select" required>
+                                    <option value="">-- اختر القسم --</option>
+                                    <option value="حلاقة">حلاقة</option>
+                                    <option value="مساج">مساج</option>
+                                </select>
                             </div>
                         </div>
 
@@ -1296,6 +1315,7 @@
                     document.getElementById('editInvoiceNumber').value = inv.invoiceNumber;
                     document.getElementById('editInvoiceDate').value = inv.invoiceDate;
                     document.getElementById('editDueDate').value = inv.dueDate;
+                    document.getElementById('editDepartment').value = inv.department;
                     document.getElementById('editSumDiscountAmount').value = inv.discountAmount;
                     document.getElementById('editSumExtraExpenses').value = inv.extraExpenses;
                     document.getElementById('editNotes').value = inv.notes;

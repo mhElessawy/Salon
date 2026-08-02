@@ -267,7 +267,7 @@ namespace Salon.Controllers
 
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(int supplierId, string invoiceNumber, DateTime invoiceDate, DateTime dueDate,
-            decimal totalAmount, decimal discountAmount, decimal extraExpenses, string? notes, bool isDraft,
+            decimal totalAmount, decimal discountAmount, decimal extraExpenses, string? department, string? notes, bool isDraft,
             IFormFile? attachment,
             List<int?>? itemProductId, List<string>? itemProductName, List<string?>? itemUnit,
             List<int>? itemQuantity, List<decimal>? itemUnitPrice, List<decimal>? itemDiscount,
@@ -293,6 +293,12 @@ namespace Salon.Controllers
             if (string.IsNullOrWhiteSpace(invoiceNumber))
             {
                 TempData["Error"] = "رقم الفاتورة مطلوب";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (department != "حلاقة" && department != "مساج")
+            {
+                TempData["Error"] = "يجب اختيار القسم (حلاقة أو مساج)";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -379,6 +385,7 @@ namespace Salon.Controllers
                 TotalAmount = computedTotal,
                 DiscountAmount = discountAmount,
                 ExtraExpenses = extraExpenses,
+                Department = department,
                 AttachmentPath = attachmentPath,
                 IsDraft = isDraft,
                 Notes = notes,
@@ -498,7 +505,7 @@ namespace Salon.Controllers
         // تعديل فاتورة لا تزال بانتظار الاعتماد (مسودة) — يُمسح سبب الإرجاع تلقائياً بعد التعديل
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, int supplierId, string invoiceNumber, DateTime invoiceDate, DateTime dueDate,
-            decimal discountAmount, decimal extraExpenses, string? notes,
+            decimal discountAmount, decimal extraExpenses, string? department, string? notes,
             IFormFile? attachment,
             List<int?>? itemProductId, List<string>? itemProductName, List<string?>? itemUnit,
             List<int>? itemQuantity, List<decimal>? itemUnitPrice, List<decimal>? itemDiscount,
@@ -533,6 +540,12 @@ namespace Salon.Controllers
             if (string.IsNullOrWhiteSpace(invoiceNumber))
             {
                 TempData["Error"] = "رقم الفاتورة مطلوب";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (department != "حلاقة" && department != "مساج")
+            {
+                TempData["Error"] = "يجب اختيار القسم (حلاقة أو مساج)";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -617,6 +630,7 @@ namespace Salon.Controllers
             invoice.TotalAmount = computedTotal;
             invoice.DiscountAmount = discountAmount;
             invoice.ExtraExpenses = extraExpenses;
+            invoice.Department = department;
             invoice.Notes = notes;
             invoice.Items = items;
             invoice.Installments = installments;
@@ -748,6 +762,7 @@ namespace Salon.Controllers
                     Description = $"دفعة مورد آجل - {invoice.Supplier?.Name ?? "-"} - فاتورة {invoice.InvoiceNumber}",
                     Amount = amount,
                     Category = "دفعة مورد آجل",
+                    Department = invoice.Department,
                     ExpenseDate = payment.PaymentDate,
                     PaymentMethod = source == SupplierInvoicePayment.Sources.Cash ? "نقدي" : "تحويل بنكي",
                     Notes = notes,
