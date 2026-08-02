@@ -51,8 +51,7 @@
                         <input type="text" name="transferReference" id="transferReference" class="form-control" />
                     </div>
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-success"
-                                onclick="return confirm('تأكيد تسجيل الدفعة؟')">
+                        <button type="button" class="btn btn-success" onclick="openConfirmPayModal()">
                             <i class="fas fa-check me-1"></i> تأكيد السداد
                         </button>
                         <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
@@ -60,14 +59,53 @@
                         </a>
                     </div>
                 </form>
-                <script>
-                    function toggleTransferRef() {
-                        var isBank = document.getElementById('paymentMethod').value === 'تحويل بنكي';
-                        document.getElementById('transferRefGroup').classList.toggle('d-none', !isBank);
-                        document.getElementById('transferReference').required = isBank;
-                    }
-                </script>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Modal تأكيد تسجيل الدفعة -->
+<div class="modal fade" id="confirmPayModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content text-center p-5">
+            <div class="mb-3">
+                <i class="fas fa-hand-holding-usd text-success" style="font-size:4rem;"></i>
+            </div>
+            <h3 class="fw-bold mb-3">تأكيد تسجيل الدفعة؟</h3>
+            <p class="text-muted mb-1">المبلغ</p>
+            <p class="fw-bold display-6 text-success mb-3" id="confirmPayAmount"></p>
+            <p class="text-muted mb-4">طريقة الدفع: <strong id="confirmPayMethod"></strong></p>
+            <div class="d-flex justify-content-center gap-3">
+                <button type="button" class="btn btn-secondary btn-lg px-4" data-bs-dismiss="modal">تراجع</button>
+                <button type="button" class="btn btn-success btn-lg px-4" id="confirmPaySubmitBtn">
+                    <i class="fas fa-check me-1"></i> تأكيد السداد
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function toggleTransferRef() {
+            var isBank = document.getElementById('paymentMethod').value === 'تحويل بنكي';
+            document.getElementById('transferRefGroup').classList.toggle('d-none', !isBank);
+            document.getElementById('transferReference').required = isBank;
+        }
+
+        function openConfirmPayModal() {
+            var form = document.querySelector('form');
+            if (!form.reportValidity()) return;
+
+            var amount = parseFloat(document.querySelector('input[name="payAmount"]').value) || 0;
+            var method = document.getElementById('paymentMethod').value;
+            document.getElementById('confirmPayAmount').textContent = amount.toFixed(3) + ' د.ك';
+            document.getElementById('confirmPayMethod').textContent = method;
+            new bootstrap.Modal(document.getElementById('confirmPayModal')).show();
+        }
+
+        document.getElementById('confirmPaySubmitBtn').addEventListener('click', function () {
+            document.querySelector('form').submit();
+        });
+    </script>
+}
