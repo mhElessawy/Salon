@@ -1,10 +1,19 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 
 namespace Salon.Models
 {
     public class Sale
     {
+        public static class Statuses
+        {
+            public const string Completed = "مكتمل";
+            public const string Cancelled = "ملغي";
+            public const string Refunded = "مسترجع";
+            public const string PartiallyRefunded = "مسترجع جزئياً";
+        }
+
         public int Id { get; set; }
 
         [Display(Name = "رقم الفاتورة")]
@@ -88,6 +97,14 @@ namespace Salon.Models
         public string? CreatedByUserName { get; set; }
 
         public ICollection<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
+
+        public ICollection<Refund> Refunds { get; set; } = new List<Refund>();
+
+        [NotMapped]
+        public decimal RefundedAmount => Refunds?.Sum(r => r.Amount) ?? 0;
+
+        [NotMapped]
+        public decimal RemainingRefundable => Math.Max(0, NetAmount - RefundedAmount);
     }
 
     public class SaleItem

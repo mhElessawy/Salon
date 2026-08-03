@@ -1249,6 +1249,25 @@ window.PAGE_TRANSLATIONS = {
     'للمحل': 'For Shop',
     'للموظف': 'For Employee',
 
+    // ── Refunds ────────────────────────────────────────────
+    'استرداد': 'Refund',
+    'استرداد المبلغ': 'Refund Amount',
+    'تقرير الاستردادات': 'Refunds Report',
+    'سبب الاسترداد': 'Refund Reason',
+    'طريقة الاسترداد': 'Refund Method',
+    'إجمالي المسترد': 'Total Refunded',
+    'مسترجع': 'Refunded',
+    'مسترجع جزئياً': 'Partially Refunded',
+    'إلغاء من العميل': 'Customer Cancellation',
+    'خطأ في الفاتورة': 'Invoice Error',
+    'تعذر تقديم الخدمة': 'Service Not Provided',
+    'سبب آخر': 'Other Reason',
+    'تأكيد الاسترداد': 'Confirm Refund',
+    'المبلغ المسترد': 'Refunded Amount',
+    'سجل الاستردادات': 'Refund History',
+    'تفاصيل السبب': 'Reason Details',
+    'عدد عمليات الاسترداد': 'Refund Count',
+
     // ── Sales / Invoices (new additions) ──────────────────
     'الشغل': 'Work',
     'قسم المبيعات': 'Sales Department',

@@ -1,6 +1,10 @@
 @model Salon.Models.Sale
 @{
     ViewData["Title"] = "تفاصيل الفاتورة";
+    bool canRefund = ViewBag.CanRefund == true;
+    bool canRefundThis = canRefund
+        && Model.Status != Salon.Models.Sale.Statuses.Cancelled
+        && Model.RemainingRefundable > 0.001m;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -9,6 +13,12 @@
         <p>@Model.SaleDate.ToString("yyyy/MM/dd hh:mm tt")</p>
     </div>
     <div>
+        @if (canRefundThis)
+        {
+            <button type="button" class="btn btn-outline-danger me-2" onclick="openRefundModal(@Model.Id, '@Html.Raw(Model.InvoiceNumber.Replace("'", "\\'"))', @Model.RemainingRefundable.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))">
+                <i class="fas fa-undo-alt me-1"></i> استرداد المبلغ
+            </button>
+        }
         <a href="@Url.Action("PrintInvoice", new { id = Model.Id })" class="btn btn-dark me-2"><i class="fas fa-print me-1"></i> طباعة</a>
         <a href="@Url.Action("Index")" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
     </div>
@@ -44,12 +54,25 @@
                     <tr>
                         <th>الحالة:</th>
                         <td>
-                            <span class="badge @(Model.Status == "مكتمل" ? "bg-success" : "bg-danger")">@Model.Status</span>
+                            @{
+                                var statusBadgeClass = Model.Status switch
+                                {
+                                    "مكتمل" => "bg-success",
+                                    Salon.Models.Sale.Statuses.Refunded => "bg-secondary",
+                                    Salon.Models.Sale.Statuses.PartiallyRefunded => "bg-warning text-dark",
+                                    _ => "bg-danger"
+                                };
+                            }
+                            <span class="badge @statusBadgeClass">@Model.Status</span>
                         </td>
                     </tr>
                     <tr><th>الإجمالي:</th><td>@Model.TotalAmount.ToString("N3") د.ك</td></tr>
                     <tr><th>الخصم:</th><td>@Model.Discount.ToString("N3") د.ك</td></tr>
                     <tr><th>الصافي:</th><td><strong>@Model.NetAmount.ToString("N3") د.ك</strong></td></tr>
+                    @if (Model.RefundedAmount > 0)
+                    {
+                        <tr><th>المسترد:</th><td><strong class="text-danger">@Model.RefundedAmount.ToString("N3") د.ك</strong></td></tr>
+                    }
                 </table>
                 @if (!string.IsNullOrEmpty(Model.Notes))
                 {
@@ -93,5 +116,122 @@
                 </table>
             </div>
         </div>
+
+        @if (Model.Refunds.Any())
+        {
+            <div class="card mt-3">
+                <div class="card-header">سجل الاستردادات</div>
+                <div class="card-body p-0">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr><th>#</th><th>التاريخ</th><th>المبلغ</th><th>السبب</th><th>الطريقة</th><th>بواسطة</th></tr>
+                        </thead>
+                        <tbody>
+                            @{ int ri = 1; }
+                            @foreach (var r in Model.Refunds.OrderByDescending(r => r.RefundDate))
+                            {
+                                <tr>
+                                    <td>@(ri++)</td>
+                                    <td>@r.RefundDate.ToString("yyyy/MM/dd hh:mm tt")</td>
+                                    <td><strong class="text-danger">@r.Amount.ToString("N3") د.ك</strong></td>
+                                    <td>
+                                        @r.Reason
+                                        @if (!string.IsNullOrEmpty(r.ReasonDetails))
+                                        {
+                                            <div class="text-muted small">@r.ReasonDetails</div>
+                                        }
+                                    </td>
+                                    <td>@r.RefundMethod</td>
+                                    <td>@(r.RefundedByUserName ?? "-")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
     </div>
 </div>
+
+@if (canRefundThis)
+{
+    <!-- Refund Modal -->
+    <div class="modal fade" id="refundModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-undo-alt me-2 text-danger"></i>استرداد مبلغ الفاتورة: <span id="refundInvoiceName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="refundForm" method="post" asp-action="Refund" asp-controller="Sales">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="refundSaleId" />
+                    <input type="hidden" name="returnUrl" value="@Url.Action("Details", new { id = Model.Id })" />
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">المبلغ المسترد (الحد الأقصى: <span id="refundMaxAmount"></span> د.ك)</label>
+                            <input type="number" name="amount" id="refundAmount" class="form-control" step="0.001" min="0.001" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">سبب الاسترداد</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="reason" id="reasonCustomer" value="إلغاء من العميل" checked />
+                                <label class="form-check-label" for="reasonCustomer">إلغاء من العميل</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="reason" id="reasonError" value="خطأ في الفاتورة" />
+                                <label class="form-check-label" for="reasonError">خطأ في الفاتورة</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="reason" id="reasonService" value="تعذر تقديم الخدمة" />
+                                <label class="form-check-label" for="reasonService">تعذر تقديم الخدمة</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="reason" id="reasonOther" value="سبب آخر" onchange="onRefundReasonChange()" />
+                                <label class="form-check-label" for="reasonOther">سبب آخر</label>
+                            </div>
+                        </div>
+                        <div class="mb-3" id="refundReasonDetailsWrap" style="display:none;">
+                            <label class="form-label fw-semibold">تفاصيل السبب</label>
+                            <textarea name="reasonDetails" id="refundReasonDetails" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="mb-1">
+                            <label class="form-label fw-semibold">طريقة الاسترداد</label>
+                            <select name="method" class="form-select" required>
+                                <option value="كاش">كاش</option>
+                                <option value="كي نت">KNET</option>
+                                <option value="تحويل بنكي">تحويل بنكي</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-danger fw-bold px-4"><i class="fas fa-check me-1"></i> تأكيد الاسترداد</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function openRefundModal(saleId, invoiceNumber, maxAmount) {
+            document.getElementById('refundSaleId').value = saleId;
+            document.getElementById('refundInvoiceName').textContent = invoiceNumber;
+            document.getElementById('refundMaxAmount').textContent = maxAmount;
+            var amountInput = document.getElementById('refundAmount');
+            amountInput.value = maxAmount;
+            amountInput.max = maxAmount;
+            document.getElementById('reasonOther').checked = false;
+            document.getElementById('reasonCustomer').checked = true;
+            document.getElementById('refundReasonDetailsWrap').style.display = 'none';
+            document.getElementById('refundReasonDetails').value = '';
+            new bootstrap.Modal(document.getElementById('refundModal')).show();
+        }
+        function onRefundReasonChange() {
+            document.getElementById('refundReasonDetailsWrap').style.display =
+                document.getElementById('reasonOther').checked ? '' : 'none';
+        }
+    </script>
+}

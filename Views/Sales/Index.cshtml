@@ -10,6 +10,7 @@
     bool canDelMassage = ViewBag.CanDeleteMassage != false;
     bool canDelProduct = ViewBag.CanDeleteProduct != false;
     bool canEditSale = ViewBag.CanEditSaleDetails == true;
+    bool canRefund = ViewBag.CanRefund == true;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -94,6 +95,14 @@
             </div>
         </div>
     </div>
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card text-center h-100 border-0 shadow-sm" style="border-top:3px solid #6b7280!important">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-undo-alt me-1"></i><span data-i18n-en="Total Refunded">إجمالي المسترد</span></div>
+                <div class="fw-bold fs-5" style="color:#6b7280;">@(((decimal)(ViewBag.TotalRefunded ?? 0m)).ToString("N3")) <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="card mb-3">
@@ -123,6 +132,8 @@
                     <option value="">كل الحالات</option>
                     <option value="مكتمل" selected="@(ViewBag.FilterStatus == "مكتمل" ? "selected" : null)">مكتمل</option>
                     <option value="ملغي" selected="@(ViewBag.FilterStatus == "ملغي" ? "selected" : null)">ملغي</option>
+                    <option value="مسترجع" selected="@(ViewBag.FilterStatus == "مسترجع" ? "selected" : null)">مسترجع</option>
+                    <option value="مسترجع جزئياً" selected="@(ViewBag.FilterStatus == "مسترجع جزئياً" ? "selected" : null)">مسترجع جزئياً</option>
                 </select>
                 <select name="paymentMethod" class="form-select" style="max-width:150px;">
                     <option value="">كل طرق الدفع</option>
@@ -284,7 +295,16 @@
                                 }
                             </td>
                             <td>
-                                <span class="badge @(s.Status == "مكتمل" ? "bg-success" : "bg-danger")">@s.Status</span>
+                                @{
+                                    var rowStatusBadge = s.Status switch
+                                    {
+                                        "مكتمل" => "bg-success",
+                                        Salon.Models.Sale.Statuses.Refunded => "bg-secondary",
+                                        Salon.Models.Sale.Statuses.PartiallyRefunded => "bg-warning text-dark",
+                                        _ => "bg-danger"
+                                    };
+                                }
+                                <span class="badge @rowStatusBadge">@s.Status</span>
                             </td>
                             <td style="max-width:160px;">
                                 <div class="d-flex align-items-start gap-1">
@@ -319,6 +339,15 @@
                                     bool canDelThis = s.SaleType == "مساج" ? canDelMassage
                                     : s.SaleType == "منتجات" ? canDelProduct
                                     : canDelBarber;
+                                    bool canRefundThisRow = canRefund && s.Status != "ملغي" && s.RemainingRefundable > 0.001m;
+                                }
+                                @if (canRefundThisRow)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-danger me-1 d-inline-flex flex-column align-items-center" style="min-width:52px;" title="استرداد المبلغ"
+                                            onclick="openRefundModal(@s.Id, '@Html.Raw(s.InvoiceNumber.Replace("'", "\\'"))', @s.RemainingRefundable.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))">
+                                        <i class="fas fa-undo-alt"></i>
+                                        <span style="font-size:0.65rem;line-height:1.2;margin-top:2px;">استرداد</span>
+                                    </button>
                                 }
                                 @if (s.Status != "ملغي" && canDelThis)
                                 {
@@ -457,6 +486,67 @@
     </div>
 }
 
+@if (canRefund)
+{
+    <!-- Refund Modal -->
+    <div class="modal fade" id="refundModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-undo-alt me-2 text-danger"></i>استرداد مبلغ الفاتورة: <span id="refundInvoiceName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="refundForm" method="post" action="@Url.Action("Refund")">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="refundSaleId" />
+                    <input type="hidden" name="returnUrl" value="@Url.Action("Index")" />
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">المبلغ المسترد (الحد الأقصى: <span id="refundMaxAmount"></span> د.ك)</label>
+                            <input type="number" name="amount" id="refundAmount" class="form-control" step="0.001" min="0.001" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">سبب الاسترداد</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="reason" id="idxReasonCustomer" value="إلغاء من العميل" checked />
+                                <label class="form-check-label" for="idxReasonCustomer">إلغاء من العميل</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="reason" id="idxReasonError" value="خطأ في الفاتورة" />
+                                <label class="form-check-label" for="idxReasonError">خطأ في الفاتورة</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="reason" id="idxReasonService" value="تعذر تقديم الخدمة" />
+                                <label class="form-check-label" for="idxReasonService">تعذر تقديم الخدمة</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="reason" id="idxReasonOther" value="سبب آخر" onchange="onIdxRefundReasonChange()" />
+                                <label class="form-check-label" for="idxReasonOther">سبب آخر</label>
+                            </div>
+                        </div>
+                        <div class="mb-3" id="idxRefundReasonDetailsWrap" style="display:none;">
+                            <label class="form-label fw-semibold">تفاصيل السبب</label>
+                            <textarea name="reasonDetails" id="idxRefundReasonDetails" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="mb-1">
+                            <label class="form-label fw-semibold">طريقة الاسترداد</label>
+                            <select name="method" class="form-select" required>
+                                <option value="كاش">كاش</option>
+                                <option value="كي نت">KNET</option>
+                                <option value="تحويل بنكي">تحويل بنكي</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-danger fw-bold px-4"><i class="fas fa-check me-1"></i> تأكيد الاسترداد</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -498,6 +588,23 @@
 
 @section Scripts {
     <script>
+        function openRefundModal(saleId, invoiceNumber, maxAmount) {
+            document.getElementById('refundSaleId').value = saleId;
+            document.getElementById('refundInvoiceName').textContent = invoiceNumber;
+            document.getElementById('refundMaxAmount').textContent = maxAmount;
+            var amountInput = document.getElementById('refundAmount');
+            amountInput.value = maxAmount;
+            amountInput.max = maxAmount;
+            document.getElementById('idxReasonOther').checked = false;
+            document.getElementById('idxReasonCustomer').checked = true;
+            document.getElementById('idxRefundReasonDetailsWrap').style.display = 'none';
+            document.getElementById('idxRefundReasonDetails').value = '';
+            new bootstrap.Modal(document.getElementById('refundModal')).show();
+        }
+        function onIdxRefundReasonChange() {
+            document.getElementById('idxRefundReasonDetailsWrap').style.display =
+                document.getElementById('idxReasonOther').checked ? '' : 'none';
+        }
         function confirmDelete(id, name) {
             document.getElementById('deleteItemName').textContent = name;
             document.getElementById('deleteForm').action = '@Url.Action("Delete")/' + id;

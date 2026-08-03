@@ -37,6 +37,7 @@ namespace Salon.Controllers
                 .Include(s => s.Customer)
                 .Include(s => s.Employee)
                 .Include(s => s.SaleItems)
+                .Include(s => s.Refunds)
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo);
 
             if (userDept == "مساج")
@@ -65,7 +66,7 @@ namespace Salon.Controllers
 
             var allSalesRaw = await query.OrderByDescending(s => s.SaleDate).ToListAsync();
             var sales = allSalesRaw; // kept for view model
-            var activeSales = allSalesRaw.Where(s => s.Status != "ملغي").ToList();
+            var activeSales = allSalesRaw.Where(s => s.Status != "ملغي" && s.Status != Sale.Statuses.Refunded).ToList();
             var cancelledSales = allSalesRaw.Where(s => s.Status == "ملغي").ToList();
 
             var employees = await _context.Employees
@@ -100,6 +101,7 @@ namespace Salon.Controllers
             ViewBag.TotalOwnerDebt = activeSales.Where(s => s.PaymentMethod == "دين على الإدارة").Sum(s => s.NetAmount);
             ViewBag.TotalCancelled = cancelledSales.Sum(s => s.NetAmount);
             ViewBag.TotalCancelledCount = cancelledSales.Count;
+            ViewBag.TotalRefunded = allSalesRaw.Sum(s => s.RefundedAmount);
             ViewBag.TotalGifts = activeSales.Sum(s => s.EmployeeGift ?? 0);
             ViewBag.TotalHadiya = activeSales.Sum(s => s.GiftForEmployee ?? 0);
             ViewBag.Employees = employees;
@@ -151,6 +153,46 @@ namespace Salon.Controllers
             ViewBag.TotalDepositsAmount = salesDeposits.Sum(d => d.Amount);
 
             return View(sales);
+        }
+
+        // ===== تقرير الاستردادات =====
+        public async Task<IActionResult> Refunds(string? from, string? to, string? saleType, string? method)
+        {
+            DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
+            DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userDept = currentUser?.UserDepartment;
+
+            var query = _context.Refunds
+                .Include(r => r.Sale).ThenInclude(s => s!.Customer)
+                .Where(r => r.RefundDate >= dateFrom && r.RefundDate < dateTo);
+
+            if (userDept == "مساج")
+                query = query.Where(r => r.Sale!.SaleType == "مساج");
+            else if (userDept == "حلاقة")
+                query = query.Where(r => r.Sale!.SaleType == "حلاقة");
+
+            if (!string.IsNullOrEmpty(saleType))
+                query = query.Where(r => r.Sale!.SaleType == saleType);
+
+            if (!string.IsNullOrEmpty(method))
+                query = query.Where(r => r.RefundMethod == method);
+
+            var refunds = await query.OrderByDescending(r => r.RefundDate).ToListAsync();
+
+            ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
+            ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
+            ViewBag.SelectedSaleType = saleType;
+            ViewBag.SelectedMethod = method;
+            ViewBag.UserDept = userDept;
+            ViewBag.TotalRefunded = refunds.Sum(r => r.Amount);
+            ViewBag.TotalCount = refunds.Count;
+            ViewBag.TotalCash = refunds.Where(r => r.RefundMethod == Refund.Methods.Cash).Sum(r => r.Amount);
+            ViewBag.TotalKnet = refunds.Where(r => r.RefundMethod == Refund.Methods.Knet).Sum(r => r.Amount);
+            ViewBag.TotalBankTransfer = refunds.Where(r => r.RefundMethod == Refund.Methods.BankTransfer).Sum(r => r.Amount);
+
+            return View(refunds);
         }
 
         public async Task<IActionResult> Expenses(string? from, string? to, string? dept)

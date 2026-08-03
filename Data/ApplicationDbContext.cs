@@ -46,6 +46,7 @@ namespace Salon.Data
         public DbSet<SupplierInvoiceInstallment> SupplierInvoiceInstallments { get; set; }
         public DbSet<SupplierInvoicePayment> SupplierInvoicePayments { get; set; }
         public DbSet<SupplierInvoiceItem> SupplierInvoiceItems { get; set; }
+        public DbSet<Refund> Refunds { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -258,6 +259,16 @@ namespace Salon.Data
                 .WithMany()
                 .HasForeignKey(p => p.SupplierInvoiceId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<Refund>()
+                .Property(r => r.Amount)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<Refund>()
+                .HasOne(r => r.Sale)
+                .WithMany(s => s.Refunds)
+                .HasForeignKey(r => r.SaleId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }
