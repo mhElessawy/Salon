@@ -26,6 +26,11 @@ namespace Salon.Models
         [ForeignKey("SupplierId")]
         public Supplier? Supplier { get; set; }
 
+        // القسم الذي تخصه هذه الفاتورة — "حلاقة" أو "مساج"، يُختار إلزامياً عند الإنشاء
+        // وينتقل تلقائياً للمصروف المولَّد عند تسجيل أي دفعة نقدية/بنكية عليها
+        [Display(Name = "القسم")]
+        public string? Department { get; set; }
+
         // طلب الشراء الذي نشأت منه هذه الذمة (للتتبع فقط — قد تُنشأ الفاتورة يدوياً بدون طلب شراء لاحقاً)
         public int? PurchaseRequestId { get; set; }
 

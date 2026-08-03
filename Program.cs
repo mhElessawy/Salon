@@ -405,6 +405,7 @@ using (var scope = app.Services.CreateScope())
             TryExec("ALTER TABLE SupplierInvoices ADD COLUMN ReturnReason TEXT NULL");
             TryExec("ALTER TABLE SupplierInvoices ADD COLUMN ReturnedAt TEXT NULL");
             TryExec("ALTER TABLE SupplierInvoices ADD COLUMN ReturnedByName TEXT NULL");
+            TryExec("ALTER TABLE SupplierInvoices ADD COLUMN Department TEXT NULL");
             TryExec("ALTER TABLE SupplierInvoicePayments ADD COLUMN AttachmentPath TEXT NULL");
             TryExec(@"CREATE TABLE IF NOT EXISTS SupplierInvoiceItems (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -692,6 +693,7 @@ using (var scope = app.Services.CreateScope())
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='SupplierInvoices' AND COLUMN_NAME='ReturnReason') ALTER TABLE SupplierInvoices ADD ReturnReason NVARCHAR(MAX) NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='SupplierInvoices' AND COLUMN_NAME='ReturnedAt') ALTER TABLE SupplierInvoices ADD ReturnedAt DATETIME NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='SupplierInvoices' AND COLUMN_NAME='ReturnedByName') ALTER TABLE SupplierInvoices ADD ReturnedByName NVARCHAR(MAX) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='SupplierInvoices' AND COLUMN_NAME='Department') ALTER TABLE SupplierInvoices ADD Department NVARCHAR(50) NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='SupplierInvoicePayments' AND COLUMN_NAME='AttachmentPath') ALTER TABLE SupplierInvoicePayments ADD AttachmentPath NVARCHAR(500) NULL");
             TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='SupplierInvoiceItems')
                 CREATE TABLE SupplierInvoiceItems (Id INT IDENTITY PRIMARY KEY,
