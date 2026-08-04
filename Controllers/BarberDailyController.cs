@@ -207,7 +207,7 @@ namespace Salon.Controllers
             // employee's custody, not a cash outflow, so it never reduces the register.
             var prevExpensesQuery = _context.Expenses
                 .Where(e => e.ExpenseDate >= baseDate && e.ExpenseDate < today
-                         && (e.PaymentMethod == "نقدي" || e.PaymentMethod == "كاش") && e.Category != "عهدة");
+                         && (e.PaymentMethod == "نقدي" || e.PaymentMethod == "كاش" || e.PaymentMethod == "Cash") && e.Category != "عهدة");
             if (filterDept == "حلاقة")
                 prevExpensesQuery = prevExpensesQuery.Where(e => e.Department == "حلاقة" || e.Department == null || e.Department == "");
             else if (filterDept == "مساج")
@@ -255,7 +255,7 @@ namespace Salon.Controllers
             decimal tipsDelivered = allSales.Sum(s => s.EmployeeGift ?? 0);
             decimal totalDiscount = staffSales.Sum(s => s.Discount);
             decimal totalExpenses = expenses.Sum(e => e.Amount);
-            decimal cashExpenses = expenses.Where(e => (e.PaymentMethod == "نقدي" || e.PaymentMethod == "كاش") && e.Category != "عهدة").Sum(e => e.Amount);
+            decimal cashExpenses = expenses.Where(e => (e.PaymentMethod == "نقدي" || e.PaymentMethod == "كاش" || e.PaymentMethod == "Cash") && e.Category != "عهدة").Sum(e => e.Amount);
             decimal cashAdvances = advances.Where(a => a.PaymentMethod == "نقدي").Sum(a => a.Amount);
             decimal cashSalaries = todaySalaries.Where(s => s.PaymentMethod == "نقدي" || s.PaymentMethod == "كاش").Sum(s => s.NetSalary);
             // العهدة معلوماتية فقط هنا — لا تُخصم من الصندوق (راجع todayCustodies أعلاه).

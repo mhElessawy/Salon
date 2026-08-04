@@ -999,10 +999,12 @@ namespace Salon.Controllers
 
             items = items.OrderByDescending(i => i.Date).ThenBy(i => i.Type).ToList();
 
-            // بعض الشاشات (زي صرف الرواتب) بتخزّن "كاش" بدل "نقدي" كقيمة الدفع النقدي، وبيانات
-            // قديمة محتمل كانت بنفس القيمة أيضاً لمصروفات/سلف أخرى؛ فبنقبل الاتنين كمرادفين هنا
-            // بدل ما نفلتر عليهم كـ"بطاقة / تحويل" غلط.
-            bool IsCashPayment(CashMovementReportItem i) => i.PaymentMethod == "كاش" || i.PaymentMethod == "نقدي";
+            // بعض الشاشات (زي صرف الرواتب) بتخزّن "كاش" بدل "نقدي" كقيمة الدفع النقدي، وبعض
+            // القوائم القديمة كانت بدون value صريحة فبتاخد النص المترجم "Cash" وقت الحفظ لو
+            // الواجهة كانت بالإنجليزي؛ فبنقبل التلات قيم كمرادفين هنا بدل ما نفلتر عليهم غلط
+            // كـ"بطاقة / تحويل".
+            bool IsCashPayment(CashMovementReportItem i) =>
+                i.PaymentMethod == "كاش" || i.PaymentMethod == "نقدي" || i.PaymentMethod == "Cash";
 
             decimal totalMasrouf = items.Where(i => i.Type == "مصروف").Sum(i => i.Amount);
             decimal totalSulfa = items.Where(i => i.Type == "سلفة").Sum(i => i.Amount);
@@ -1551,7 +1553,7 @@ namespace Salon.Controllers
                 else if (effectiveDept == "حلاقة") expQ = expQ.Where(e => e.Department == "حلاقة");
                 var periodExpenses = await expQ.ToListAsync();
                 decimal pExpenses = periodExpenses.Sum(e => e.Amount);
-                decimal pCashExpenses = periodExpenses.Where(e => e.PaymentMethod == "نقدي" || e.PaymentMethod == "كاش").Sum(e => e.Amount);
+                decimal pCashExpenses = periodExpenses.Where(e => e.PaymentMethod == "نقدي" || e.PaymentMethod == "كاش" || e.PaymentMethod == "Cash").Sum(e => e.Amount);
 
                 // القسم "الفعلي" للموظف يُحسب حسب: RevenueDepartment إن وُجد (لموظفي الأقسام غير الإيرادية
                 // كالنظافة والإدارة)، وإلا فقسمه التنظيمي (DepartmentNav)
