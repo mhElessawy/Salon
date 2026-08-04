@@ -1023,6 +1023,7 @@ namespace Salon.Controllers
             decimal totalSulfaCash = items.Where(i => i.Type == "سلفة" && IsCashPayment(i)).Sum(i => i.Amount);
             decimal totalSulfaKNet = totalSulfa - totalSulfaCash;
             decimal totalRatibCash = items.Where(i => i.Type == "راتب" && IsCashPayment(i)).Sum(i => i.Amount);
+            decimal totalRatibKNet = totalRatib - totalRatibCash;
             // المصروفات النقدية فقط (لحساب رصيد الكاش)
             decimal totalCashExp = totalMasroufCash + totalSulfaCash + totalRatibCash;
             decimal totalDep = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount);
@@ -1047,6 +1048,8 @@ namespace Salon.Controllers
             ViewBag.TotalSulfaCash = totalSulfaCash;
             ViewBag.TotalSulfaKNet = totalSulfaKNet;
             ViewBag.TotalRatib = totalRatib;
+            ViewBag.TotalRatibCash = totalRatibCash;
+            ViewBag.TotalRatibKNet = totalRatibKNet;
             ViewBag.TotalExpenses = totalExp;
             ViewBag.TotalCashExpenses = totalCashExp;
             ViewBag.TotalNonCashExpenses = totalExp - totalCashExp;

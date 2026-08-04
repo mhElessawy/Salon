@@ -9,6 +9,8 @@
     decimal totalSulfaCash = ViewBag.TotalSulfaCash is decimal tsc ? tsc : 0m;
     decimal totalSulfaKNet = ViewBag.TotalSulfaKNet is decimal tsk ? tsk : 0m;
     decimal totalRatib = ViewBag.TotalRatib is decimal tr ? tr : 0m;
+    decimal totalRatibCash = ViewBag.TotalRatibCash is decimal trc ? trc : 0m;
+    decimal totalRatibKNet = ViewBag.TotalRatibKNet is decimal trk ? trk : 0m;
     decimal totalExpenses = ViewBag.TotalExpenses is decimal te ? te : 0m;
     decimal totalCashExpenses = ViewBag.TotalCashExpenses is decimal tce ? tce : 0m;
     decimal totalNonCashExpenses = ViewBag.TotalNonCashExpenses is decimal tnce ? tnce : 0m;
@@ -56,7 +58,7 @@
 <div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
     <div>
         <h1><i class="fas fa-cash-register me-2"></i>تقرير حركة الصندوق</h1>
-        <p>المصروفات والسلف والمرتبات والمبيعات والإيداعات خلال الفترة المحددة</p>
+        <p>المصروفات والسلف والرواتب والمبيعات والإيداعات خلال الفترة المحددة</p>
     </div>
     <div class="d-flex align-items-center gap-2">
         @if (!string.IsNullOrEmpty(selectedDept))
@@ -221,8 +223,16 @@
         <div class="card text-center border-0 shadow-sm h-100" style="border-right:4px solid #6f42c1 !important;">
             <div class="card-body p-3">
                 <div class="mb-1" style="font-size:24px; color:#6f42c1;"><i class="fas fa-money-bill-wave"></i></div>
-                <div class="text-muted small">المرتبات</div>
+                <div class="text-muted small">الرواتب</div>
                 <div class="fw-bold fs-6 mt-1" style="color:#6f42c1;">@totalRatib.ToString("N3") <small>د.ك</small></div>
+                <div class="d-flex justify-content-between mt-2 pt-2" style="border-top:1px dashed #d8c9f0; font-size:11px;">
+                    <span class="text-muted"><i class="fas fa-money-bill-wave me-1" style="color:#6f42c1;"></i>كاش</span>
+                    <span class="fw-semibold" style="color:#6f42c1;">@totalRatibCash.ToString("N3")</span>
+                </div>
+                <div class="d-flex justify-content-between" style="font-size:11px;">
+                    <span class="text-muted"><i class="fas fa-university me-1" style="color:#0ea5e9;"></i>بطاقة / تحويل</span>
+                    <span class="fw-semibold" style="color:#0ea5e9;">@totalRatibKNet.ToString("N3")</span>
+                </div>
             </div>
         </div>
     </div>
@@ -496,7 +506,7 @@
                         @if (tRatib > 0)
                         {
                             <tr>
-                                <td colspan="6" class="text-end text-muted">المرتبات</td>
+                                <td colspan="6" class="text-end text-muted">الرواتب</td>
                                 <td class="text-end" style="color:#6f42c1;">-@tRatib.ToString("N3")</td>
                                 <td></td>
                             </tr>
