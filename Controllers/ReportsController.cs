@@ -922,6 +922,12 @@ namespace Salon.Controllers
 
                 var salesRaw = await salesQuery.ToListAsync();
 
+                // بعض الفواتير بتتسجل بـ"نقدي" أو حتى "Cash"/"K-Net" الإنجليزية (لو كانت الواجهة
+                // على وضع الإنجليزي وقت الحفظ) بدل "كاش"/"كي نت" — فبنقبل المرادفات هنا زي باقي
+                // تقارير المبيعات في الملف ده.
+                string[] cashMethodsSalesLocal = { "كاش", "نقدي", "Cash" };
+                string[] knetMethodsSalesLocal = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+
                 if (showCashSales)
                 {
                     var dailyCash = salesRaw
@@ -929,12 +935,12 @@ namespace Salon.Controllers
                         .Select(g => new
                         {
                             Date = g.Key,
-                            Amount = g.Sum(s => s.PaymentMethod == "كاش"
+                            Amount = g.Sum(s => cashMethodsSalesLocal.Contains(s.PaymentMethod)
                                 ? s.NetAmount
                                 : s.PaymentMethod == "كي نت و كاش"
                                     ? (s.CashAmount ?? 0)
                                     : 0m),
-                            Count = g.Count(s => s.PaymentMethod == "كاش" || s.PaymentMethod == "كي نت و كاش")
+                            Count = g.Count(s => cashMethodsSalesLocal.Contains(s.PaymentMethod) || s.PaymentMethod == "كي نت و كاش")
                         })
                         .Where(d => d.Amount > 0);
 
@@ -956,12 +962,12 @@ namespace Salon.Controllers
                         .Select(g => new
                         {
                             Date = g.Key,
-                            Amount = g.Sum(s => s.PaymentMethod == "كي نت"
+                            Amount = g.Sum(s => knetMethodsSalesLocal.Contains(s.PaymentMethod)
                                 ? s.NetAmount
                                 : s.PaymentMethod == "كي نت و كاش"
                                     ? (s.LinkAmount ?? 0)
                                     : 0m),
-                            Count = g.Count(s => s.PaymentMethod == "كي نت" || s.PaymentMethod == "كي نت و كاش")
+                            Count = g.Count(s => knetMethodsSalesLocal.Contains(s.PaymentMethod) || s.PaymentMethod == "كي نت و كاش")
                         })
                         .Where(d => d.Amount > 0);
 

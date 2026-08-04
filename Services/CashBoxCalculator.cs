@@ -73,17 +73,23 @@ namespace Salon.Services
         {
             // كل أنواع الفواتير (حلاقة/مساج/منتجات) تدخل الصندوق الفعلي، وليس فواتير الموظفين
             // فقط — الصندوق واحد للمحل بالكامل.
+            // بعض الفواتير بتتسجل بـ"نقدي" أو حتى "Cash" الإنجليزية (لو كانت الواجهة على وضع
+            // الإنجليزي وقت الحفظ) بدل "كاش" — فبنقبل المرادفات هنا زي باقي تقارير المبيعات في
+            // النظام، وإلا مبيعات كاش فعلية بتتستبعد من رصيد الصندوق غلط.
+            string[] cashSalesMethods = { "كاش", "نقدي", "Cash" };
             var salesQuery = context.Sales.Where(s => s.SaleDate >= from && s.SaleDate < to && s.Status != "ملغي");
             if (sharedOnly) salesQuery = salesQuery.Where(s => s.SaleType != "حلاقة" && s.SaleType != "مساج");
             else if (filterDept) salesQuery = salesQuery.Where(s => s.SaleType == dept);
             var sales = await salesQuery.ToListAsync();
             decimal cashRevenue = sales.Sum(s =>
-                s.PaymentMethod == "كاش" ? s.NetAmount :
+                cashSalesMethods.Contains(s.PaymentMethod) ? s.NetAmount :
                 s.PaymentMethod == "كي نت و كاش" ? (s.CashAmount ?? 0) : 0m);
 
             // الإيداعات النقدية فقط تدخل الصندوق الفعلي — إيداع بالتحويل البنكي أو البطاقة
             // ميعديش على الكاش الفعلي في الدرج، فمينفعش يزود رصيد الكاش.
-            var depositsQuery = context.Deposits.Where(d => d.DepositDate >= from && d.DepositDate < to && d.PaymentMethod == "نقدي");
+            // بنقبل "كاش"/"Cash" كمرادفين لـ"نقدي" لنفس سبب المصروفات أعلاه.
+            var depositsQuery = context.Deposits.Where(d => d.DepositDate >= from && d.DepositDate < to
+                     && (d.PaymentMethod == "نقدي" || d.PaymentMethod == "كاش" || d.PaymentMethod == "Cash"));
             if (sharedOnly) depositsQuery = depositsQuery.Where(d => d.Department != "حلاقة" && d.Department != "مساج");
             else if (filterDept) depositsQuery = depositsQuery.Where(d => d.Department == dept);
             decimal deposits = (await depositsQuery.ToListAsync()).Sum(d => d.Amount);

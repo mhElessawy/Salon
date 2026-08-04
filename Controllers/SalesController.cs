@@ -107,18 +107,24 @@ namespace Salon.Controllers
             ViewBag.TotalCancelled = cancelledSales.Sum(s => s.NetAmount);
             ViewBag.TotalRefunded = sales.Sum(s => s.RefundedAmount);
 
+            // بعض الفواتير بتتسجل بـ"نقدي" أو حتى "Cash" الإنجليزية (لو كانت الواجهة على وضع
+            // الإنجليزي وقت الحفظ) بدل "كاش" — فبنقبل الاتنين هنا كمرادفين لـ"كاش" الأصلية.
+            string[] cashMethods = { "كاش", "نقدي", "Cash" };
+            string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
             ViewBag.TotalCash = activeSales
-                .Where(s => s.PaymentMethod == "كاش")
+                .Where(s => cashMethods.Contains(s.PaymentMethod))
                 .Sum(s => s.NetAmount)
                 + activeSales
-                .Where(s => s.PaymentMethod == "كي نت و كاش")
+                .Where(s => mixedMethods.Contains(s.PaymentMethod))
                 .Sum(s => s.CashAmount ?? 0);
 
             ViewBag.TotalKnet = activeSales
-                .Where(s => s.PaymentMethod == "كي نت")
+                .Where(s => knetMethods.Contains(s.PaymentMethod))
                 .Sum(s => s.NetAmount)
                 + activeSales
-                .Where(s => s.PaymentMethod == "كي نت و كاش")
+                .Where(s => mixedMethods.Contains(s.PaymentMethod))
                 .Sum(s => s.LinkAmount ?? 0);
 
             ViewBag.TotalEmployeeDebt = activeSales
