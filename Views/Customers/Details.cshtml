@@ -35,10 +35,12 @@
                             <th>القسم:</th>
                             <td>
                                 @{
-                                    var deptColor = Model.Department == "حلاقة" ? "#F7941D" : "#17a2b8";
+                                    var deptColor = Model.Department == "حلاقة" ? "#F7941D" : Model.Department == "مساج" ? "#17a2b8" : "#6f42c1";
+                                    var deptIcon = Model.Department == "حلاقة" ? "✂" : Model.Department == "مساج" ? "💆" : "🌐";
+                                    var deptLabel = Model.Department == "الكل" ? "كلا القسمين" : Model.Department;
                                 }
                                 <span class="badge" style="background-color:@deptColor">
-                                    @(Model.Department == "حلاقة" ? "✂" : "💆") @Model.Department
+                                    @deptIcon @deptLabel
                                 </span>
                             </td>
                         </tr>
@@ -114,3 +116,161 @@
         </div>
     </div>
 </div>
+
+@{
+    // محفظة الباقات لا تظهر إلا لعميل قسم المساج أو كلا القسمين
+    var showWallet = Model.Department == "مساج" || Model.Department == "الكل";
+    var canManageOpeningBalance = User.IsInRole("Admin") || User.IsInRole("Manager");
+}
+@if (showWallet)
+{
+    <div class="row g-3 mt-1">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span>
+                        <i class="fas fa-wallet me-2"></i>محفظة الباقات
+                        <span class="badge bg-info ms-2">@Model.CustomerPackages.Count</span>
+                    </span>
+                    @if (canManageOpeningBalance)
+                    {
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="openOpeningBalanceModal()">
+                            <i class="fas fa-plus-circle me-1"></i> إضافة رصيد افتتاحي للباقة
+                        </button>
+                    }
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th>اسم الباقة</th>
+                                    <th>الرصيد الحالي</th>
+                                    <th>الجلسات الأصلية</th>
+                                    <th>المستخدمة</th>
+                                    <th>المتبقية</th>
+                                    <th>تاريخ الشراء</th>
+                                    <th>نوع التسجيل</th>
+                                    <th>سجل استخدام الجلسات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var cp in Model.CustomerPackages.OrderByDescending(p => p.PurchaseDate))
+                                {
+                                    var isOpening = cp.RegistrationType == Salon.Models.CustomerPackage.RegistrationTypes.OpeningBalance;
+                                    <tr>
+                                        <td>@(cp.ServicePackage?.NameAr ?? "-")</td>
+                                        <td>@cp.CurrentBalance.ToString("N3") د.ك</td>
+                                        <td>@cp.TotalSessions</td>
+                                        <td>@cp.UsedSessions</td>
+                                        <td><span class="badge @(cp.RemainingSessions > 0 ? "bg-success" : "bg-secondary")">@cp.RemainingSessions</span></td>
+                                        <td>@cp.PurchaseDate.ToString("yyyy/MM/dd")</td>
+                                        <td><span class="badge @(isOpening ? "bg-warning text-dark" : "bg-primary")">@cp.RegistrationType</span></td>
+                                        <td>
+                                            @if (cp.Transactions.Any())
+                                            {
+                                                <details>
+                                                    <summary class="text-primary" style="cursor:pointer;">عرض (@cp.Transactions.Count)</summary>
+                                                    <ul class="small mb-0 mt-1 ps-3">
+                                                        @foreach (var t in cp.Transactions.OrderByDescending(x => x.UsedDate))
+                                                        {
+                                                            <li>
+                                                                @t.UsedDate.ToString("yyyy/MM/dd HH:mm") — @(t.Employee?.FullName ?? "بدون تحديد")
+                                                                @if (!string.IsNullOrEmpty(t.Notes))
+                                                                {
+                                                                    <text> (@t.Notes)</text>
+                                                                }
+                                                            </li>
+                                                        }
+                                                    </ul>
+                                                </details>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">لا يوجد استخدام</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                                @if (!Model.CustomerPackages.Any())
+                                {
+                                    <tr><td colspan="8" class="text-center text-muted">لا توجد باقات في المحفظة</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showWallet && canManageOpeningBalance)
+{
+    <div class="modal fade" id="openingBalanceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-history me-2"></i>إضافة رصيد افتتاحي للباقة</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">للباقات القديمة التي تم دفعها قبل تشغيل النظام — لن يتم إنشاء فاتورة أو حركة كاش/كي نت/بنك.</p>
+                    <form method="post" action="@Url.Action("AddOpeningBalancePackage", "Customers")">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="customerId" value="@Model.Id" />
+                        <div class="mb-3">
+                            <label class="form-label">اسم الباقة</label>
+                            <input type="text" name="packageName" class="form-control" required />
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label">عدد الجلسات الأصلي</label>
+                                <input type="number" min="1" name="totalSessions" id="ob-total" class="form-control" required oninput="obRecalc()" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">عدد الجلسات المستخدمة</label>
+                                <input type="number" min="0" name="usedSessions" id="ob-used" class="form-control" required oninput="obRecalc()" />
+                            </div>
+                        </div>
+                        <div class="mb-3 mt-2">
+                            <small class="text-muted">الجلسات المتبقية: <strong id="ob-remaining">0</strong></small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">الرصيد المتبقي (د.ك)</label>
+                            <input type="number" step="0.001" min="0" name="remainingBalance" class="form-control" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">تاريخ الشراء (اختياري)</label>
+                            <input type="date" name="purchaseDate" class="form-control" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">ملاحظات (اختياري)</label>
+                            <input type="text" name="notes" class="form-control" />
+                        </div>
+                        <div class="d-flex gap-2 justify-content-end">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                            <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save me-1"></i> حفظ</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openOpeningBalanceModal() {
+            new bootstrap.Modal(document.getElementById('openingBalanceModal')).show();
+        }
+        function obRecalc() {
+            var total = parseInt(document.getElementById('ob-total').value) || 0;
+            var used = parseInt(document.getElementById('ob-used').value) || 0;
+            var remaining = Math.max(0, total - used);
+            document.getElementById('ob-remaining').textContent = remaining;
+        }
+        // فتح المودال تلقائياً عند القدوم من زر "إضافة رصيد" في بطاقة قائمة العملاء
+        if (new URLSearchParams(location.search).get('openBalance') === '1') {
+            openOpeningBalanceModal();
+        }
+    </script>
+}

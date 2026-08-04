@@ -52,6 +52,7 @@ namespace Salon.Controllers
             var customers = await query
                 .Include(c => c.Sales).ThenInclude(s => s.Employee)
                 .Include(c => c.CustomerPackages).ThenInclude(cp => cp.ServicePackage)
+                .Include(c => c.CustomerPackages).ThenInclude(cp => cp.Transactions)
                 .Include(c => c.AssignedEmployee)
                 .OrderByDescending(c => c.CreatedAt).ToListAsync();
             ViewBag.Search = search;
@@ -191,9 +192,69 @@ namespace Salon.Controllers
             var customer = await _context.Customers
                 .Include(c => c.Appointments)
                 .Include(c => c.Sales)
+                .Include(c => c.CustomerPackages).ThenInclude(cp => cp.ServicePackage)
+                .Include(c => c.CustomerPackages).ThenInclude(cp => cp.Transactions).ThenInclude(t => t.Employee)
                 .FirstOrDefaultAsync(c => c.Id == id);
             if (customer == null) return NotFound();
             return View(customer);
+        }
+
+        // ─── إضافة رصيد افتتاحي لباقة قديمة (مدير/أدمن فقط) ───────────
+        // باقات ما قبل تشغيل النظام: العميل دفع قيمتها مسبقاً، فلا تُنشأ فاتورة ولا حركة
+        // كاش/كي نت/بنك ولا إيراد ولا عمولة — مجرد تسجيل رصيد داخل محفظة العميل.
+        [HttpPost, ValidateAntiForgeryToken, Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> AddOpeningBalancePackage(
+            int customerId, string packageName, decimal remainingBalance,
+            int totalSessions, int usedSessions, DateTime? purchaseDate, string? notes)
+        {
+            var customer = await _context.Customers.FindAsync(customerId);
+            if (customer == null) return NotFound();
+
+            if (string.IsNullOrWhiteSpace(packageName) || totalSessions < 1 ||
+                usedSessions < 0 || usedSessions > totalSessions || remainingBalance < 0)
+            {
+                TempData["Error"] = "الرجاء إدخال بيانات صحيحة للباقة (اسم الباقة، عدد الجلسات، الرصيد)";
+                return RedirectToAction(nameof(Details), new { id = customerId });
+            }
+
+            packageName = packageName.Trim();
+            var servicePackage = await _context.ServicePackages
+                .FirstOrDefaultAsync(p => p.NameAr == packageName);
+            if (servicePackage == null)
+            {
+                servicePackage = new ServicePackage
+                {
+                    NameAr = packageName,
+                    SessionCount = totalSessions,
+                    Price = 0,
+                    // رصيد افتتاحي فقط — لا تُعرض هذه الباقة كباقة قابلة للبيع من جديد
+                    IsActive = false
+                };
+                _context.ServicePackages.Add(servicePackage);
+                await _context.SaveChangesAsync();
+            }
+
+            var remainingSessions = totalSessions - usedSessions;
+            var customerPkg = new CustomerPackage
+            {
+                CustomerId = customerId,
+                ServicePackageId = servicePackage.Id,
+                PurchaseDate = purchaseDate ?? DateTime.Today,
+                TotalSessions = totalSessions,
+                RemainingSessions = remainingSessions,
+                PricePaid = 0,
+                CurrentBalance = remainingBalance,
+                RegistrationType = CustomerPackage.RegistrationTypes.OpeningBalance,
+                Notes = notes,
+                IsActive = remainingSessions > 0
+            };
+            _context.CustomerPackages.Add(customerPkg);
+            await _context.SaveChangesAsync();
+            await _audit.LogAsync("Add", "Customers",
+                $"رصيد افتتاحي لباقة: {packageName} للعميل ID {customerId} — الرصيد: {remainingBalance:F3} د.ك",
+                customerPkg.Id);
+            TempData["Success"] = "تم إضافة الرصيد الافتتاحي للباقة بنجاح";
+            return RedirectToAction(nameof(Details), new { id = customerId });
         }
 
         [HttpPost, ValidateAntiForgeryToken]

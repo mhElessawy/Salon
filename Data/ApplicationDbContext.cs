@@ -180,6 +180,10 @@ namespace Salon.Data
                 .Property(p => p.PricePaid)
                 .HasColumnType("decimal(18,3)");
 
+            builder.Entity<CustomerPackage>()
+                .Property(p => p.CurrentBalance)
+                .HasColumnType("decimal(18,3)");
+
             builder.Entity<Shift>()
                 .Property(s => s.OpeningBalance)
                 .HasColumnType("decimal(18,3)");

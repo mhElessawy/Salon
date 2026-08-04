@@ -5,6 +5,14 @@ namespace Salon.Models
 {
     public class CustomerPackage
     {
+        public static class RegistrationTypes
+        {
+            // باقة بيعت من الكاشير بالطريقة المعتادة (فاتورة + تحصيل فعلي)
+            public const string New = "بيع جديد";
+            // رصيد افتتاحي لباقة قديمة تم دفعها قبل تشغيل النظام — لا فاتورة ولا تحصيل
+            public const string OpeningBalance = "رصيد افتتاحي";
+        }
+
         public int Id { get; set; }
 
         [Required]
@@ -39,6 +47,13 @@ namespace Salon.Models
         [DataType(DataType.Currency)]
         public decimal PricePaid { get; set; }
 
+        [Display(Name = "الرصيد الحالي")]
+        [DataType(DataType.Currency)]
+        public decimal CurrentBalance { get; set; }
+
+        [Display(Name = "نوع التسجيل")]
+        public string RegistrationType { get; set; } = RegistrationTypes.New;
+
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
 
@@ -46,6 +61,10 @@ namespace Salon.Models
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        [NotMapped]
+        [Display(Name = "الجلسات المستخدمة")]
+        public int UsedSessions => TotalSessions - RemainingSessions;
 
         public ICollection<CustomerPackageTransaction> Transactions { get; set; } = new List<CustomerPackageTransaction>();
     }

@@ -14,7 +14,7 @@ namespace Salon.Models
         [Display(Name = "Full Name English")]
         public string? FullNameEn { get; set; }
 
-        [Display(Name = "القسم")]
+        [Display(Name = "القسم التابع له العميل")]
         public string? Department { get; set; }
 
         [Display(Name = "رقم الهاتف")]
