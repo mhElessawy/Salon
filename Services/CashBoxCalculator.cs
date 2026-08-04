@@ -90,8 +90,10 @@ namespace Salon.Services
 
             // فئة "عهدة" مستبعدة هنا لأن العهدة لا تؤثر على الصندوق إطلاقاً — هي مبلغ منفصل تحت
             // عهدة الموظف، مش مصروف فعلي خرج من الكاش.
+            // بعض بيانات المصروفات القديمة مخزّنة بقيمة "كاش" بدل "نقدي" (زي ما بيحصل في شاشة صرف
+            // الرواتب أدناه) — فبنقبل الاتنين هنا برضه بدل ما نستبعدها غلط من الكاش الفعلي.
             var expQuery = context.Expenses.Where(e => e.ExpenseDate >= from && e.ExpenseDate < to
-                     && e.PaymentMethod == "نقدي" && e.Category != "عهدة");
+                     && (e.PaymentMethod == "نقدي" || e.PaymentMethod == "كاش") && e.Category != "عهدة");
             if (sharedOnly) expQuery = expQuery.Where(e => e.Department != "حلاقة" && e.Department != "مساج");
             else if (filterDept) expQuery = expQuery.Where(e => e.Department == dept);
             decimal cashExpenses = (await expQuery.ToListAsync()).Sum(e => e.Amount);
