@@ -26,6 +26,7 @@ namespace Salon.Controllers
         }
 
         private static readonly string[] KnetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+        private static readonly string[] MixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
 
         // الكاشير المرتبط بقسم إيرادي محدد (حلاقة/مساج) يشوف قسمه بس ومفيش فلتر ليه. أي حد
         // تاني (أدمن/مدير/كاشير "الكل") يقدر يختار القسم بحرية.
@@ -220,7 +221,7 @@ namespace Salon.Controllers
                 : query.Where(s => s.SaleType == department);
             var sales = await query.ToListAsync();
             return sales.Sum(s => KnetMethods.Contains(s.PaymentMethod) ? s.NetAmount
-                : s.PaymentMethod == "كي نت و كاش" ? (s.LinkAmount ?? 0) : 0m);
+                : MixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0m);
         }
 
         private async Task<DailyClosureViewModel> BuildViewModelAsync(Shift shift, DateTime day, string department, bool canPickDepartment)
@@ -239,7 +240,7 @@ namespace Salon.Controllers
             var sales = await salesQuery.ToListAsync();
             var totalRevenue = sales.Sum(s => s.NetAmount);
             var systemKnet = sales.Sum(s => KnetMethods.Contains(s.PaymentMethod) ? s.NetAmount
-                : s.PaymentMethod == "كي نت و كاش" ? (s.LinkAmount ?? 0) : 0m);
+                : MixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0m);
 
             var expensesQuery = _context.Expenses.Where(e => e.ExpenseDate >= day && e.ExpenseDate < dayEnd && e.Category != "عهدة");
             expensesQuery = isShared

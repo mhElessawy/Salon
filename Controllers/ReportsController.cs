@@ -927,6 +927,7 @@ namespace Salon.Controllers
                 // تقارير المبيعات في الملف ده.
                 string[] cashMethodsSalesLocal = { "كاش", "نقدي", "Cash" };
                 string[] knetMethodsSalesLocal = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+                string[] mixedMethodsSalesLocal = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
 
                 if (showCashSales)
                 {
@@ -937,10 +938,10 @@ namespace Salon.Controllers
                             Date = g.Key,
                             Amount = g.Sum(s => cashMethodsSalesLocal.Contains(s.PaymentMethod)
                                 ? s.NetAmount
-                                : s.PaymentMethod == "كي نت و كاش"
+                                : mixedMethodsSalesLocal.Contains(s.PaymentMethod)
                                     ? (s.CashAmount ?? 0)
                                     : 0m),
-                            Count = g.Count(s => cashMethodsSalesLocal.Contains(s.PaymentMethod) || s.PaymentMethod == "كي نت و كاش")
+                            Count = g.Count(s => cashMethodsSalesLocal.Contains(s.PaymentMethod) || mixedMethodsSalesLocal.Contains(s.PaymentMethod))
                         })
                         .Where(d => d.Amount > 0);
 
@@ -964,10 +965,10 @@ namespace Salon.Controllers
                             Date = g.Key,
                             Amount = g.Sum(s => knetMethodsSalesLocal.Contains(s.PaymentMethod)
                                 ? s.NetAmount
-                                : s.PaymentMethod == "كي نت و كاش"
+                                : mixedMethodsSalesLocal.Contains(s.PaymentMethod)
                                     ? (s.LinkAmount ?? 0)
                                     : 0m),
-                            Count = g.Count(s => knetMethodsSalesLocal.Contains(s.PaymentMethod) || s.PaymentMethod == "كي نت و كاش")
+                            Count = g.Count(s => knetMethodsSalesLocal.Contains(s.PaymentMethod) || mixedMethodsSalesLocal.Contains(s.PaymentMethod))
                         })
                         .Where(d => d.Amount > 0);
 

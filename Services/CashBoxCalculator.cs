@@ -74,16 +74,19 @@ namespace Salon.Services
             // كل أنواع الفواتير (حلاقة/مساج/منتجات) تدخل الصندوق الفعلي، وليس فواتير الموظفين
             // فقط — الصندوق واحد للمحل بالكامل.
             // بعض الفواتير بتتسجل بـ"نقدي" أو حتى "Cash" الإنجليزية (لو كانت الواجهة على وضع
-            // الإنجليزي وقت الحفظ) بدل "كاش" — فبنقبل المرادفات هنا زي باقي تقارير المبيعات في
-            // النظام، وإلا مبيعات كاش فعلية بتتستبعد من رصيد الصندوق غلط.
+            // الإنجليزي وقت الحفظ) بدل "كاش"، وفواتير الدفع المقسّم ممكن تتسجل بـ"مناصفة" أو
+            // "Cash & K-Net" مش بس "كي نت و كاش" — فبنقبل كل المرادفات هنا زي باقي تقارير
+            // المبيعات في النظام، وإلا مبيعات كاش فعلية (كاملة أو جزء منها) بتتستبعد من رصيد
+            // الصندوق غلط.
             string[] cashSalesMethods = { "كاش", "نقدي", "Cash" };
+            string[] mixedSalesMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
             var salesQuery = context.Sales.Where(s => s.SaleDate >= from && s.SaleDate < to && s.Status != "ملغي");
             if (sharedOnly) salesQuery = salesQuery.Where(s => s.SaleType != "حلاقة" && s.SaleType != "مساج");
             else if (filterDept) salesQuery = salesQuery.Where(s => s.SaleType == dept);
             var sales = await salesQuery.ToListAsync();
             decimal cashRevenue = sales.Sum(s =>
                 cashSalesMethods.Contains(s.PaymentMethod) ? s.NetAmount :
-                s.PaymentMethod == "كي نت و كاش" ? (s.CashAmount ?? 0) : 0m);
+                mixedSalesMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0m);
 
             // الإيداعات النقدية فقط تدخل الصندوق الفعلي — إيداع بالتحويل البنكي أو البطاقة
             // ميعديش على الكاش الفعلي في الدرج، فمينفعش يزود رصيد الكاش.
