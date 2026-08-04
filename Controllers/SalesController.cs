@@ -961,11 +961,14 @@ namespace Salon.Controllers
             try
             {
                 var pkgs = await _context.CustomerPackages
-                    .Include(cp => cp.ServicePackage)
+                    .Include(cp => cp.ServicePackage).ThenInclude(sp => sp!.ServiceCategory)
                     .Where(cp => cp.CustomerId == customerId
                               && cp.IsActive
                               && cp.RemainingSessions > 0
-                              && (cp.ExpiryDate == null || cp.ExpiryDate >= DateTime.Today))
+                              && (cp.ExpiryDate == null || cp.ExpiryDate >= DateTime.Today)
+                              && (cp.ServicePackage == null
+                                  || cp.ServicePackage.ServiceCategory == null
+                                  || cp.ServicePackage.ServiceCategory.Department == dept))
                     .Select(cp => new
                     {
                         id = cp.Id,
@@ -976,7 +979,9 @@ namespace Salon.Controllers
                                         ? cp.ExpiryDate.Value.ToString("yyyy/MM/dd")
                                         : "—",
                         pricePaid = cp.PricePaid,
-                        packagePrice = cp.ServicePackage!.Price
+                        packagePrice = cp.ServicePackage!.Price,
+                        currentBalance = cp.CurrentBalance,
+                        registrationType = cp.RegistrationType
                     })
                     .ToListAsync();
                 return Json(pkgs);
@@ -1074,6 +1079,7 @@ namespace Salon.Controllers
                     if (cpForPay != null)
                     {
                         cpForPay.PricePaid += packagePaymentAmount;
+                        cpForPay.CurrentBalance += packagePaymentAmount;
                         _context.SaleItems.Add(new SaleItem
                         {
                             SaleId = model.Id,
@@ -1125,8 +1131,16 @@ namespace Salon.Controllers
                                                && x.IsActive && x.RemainingSessions > 0);
                     if (cp != null)
                     {
+                        var sessionValue = cp.RemainingSessions > 0
+                            ? cp.CurrentBalance / cp.RemainingSessions
+                            : 0;
+                        cp.CurrentBalance = Math.Max(0, cp.CurrentBalance - sessionValue);
                         cp.RemainingSessions--;
-                        if (cp.RemainingSessions == 0) cp.IsActive = false;
+                        if (cp.RemainingSessions == 0)
+                        {
+                            cp.IsActive = false;
+                            cp.CurrentBalance = 0;
+                        }
                         remainingSessionsAfter = cp.RemainingSessions;
 
                         _context.CustomerPackageTransactions.Add(new CustomerPackageTransaction

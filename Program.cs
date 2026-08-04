@@ -432,6 +432,12 @@ using (var scope = app.Services.CreateScope())
                 RefundedByUserId TEXT NULL,
                 RefundedByUserName TEXT NULL,
                 FOREIGN KEY (SaleId) REFERENCES Sales(Id) ON DELETE CASCADE)");
+
+            // الباقات القديمة والجديدة: محفظة الباقات — رصيد نقدي حالي لكل باقة عميل + تمييز
+            // "بيع جديد" (من الكاشير) عن "رصيد افتتاحي" (باقة قديمة قبل تشغيل النظام)
+            TryExec("ALTER TABLE CustomerPackages ADD COLUMN RegistrationType TEXT NOT NULL DEFAULT 'بيع جديد'");
+            TryExec("ALTER TABLE CustomerPackages ADD COLUMN CurrentBalance REAL NOT NULL DEFAULT 0");
+            TryExec("UPDATE CustomerPackages SET CurrentBalance = PricePaid WHERE CurrentBalance = 0 AND PricePaid > 0");
         }
         else
         {
@@ -737,6 +743,12 @@ using (var scope = app.Services.CreateScope())
                 RefundedByUserName NVARCHAR(MAX) NULL,
                 CONSTRAINT FK_Refunds_Sales FOREIGN KEY (SaleId)
                     REFERENCES Sales(Id) ON DELETE CASCADE)");
+
+            // الباقات القديمة والجديدة: محفظة الباقات — رصيد نقدي حالي لكل باقة عميل + تمييز
+            // "بيع جديد" (من الكاشير) عن "رصيد افتتاحي" (باقة قديمة قبل تشغيل النظام)
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='CustomerPackages' AND COLUMN_NAME='RegistrationType') ALTER TABLE CustomerPackages ADD RegistrationType NVARCHAR(50) NOT NULL DEFAULT N'بيع جديد'");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='CustomerPackages' AND COLUMN_NAME='CurrentBalance') ALTER TABLE CustomerPackages ADD CurrentBalance DECIMAL(18,3) NOT NULL DEFAULT 0");
+            TryExec("UPDATE CustomerPackages SET CurrentBalance = PricePaid WHERE CurrentBalance = 0 AND PricePaid > 0");
         }
 
         // ترحيل لمرة واحدة: قبل هذا الفصل كانت شاشة "اعتماد اليومية" تعيد استخدام آخر صف Shift

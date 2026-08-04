@@ -151,6 +151,8 @@ namespace Salon.Controllers
                 TotalSessions = pkg.SessionCount,
                 RemainingSessions = pkg.SessionCount,
                 PricePaid = pricePaid,
+                CurrentBalance = pricePaid,
+                RegistrationType = CustomerPackage.RegistrationTypes.New,
                 Notes = notes,
                 IsActive = true
             };
@@ -217,9 +219,16 @@ namespace Salon.Controllers
                 return RedirectToAction(nameof(Index), new { tab = "balances" });
             }
 
+            var sessionValue = customerPkg.RemainingSessions > 0
+                ? customerPkg.CurrentBalance / customerPkg.RemainingSessions
+                : 0;
+            customerPkg.CurrentBalance = Math.Max(0, customerPkg.CurrentBalance - sessionValue);
             customerPkg.RemainingSessions--;
             if (customerPkg.RemainingSessions == 0)
+            {
                 customerPkg.IsActive = false;
+                customerPkg.CurrentBalance = 0;
+            }
 
             var transaction = new CustomerPackageTransaction
             {
