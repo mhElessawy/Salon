@@ -31,10 +31,10 @@
     // مبيعات الكاش دايمًا نقدي، أما الإيداع فبيتحقق من طريقة الدفع بتاعته لوحده تحت
     string[] cashCreditTypes = { "مبيعات كاش" };
 
-    // شاشة صرف الرواتب بتخزّن "كاش" (مش "نقدي") كقيمة الدفع النقدي؛ فبنقبل الاتنين هنا
-    bool IsCashPayment(Salon.Models.CashMovementReportItem i) => i.Type == "راتب"
-        ? (i.PaymentMethod == "كاش" || i.PaymentMethod == "نقدي")
-        : i.PaymentMethod == "نقدي";
+    // نفس منطق IsCashPayment المستخدم في ReportsController لحساب الإجماليات فوق — لازم
+    // يفضل مطابق تماماً وإلا الرصيد الجاري لكل صف هيختلف عن الإجماليات المعروضة.
+    bool IsCashPayment(Salon.Models.CashMovementReportItem i) =>
+        i.PaymentMethod == "كاش" || i.PaymentMethod == "نقدي" || i.PaymentMethod == "Cash";
 
     // رصيد كاش جاري بعد كل حركة (يبدأ من رصيد الكاش قبل الفترة، ويستثني الكي نت والحركات غير النقدية)
     var ascItems = Model.OrderBy(i => i.Date).ThenBy(i => i.Type).ToList();

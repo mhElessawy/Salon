@@ -113,11 +113,11 @@ namespace Salon.Controllers
 
                 var cashSales = daySales.Sum(s =>
                     s.CashAmount.HasValue ? s.CashAmount.Value :
-                    (s.PaymentMethod == "نقدي" || s.PaymentMethod == "كاش" ? s.NetAmount : 0m));
+                    (s.PaymentMethod == "نقدي" || s.PaymentMethod == "كاش" || s.PaymentMethod == "Cash" ? s.NetAmount : 0m));
 
                 var cashExpenses = await _context.Expenses
                     .Where(e => e.ExpenseDate >= dayStart && e.ExpenseDate < dayEnd &&
-                                (e.PaymentMethod == "نقدي" || e.PaymentMethod == "كاش"))
+                                (e.PaymentMethod == "نقدي" || e.PaymentMethod == "كاش" || e.PaymentMethod == "Cash"))
                     .SumAsync(e => e.Amount);
 
                 var expected = shift.OpeningBalance + cashSales - cashExpenses;

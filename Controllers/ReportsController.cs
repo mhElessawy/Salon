@@ -1075,19 +1075,25 @@ namespace Salon.Controllers
         // بغير طريقة الدفع "نقدي") يستخدمها تقرير حركة البنك لحساب الرصيد الحالي والرصيد قبل الفترة معاً.
         private async Task<BankFlows> ComputeBankFlowsAsync(DateTime from, DateTime to, string? dept, bool filterDept)
         {
+            // نفس مرادفات الكاش المستخدمة في CashBoxCalculator، لازم تُستبعد هنا برضه وإلا فاتورة
+            // أو مصروف/إيداع اتسجل بـ"كاش"/"Cash" (بدل "كي نت"/"نقدي") هيتحسب غلط كحركة بنك.
+            string[] knetSalesMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedSalesMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+            string[] cashOnlyMethods = { "نقدي", "كاش", "Cash" };
+
             var salesQuery = _context.Sales.Where(s => s.SaleDate >= from && s.SaleDate < to && s.Status != "ملغي");
             if (filterDept) salesQuery = salesQuery.Where(s => s.SaleType == dept);
             var sales = await salesQuery.ToListAsync();
             decimal bankRevenue = sales.Sum(s =>
-                s.PaymentMethod == "كي نت" ? s.NetAmount :
-                s.PaymentMethod == "كي نت و كاش" ? (s.LinkAmount ?? 0) : 0m);
+                knetSalesMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                mixedSalesMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0m);
 
-            var depositsQuery = _context.Deposits.Where(d => d.DepositDate >= from && d.DepositDate < to && d.PaymentMethod != "نقدي");
+            var depositsQuery = _context.Deposits.Where(d => d.DepositDate >= from && d.DepositDate < to && !cashOnlyMethods.Contains(d.PaymentMethod));
             if (filterDept) depositsQuery = depositsQuery.Where(d => d.Department == dept);
             decimal deposits = (await depositsQuery.ToListAsync()).Sum(d => d.Amount);
 
             var expQuery = _context.Expenses.Where(e => e.ExpenseDate >= from && e.ExpenseDate < to
-                     && e.PaymentMethod != "نقدي" && e.Category != "عهدة");
+                     && !cashOnlyMethods.Contains(e.PaymentMethod) && e.Category != "عهدة");
             if (filterDept) expQuery = expQuery.Where(e => e.Department == dept);
             decimal expenses = (await expQuery.ToListAsync()).Sum(e => e.Amount);
 
