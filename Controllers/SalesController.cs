@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
 using Salon.Services;
+using RefundModel = Salon.Models.Refund;
 
 namespace Salon.Controllers
 {
@@ -62,6 +63,7 @@ namespace Salon.Controllers
                 .Include(s => s.Customer)
                 .Include(s => s.Employee)
                 .Include(s => s.SaleItems)
+                .Include(s => s.Refunds)
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo);
 
             if (userDept == "مساج")
@@ -89,7 +91,7 @@ namespace Salon.Controllers
 
             var sales = await query.OrderByDescending(s => s.SaleDate).ToListAsync();
 
-            var activeSales = sales.Where(s => s.Status != "ملغي").ToList();
+            var activeSales = sales.Where(s => s.Status != "ملغي" && s.Status != Sale.Statuses.Refunded).ToList();
             var cancelledSales = sales.Where(s => s.Status == "ملغي").ToList();
 
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
@@ -103,6 +105,7 @@ namespace Salon.Controllers
             ViewBag.FilterCreatedByUserId = createdByUserId;
             ViewBag.TotalSales = activeSales.Sum(s => s.NetAmount);
             ViewBag.TotalCancelled = cancelledSales.Sum(s => s.NetAmount);
+            ViewBag.TotalRefunded = sales.Sum(s => s.RefundedAmount);
 
             ViewBag.TotalCash = activeSales
                 .Where(s => s.PaymentMethod == "كاش")
@@ -132,6 +135,7 @@ namespace Salon.Controllers
             ViewBag.CanDeleteMassage = await _perms.HasAccessAsync("MassageInvoiceDelete");
             ViewBag.CanDeleteProduct = await _perms.HasAccessAsync("ProductInvoiceDelete");
             ViewBag.CanEditSaleDetails = await _perms.HasAccessAsync("SalesInvoiceEdit");
+            ViewBag.CanRefund = await _perms.HasAccessAsync("SalesRefund");
 
             // قوائم الفلاتر
             var empQuery = _context.Employees.Where(e => e.IsActive);
@@ -410,8 +414,10 @@ namespace Salon.Controllers
                 .Include(s => s.Employee)
                 .Include(s => s.SaleItems).ThenInclude(i => i.Service)
                 .Include(s => s.SaleItems).ThenInclude(i => i.Product)
+                .Include(s => s.Refunds)
                 .FirstOrDefaultAsync(s => s.Id == id);
             if (sale == null) return NotFound();
+            ViewBag.CanRefund = await _perms.HasAccessAsync("SalesRefund");
             return View(sale);
         }
 
@@ -551,6 +557,96 @@ namespace Salon.Controllers
                 _ = Task.Run(() => _emailService.SendInvoiceCancellationAsync(sale, cancellerName));
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        // ===== استرداد مبلغ فاتورة (كلي/جزئي) — لا تُحذف الفاتورة أبداً =====
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> Refund(int id, decimal amount, string reason, string? reasonDetails, string method, string? returnUrl)
+        {
+            IActionResult Back() => string.IsNullOrEmpty(returnUrl)
+                ? RedirectToAction(nameof(Index))
+                : LocalRedirect(returnUrl);
+
+            if (!await _perms.HasAccessAsync("SalesRefund"))
+                return Forbid();
+
+            var sale = await _context.Sales
+                .Include(s => s.Refunds)
+                .FirstOrDefaultAsync(s => s.Id == id);
+            if (sale == null)
+            {
+                TempData["Error"] = "الفاتورة غير موجودة";
+                return Back();
+            }
+
+            if (sale.Status == Sale.Statuses.Cancelled)
+            {
+                TempData["Error"] = "لا يمكن استرداد مبلغ فاتورة ملغاة";
+                return Back();
+            }
+
+            if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.SaleType))
+            {
+                TempData["Error"] = "لا يمكن استرداد مبلغ فاتورة تخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
+                return Back();
+            }
+
+            var validReasons = new[]
+            {
+                RefundModel.Reasons.CustomerCancellation,
+                RefundModel.Reasons.InvoiceError,
+                RefundModel.Reasons.ServiceNotProvided,
+                RefundModel.Reasons.Other
+            };
+            if (string.IsNullOrWhiteSpace(reason) || !validReasons.Contains(reason))
+            {
+                TempData["Error"] = "يرجى اختيار سبب الاسترداد";
+                return Back();
+            }
+
+            var validMethods = new[] { RefundModel.Methods.Cash, RefundModel.Methods.Knet, RefundModel.Methods.BankTransfer };
+            if (string.IsNullOrWhiteSpace(method) || !validMethods.Contains(method))
+            {
+                TempData["Error"] = "يرجى اختيار طريقة الاسترداد";
+                return Back();
+            }
+
+            var remaining = sale.RemainingRefundable;
+            if (amount <= 0 || amount > remaining + 0.001m)
+            {
+                TempData["Error"] = $"مبلغ الاسترداد غير صحيح — الحد الأقصى القابل للاسترداد {remaining:N3} د.ك";
+                return Back();
+            }
+
+            var refundUser = await _userManager.GetUserAsync(User);
+            var refund = new RefundModel
+            {
+                SaleId = sale.Id,
+                Amount = amount,
+                Reason = reason,
+                ReasonDetails = string.IsNullOrWhiteSpace(reasonDetails) ? null : reasonDetails.Trim(),
+                RefundMethod = method,
+                RefundDate = KuwaitNow,
+                RefundedByUserId = refundUser?.Id,
+                RefundedByUserName = refundUser?.FullName ?? refundUser?.UserName ?? User.Identity?.Name
+            };
+            _context.Refunds.Add(refund);
+
+            var totalRefundedAfter = sale.RefundedAmount + amount;
+            sale.Status = totalRefundedAfter + 0.001m >= sale.NetAmount
+                ? Sale.Statuses.Refunded
+                : Sale.Statuses.PartiallyRefunded;
+
+            await _context.SaveChangesAsync();
+
+            await _audit.LogAsync("Refund", "المبيعات",
+                $"استرداد {amount:F3} د.ك من الفاتورة رقم {sale.InvoiceNumber} — السبب: {reason}" +
+                (string.IsNullOrWhiteSpace(reasonDetails) ? "" : $" ({reasonDetails})") +
+                $" — طريقة الاسترداد: {method}",
+                sale.Id);
+
+            TempData["Success"] = "تم تسجيل الاسترداد بنجاح";
+            return Back();
         }
 
         [HttpPost, ValidateAntiForgeryToken]

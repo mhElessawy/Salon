@@ -1,0 +1,160 @@
+﻿@model IEnumerable<Salon.Models.Refund>
+@{
+    ViewData["Title"] = "تقرير الاستردادات";
+    string? userDept = ViewBag.UserDept as string;
+    string? selectedType = ViewBag.SelectedSaleType as string;
+    string? selectedMethod = ViewBag.SelectedMethod as string;
+    decimal totalRefunded = ViewBag.TotalRefunded is decimal tr ? tr : 0m;
+    int totalCount = ViewBag.TotalCount is int tc ? tc : 0;
+    decimal totalCash = ViewBag.TotalCash is decimal cA ? cA : 0m;
+    decimal totalKnet = ViewBag.TotalKnet is decimal kA ? kA : 0m;
+    decimal totalBank = ViewBag.TotalBankTransfer is decimal bA ? bA : 0m;
+}
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1><i class="fas fa-undo-alt me-2"></i>تقرير الاستردادات</h1>
+        <p class="text-muted small mb-0">جميع مبالغ الفواتير المستردة (كلياً أو جزئياً) خلال الفترة المحددة</p>
+    </div>
+    <button onclick="window.print()" class="btn btn-dark btn-sm no-print">
+        <i class="fas fa-print me-1"></i> طباعة
+    </button>
+</div>
+
+<div class="card mb-3 no-print">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label mb-1 small">من تاريخ</label>
+                <input type="date" name="from" value="@ViewBag.From" class="form-control form-control-sm" style="max-width:160px;" />
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1 small">إلى تاريخ</label>
+                <input type="date" name="to" value="@ViewBag.To" class="form-control form-control-sm" style="max-width:160px;" />
+            </div>
+            @if (string.IsNullOrEmpty(userDept))
+            {
+                <div class="col-auto">
+                    <label class="form-label mb-1 small">نوع الفاتورة</label>
+                    <select name="saleType" class="form-select form-select-sm" style="min-width:130px;">
+                        <option value="" selected="@(string.IsNullOrEmpty(selectedType))">الكل</option>
+                        <option value="حلاقة" selected="@(selectedType == "حلاقة")">حلاقة</option>
+                        <option value="مساج" selected="@(selectedType == "مساج")">مساج</option>
+                        <option value="منتجات" selected="@(selectedType == "منتجات")">منتجات</option>
+                    </select>
+                </div>
+            }
+            <div class="col-auto">
+                <label class="form-label mb-1 small">طريقة الاسترداد</label>
+                <select name="method" class="form-select form-select-sm" style="min-width:130px;">
+                    <option value="" selected="@(string.IsNullOrEmpty(selectedMethod))">الكل</option>
+                    <option value="كاش" selected="@(selectedMethod == "كاش")">كاش</option>
+                    <option value="كي نت" selected="@(selectedMethod == "كي نت")">كي نت</option>
+                    <option value="تحويل بنكي" selected="@(selectedMethod == "تحويل بنكي")">تحويل بنكي</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> بحث</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="card text-center h-100 border-0 shadow-sm" style="border-top:3px solid #dc2626!important">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-undo-alt me-1"></i>إجمالي المسترد</div>
+                <div class="fw-bold fs-5" style="color:#dc2626;">@totalRefunded.ToString("N3") <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center h-100 border-0 shadow-sm">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-list me-1"></i>عدد عمليات الاسترداد</div>
+                <div class="fw-bold fs-5">@totalCount</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center h-100 border-0 shadow-sm" style="border-top:3px solid #198754!important">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-money-bill-wave me-1"></i>كاش</div>
+                <div class="fw-bold fs-5 text-success">@totalCash.ToString("N3") <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center h-100 border-0 shadow-sm" style="border-top:3px solid #0d6efd!important">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-credit-card me-1"></i>كي نت / تحويل بنكي</div>
+                <div class="fw-bold fs-5 text-primary">@((totalKnet + totalBank).ToString("N3")) <small>د.ك</small></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>تاريخ الاسترداد</th>
+                        <th>رقم الفاتورة</th>
+                        <th>العميل</th>
+                        <th>المبلغ المسترد</th>
+                        <th>سبب الاسترداد</th>
+                        <th>طريقة الاسترداد</th>
+                        <th>بواسطة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="8" class="text-center text-muted py-4">لا توجد عمليات استرداد في هذه الفترة</td></tr>
+                    }
+                    @{
+                        int i = 1;
+                    }
+                    @foreach (var r in Model)
+                    {
+                        <tr>
+                            <td>@(i++)</td>
+                            <td>@r.RefundDate.ToString("yyyy/MM/dd hh:mm tt")</td>
+                            <td>
+                                @if (r.Sale != null)
+                                {
+                                    <a href="@Url.Action("Details", "Sales", new { id = r.SaleId })">@r.Sale.InvoiceNumber</a>
+                                }
+                            </td>
+                            <td>@(r.Sale?.Customer?.FullName ?? "زائر")</td>
+                            <td><strong class="text-danger">@r.Amount.ToString("N3") د.ك</strong></td>
+                            <td>
+                                @r.Reason
+                                @if (!string.IsNullOrEmpty(r.ReasonDetails))
+                                {
+                                    <div class="text-muted small">@r.ReasonDetails</div>
+                                }
+                            </td>
+                            <td>@r.RefundMethod</td>
+                            <td>@(r.RefundedByUserName ?? "-")</td>
+                        </tr>
+                    }
+                </tbody>
+                @if (Model.Any())
+                {
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" class="text-end fw-bold">الإجمالي:</td>
+                            <td><strong class="text-danger">@totalRefunded.ToString("N3") د.ك</strong></td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+    </div>
+</div>

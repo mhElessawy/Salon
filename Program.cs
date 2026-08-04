@@ -418,6 +418,20 @@ using (var scope = app.Services.CreateScope())
                 Discount REAL NOT NULL DEFAULT 0,
                 FOREIGN KEY (SupplierInvoiceId) REFERENCES SupplierInvoices(Id) ON DELETE CASCADE,
                 FOREIGN KEY (ProductId) REFERENCES Products(Id))");
+
+            // استرداد مبلغ فاتورة مدفوعة (كلي/جزئي) — لا تُحذف الفاتورة أبداً، فقط تُسجَّل حركة
+            // استرداد عكسية مرتبطة بها وتتغيّر حالتها إلى "مسترجع"/"مسترجع جزئياً" (انظر Refund)
+            TryExec(@"CREATE TABLE IF NOT EXISTS Refunds (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                SaleId INTEGER NOT NULL,
+                Amount REAL NOT NULL DEFAULT 0,
+                Reason TEXT NOT NULL,
+                ReasonDetails TEXT NULL,
+                RefundMethod TEXT NOT NULL,
+                RefundDate TEXT NOT NULL DEFAULT (datetime('now')),
+                RefundedByUserId TEXT NULL,
+                RefundedByUserName TEXT NULL,
+                FOREIGN KEY (SaleId) REFERENCES Sales(Id) ON DELETE CASCADE)");
         }
         else
         {
@@ -708,6 +722,21 @@ using (var scope = app.Services.CreateScope())
                     REFERENCES SupplierInvoices(Id) ON DELETE CASCADE,
                 CONSTRAINT FK_SupplierInvoiceItems_Products FOREIGN KEY (ProductId)
                     REFERENCES Products(Id))");
+
+            // استرداد مبلغ فاتورة مدفوعة (كلي/جزئي) — لا تُحذف الفاتورة أبداً، فقط تُسجَّل حركة
+            // استرداد عكسية مرتبطة بها وتتغيّر حالتها إلى "مسترجع"/"مسترجع جزئياً" (انظر Refund)
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='Refunds')
+                CREATE TABLE Refunds (Id INT IDENTITY PRIMARY KEY,
+                SaleId INT NOT NULL,
+                Amount DECIMAL(18,3) NOT NULL DEFAULT 0,
+                Reason NVARCHAR(200) NOT NULL,
+                ReasonDetails NVARCHAR(MAX) NULL,
+                RefundMethod NVARCHAR(50) NOT NULL,
+                RefundDate DATETIME NOT NULL DEFAULT GETDATE(),
+                RefundedByUserId NVARCHAR(450) NULL,
+                RefundedByUserName NVARCHAR(MAX) NULL,
+                CONSTRAINT FK_Refunds_Sales FOREIGN KEY (SaleId)
+                    REFERENCES Sales(Id) ON DELETE CASCADE)");
         }
 
         // ترحيل لمرة واحدة: قبل هذا الفصل كانت شاشة "اعتماد اليومية" تعيد استخدام آخر صف Shift
