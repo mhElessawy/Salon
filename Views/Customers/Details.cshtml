@@ -268,5 +268,9 @@
             var remaining = Math.max(0, total - used);
             document.getElementById('ob-remaining').textContent = remaining;
         }
+        // فتح المودال تلقائياً عند القدوم من زر "إضافة رصيد" في بطاقة قائمة العملاء
+        if (new URLSearchParams(location.search).get('openBalance') === '1') {
+            openOpeningBalanceModal();
+        }
     </script>
 }
