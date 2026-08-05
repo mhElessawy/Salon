@@ -273,10 +273,19 @@ namespace Salon.Controllers
                 .GroupBy(e => string.IsNullOrEmpty(e.Category) ? "أخرى" : e.Category)
                 .ToDictionary(g => g.Key, g => g.Sum(e => e.Amount));
 
+            // أداء الموظفين يُحسب من الفواتير المكتملة فقط — أي فاتورة غير مكتملة (مسترجعة كلياً
+            // أو جزئياً) لا تُحتسب ضمن مبيعات/عمولة/استحقاق الموظف، حتى لو ظهرت في إجماليات
+            // الصندوق العامة أعلى الصفحة.
+            decimal completedStaffSalesTotal = staffSales
+                .Where(s => s.Status == Sale.Statuses.Completed)
+                .Sum(s => s.NetAmount);
+
             EmployeePerformanceRow BuildRow(Employee emp)
             {
                 var empDeptType = emp.DepartmentNav?.Name == "مساج" ? "مساج" : "حلاقة";
-                var empSales = staffSales.Where(s => s.EmployeeId == emp.Id && s.SaleType == empDeptType).ToList();
+                var empSales = staffSales
+                    .Where(s => s.EmployeeId == emp.Id && s.SaleType == empDeptType && s.Status == Sale.Statuses.Completed)
+                    .ToList();
                 var empTotal = empSales.Sum(s => s.NetAmount);
                 var empDiscount = empSales.Sum(s => s.Discount);
                 var empCash = empSales.Sum(s =>
@@ -288,8 +297,8 @@ namespace Salon.Controllers
                 var empDebtToEmployee = empSales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
                 var empDebtToOwner = empSales.Where(s => s.PaymentMethod == "دين على الإدارة").Sum(s => s.NetAmount);
                 var empAdv = advances.Where(a => a.EmployeeId == emp.Id).Sum(a => a.Amount);
-                var empHadiya = allSales.Where(s => s.EmployeeId == emp.Id).Sum(s => s.GiftForEmployee ?? 0);
-                var empServiceCommission = allSales.Where(s => s.EmployeeId == emp.Id).Sum(s => s.EmployeeGift ?? 0);
+                var empHadiya = allSales.Where(s => s.EmployeeId == emp.Id && s.Status == Sale.Statuses.Completed).Sum(s => s.GiftForEmployee ?? 0);
+                var empServiceCommission = allSales.Where(s => s.EmployeeId == emp.Id && s.Status == Sale.Statuses.Completed).Sum(s => s.EmployeeGift ?? 0);
                 var commission = emp.Commission;
                 var dueAmount = Math.Round(empTotal * commission / 100, 3);
 
@@ -305,7 +314,7 @@ namespace Salon.Controllers
                     EmployeeDebt = empDebtToEmployee,
                     OwnerDebt = empDebtToOwner,
                     Advances = empAdv,
-                    SalesPercent = totalSales > 0 ? Math.Round(empTotal / totalSales * 100, 1) : 0,
+                    SalesPercent = completedStaffSalesTotal > 0 ? Math.Round(empTotal / completedStaffSalesTotal * 100, 1) : 0,
                     CommissionPercent = commission,
                     DueAmount = dueAmount,
                     ShopNet = empTotal - dueAmount - empHadiya,
