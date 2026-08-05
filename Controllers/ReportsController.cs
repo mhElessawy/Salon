@@ -66,7 +66,10 @@ namespace Salon.Controllers
 
             var allSalesRaw = await query.OrderByDescending(s => s.SaleDate).ToListAsync();
             var sales = allSalesRaw; // kept for view model
-            var activeSales = allSalesRaw.Where(s => s.Status != "ملغي" && s.Status != Sale.Statuses.Refunded).ToList();
+            // الفواتير المسترجعة (كلياً أو جزئياً) تبقى ضمن الحسابات لكن بصافي المبلغ بعد خصم
+            // المسترد، بدل استبعادها بالكامل — وإلا فاتورة اتسترد جزء منها كانت بتتحسب بكامل
+            // قيمتها الأصلية بينما فاتورة اتسترد بالكامل كانت بتختفي تماماً من كل الإجماليات.
+            var activeSales = allSalesRaw.Where(s => s.Status != "ملغي").ToList();
             var cancelledSales = allSalesRaw.Where(s => s.Status == "ملغي").ToList();
 
             var employees = await _context.Employees
@@ -86,19 +89,19 @@ namespace Salon.Controllers
 
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
             ViewBag.To = dateTo.AddDays(-1).ToString("yyyy-MM-dd");
-            ViewBag.TotalSales = activeSales.Sum(s => s.NetAmount);
+            ViewBag.TotalSales = activeSales.Sum(s => s.NetAmount - s.RefundedAmount);
             ViewBag.TotalCount = activeSales.Count;
-            ViewBag.TotalHaircut = activeSales.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount);
-            ViewBag.TotalMassage = activeSales.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount);
-            ViewBag.TotalProducts = activeSales.Where(s => s.SaleType == "منتجات").Sum(s => s.NetAmount);
+            ViewBag.TotalHaircut = activeSales.Where(s => s.SaleType == "حلاقة").Sum(s => s.NetAmount - s.RefundedAmount);
+            ViewBag.TotalMassage = activeSales.Where(s => s.SaleType == "مساج").Sum(s => s.NetAmount - s.RefundedAmount);
+            ViewBag.TotalProducts = activeSales.Where(s => s.SaleType == "منتجات").Sum(s => s.NetAmount - s.RefundedAmount);
             ViewBag.TotalCash = activeSales.Sum(s =>
-                cashMethodsSales.Contains(s.PaymentMethod) ? s.NetAmount :
+                cashMethodsSales.Contains(s.PaymentMethod) ? s.NetAmount - s.RefundedAmount :
                 mixedMethodsSales.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0);
             ViewBag.TotalKnet = activeSales.Sum(s =>
-                knetMethodsSales.Contains(s.PaymentMethod) ? s.NetAmount :
+                knetMethodsSales.Contains(s.PaymentMethod) ? s.NetAmount - s.RefundedAmount :
                 mixedMethodsSales.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0);
-            ViewBag.TotalEmployeeDebt = activeSales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
-            ViewBag.TotalOwnerDebt = activeSales.Where(s => s.PaymentMethod == "دين على الإدارة").Sum(s => s.NetAmount);
+            ViewBag.TotalEmployeeDebt = activeSales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount - s.RefundedAmount);
+            ViewBag.TotalOwnerDebt = activeSales.Where(s => s.PaymentMethod == "دين على الإدارة").Sum(s => s.NetAmount - s.RefundedAmount);
             ViewBag.TotalCancelled = cancelledSales.Sum(s => s.NetAmount);
             ViewBag.TotalCancelledCount = cancelledSales.Count;
             ViewBag.TotalRefunded = allSalesRaw.Sum(s => s.RefundedAmount);
