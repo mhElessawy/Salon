@@ -206,7 +206,8 @@ namespace Salon.Controllers
             // Category "عهدة" is excluded entirely: custody is money set aside under an
             // employee's custody, not a cash outflow, so it never reduces the register.
             var prevExpensesQuery = _context.Expenses
-                .Where(e => e.ExpenseDate >= baseDate && e.ExpenseDate < today && e.PaymentMethod == "نقدي" && e.Category != "عهدة");
+                .Where(e => e.ExpenseDate >= baseDate && e.ExpenseDate < today
+                         && (e.PaymentMethod == "نقدي" || e.PaymentMethod == "كاش" || e.PaymentMethod == "Cash") && e.Category != "عهدة");
             if (filterDept == "حلاقة")
                 prevExpensesQuery = prevExpensesQuery.Where(e => e.Department == "حلاقة" || e.Department == null || e.Department == "");
             else if (filterDept == "مساج")
@@ -224,7 +225,8 @@ namespace Salon.Controllers
             // Salaries paid in cash reduce the register too — Reports/CashMovement folds these
             // into the same "cash expenses" deduction alongside مصروف/سلفة.
             var prevSalariesQuery = _context.Salaries
-                .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= baseDate && s.PaidDate.Value < today && s.PaymentMethod == "نقدي");
+                .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= baseDate && s.PaidDate.Value < today
+                         && (s.PaymentMethod == "نقدي" || s.PaymentMethod == "كاش"));
             prevSalariesQuery = isEmployee
                 ? prevSalariesQuery.Where(s => s.EmployeeId == (linkedEmpId ?? -1))
                 : prevSalariesQuery.Where(s => employeeIds.Contains(s.EmployeeId));
@@ -253,9 +255,9 @@ namespace Salon.Controllers
             decimal tipsDelivered = allSales.Sum(s => s.EmployeeGift ?? 0);
             decimal totalDiscount = staffSales.Sum(s => s.Discount);
             decimal totalExpenses = expenses.Sum(e => e.Amount);
-            decimal cashExpenses = expenses.Where(e => e.PaymentMethod == "نقدي" && e.Category != "عهدة").Sum(e => e.Amount);
+            decimal cashExpenses = expenses.Where(e => (e.PaymentMethod == "نقدي" || e.PaymentMethod == "كاش" || e.PaymentMethod == "Cash") && e.Category != "عهدة").Sum(e => e.Amount);
             decimal cashAdvances = advances.Where(a => a.PaymentMethod == "نقدي").Sum(a => a.Amount);
-            decimal cashSalaries = todaySalaries.Where(s => s.PaymentMethod == "نقدي").Sum(s => s.NetSalary);
+            decimal cashSalaries = todaySalaries.Where(s => s.PaymentMethod == "نقدي" || s.PaymentMethod == "كاش").Sum(s => s.NetSalary);
             // العهدة معلوماتية فقط هنا — لا تُخصم من الصندوق (راجع todayCustodies أعلاه).
             decimal totalCustody = todayCustodies.Sum(c => c.Amount);
 

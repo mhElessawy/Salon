@@ -922,6 +922,13 @@ namespace Salon.Controllers
 
                 var salesRaw = await salesQuery.ToListAsync();
 
+                // بعض الفواتير بتتسجل بـ"نقدي" أو حتى "Cash"/"K-Net" الإنجليزية (لو كانت الواجهة
+                // على وضع الإنجليزي وقت الحفظ) بدل "كاش"/"كي نت" — فبنقبل المرادفات هنا زي باقي
+                // تقارير المبيعات في الملف ده.
+                string[] cashMethodsSalesLocal = { "كاش", "نقدي", "Cash" };
+                string[] knetMethodsSalesLocal = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+                string[] mixedMethodsSalesLocal = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
                 if (showCashSales)
                 {
                     var dailyCash = salesRaw
@@ -929,12 +936,12 @@ namespace Salon.Controllers
                         .Select(g => new
                         {
                             Date = g.Key,
-                            Amount = g.Sum(s => s.PaymentMethod == "كاش"
+                            Amount = g.Sum(s => cashMethodsSalesLocal.Contains(s.PaymentMethod)
                                 ? s.NetAmount
-                                : s.PaymentMethod == "كي نت و كاش"
+                                : mixedMethodsSalesLocal.Contains(s.PaymentMethod)
                                     ? (s.CashAmount ?? 0)
                                     : 0m),
-                            Count = g.Count(s => s.PaymentMethod == "كاش" || s.PaymentMethod == "كي نت و كاش")
+                            Count = g.Count(s => cashMethodsSalesLocal.Contains(s.PaymentMethod) || mixedMethodsSalesLocal.Contains(s.PaymentMethod))
                         })
                         .Where(d => d.Amount > 0);
 
@@ -956,12 +963,12 @@ namespace Salon.Controllers
                         .Select(g => new
                         {
                             Date = g.Key,
-                            Amount = g.Sum(s => s.PaymentMethod == "كي نت"
+                            Amount = g.Sum(s => knetMethodsSalesLocal.Contains(s.PaymentMethod)
                                 ? s.NetAmount
-                                : s.PaymentMethod == "كي نت و كاش"
+                                : mixedMethodsSalesLocal.Contains(s.PaymentMethod)
                                     ? (s.LinkAmount ?? 0)
                                     : 0m),
-                            Count = g.Count(s => s.PaymentMethod == "كي نت" || s.PaymentMethod == "كي نت و كاش")
+                            Count = g.Count(s => knetMethodsSalesLocal.Contains(s.PaymentMethod) || mixedMethodsSalesLocal.Contains(s.PaymentMethod))
                         })
                         .Where(d => d.Amount > 0);
 
@@ -999,11 +1006,12 @@ namespace Salon.Controllers
 
             items = items.OrderByDescending(i => i.Date).ThenBy(i => i.Type).ToList();
 
-            // شاشة صرف الرواتب بتخزّن "كاش" (مش "نقدي") كقيمة الدفع النقدي؛ فبنقبل الاتنين هنا
-            // عشان بيانات قديمة محتملة كانت بالقيمة الافتراضية "نقدي".
-            bool IsCashPayment(CashMovementReportItem i) => i.Type == "راتب"
-                ? (i.PaymentMethod == "كاش" || i.PaymentMethod == "نقدي")
-                : i.PaymentMethod == "نقدي";
+            // بعض الشاشات (زي صرف الرواتب) بتخزّن "كاش" بدل "نقدي" كقيمة الدفع النقدي، وبعض
+            // القوائم القديمة كانت بدون value صريحة فبتاخد النص المترجم "Cash" وقت الحفظ لو
+            // الواجهة كانت بالإنجليزي؛ فبنقبل التلات قيم كمرادفين هنا بدل ما نفلتر عليهم غلط
+            // كـ"بطاقة / تحويل".
+            bool IsCashPayment(CashMovementReportItem i) =>
+                i.PaymentMethod == "كاش" || i.PaymentMethod == "نقدي" || i.PaymentMethod == "Cash";
 
             decimal totalMasrouf = items.Where(i => i.Type == "مصروف").Sum(i => i.Amount);
             decimal totalSulfa = items.Where(i => i.Type == "سلفة").Sum(i => i.Amount);
@@ -1015,6 +1023,7 @@ namespace Salon.Controllers
             decimal totalSulfaCash = items.Where(i => i.Type == "سلفة" && IsCashPayment(i)).Sum(i => i.Amount);
             decimal totalSulfaKNet = totalSulfa - totalSulfaCash;
             decimal totalRatibCash = items.Where(i => i.Type == "راتب" && IsCashPayment(i)).Sum(i => i.Amount);
+            decimal totalRatibKNet = totalRatib - totalRatibCash;
             // المصروفات النقدية فقط (لحساب رصيد الكاش)
             decimal totalCashExp = totalMasroufCash + totalSulfaCash + totalRatibCash;
             decimal totalDep = items.Where(i => i.Type == "إيداع").Sum(i => i.Amount);
@@ -1039,6 +1048,8 @@ namespace Salon.Controllers
             ViewBag.TotalSulfaCash = totalSulfaCash;
             ViewBag.TotalSulfaKNet = totalSulfaKNet;
             ViewBag.TotalRatib = totalRatib;
+            ViewBag.TotalRatibCash = totalRatibCash;
+            ViewBag.TotalRatibKNet = totalRatibKNet;
             ViewBag.TotalExpenses = totalExp;
             ViewBag.TotalCashExpenses = totalCashExp;
             ViewBag.TotalNonCashExpenses = totalExp - totalCashExp;
@@ -1067,19 +1078,25 @@ namespace Salon.Controllers
         // بغير طريقة الدفع "نقدي") يستخدمها تقرير حركة البنك لحساب الرصيد الحالي والرصيد قبل الفترة معاً.
         private async Task<BankFlows> ComputeBankFlowsAsync(DateTime from, DateTime to, string? dept, bool filterDept)
         {
+            // نفس مرادفات الكاش المستخدمة في CashBoxCalculator، لازم تُستبعد هنا برضه وإلا فاتورة
+            // أو مصروف/إيداع اتسجل بـ"كاش"/"Cash" (بدل "كي نت"/"نقدي") هيتحسب غلط كحركة بنك.
+            string[] knetSalesMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedSalesMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+            string[] cashOnlyMethods = { "نقدي", "كاش", "Cash" };
+
             var salesQuery = _context.Sales.Where(s => s.SaleDate >= from && s.SaleDate < to && s.Status != "ملغي");
             if (filterDept) salesQuery = salesQuery.Where(s => s.SaleType == dept);
             var sales = await salesQuery.ToListAsync();
             decimal bankRevenue = sales.Sum(s =>
-                s.PaymentMethod == "كي نت" ? s.NetAmount :
-                s.PaymentMethod == "كي نت و كاش" ? (s.LinkAmount ?? 0) : 0m);
+                knetSalesMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                mixedSalesMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0m);
 
-            var depositsQuery = _context.Deposits.Where(d => d.DepositDate >= from && d.DepositDate < to && d.PaymentMethod != "نقدي");
+            var depositsQuery = _context.Deposits.Where(d => d.DepositDate >= from && d.DepositDate < to && !cashOnlyMethods.Contains(d.PaymentMethod));
             if (filterDept) depositsQuery = depositsQuery.Where(d => d.Department == dept);
             decimal deposits = (await depositsQuery.ToListAsync()).Sum(d => d.Amount);
 
             var expQuery = _context.Expenses.Where(e => e.ExpenseDate >= from && e.ExpenseDate < to
-                     && e.PaymentMethod != "نقدي" && e.Category != "عهدة");
+                     && !cashOnlyMethods.Contains(e.PaymentMethod) && e.Category != "عهدة");
             if (filterDept) expQuery = expQuery.Where(e => e.Department == dept);
             decimal expenses = (await expQuery.ToListAsync()).Sum(e => e.Amount);
 
@@ -1552,7 +1569,7 @@ namespace Salon.Controllers
                 else if (effectiveDept == "حلاقة") expQ = expQ.Where(e => e.Department == "حلاقة");
                 var periodExpenses = await expQ.ToListAsync();
                 decimal pExpenses = periodExpenses.Sum(e => e.Amount);
-                decimal pCashExpenses = periodExpenses.Where(e => e.PaymentMethod == "نقدي").Sum(e => e.Amount);
+                decimal pCashExpenses = periodExpenses.Where(e => e.PaymentMethod == "نقدي" || e.PaymentMethod == "كاش" || e.PaymentMethod == "Cash").Sum(e => e.Amount);
 
                 // القسم "الفعلي" للموظف يُحسب حسب: RevenueDepartment إن وُجد (لموظفي الأقسام غير الإيرادية
                 // كالنظافة والإدارة)، وإلا فقسمه التنظيمي (DepartmentNav)

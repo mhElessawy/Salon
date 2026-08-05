@@ -73,25 +73,37 @@ namespace Salon.Services
         {
             // كل أنواع الفواتير (حلاقة/مساج/منتجات) تدخل الصندوق الفعلي، وليس فواتير الموظفين
             // فقط — الصندوق واحد للمحل بالكامل.
+            // بعض الفواتير بتتسجل بـ"نقدي" أو حتى "Cash" الإنجليزية (لو كانت الواجهة على وضع
+            // الإنجليزي وقت الحفظ) بدل "كاش"، وفواتير الدفع المقسّم ممكن تتسجل بـ"مناصفة" أو
+            // "Cash & K-Net" مش بس "كي نت و كاش" — فبنقبل كل المرادفات هنا زي باقي تقارير
+            // المبيعات في النظام، وإلا مبيعات كاش فعلية (كاملة أو جزء منها) بتتستبعد من رصيد
+            // الصندوق غلط.
+            string[] cashSalesMethods = { "كاش", "نقدي", "Cash" };
+            string[] mixedSalesMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
             var salesQuery = context.Sales.Where(s => s.SaleDate >= from && s.SaleDate < to && s.Status != "ملغي");
             if (sharedOnly) salesQuery = salesQuery.Where(s => s.SaleType != "حلاقة" && s.SaleType != "مساج");
             else if (filterDept) salesQuery = salesQuery.Where(s => s.SaleType == dept);
             var sales = await salesQuery.ToListAsync();
             decimal cashRevenue = sales.Sum(s =>
-                s.PaymentMethod == "كاش" ? s.NetAmount :
-                s.PaymentMethod == "كي نت و كاش" ? (s.CashAmount ?? 0) : 0m);
+                cashSalesMethods.Contains(s.PaymentMethod) ? s.NetAmount :
+                mixedSalesMethods.Contains(s.PaymentMethod) ? (s.CashAmount ?? 0) : 0m);
 
             // الإيداعات النقدية فقط تدخل الصندوق الفعلي — إيداع بالتحويل البنكي أو البطاقة
             // ميعديش على الكاش الفعلي في الدرج، فمينفعش يزود رصيد الكاش.
-            var depositsQuery = context.Deposits.Where(d => d.DepositDate >= from && d.DepositDate < to && d.PaymentMethod == "نقدي");
+            // بنقبل "كاش"/"Cash" كمرادفين لـ"نقدي" لنفس سبب المصروفات أعلاه.
+            var depositsQuery = context.Deposits.Where(d => d.DepositDate >= from && d.DepositDate < to
+                     && (d.PaymentMethod == "نقدي" || d.PaymentMethod == "كاش" || d.PaymentMethod == "Cash"));
             if (sharedOnly) depositsQuery = depositsQuery.Where(d => d.Department != "حلاقة" && d.Department != "مساج");
             else if (filterDept) depositsQuery = depositsQuery.Where(d => d.Department == dept);
             decimal deposits = (await depositsQuery.ToListAsync()).Sum(d => d.Amount);
 
             // فئة "عهدة" مستبعدة هنا لأن العهدة لا تؤثر على الصندوق إطلاقاً — هي مبلغ منفصل تحت
             // عهدة الموظف، مش مصروف فعلي خرج من الكاش.
+            // بعض بيانات المصروفات مخزّنة بقيمة "كاش" بدل "نقدي" (زي ما بيحصل في شاشة صرف الرواتب
+            // أدناه)، أو حتى "Cash" الإنجليزية لو اتحفظت والواجهة كانت على وضع الإنجليزي — فبنقبل
+            // التلات قيم هنا بدل ما نستبعدها غلط من الكاش الفعلي.
             var expQuery = context.Expenses.Where(e => e.ExpenseDate >= from && e.ExpenseDate < to
-                     && e.PaymentMethod == "نقدي" && e.Category != "عهدة");
+                     && (e.PaymentMethod == "نقدي" || e.PaymentMethod == "كاش" || e.PaymentMethod == "Cash") && e.Category != "عهدة");
             if (sharedOnly) expQuery = expQuery.Where(e => e.Department != "حلاقة" && e.Department != "مساج");
             else if (filterDept) expQuery = expQuery.Where(e => e.Department == dept);
             decimal cashExpenses = (await expQuery.ToListAsync()).Sum(e => e.Amount);

@@ -77,7 +77,20 @@ namespace Salon.Controllers
             if (!string.IsNullOrEmpty(type))
                 query = query.Where(s => s.SaleType == type);
             if (!string.IsNullOrEmpty(paymentMethod))
-                query = query.Where(s => s.PaymentMethod == paymentMethod);
+            {
+                // فلتر طريقة الدفع لازم يقبل كل المرادفات (زي "Cash" الإنجليزية لو الفاتورة
+                // اتسجلت والواجهة كانت بالإنجليزي وقت الحفظ)، وإلا فواتير كاش فعلية بتختفي من
+                // النتيجة لما تفلتر بـ"كاش" — بنفس مرادفات cashMethods/knetMethods/mixedMethods
+                // المستخدمة في باقي الملف.
+                string[] paymentSynonyms = paymentMethod switch
+                {
+                    "كاش" => new[] { "كاش", "نقدي", "Cash" },
+                    "كي نت" => new[] { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" },
+                    "كي نت و كاش" or "مناصفة" => new[] { "كي نت و كاش", "مناصفة", "Cash & K-Net" },
+                    _ => new[] { paymentMethod }
+                };
+                query = query.Where(s => paymentSynonyms.Contains(s.PaymentMethod));
+            }
             if (employeeId.HasValue)
                 query = query.Where(s => s.EmployeeId == employeeId);
             if (!string.IsNullOrEmpty(status))
@@ -107,18 +120,24 @@ namespace Salon.Controllers
             ViewBag.TotalCancelled = cancelledSales.Sum(s => s.NetAmount);
             ViewBag.TotalRefunded = sales.Sum(s => s.RefundedAmount);
 
+            // بعض الفواتير بتتسجل بـ"نقدي" أو حتى "Cash" الإنجليزية (لو كانت الواجهة على وضع
+            // الإنجليزي وقت الحفظ) بدل "كاش" — فبنقبل الاتنين هنا كمرادفين لـ"كاش" الأصلية.
+            string[] cashMethods = { "كاش", "نقدي", "Cash" };
+            string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
+            string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+
             ViewBag.TotalCash = activeSales
-                .Where(s => s.PaymentMethod == "كاش")
+                .Where(s => cashMethods.Contains(s.PaymentMethod))
                 .Sum(s => s.NetAmount)
                 + activeSales
-                .Where(s => s.PaymentMethod == "كي نت و كاش")
+                .Where(s => mixedMethods.Contains(s.PaymentMethod))
                 .Sum(s => s.CashAmount ?? 0);
 
             ViewBag.TotalKnet = activeSales
-                .Where(s => s.PaymentMethod == "كي نت")
+                .Where(s => knetMethods.Contains(s.PaymentMethod))
                 .Sum(s => s.NetAmount)
                 + activeSales
-                .Where(s => s.PaymentMethod == "كي نت و كاش")
+                .Where(s => mixedMethods.Contains(s.PaymentMethod))
                 .Sum(s => s.LinkAmount ?? 0);
 
             ViewBag.TotalEmployeeDebt = activeSales
