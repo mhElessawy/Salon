@@ -378,7 +378,7 @@ namespace Salon.Controllers
                 MassageRows = massageRows,
                 WorkHours = workHours,
 
-                Invoices = allSales,
+                Invoices = allSales.Where(s => s.Status == Sale.Statuses.Completed).ToList(),
                 Expenses = expenses,
                 Advances = advances,
                 TipInvoices = tipInvoices,
