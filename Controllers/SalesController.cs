@@ -104,7 +104,10 @@ namespace Salon.Controllers
 
             var sales = await query.OrderByDescending(s => s.SaleDate).ToListAsync();
 
-            var activeSales = sales.Where(s => s.Status != "ملغي" && s.Status != Sale.Statuses.Refunded).ToList();
+            // الفواتير المسترجعة (كلياً أو جزئياً) تبقى ضمن الحسابات لكن بصافي المبلغ بعد خصم
+            // المسترد، بدل استبعادها بالكامل — وإلا فاتورة اتسترد جزء منها كانت بتتحسب بكامل
+            // قيمتها الأصلية بينما فاتورة اتسترد بالكامل كانت بتختفي تماماً من كل الإجماليات.
+            var activeSales = sales.Where(s => s.Status != "ملغي").ToList();
             var cancelledSales = sales.Where(s => s.Status == "ملغي").ToList();
 
             ViewBag.From = dateFrom.ToString("yyyy-MM-dd");
@@ -116,7 +119,7 @@ namespace Salon.Controllers
             ViewBag.FilterCustomer = customerName;
             ViewBag.InvoiceNumber = invoiceNumber2;
             ViewBag.FilterCreatedByUserId = createdByUserId;
-            ViewBag.TotalSales = activeSales.Sum(s => s.NetAmount);
+            ViewBag.TotalSales = activeSales.Sum(s => s.NetAmount - s.RefundedAmount);
             ViewBag.TotalCancelled = cancelledSales.Sum(s => s.NetAmount);
             ViewBag.TotalRefunded = sales.Sum(s => s.RefundedAmount);
 
@@ -128,25 +131,25 @@ namespace Salon.Controllers
 
             ViewBag.TotalCash = activeSales
                 .Where(s => cashMethods.Contains(s.PaymentMethod))
-                .Sum(s => s.NetAmount)
+                .Sum(s => s.NetAmount - s.RefundedAmount)
                 + activeSales
                 .Where(s => mixedMethods.Contains(s.PaymentMethod))
                 .Sum(s => s.CashAmount ?? 0);
 
             ViewBag.TotalKnet = activeSales
                 .Where(s => knetMethods.Contains(s.PaymentMethod))
-                .Sum(s => s.NetAmount)
+                .Sum(s => s.NetAmount - s.RefundedAmount)
                 + activeSales
                 .Where(s => mixedMethods.Contains(s.PaymentMethod))
                 .Sum(s => s.LinkAmount ?? 0);
 
             ViewBag.TotalEmployeeDebt = activeSales
                 .Where(s => s.PaymentMethod == "دين على الموظف")
-                .Sum(s => s.NetAmount);
+                .Sum(s => s.NetAmount - s.RefundedAmount);
 
             ViewBag.TotalOwnerDebt = activeSales
                 .Where(s => s.PaymentMethod == "دين على الإدارة")
-                .Sum(s => s.NetAmount);
+                .Sum(s => s.NetAmount - s.RefundedAmount);
 
             ViewBag.UserDepartment = userDept;
             ViewBag.IsEmployee = isEmployee;
