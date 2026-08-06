@@ -350,12 +350,12 @@
                 <h5 class="mb-0"><i class="fas fa-user-plus me-2 text-success"></i>تعيين باقة لعميل</h5>
             </div>
             <div class="card-body">
-                <form asp-action="AssignPackage" method="post" id="assignForm">
+                <form id="assignForm" onsubmit="return false;">
                     @Html.AntiForgeryToken()
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-5">
                             <label class="form-label fw-semibold">العميل <span class="text-danger">*</span></label>
-                            <select name="customerId" class="form-select" required>
+                            <select name="customerId" id="assignCustomerSelect" class="form-select" required>
                                 <option value="">-- اختر العميل --</option>
                                 @foreach (var item in (ViewBag.Customers as SelectList ?? new SelectList(new List<object>())))
                                 {
@@ -373,24 +373,21 @@
                                 }
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label fw-semibold">السعر المدفوع</label>
-                            <div class="input-group">
-                                <input type="number" name="pricePaid" step="0.001" min="0" class="form-control" id="pricePaidInput" placeholder="0.000" />
-                                <span class="input-group-text">د.ك</span>
-                            </div>
-                        </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <label class="form-label fw-semibold">ملاحظات</label>
-                            <input type="text" name="notes" class="form-control" placeholder="اختياري" />
+                            <input type="text" name="notes" id="assignNotesInput" class="form-control" placeholder="اختياري" />
                         </div>
                         <div class="col-12">
                             <div id="packageInfo" class="alert alert-info py-2 px-3 d-none">
                                 <i class="fas fa-info-circle me-1"></i>
                                 <span id="packageInfoText"></span>
                             </div>
-                            <button type="submit" class="btn btn-success px-4">
-                                <i class="fas fa-plus me-1"></i> تعيين الباقة
+                            <small class="text-muted d-block mb-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                سيتم عرض اتفاقية الباقة الإلكترونية (طريقة الدفع، الشروط والأحكام، التوقيع) قبل إتمام البيع.
+                            </small>
+                            <button type="button" class="btn btn-success px-4" onclick="openAssignAgreement()">
+                                <i class="fas fa-file-signature me-1"></i> بيع الباقة (اتفاقية + توقيع)
                             </button>
                         </div>
                     </div>
@@ -549,6 +546,8 @@
 
 </div>
 
+@await Html.PartialAsync("_PackageAgreementModal")
+
 <!-- Modal: حذف باقة -->
 <div class="modal fade" id="deletePackageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -635,6 +634,30 @@
 
 @section Scripts {
     <script>
+        // بيع باقة لعميل — يفتح اتفاقية الباقة الإلكترونية قبل إتمام البيع
+        function openAssignAgreement() {
+            var customerId = document.getElementById('assignCustomerSelect').value;
+            var servicePackageId = document.getElementById('packageSelect').value;
+            var notes = document.getElementById('assignNotesInput').value;
+            if (!customerId) { alert('اختر العميل أولاً'); return; }
+            if (!servicePackageId) { alert('اختر الباقة أولاً'); return; }
+
+            var token = document.querySelector('#assignForm input[name="__RequestVerificationToken"]').value;
+            PkgAgreement.openForCustomerAndPackage({
+                customerId: customerId,
+                servicePackageId: servicePackageId,
+                notes: notes,
+                antiForgeryToken: token,
+                assignUrl: '@Url.Action("AssignPackage")',
+                onSuccess: function (data) {
+                    if (data.printUrl && confirm('تم بيع الباقة بنجاح. هل تريد طباعة الاتفاقية الآن؟')) {
+                        window.open(data.printUrl, '_blank');
+                    }
+                    location.reload();
+                }
+            });
+        }
+
         // حذف باقة
         function confirmDeletePackage(id, name) {
             document.getElementById('deletePackageName').textContent = name;
@@ -662,13 +685,11 @@
         function loadPackageDetails(pkgId) {
             if (!pkgId) {
                 document.getElementById('packageInfo').classList.add('d-none');
-                document.getElementById('pricePaidInput').value = '';
                 return;
             }
             fetch('@Url.Action("GetPackageDetails")/' + pkgId)
                 .then(r => r.json())
                 .then(data => {
-                    document.getElementById('pricePaidInput').value = data.price.toFixed(3);
                     var isEn = localStorage.getItem('lang') === 'en';
                     document.getElementById('packageInfoText').textContent = isEn
                         ? `${data.sessionCount} Session | Validity ${data.validityDays} Day | Price ${data.price.toFixed(3)} K.D.`

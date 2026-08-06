@@ -15,12 +15,14 @@ namespace Salon.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IAuditService _audit;
+        private readonly IEmailService _emailService;
 
-        public PackagesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IAuditService audit)
+        public PackagesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IAuditService audit, IEmailService emailService)
         {
             _context = context;
             _userManager = userManager;
             _audit = audit;
+            _emailService = emailService;
         }
 
         // ─── الباقات - Tab 1 ─────────────────────────────────────────
@@ -131,16 +133,38 @@ namespace Salon.Controllers
             return RedirectToAction(nameof(Index), new { tab = "packages" });
         }
 
-        // ─── تعيين باقة لعميل ─────────────────────────────────────────
+        // ─── تعيين باقة لعميل (بيع باقة جديدة) ─────────────────────────
+        // هذا الإجراء هو لحظة "بيع الباقة" الفعلية: عند وجود مبلغ مدفوع الآن (pricePaid > 0)
+        // يُعتبر بيعاً جديداً يستلزم اتفاقية إلكترونية موقّعة (انظر اتفاقية الباقات الإلكترونية)
+        // قبل اعتماد عملية البيع، ثم يُنشئ فاتورة رسمية ويربطها بالاتفاقية وبمحفظة العميل.
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> AssignPackage(int customerId, int servicePackageId, decimal pricePaid, string? notes)
+        public async Task<IActionResult> AssignPackage(
+            int customerId, int servicePackageId, decimal pricePaid, string? notes,
+            string? paymentMethod, bool agreedToTerms, string? signatureData)
         {
+            bool isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+
+            var customer = await _context.Customers.FindAsync(customerId);
             var pkg = await _context.ServicePackages.FindAsync(servicePackageId);
-            if (pkg == null)
+            if (customer == null || pkg == null)
             {
-                TempData["Error"] = "Package not found";
+                const string notFoundMsg = "بيانات العميل أو الباقة غير صحيحة";
+                if (isAjax) return Json(new { success = false, message = notFoundMsg });
+                TempData["Error"] = notFoundMsg;
                 return RedirectToAction(nameof(Index), new { tab = "balances" });
             }
+
+            var isNewSale = pricePaid > 0;
+            if (isNewSale && (!agreedToTerms || string.IsNullOrWhiteSpace(signatureData)))
+            {
+                const string agreementMsg = "يجب الموافقة على شروط وأحكام الباقة والتوقيع الإلكتروني قبل إتمام البيع";
+                if (isAjax) return Json(new { success = false, message = agreementMsg });
+                TempData["Error"] = agreementMsg;
+                return RedirectToAction(nameof(Index), new { tab = "balances" });
+            }
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            var payMethod = string.IsNullOrWhiteSpace(paymentMethod) ? "نقدي" : paymentMethod;
 
             var customerPkg = new CustomerPackage
             {
@@ -160,13 +184,195 @@ namespace Salon.Controllers
             _context.CustomerPackages.Add(customerPkg);
             await _context.SaveChangesAsync();
             await _audit.LogAsync("Assign", "Packages", $"Assign package: {pkg.NameAr} for customer ID {customerId} — Amount: {pricePaid:F3} KD", customerPkg.Id);
-            TempData["Success"] = "Package assigned to customer created successfully";
 
-            // إذا كان الطلب AJAX ارجع JSON
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                return Json(new { success = true, customerPackageId = customerPkg.Id });
+            int? saleId = null;
+            string? invoiceNumber = null;
+            int? agreementId = null;
+
+            if (isNewSale)
+            {
+                var sale = new Sale
+                {
+                    CustomerId = customerId,
+                    SaleDate = DateTime.Now,
+                    PaymentMethod = payMethod,
+                    SaleType = "باقات",
+                    Status = Sale.Statuses.Completed,
+                    TotalAmount = pricePaid,
+                    Discount = 0,
+                    NetAmount = pricePaid,
+                    Notes = notes,
+                    CreatedByUserId = currentUser?.Id,
+                    CreatedByUserName = currentUser?.FullName ?? currentUser?.UserName ?? User.Identity?.Name
+                };
+                _context.Sales.Add(sale);
+
+                // إعادة المحاولة عند تعارض رقم الفاتورة (طلبين شبه متزامنين) بدل إظهار خطأ للمستخدم
+                const int maxInvoiceAttempts = 5;
+                for (int attempt = 1; ; attempt++)
+                {
+                    sale.InvoiceNumber = await GeneratePackageInvoiceNumber();
+                    try
+                    {
+                        await _context.SaveChangesAsync();
+                        break;
+                    }
+                    catch (DbUpdateException) when (attempt < maxInvoiceAttempts)
+                    {
+                    }
+                }
+
+                _context.SaleItems.Add(new SaleItem
+                {
+                    SaleId = sale.Id,
+                    ItemName = $"باقة: {pkg.NameAr}",
+                    Quantity = 1,
+                    Price = pricePaid,
+                    Total = pricePaid
+                });
+                await _context.SaveChangesAsync();
+
+                saleId = sale.Id;
+                invoiceNumber = sale.InvoiceNumber;
+
+                var settings = await _context.AppSettings.ToDictionaryAsync(s => s.Key, s => s.Value);
+                var agreement = new PackageAgreement
+                {
+                    CustomerPackageId = customerPkg.Id,
+                    CustomerId = customerId,
+                    ServicePackageId = servicePackageId,
+                    SaleId = sale.Id,
+                    CustomerName = customer.FullName,
+                    CustomerPhone = customer.Phone,
+                    PackageNameAr = pkg.NameAr,
+                    PackageNameEn = pkg.NameEn,
+                    SessionCount = pkg.SessionCount,
+                    PackagePrice = pkg.Price,
+                    AmountPaid = pricePaid,
+                    PurchaseDate = customerPkg.PurchaseDate,
+                    ExpiryDate = customerPkg.ExpiryDate,
+                    PaymentMethod = payMethod,
+                    InvoiceNumber = sale.InvoiceNumber,
+                    TermsAr = settings.GetValueOrDefault("PackageAgreementTermsAr", PackageAgreement.DefaultTermsAr),
+                    TermsEn = settings.GetValueOrDefault("PackageAgreementTermsEn", PackageAgreement.DefaultTermsEn),
+                    SignatureImage = signatureData ?? "",
+                    SignedAt = DateTime.Now,
+                    SignedByUserId = currentUser?.Id,
+                    SignedByUserName = currentUser?.FullName ?? currentUser?.UserName ?? User.Identity?.Name ?? "—"
+                };
+                _context.PackageAgreements.Add(agreement);
+                await _context.SaveChangesAsync();
+                agreementId = agreement.Id;
+
+                await _audit.LogAsync("Add", "Packages", $"Invoice {sale.InvoiceNumber} — package agreement signed for {customer.FullName}", agreement.Id);
+            }
+
+            TempData["Success"] = "تم بيع الباقة للعميل بنجاح";
+
+            if (isAjax)
+                return Json(new
+                {
+                    success = true,
+                    customerPackageId = customerPkg.Id,
+                    saleId,
+                    invoiceNumber,
+                    agreementId,
+                    printUrl = agreementId.HasValue ? Url.Action("PrintAgreement", new { id = agreementId }) : null
+                });
 
             return RedirectToAction(nameof(Index), new { tab = "balances" });
+        }
+
+        // ─── API: بيانات معاينة الاتفاقية قبل التوقيع (عميل + باقة + الشروط الحالية) ───
+        [HttpGet]
+        public async Task<IActionResult> GetAgreementData(int customerId, int servicePackageId)
+        {
+            var customer = await _context.Customers.FindAsync(customerId);
+            var pkg = await _context.ServicePackages.FindAsync(servicePackageId);
+            if (customer == null || pkg == null) return NotFound();
+
+            var settings = await _context.AppSettings.ToDictionaryAsync(s => s.Key, s => s.Value);
+
+            return Json(new
+            {
+                customerName = customer.FullName,
+                customerPhone = customer.Phone,
+                packageNameAr = pkg.NameAr,
+                packageNameEn = pkg.NameEn,
+                sessionCount = pkg.SessionCount,
+                price = pkg.Price,
+                validityDays = pkg.ValidityDays,
+                termsAr = settings.GetValueOrDefault("PackageAgreementTermsAr", PackageAgreement.DefaultTermsAr),
+                termsEn = settings.GetValueOrDefault("PackageAgreementTermsEn", PackageAgreement.DefaultTermsEn)
+            });
+        }
+
+        // ─── عرض/طباعة/تحميل اتفاقية باقة موقّعة ────────────────────────
+        public async Task<IActionResult> PrintAgreement(int id)
+        {
+            var agreement = await _context.PackageAgreements
+                .Include(a => a.Sale)
+                .FirstOrDefaultAsync(a => a.Id == id);
+            if (agreement == null) return NotFound();
+
+            await LoadSalonSettings();
+            return View(agreement);
+        }
+
+        // ─── إرسال الاتفاقية عبر البريد الإلكتروني ──────────────────────
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> SendAgreementEmail(int id, string? email)
+        {
+            var agreement = await _context.PackageAgreements.FirstOrDefaultAsync(a => a.Id == id);
+            if (agreement == null) return Json(new { success = false, message = "الاتفاقية غير موجودة" });
+
+            var toEmail = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
+            if (string.IsNullOrWhiteSpace(toEmail))
+            {
+                var customer = await _context.Customers.FindAsync(agreement.CustomerId);
+                toEmail = customer?.Email;
+            }
+            if (string.IsNullOrWhiteSpace(toEmail))
+                return Json(new { success = false, message = "لا يوجد بريد إلكتروني مسجّل لهذا العميل" });
+
+            var printUrl = Url.Action("PrintAgreement", "Packages", new { id = agreement.Id }, Request.Scheme);
+            try
+            {
+                await _emailService.SendPackageAgreementEmailAsync(agreement, toEmail!, printUrl ?? "");
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "تعذر إرسال البريد الإلكتروني: " + ex.Message });
+            }
+            await _audit.LogAsync("Send", "Packages", $"Package agreement #{agreement.Id} emailed to {toEmail}", agreement.Id);
+            return Json(new { success = true });
+        }
+
+        private async Task<string> GeneratePackageInvoiceNumber()
+        {
+            const string prefix = "PKG";
+            var allNumbers = await _context.Sales
+                .Where(s => s.InvoiceNumber.StartsWith(prefix + "-"))
+                .Select(s => s.InvoiceNumber)
+                .ToListAsync();
+
+            int maxSeq = 0;
+            foreach (var inv in allNumbers)
+            {
+                var parts = inv.Split('-');
+                if (parts.Length == 2 && int.TryParse(parts[1], out var n))
+                    if (n > maxSeq) maxSeq = n;
+            }
+            return $"{prefix}-{(maxSeq + 1):D4}";
+        }
+
+        private async Task LoadSalonSettings()
+        {
+            var settings = await _context.AppSettings.ToDictionaryAsync(s => s.Key, s => s.Value);
+            ViewBag.SalonName = settings.GetValueOrDefault("SalonName", "معهد موس");
+            ViewBag.SalonNameEn = settings.GetValueOrDefault("SalonNameEn", "Mos Institute");
+            ViewBag.SalonPhone = settings.GetValueOrDefault("SalonPhone", "");
+            ViewBag.SalonAddress = settings.GetValueOrDefault("SalonAddress", "");
         }
 
         // ─── حذف باقة غير مستخدمة وغير مدفوعة ───────────────────────

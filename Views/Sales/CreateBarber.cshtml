@@ -1303,6 +1303,8 @@
     </div>
 </div>
 
+@await Html.PartialAsync("_PackageAgreementModal")
+
 <!-- ══ Scheduling Confirm Overlay ══ -->
 <div id="schedConfirmOverlay" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);align-items:center;justify-content:center;">
     <div style="background:#fff;border-radius:18px;padding:36px 32px;max-width:440px;width:90%;text-align:center;box-shadow:0 12px 48px rgba(0,0,0,.3);">
@@ -2016,53 +2018,39 @@
                 var packageId  = assignSelectedPkgId;
                 var notes      = document.getElementById('assignNotes').value;
                 var errEl      = document.getElementById('assignError');
-                var submitBtn  = document.getElementById('assignPackageSubmit');
 
                 if (!packageId) { errEl.textContent = 'اختر الباقة أولاً'; errEl.classList.remove('d-none'); return; }
                 errEl.classList.add('d-none');
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري الحفظ...';
 
+                // اتفاقية الباقة الإلكترونية: طريقة الدفع + الشروط والأحكام + التوقيع
+                // قبل اعتماد بيع الباقة نهائياً (انظر wwwroot/js/package-agreement.js)
+                bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide();
                 var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-                var body  = new URLSearchParams({
+                PkgAgreement.openForCustomerAndPackage({
                     customerId: customerId,
                     servicePackageId: packageId,
-                    pricePaid: '0',   // الدفع يتم عبر الفاتورة
                     notes: notes,
-                    __RequestVerificationToken: token
-                });
-
-                fetch('/Packages/AssignPackage', {
-                    method: 'POST', body: body,
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded',
-                               'X-Requested-With': 'XMLHttpRequest' }
-                })
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    if (data && data.success) {
-                        bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide();
-                        // تعيين بيانات الاختيار التلقائي
+                    antiForgeryToken: token,
+                    assignUrl: '/Packages/AssignPackage',
+                    onSuccess: function (data) {
+                        // تعيين بيانات الاختيار التلقائي — الباقة أصبحت مدفوعة بالكامل عبر الاتفاقية
                         pendingAutoSelectData = {
-                            id:          data.customerPackageId,
-                            name:        assignSelectedPkgName,
-                            remaining:   assignSelectedPkgSessions,
-                            total:       assignSelectedPkgSessions,
-                            pricePaid:   0,
+                            id:           data.customerPackageId,
+                            name:         assignSelectedPkgName,
+                            remaining:    assignSelectedPkgSessions,
+                            total:        assignSelectedPkgSessions,
+                            pricePaid:    data.amountPaid,
                             packagePrice: assignSelectedPkgPrice
                         };
                         onCustomerChange(customerId); // يُحدِّث القائمة ثم يختار الباقة تلقائياً
-                    } else {
-                        errEl.textContent = (data && data.message) || 'حدث خطأ أثناء الحفظ';
+                        if (data.printUrl && confirm(_t('تم بيع الباقة بنجاح. هل تريد طباعة الاتفاقية الآن؟', 'Package sold successfully. Print the agreement now?'))) {
+                            window.open(data.printUrl, '_blank');
+                        }
+                    },
+                    onError: function (msg) {
+                        errEl.textContent = msg || 'حدث خطأ أثناء جلب بيانات الاتفاقية';
                         errEl.classList.remove('d-none');
                     }
-                })
-                .catch(function(e) {
-                    errEl.textContent = 'خطأ: ' + e.message;
-                    errEl.classList.remove('d-none');
-                })
-                .finally(function() {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> تعيين الباقة';
                 });
             }
 

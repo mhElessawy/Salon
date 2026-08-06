@@ -24,6 +24,7 @@ public interface IEmailService
     Task SendAdvanceRequestAsync(string employeeName, string department, decimal amount, string? reason, DateTime requestDate);
     Task SendPurchaseRequestAsync(string employeeName, string department, decimal estimatedAmount, string? reason, DateTime requestDate);
     Task SendAppointmentReminderAsync(string customerName, string? employeeName, DateTime appointmentDate, int minutesBefore);
+    Task SendPackageAgreementEmailAsync(PackageAgreement agreement, string toEmail, string printUrl);
 }
 
 public class EmailService : IEmailService
@@ -636,6 +637,102 @@ public class EmailService : IEmailService
       نظام معهد موس &nbsp;|&nbsp; {nowStr}
     </td>
   </tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>";
+    }
+
+    public async Task SendPackageAgreementEmailAsync(PackageAgreement agreement, string toEmail, string printUrl)
+    {
+        if (string.IsNullOrWhiteSpace(_settings.SenderEmail) || _settings.SenderEmail.StartsWith("YOUR_"))
+        {
+            _logger.LogWarning("Email not configured — cannot send package agreement email.");
+            throw new InvalidOperationException("البريد الإلكتروني غير مُهيّأ في إعدادات النظام");
+        }
+        try
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(_settings.SenderName, _settings.SenderEmail));
+            message.To.Add(MailboxAddress.Parse(toEmail));
+            message.Subject = $"اتفاقية باقة {agreement.PackageNameAr} — فاتورة {agreement.InvoiceNumber}";
+            message.Body = new TextPart("html") { Text = BuildPackageAgreementEmailBody(agreement, printUrl) };
+
+            using var smtp = new MailKit.Net.Smtp.SmtpClient();
+            await smtp.ConnectAsync(_settings.SmtpHost, _settings.SmtpPort, SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_settings.SenderEmail, _settings.SenderPassword);
+            await smtp.SendAsync(message);
+            await smtp.DisconnectAsync(true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send package agreement email for agreement #{AgreementId}", agreement.Id);
+            throw;
+        }
+    }
+
+    private static string BuildPackageAgreementEmailBody(PackageAgreement agreement, string printUrl)
+    {
+        var linkButton = string.IsNullOrWhiteSpace(printUrl) ? "" : $@"
+        <tr>
+          <td style='padding:18px 28px;text-align:center;'>
+            <a href='{printUrl}' style='display:inline-block;background:#F7941D;color:#fff;text-decoration:none;
+               border-radius:8px;padding:12px 28px;font-size:14px;font-weight:700;'>عرض / طباعة الاتفاقية</a>
+          </td>
+        </tr>";
+
+        return $@"<!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head><meta charset='utf-8'/></head>
+<body style='margin:0;padding:0;background:#f0f2f5;font-family:Segoe UI,Tahoma,Arial,sans-serif;direction:rtl;'>
+<table width='100%' cellpadding='0' cellspacing='0' style='background:#f0f2f5;padding:30px 0;'>
+<tr><td align='center'>
+<table width='560' cellpadding='0' cellspacing='0'
+       style='background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.10);'>
+
+  <tr>
+    <td style='background:linear-gradient(135deg,#1a1a2e,#0f3460);padding:24px 28px;'>
+      <h2 style='margin:0;color:#F7941D;font-size:20px;'>اتفاقية اشتراك في باقة</h2>
+      <p style='margin:6px 0 0;color:rgba(255,255,255,0.7);font-size:13px;'>{agreement.CustomerName}</p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style='padding:20px 28px 10px;'>
+      <table width='100%' cellpadding='0' cellspacing='0'
+             style='background:#f7f8fa;border-radius:10px;padding:14px 18px;'>
+        <tr>
+          <td style='padding:5px 0;font-size:14px;color:#555;'>الباقة:</td>
+          <td style='padding:5px 0;font-size:14px;font-weight:700;color:#1a1a2e;text-align:left;'>{agreement.PackageNameAr}</td>
+        </tr>
+        <tr>
+          <td style='padding:5px 0;font-size:14px;color:#555;'>عدد الجلسات:</td>
+          <td style='padding:5px 0;font-size:14px;color:#1a1a2e;text-align:left;'>{agreement.SessionCount}</td>
+        </tr>
+        <tr>
+          <td style='padding:5px 0;font-size:14px;color:#555;'>المبلغ المدفوع:</td>
+          <td style='padding:5px 0;font-size:14px;font-weight:700;color:#F7941D;text-align:left;'>{agreement.AmountPaid:N3} د.ك</td>
+        </tr>
+        <tr>
+          <td style='padding:5px 0;font-size:14px;color:#555;'>رقم الفاتورة:</td>
+          <td style='padding:5px 0;font-size:14px;color:#1a1a2e;text-align:left;'>{agreement.InvoiceNumber}</td>
+        </tr>
+        <tr>
+          <td style='padding:5px 0;font-size:14px;color:#555;'>تاريخ التوقيع:</td>
+          <td style='padding:5px 0;font-size:14px;color:#1a1a2e;text-align:left;'>{agreement.SignedAt:yyyy/MM/dd HH:mm}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  {linkButton}
+  <tr>
+    <td style='background:#f7f8fa;padding:14px 28px;border-top:1px solid #eee;
+               font-size:12px;color:#aaa;text-align:center;'>
+      شكراً لاشتراككم معنا
+    </td>
+  </tr>
+
 </table>
 </td></tr>
 </table>

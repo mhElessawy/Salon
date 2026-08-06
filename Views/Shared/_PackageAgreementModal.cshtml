@@ -1,0 +1,88 @@
+@* ══════════════════════════════════════════════════════════════════
+   اتفاقية الباقة الإلكترونية — Modal مشترك يُستخدم من:
+   Views/Packages/Index.cshtml, Views/Sales/CreateBarber.cshtml, Views/Sales/CreateMassage.cshtml
+   يعرض بيانات العميل/الباقة، طريقة الدفع والمبلغ، الشروط والأحكام، إقرار الموافقة، والتوقيع
+   الإلكتروني — ولا يسمح بإتمام البيع إلا بعد الموافقة والتوقيع (انظر wwwroot/js/package-agreement.js)
+   ══════════════════════════════════════════════════════════════════ *@
+<div class="modal fade" id="pkgAgreementModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background:#1a1a2e;color:#fff;">
+                <h6 class="modal-title fw-bold mb-0">
+                    <i class="fas fa-file-signature me-2"></i>اتفاقية الاشتراك في الباقة
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <div class="border rounded p-2 small">
+                            <div class="text-muted mb-1">العميل / Customer</div>
+                            <div class="fw-bold" id="pkgAgCustomerName">—</div>
+                            <div class="text-muted" id="pkgAgCustomerPhone">—</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="border rounded p-2 small">
+                            <div class="text-muted mb-1">الباقة / Package</div>
+                            <div class="fw-bold" id="pkgAgPackageName">—</div>
+                            <div class="text-muted" id="pkgAgPackageMeta">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">طريقة الدفع <span class="text-danger">*</span></label>
+                        <select id="pkgAgPaymentMethod" class="form-select">
+                            <option value="كاش">كاش / Cash</option>
+                            <option value="كي نت">كي نت / KNET</option>
+                            <option value="تحويل بنكي">تحويل بنكي / Bank Transfer</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">المبلغ المدفوع الآن <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="number" id="pkgAgAmount" step="0.001" min="0.001" class="form-control" />
+                            <span class="input-group-text">د.ك</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold mb-2">الشروط والأحكام / Terms &amp; Conditions</label>
+                    <div class="border rounded p-3 small" style="max-height:180px;overflow-y:auto;background:#f8f9fa;white-space:pre-wrap;line-height:1.8;" id="pkgAgTermsAr" dir="rtl"></div>
+                    <div class="border rounded p-3 small mt-2" style="max-height:150px;overflow-y:auto;background:#f8f9fa;white-space:pre-wrap;line-height:1.8;" id="pkgAgTermsEn" dir="ltr"></div>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="pkgAgAgree">
+                    <label class="form-check-label fw-semibold" for="pkgAgAgree">
+                        أقر بأنني قرأت ووافقت على شروط وأحكام الباقة
+                        <div class="text-muted fw-normal small">I acknowledge that I have read and agreed to the package terms &amp; conditions</div>
+                    </label>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label fw-semibold mb-2">التوقيع الإلكتروني / Electronic Signature <span class="text-danger">*</span></label>
+                    <div style="border:2px dashed #ced4da;border-radius:10px;background:#fff;touch-action:none;">
+                        <canvas id="pkgAgSignatureCanvas" width="700" height="180" style="width:100%;height:180px;display:block;cursor:crosshair;"></canvas>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="pkgAgClearSignature">
+                        <i class="fas fa-eraser me-1"></i> مسح التوقيع
+                    </button>
+                </div>
+
+                <div id="pkgAgError" class="alert alert-danger py-2 d-none small mt-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary px-4" id="pkgAgSubmitBtn">
+                    <i class="fas fa-check-circle me-1"></i> الموافقة وإتمام البيع
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/package-agreement.js"></script>

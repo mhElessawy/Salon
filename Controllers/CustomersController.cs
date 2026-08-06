@@ -196,6 +196,12 @@ namespace Salon.Controllers
                 .Include(c => c.CustomerPackages).ThenInclude(cp => cp.Transactions).ThenInclude(t => t.Employee)
                 .FirstOrDefaultAsync(c => c.Id == id);
             if (customer == null) return NotFound();
+
+            ViewBag.PackageAgreements = await _context.PackageAgreements
+                .Where(a => a.CustomerId == id)
+                .OrderByDescending(a => a.SignedAt)
+                .ToListAsync();
+
             return View(customer);
         }
 
