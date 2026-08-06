@@ -121,6 +121,7 @@
     // محفظة الباقات لا تظهر إلا لعميل قسم المساج أو كلا القسمين
     var showWallet = Model.Department == "مساج" || Model.Department == "الكل";
     var canManageOpeningBalance = User.IsInRole("Admin") || User.IsInRole("Manager");
+    var agreements = ViewBag.PackageAgreements as IEnumerable<Salon.Models.PackageAgreement> ?? Enumerable.Empty<Salon.Models.PackageAgreement>();
 }
 @if (showWallet)
 {
@@ -203,6 +204,100 @@
             </div>
         </div>
     </div>
+}
+
+@if (agreements.Any())
+{
+    <div class="row g-3 mt-1">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-file-signature me-2"></i>اتفاقيات الباقات
+                    <span class="badge bg-info ms-2">@agreements.Count()</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th>تاريخ التوقيع</th>
+                                    <th>الباقة</th>
+                                    <th>رقم الفاتورة</th>
+                                    <th>المبلغ المدفوع</th>
+                                    <th>طريقة الدفع</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var a in agreements)
+                                {
+                                    <tr>
+                                        <td>@a.SignedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                        <td>@a.PackageNameAr</td>
+                                        <td>@a.InvoiceNumber</td>
+                                        <td>@a.AmountPaid.ToString("N3") د.ك</td>
+                                        <td>@a.PaymentMethod</td>
+                                        <td>
+                                            <div class="d-flex gap-1 flex-wrap">
+                                                <a href="@Url.Action("PrintAgreement", "Packages", new { id = a.Id })" target="_blank"
+                                                   class="btn btn-sm btn-outline-primary" title="عرض / طباعة / تحميل PDF">
+                                                    <i class="fas fa-print"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-outline-success" title="إرسال عبر واتساب"
+                                                        onclick="sendAgreementWhatsApp(@a.Id, '@Html.Raw((a.CustomerPhone ?? "").Replace("'", "\\'"))')">
+                                                    <i class="fab fa-whatsapp"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" title="إرسال عبر البريد الإلكتروني"
+                                                        onclick="sendAgreementEmail(@a.Id, this)">
+                                                    <i class="fas fa-envelope"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form id="agreementAntiForgeryForm">@Html.AntiForgeryToken()</form>
+
+    <script>
+        function sendAgreementWhatsApp(agreementId, phone) {
+            var digits = (phone || '').replace(/[^0-9]/g, '');
+            var origin = window.location.origin;
+            var url = origin + '@Url.Action("PrintAgreement", "Packages")' + '/' + agreementId;
+            var text = encodeURIComponent('مرحباً، هذه اتفاقية باقتك: ' + url);
+            if (!digits) {
+                window.open('https://wa.me/?text=' + text, '_blank');
+                return;
+            }
+            window.open('https://wa.me/' + digits + '?text=' + text, '_blank');
+        }
+
+        function sendAgreementEmail(agreementId, btn) {
+            var token = document.querySelector('#agreementAntiForgeryForm input[name="__RequestVerificationToken"]').value;
+            btn.disabled = true;
+            fetch('@Url.Action("SendAgreementEmail", "Packages")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                body: new URLSearchParams({ id: agreementId, __RequestVerificationToken: token })
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.success) {
+                    alert('تم إرسال الاتفاقية بالبريد الإلكتروني بنجاح');
+                } else {
+                    alert(data.message || 'تعذر إرسال البريد الإلكتروني');
+                }
+            })
+            .catch(function () { alert('حدث خطأ أثناء الإرسال'); })
+            .finally(function () { btn.disabled = false; });
+        }
+    </script>
 }
 
 @if (showWallet && canManageOpeningBalance)

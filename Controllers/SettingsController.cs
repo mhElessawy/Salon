@@ -71,6 +71,27 @@ namespace Salon.Controllers
         public IActionResult Database() => View();
         public IActionResult UserCards() => View();
         public IActionResult Training() => View();
-        public IActionResult Packages() => View();
+
+        // ─── شروط وأحكام الباقات: يعدّلها صاحب الصالون دون الحاجة لتعديل برمجي ───
+        public async Task<IActionResult> Packages()
+        {
+            var settings = await _context.AppSettings.ToDictionaryAsync(s => s.Key, s => s.Value);
+            ViewBag.TermsAr = settings.GetValueOrDefault("PackageAgreementTermsAr", PackageAgreement.DefaultTermsAr);
+            ViewBag.TermsEn = settings.GetValueOrDefault("PackageAgreementTermsEn", PackageAgreement.DefaultTermsEn);
+            return View();
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> Packages(string termsAr, string termsEn)
+        {
+            await UpsertSetting("PackageAgreementTermsAr",
+                string.IsNullOrWhiteSpace(termsAr) ? PackageAgreement.DefaultTermsAr : termsAr);
+            await UpsertSetting("PackageAgreementTermsEn",
+                string.IsNullOrWhiteSpace(termsEn) ? PackageAgreement.DefaultTermsEn : termsEn);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "تم حفظ شروط وأحكام الباقات بنجاح";
+            return RedirectToAction(nameof(Packages));
+        }
     }
 }

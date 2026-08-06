@@ -47,6 +47,7 @@ namespace Salon.Data
         public DbSet<SupplierInvoicePayment> SupplierInvoicePayments { get; set; }
         public DbSet<SupplierInvoiceItem> SupplierInvoiceItems { get; set; }
         public DbSet<Refund> Refunds { get; set; }
+        public DbSet<PackageAgreement> PackageAgreements { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -273,6 +274,41 @@ namespace Salon.Data
                 .WithMany(s => s.Refunds)
                 .HasForeignKey(r => r.SaleId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<PackageAgreement>()
+                .Property(a => a.PackagePrice)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<PackageAgreement>()
+                .Property(a => a.AmountPaid)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<PackageAgreement>()
+                .HasOne(a => a.CustomerPackage)
+                .WithMany()
+                .HasForeignKey(a => a.CustomerPackageId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Restrict (·« Cascade) ·√‰ «·Ê’Ê· ·‹ Customer/ServicePackage „„ﬂ‰ √Ì÷« »‘ﬂ· €Ì—
+            // „»«‘— ⁄»— CustomerPackageId ó ·Ê Œ·Ì‰«Â« Cascade ÂÌ»ﬁÏ ›ÌÂ √ﬂ — „‰ „”«— Cascade
+            // ·‰›” «·ÃœÊ· (PackageAgreements) ÊSQL Server ÂÌ—›÷ ≈‰‘«¡ «·ﬁÌÊœ (Error 1785)
+            builder.Entity<PackageAgreement>()
+                .HasOne(a => a.Customer)
+                .WithMany()
+                .HasForeignKey(a => a.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<PackageAgreement>()
+                .HasOne(a => a.ServicePackage)
+                .WithMany()
+                .HasForeignKey(a => a.ServicePackageId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<PackageAgreement>()
+                .HasOne(a => a.Sale)
+                .WithMany()
+                .HasForeignKey(a => a.SaleId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

@@ -1,13 +1,45 @@
 @{
-    ViewData["Title"] = "اختبار نظام الباقات";
+    ViewData["Title"] = "شروط وأحكام الباقات";
+    string termsAr = ViewBag.TermsAr ?? "";
+    string termsEn = ViewBag.TermsEn ?? "";
 }
 
 <div class="page-header">
-    <h1><i class="fas fa-cube me-2"></i>اختبار نظام الباقات</h1>
+    <h1><i class="fas fa-file-signature me-2"></i>شروط وأحكام الباقات</h1>
+    <p>هذا النص يظهر داخل اتفاقية الباقة الإلكترونية التي يوقّعها العميل عند شراء أي باقة جديدة من الكاشير</p>
 </div>
-<div class="card">
-    <div class="card-body text-center py-5">
-        <i class="fas fa-cubes fa-4x text-muted mb-3"></i>
-        <p>اختبار نظام الباقات والاشتراكات - قيد التطوير</p>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
-</div>
+}
+
+<form method="post" asp-action="Packages">
+    @Html.AntiForgeryToken()
+    <div class="card mb-3">
+        <div class="card-header">
+            <i class="fas fa-language me-2 text-primary"></i>النص بالعربية
+        </div>
+        <div class="card-body">
+            <textarea name="termsAr" class="form-control" rows="10" dir="rtl">@termsAr</textarea>
+            <small class="text-muted d-block mt-2">يمكنك إضافة أو حذف بنود حسب سياسة المنشأة والأنظمة المعمول بها في بلدك.</small>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <i class="fas fa-language me-2 text-primary"></i>English Text
+        </div>
+        <div class="card-body">
+            <textarea name="termsEn" class="form-control" rows="10" dir="ltr">@termsEn</textarea>
+            <small class="text-muted d-block mt-2">This English version is shown alongside the Arabic text in the agreement.</small>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary px-4">
+        <i class="fas fa-save me-1"></i> حفظ
+    </button>
+</form>

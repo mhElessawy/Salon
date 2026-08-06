@@ -438,6 +438,36 @@ using (var scope = app.Services.CreateScope())
             TryExec("ALTER TABLE CustomerPackages ADD COLUMN RegistrationType TEXT NOT NULL DEFAULT 'بيع جديد'");
             TryExec("ALTER TABLE CustomerPackages ADD COLUMN CurrentBalance REAL NOT NULL DEFAULT 0");
             TryExec("UPDATE CustomerPackages SET CurrentBalance = PricePaid WHERE CurrentBalance = 0 AND PricePaid > 0");
+
+            // اتفاقية الباقات الإلكترونية: توقيع رقمي على اتفاقية الاشتراك وقت بيع كل باقة
+            // جديدة، مرتبطة بالفاتورة وبطاقة العميل ومحفوظة كـ Snapshot لبيانات العميل/الباقة
+            // ونص الشروط وقت التوقيع (انظر PackageAgreement.cs)
+            TryExec(@"CREATE TABLE IF NOT EXISTS PackageAgreements (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                CustomerPackageId INTEGER NOT NULL,
+                CustomerId INTEGER NOT NULL,
+                ServicePackageId INTEGER NOT NULL,
+                SaleId INTEGER NULL,
+                CustomerName TEXT NOT NULL DEFAULT '',
+                CustomerPhone TEXT NULL,
+                PackageNameAr TEXT NOT NULL DEFAULT '',
+                PackageNameEn TEXT NULL,
+                SessionCount INTEGER NOT NULL DEFAULT 0,
+                PackagePrice REAL NOT NULL DEFAULT 0,
+                AmountPaid REAL NOT NULL DEFAULT 0,
+                PurchaseDate TEXT NOT NULL DEFAULT (date('now')),
+                ExpiryDate TEXT NULL,
+                PaymentMethod TEXT NOT NULL DEFAULT '',
+                InvoiceNumber TEXT NOT NULL DEFAULT '',
+                TermsAr TEXT NOT NULL DEFAULT '',
+                TermsEn TEXT NOT NULL DEFAULT '',
+                SignatureImage TEXT NOT NULL DEFAULT '',
+                SignedAt TEXT NOT NULL DEFAULT (datetime('now')),
+                SignedByUserId TEXT NULL,
+                SignedByUserName TEXT NOT NULL DEFAULT '',
+                CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+                FOREIGN KEY (CustomerPackageId) REFERENCES CustomerPackages(Id) ON DELETE CASCADE,
+                FOREIGN KEY (SaleId) REFERENCES Sales(Id) ON DELETE SET NULL)");
         }
         else
         {
@@ -749,6 +779,38 @@ using (var scope = app.Services.CreateScope())
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='CustomerPackages' AND COLUMN_NAME='RegistrationType') ALTER TABLE CustomerPackages ADD RegistrationType NVARCHAR(50) NOT NULL DEFAULT N'بيع جديد'");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='CustomerPackages' AND COLUMN_NAME='CurrentBalance') ALTER TABLE CustomerPackages ADD CurrentBalance DECIMAL(18,3) NOT NULL DEFAULT 0");
             TryExec("UPDATE CustomerPackages SET CurrentBalance = PricePaid WHERE CurrentBalance = 0 AND PricePaid > 0");
+
+            // اتفاقية الباقات الإلكترونية: توقيع رقمي على اتفاقية الاشتراك وقت بيع كل باقة
+            // جديدة، مرتبطة بالفاتورة وبطاقة العميل ومحفوظة كـ Snapshot لبيانات العميل/الباقة
+            // ونص الشروط وقت التوقيع (انظر PackageAgreement.cs)
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='PackageAgreements')
+                CREATE TABLE PackageAgreements (Id INT IDENTITY PRIMARY KEY,
+                CustomerPackageId INT NOT NULL,
+                CustomerId INT NOT NULL,
+                ServicePackageId INT NOT NULL,
+                SaleId INT NULL,
+                CustomerName NVARCHAR(300) NOT NULL DEFAULT N'',
+                CustomerPhone NVARCHAR(50) NULL,
+                PackageNameAr NVARCHAR(300) NOT NULL DEFAULT N'',
+                PackageNameEn NVARCHAR(300) NULL,
+                SessionCount INT NOT NULL DEFAULT 0,
+                PackagePrice DECIMAL(18,3) NOT NULL DEFAULT 0,
+                AmountPaid DECIMAL(18,3) NOT NULL DEFAULT 0,
+                PurchaseDate DATETIME NOT NULL DEFAULT GETDATE(),
+                ExpiryDate DATETIME NULL,
+                PaymentMethod NVARCHAR(100) NOT NULL DEFAULT N'',
+                InvoiceNumber NVARCHAR(200) NOT NULL DEFAULT N'',
+                TermsAr NVARCHAR(MAX) NOT NULL DEFAULT N'',
+                TermsEn NVARCHAR(MAX) NOT NULL DEFAULT N'',
+                SignatureImage NVARCHAR(MAX) NOT NULL DEFAULT N'',
+                SignedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                SignedByUserId NVARCHAR(450) NULL,
+                SignedByUserName NVARCHAR(300) NOT NULL DEFAULT N'',
+                CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                CONSTRAINT FK_PackageAgreements_CustomerPackages FOREIGN KEY (CustomerPackageId)
+                    REFERENCES CustomerPackages(Id) ON DELETE CASCADE,
+                CONSTRAINT FK_PackageAgreements_Sales FOREIGN KEY (SaleId)
+                    REFERENCES Sales(Id) ON DELETE SET NULL)");
         }
 
         // ترحيل لمرة واحدة: قبل هذا الفصل كانت شاشة "اعتماد اليومية" تعيد استخدام آخر صف Shift
