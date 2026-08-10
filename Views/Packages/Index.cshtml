@@ -369,7 +369,9 @@
                                 <option value="">-- اختر الباقة --</option>
                                 @foreach (var p in packages.Where(p => p.IsActive))
                                 {
-                                    <option value="@p.Id">@p.NameAr (@p.SessionCount جلسة)</option>
+                                    var pkgNameEn = string.IsNullOrEmpty(p.NameEn) ? p.NameAr : p.NameEn;
+                                    var sessionWordEn = p.SessionCount == 1 ? "Session" : "Sessions";
+                                    <option value="@p.Id" data-i18n-en="@($"{pkgNameEn} ({p.SessionCount} {sessionWordEn})")">@p.NameAr (@p.SessionCount جلسة)</option>
                                 }
                             </select>
                         </div>
@@ -384,10 +386,10 @@
                             </div>
                             <small class="text-muted d-block mb-2">
                                 <i class="fas fa-info-circle me-1"></i>
-                                سيتم عرض اتفاقية الباقة الإلكترونية (طريقة الدفع، الشروط والأحكام، التوقيع) قبل إتمام البيع.
+                                <span data-i18n-en="The electronic package agreement (payment method, terms &amp; conditions, signature) will be shown before completing the sale.">سيتم عرض اتفاقية الباقة الإلكترونية (طريقة الدفع، الشروط والأحكام، التوقيع) قبل إتمام البيع.</span>
                             </small>
                             <button type="button" class="btn btn-success px-4" onclick="openAssignAgreement()">
-                                <i class="fas fa-file-signature me-1"></i> بيع الباقة (اتفاقية + توقيع)
+                                <i class="fas fa-file-signature me-1"></i> <span data-i18n-en="Sell Package (Agreement + Signature)">بيع الباقة (اتفاقية + توقيع)</span>
                             </button>
                         </div>
                     </div>
@@ -435,7 +437,16 @@
                                             <small class="text-muted"><i class="fas fa-phone me-1"></i>@cp.Customer.Phone</small>
                                         }
                                     </td>
-                                    <td>@cp.ServicePackage?.NameAr</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(cp.ServicePackage?.NameEn))
+                                        {
+                                            <span data-i18n-en="@cp.ServicePackage?.NameEn">@cp.ServicePackage?.NameAr</span>
+                                        }
+                                        else
+                                        {
+                                            @cp.ServicePackage?.NameAr
+                                        }
+                                    </td>
                                     <td>@cp.PurchaseDate.ToString("yyyy/MM/dd")</td>
                                     <td>
                                         @if (cp.ExpiryDate.HasValue)
@@ -483,7 +494,7 @@
                                         @if (cp.IsActive && cp.RemainingSessions > 0 && !isExpired)
                                         {
                                             <button type="button" class="btn btn-sm btn-primary me-1" title="تسجيل جلسة"
-                                                    onclick="showUseSessionModal(@cp.Id, '@Html.Raw((cp.Customer?.FullName ?? "").Replace("'", "\\'"))', '@Html.Raw((cp.ServicePackage?.NameAr ?? "").Replace("'", "\\'"))', @cp.RemainingSessions)">
+                                                    onclick="showUseSessionModal(@cp.Id, '@Html.Raw((cp.Customer?.FullName ?? "").Replace("'", "\\'"))', '@Html.Raw((cp.ServicePackage?.NameAr ?? "").Replace("'", "\\'"))', '@Html.Raw((cp.ServicePackage?.NameEn ?? "").Replace("'", "\\'"))', @cp.RemainingSessions)">
                                                 <i class="fas fa-check-circle"></i> جلسة
                                             </button>
                                         }
@@ -531,7 +542,16 @@
                                 <tr>
                                     <td>@t.Id</td>
                                     <td>@t.CustomerPackage?.Customer?.FullName</td>
-                                    <td>@t.CustomerPackage?.ServicePackage?.NameAr</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(t.CustomerPackage?.ServicePackage?.NameEn))
+                                        {
+                                            <span data-i18n-en="@t.CustomerPackage?.ServicePackage?.NameEn">@t.CustomerPackage?.ServicePackage?.NameAr</span>
+                                        }
+                                        else
+                                        {
+                                            @t.CustomerPackage?.ServicePackage?.NameAr
+                                        }
+                                    </td>
                                     <td>@(t.Employee?.FullName ?? "-")</td>
                                     <td>@t.UsedDate.ToString("yyyy/MM/dd hh:mm tt")</td>
                                     <td>@(t.Notes ?? "-")</td>
@@ -636,11 +656,12 @@
     <script>
         // بيع باقة لعميل — يفتح اتفاقية الباقة الإلكترونية قبل إتمام البيع
         function openAssignAgreement() {
+            var isEn = localStorage.getItem('lang') === 'en';
             var customerId = document.getElementById('assignCustomerSelect').value;
             var servicePackageId = document.getElementById('packageSelect').value;
             var notes = document.getElementById('assignNotesInput').value;
-            if (!customerId) { alert('اختر العميل أولاً'); return; }
-            if (!servicePackageId) { alert('اختر الباقة أولاً'); return; }
+            if (!customerId) { alert(isEn ? 'Please select a customer first' : 'اختر العميل أولاً'); return; }
+            if (!servicePackageId) { alert(isEn ? 'Please select a package first' : 'اختر الباقة أولاً'); return; }
 
             var token = document.querySelector('#assignForm input[name="__RequestVerificationToken"]').value;
             PkgAgreement.openForCustomerAndPackage({
@@ -650,7 +671,8 @@
                 antiForgeryToken: token,
                 assignUrl: '@Url.Action("AssignPackage")',
                 onSuccess: function (data) {
-                    if (data.printUrl && confirm('تم بيع الباقة بنجاح. هل تريد طباعة الاتفاقية الآن؟')) {
+                    var msg = isEn ? 'Package sold successfully. Print the agreement now?' : 'تم بيع الباقة بنجاح. هل تريد طباعة الاتفاقية الآن؟';
+                    if (data.printUrl && confirm(msg)) {
                         window.open(data.printUrl, '_blank');
                     }
                     location.reload();
@@ -666,10 +688,11 @@
         }
 
         // استخدام جلسة
-        function showUseSessionModal(cpId, customerName, packageName, remaining) {
+        function showUseSessionModal(cpId, customerName, packageNameAr, packageNameEn, remaining) {
+            var isEn = localStorage.getItem('lang') === 'en';
             document.getElementById('sessionPackageId').value = cpId;
             document.getElementById('sessionCustomerName').textContent = customerName;
-            document.getElementById('sessionPackageName').textContent = packageName;
+            document.getElementById('sessionPackageName').textContent = (isEn && packageNameEn) ? packageNameEn : packageNameAr;
             document.getElementById('sessionRemaining').textContent = remaining;
             new bootstrap.Modal(document.getElementById('useSessionModal')).show();
         }

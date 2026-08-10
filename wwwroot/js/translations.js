@@ -534,8 +534,13 @@ window.PAGE_TRANSLATIONS = {
     // ── Packages & sessions ──────────────────────────────────
     'أرصدة العملاء': 'Customer Balances',
     'اسم الباقة (عربي)': 'Package Name (Arabic)',
+    'اسم الباقة (English)': 'Package Name (English)',
     'عدد الجلسات': 'Session Count',
     'مدة الصلاحية (أيام)': 'Validity Duration (Days)',
+    'هل أنت متأكد من حذف الباقة:': 'Are you sure you want to delete this package:',
+    'هل أنت متأكد من إلغاء اشتراك:': 'Are you sure you want to cancel this subscription:',
+    'بيع الباقة (اتفاقية + توقيع)': 'Sell Package (Agreement + Signature)',
+    'سيتم عرض اتفاقية الباقة الإلكترونية (طريقة الدفع، الشروط والأحكام، التوقيع) قبل إتمام البيع.': 'The electronic package agreement (payment method, terms & conditions, signature) will be shown before completing the sale.',
     '-- كل الفئات --': '-- All Categories --',
     '-- اختر الباقة --': '-- Select Package --',
     '-- بدون تحديد --': '-- None --',
