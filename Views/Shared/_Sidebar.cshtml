@@ -18,7 +18,7 @@
         => controllers.Any(c => ctrl == c.ToLower());
 
     bool shiftsOpen = IsGroupOpen("shifts", "dailyclosure");
-    bool salesOpen = IsGroupOpen("sales", "appointments");
+    bool salesOpen = IsGroupOpen("sales", "appointments", "packages");
     bool defsOpen = IsGroupOpen("services", "servicecategories", "departments", "packages");
     bool inventoryOpen = IsGroupOpen("inventory", "suppliers");
     bool hrOpen = IsGroupOpen("employees", "salaries", "advances", "custody", "purchaserequests", "attendance");
@@ -106,7 +106,7 @@
         @* المبيعات *@
         @{
             bool hasSalesGroup = canSee("SalesInvoices") || canSee("BarberInvoice") || canSee("MassageInvoice") ||
-            canSee("ProductInvoice") || canSee("Appointments");
+            canSee("ProductInvoice") || canSee("Appointments") || canSee("Packages");
         }
         @if (hasSalesGroup)
         {
@@ -160,6 +160,15 @@
                             <a href="@Url.Action("Index", "Appointments")" class="@IsActive("Appointments")">
                                 <i class="fas fa-calendar-check"></i>
                                 <span data-i18n-en="Appointments">المواعيد</span>
+                            </a>
+                        </li>
+                    }
+                    @if (canSee("Packages"))
+                    {
+                        <li>
+                            <a href="@Url.Action("Index", "Packages", new { tab = "balances" })" class="@IsActive("Packages")">
+                                <i class="fas fa-box-open" style="color:#F7941D"></i>
+                                <span data-i18n-en="Sell Packages">بيع الباقات</span>
                             </a>
                         </li>
                     }
