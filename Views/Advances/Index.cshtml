@@ -396,6 +396,15 @@ else
                                                                 <i class="fas fa-money-check-alt"></i> سداد
                                                             </a>
                                                         }
+                                                        @if ((adv.Status == "تم الصرف" || adv.Status == "تم التحويل" || adv.Status == "مسددة") && adv.DeductedAmount > 0 && isManager)
+                                                        {
+                                                            <a href="@Url.Action("UndoPayment", new { id = adv.Id })"
+                                                               class="btn btn-xs btn-outline-warning ms-1"
+                                                               onclick="event.stopPropagation();"
+                                                               title="التراجع عن سداد">
+                                                                <i class="fas fa-undo-alt"></i> تراجع عن سداد
+                                                            </a>
+                                                        }
                                                         @if (isManager)
                                                         {
                                                             <button type="button" class="btn btn-xs btn-outline-danger ms-1"
