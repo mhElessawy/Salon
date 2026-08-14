@@ -1,4 +1,4 @@
-﻿@model Salon.Models.EmployeeAdvance
+﻿@model  Salon.Models.EmployeeAdvance
 @{
     ViewData["Title"] = "التراجع عن سداد";
     decimal remaining = Model.Amount - Model.AmountPaid;
@@ -26,9 +26,8 @@
 
         <div class="alert alert-warning small">
             <i class="fas fa-exclamation-triangle me-1"></i>
-            هذا الإجراء ينقص المبلغ المحدد من "المدفوع" ويعيده ديناً على الموظف. لا يقوم تلقائياً
-            بحذف أو تعديل أي قيد إيداع سبق تسجيله في الصندوق لهذه الدفعة — إذا كانت الدفعة نقدية
-            ويجب إخراج المبلغ من الصندوق مرة أخرى، عدّل أو احذف قيد الإيداع المقابل يدوياً من شاشة الصندوق.
+            هذا الإجراء ينقص المبلغ المحدد من "المدفوع" ويعيده ديناً على الموظف، ويحذف أو ينقص
+            تلقائياً قيود الإيداع المرتبطة بهذه السلفة في الصندوق (الأحدث أولاً) بما يعادل مبلغ التراجع.
         </div>
 
         <div class="card">
@@ -39,8 +38,8 @@
                         <label class="form-label fw-bold">المبلغ المراد التراجع عنه (د.ك)</label>
                         <div class="input-group">
                             <input type="number" name="undoAmount" step="0.001" min="0.001"
-                                   max="@Model.AmountPaid.ToString("F3")"
-                                   value="@Model.AmountPaid.ToString("F3")"
+                                   max="@Model.AmountPaid.ToString(" F3")"
+                                   value="@Model.AmountPaid.ToString(" F3")"
                                    class="form-control form-control-lg" required />
                             <span class="input-group-text">د.ك</span>
                         </div>
@@ -50,7 +49,7 @@
                         <button type="button" class="btn btn-warning" onclick="openConfirmUndoModal()">
                             <i class="fas fa-undo-alt me-1"></i> تأكيد التراجع
                         </button>
-                        <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                        <a href="@Url.Action(" Index")" class="btn btn-outline-secondary">
                             <i class="fas fa-arrow-right me-1"></i> رجوع
                         </a>
                     </div>
@@ -82,18 +81,18 @@
 </div>
 
 @section Scripts {
-    <script>
-        function openConfirmUndoModal() {
-            var form = document.querySelector('form');
-            if (!form.reportValidity()) return;
+<script>
+    function openConfirmUndoModal() {
+        var form = document.querySelector('form');
+        if (!form.reportValidity()) return;
 
-            var amount = parseFloat(document.querySelector('input[name="undoAmount"]').value) || 0;
-            document.getElementById('confirmUndoAmount').textContent = amount.toFixed(3) + ' د.ك';
-            new bootstrap.Modal(document.getElementById('confirmUndoModal')).show();
-        }
+        var amount = parseFloat(document.querySelector('input[name="undoAmount"]').value) || 0;
+        document.getElementById('confirmUndoAmount').textContent = amount.toFixed(3) + ' د.ك';
+        new bootstrap.Modal(document.getElementById('confirmUndoModal')).show();
+    }
 
-        document.getElementById('confirmUndoSubmitBtn').addEventListener('click', function () {
-            document.querySelector('form').submit();
-        });
-    </script>
+    document.getElementById('confirmUndoSubmitBtn').addEventListener('click', function () {
+        document.querySelector('form').submit();
+    });
+</script>
 }

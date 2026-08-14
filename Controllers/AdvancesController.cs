@@ -514,7 +514,8 @@ namespace Salon.Controllers
                 PaymentMethod = paymentMethod,
                 DepositDate = DateTime.Today,
                 Department = advance.Employee?.RevenueDepartment ?? advance.Employee?.DepartmentNav?.Name ?? "إدارة",
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.Now,
+                AdvanceId = advance.Id
             });
 
             await _context.SaveChangesAsync();
@@ -555,9 +556,9 @@ namespace Salon.Controllers
 
         // تنفيذ التراجع عن دفعة سداد — ينقص المبلغ المحدد من "المدفوع" ويعيد فتح السلفة
         // (تُلغى حالة "مسددة" ويُمسح تاريخ السداد إذا أصبح المتبقي أكبر من صفر) حتى يظهر
-        // المبلغ كدين قائم على الموظف مرة أخرى. لا يمس هذا الإجراء أي قيد سبق تسجيله في
-        // الصندوق (Deposit) لعدم وجود ربط مباشر بينه وبين الدفعة؛ يجب على المدير تعديل أو
-        // حذف قيد الإيداع المقابل يدوياً من شاشة الصندوق إذا لزم.
+        // المبلغ كدين قائم على الموظف مرة أخرى. كما يحذف (أو ينقص) تلقائياً قيود الإيداع
+        // المرتبطة بهذه السلفة في الصندوق (الأحدث أولاً) بما يعادل مبلغ التراجع، حتى يبقى
+        // الصندوق متوافقاً مع سداد السلفة الفعلي.
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> UndoPayment(int id, decimal undoAmount)
         {
@@ -592,6 +593,39 @@ namespace Salon.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            // إيجاد قيود الإيداع المرتبطة بهذه السلفة (الأحدث أولاً) لحذفها أو إنقاصها بما
+            // يعادل مبلغ التراجع، والتأكد أولاً أنه لا يوجد بينها ما يخص يومية معتمدة.
+            var linkedDeposits = await _context.Deposits
+                .Where(d => d.AdvanceId == advance.Id)
+                .OrderByDescending(d => d.CreatedAt)
+                .ToListAsync();
+
+            decimal remainingToUndo = undoAmount;
+            var depositsToDelete = new List<Deposit>();
+            var depositsToReduce = new List<(Deposit Deposit, decimal NewAmount)>();
+
+            foreach (var deposit in linkedDeposits)
+            {
+                if (remainingToUndo <= 0) break;
+
+                if (await _closure.IsDateLockedAsync(deposit.DepositDate, deposit.Department))
+                {
+                    TempData["Error"] = "لا يمكن التراجع عن سداد سلفة لها قيد إيداع ضمن يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                if (deposit.Amount <= remainingToUndo)
+                {
+                    remainingToUndo -= deposit.Amount;
+                    depositsToDelete.Add(deposit);
+                }
+                else
+                {
+                    depositsToReduce.Add((deposit, deposit.Amount - remainingToUndo));
+                    remainingToUndo = 0;
+                }
+            }
+
             advance.DeductedAmount -= undoAmount;
             if (advance.DeductedAmount < advance.Amount)
             {
@@ -601,14 +635,22 @@ namespace Salon.Controllers
                 advance.PaidDate = null;
             }
 
+            foreach (var deposit in depositsToDelete)
+                _context.Deposits.Remove(deposit);
+            foreach (var (deposit, newAmount) in depositsToReduce)
+                deposit.Amount = newAmount;
+
             await _context.SaveChangesAsync();
 
             string empName = advance.Employee?.FullName ?? advance.EmployeeId.ToString();
             await _audit.LogAsync("UndoPayment", "Advances",
-                $"التراجع عن دفعة سداد سلفة الموظف: {empName} بمبلغ {undoAmount:N3} KD",
+                $"التراجع عن دفعة سداد سلفة الموظف: {empName} بمبلغ {undoAmount:N3} KD" +
+                (depositsToDelete.Count > 0 || depositsToReduce.Count > 0
+                    ? $" | تم حذف {depositsToDelete.Count} قيد إيداع وإنقاص {depositsToReduce.Count} قيد من الصندوق"
+                    : ""),
                 advance.Id);
 
-            TempData["Success"] = "تم التراجع عن الدفعة، أصبح المبلغ ديناً على الموظف مرة أخرى";
+            TempData["Success"] = "تم التراجع عن الدفعة وحذف/تعديل قيود الإيداع المرتبطة بها من الصندوق";
             return RedirectToAction(nameof(Index));
         }
 
