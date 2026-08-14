@@ -36,5 +36,9 @@ namespace Salon.Models
         public string? Notes { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        // يُضبط فقط على قيود الإيداع الناتجة عن سداد مباشر لسلفة موظف (AdvancesController.PayDirect)
+        // حتى يمكن حذف/تعديل القيد تلقائياً عند التراجع عن الدفعة (UndoPayment)
+        public int? AdvanceId { get; set; }
     }
 }
