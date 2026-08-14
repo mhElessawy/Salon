@@ -221,13 +221,15 @@ else
                     var hasDelete = AppModules.HasDelete.Contains(mod.Key);
                     var hasMyOnly = AppModules.HasMyOnly.Contains(mod.Key);
                     var hasApprove = AppModules.HasApprove.Contains(mod.Key);
-                    var hasActions = hasAdd || hasDelete || hasMyOnly || hasApprove;
+                    var hasRepay = AppModules.HasRepay.Contains(mod.Key);
+                    var hasActions = hasAdd || hasDelete || hasMyOnly || hasApprove || hasRepay;
 
                     var viewOn = HasPerm(mod.Key);
                     var addOn = HasPerm(mod.Key + "Add");
                     var deleteOn = HasPerm(mod.Key + "Delete");
                     var myOnlyOn = HasPerm(mod.Key + "MyOnly");
                     var approveOn = HasPerm(mod.Key + "Approve");
+                    var repayOn = HasPerm(mod.Key + "Repay");
 
                     <div class="perm-row" data-group="@group.Key">
                         <div class="perm-label">
@@ -313,6 +315,23 @@ else
                                         <span class="perm-action-status" id="label_@(mod.Key)Approve"
                                               style="color:@(approveOn ? "#0369a1" : "#adb5bd")">
                                             @(approveOn ? "مسموح" : "محظور")
+                                        </span>
+                                    </div>
+                                }
+
+                                @if (hasRepay)
+                                {
+                                    <!-- سداد -->
+                                    <div class="perm-action-item">
+                                        <span class="perm-action-label" style="background:#f3e8fd;color:#7e22ce;"><i class="fas fa-money-check-alt me-1"></i>سداد</span>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input perm-toggle repay-toggle" type="checkbox"
+                                                   name="allowedModules" value="@(mod.Key)Repay"
+                                                   id="perm_@(mod.Key)Repay" @(repayOn ? "checked" : "") />
+                                        </div>
+                                        <span class="perm-action-status" id="label_@(mod.Key)Repay"
+                                              style="color:@(repayOn ? "#7e22ce" : "#adb5bd")">
+                                            @(repayOn ? "مسموح" : "محظور")
                                         </span>
                                     </div>
                                 }

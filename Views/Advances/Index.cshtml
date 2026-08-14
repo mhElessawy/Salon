@@ -13,6 +13,7 @@
     int bankQueueCount = (int)ViewBag.BankQueueCount;
     bool isManager = (bool)(ViewBag.IsManager ?? false);
     bool isCashier = (bool)(ViewBag.IsCashier ?? false);
+    bool canRepay = (bool)(ViewBag.CanRepay ?? true);
     int? myEmployeeId = ViewBag.MyEmployeeId as int?;
 
     var statusBadgeClasses = new Dictionary<string, string>
@@ -387,7 +388,7 @@ else
                                                                 <i class="fas fa-university"></i> تم التحويل
                                                             </button>
                                                         }
-                                                        @if ((adv.Status == "تم الصرف" || adv.Status == "تم التحويل") && remaining > 0 && isCashier)
+                                                        @if ((adv.Status == "تم الصرف" || adv.Status == "تم التحويل") && remaining > 0 && isCashier && canRepay)
                                                         {
                                                             <a href="@Url.Action("PayDirect", new { id = adv.Id })"
                                                                class="btn btn-xs btn-outline-success ms-1"

@@ -17,14 +17,16 @@ namespace Salon.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailService _email;
         private readonly IDailyClosureService _closure;
+        private readonly IPermissionService _perms;
 
-        public AdvancesController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager, IEmailService email, IDailyClosureService closure)
+        public AdvancesController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager, IEmailService email, IDailyClosureService closure, IPermissionService perms)
         {
             _context = context;
             _audit = audit;
             _userManager = userManager;
             _email = email;
             _closure = closure;
+            _perms = perms;
         }
 
         private async Task<bool> IsManagerAsync(ApplicationUser? user)
@@ -39,6 +41,13 @@ namespace Salon.Controllers
             if (user == null) return false;
             var roles = await _userManager.GetRolesAsync(user);
             return roles.Contains("Admin") || roles.Contains("Manager") || roles.Contains("Cashier");
+        }
+
+        // صلاحية سداد السلف المباشر: تتطلب دور كاشير/مدير بالإضافة إلى صلاحية "سداد" الخاصة
+        // بشاشة السلف، حتى يستطيع المدير تقييد سداد السلف لمستخدمين محددين دون غيرهم.
+        private async Task<bool> CanRepayAdvanceAsync(ApplicationUser? user)
+        {
+            return await IsCashierOrManagerAsync(user) && await _perms.HasAccessAsync("AdvancesRepay");
         }
 
         public async Task<IActionResult> Index(string? search)
@@ -105,6 +114,7 @@ namespace Salon.Controllers
             ViewBag.BankQueueTotal = advances.Where(a => a.Status == EmployeeAdvance.Statuses.AwaitingBankTransfer).Sum(a => a.Amount);
             ViewBag.ApprovedCount = advances.Count(a => EmployeeAdvance.Statuses.Realized.Contains(a.Status));
             ViewBag.ApprovedTotal = advances.Where(a => EmployeeAdvance.Statuses.Realized.Contains(a.Status)).Sum(a => a.Amount);
+            ViewBag.CanRepay = await _perms.HasAccessAsync("AdvancesRepay");
             return View(summaries);
         }
 
@@ -436,7 +446,7 @@ namespace Salon.Controllers
         public async Task<IActionResult> PayDirect(int id)
         {
             var currentUser = await _userManager.GetUserAsync(User);
-            if (!await IsCashierOrManagerAsync(currentUser))
+            if (!await CanRepayAdvanceAsync(currentUser))
             {
                 TempData["Error"] = "غير مصرح لك بتسجيل سداد السلف";
                 return RedirectToAction(nameof(Index));
@@ -460,7 +470,7 @@ namespace Salon.Controllers
         public async Task<IActionResult> PayDirect(int id, decimal payAmount, string paymentMethod, string? transferReference)
         {
             var currentUser = await _userManager.GetUserAsync(User);
-            if (!await IsCashierOrManagerAsync(currentUser))
+            if (!await CanRepayAdvanceAsync(currentUser))
             {
                 TempData["Error"] = "غير مصرح لك بتسجيل سداد السلف";
                 return RedirectToAction(nameof(Index));
