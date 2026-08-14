@@ -530,6 +530,88 @@ namespace Salon.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // شاشة التراجع عن دفعة سداد مباشر تم تسجيلها بالخطأ — تُعيد المبلغ إلى رصيد السلفة
+        // المتبقي (تنقص من "المدفوع" وتُحسب مرة أخرى ضمن دين الموظف).
+        public async Task<IActionResult> UndoPayment(int id)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (!await IsManagerAsync(currentUser))
+            {
+                TempData["Error"] = "غير مصرح لك بالتراجع عن سداد السلف";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var advance = await _context.EmployeeAdvances.Include(a => a.Employee).FirstOrDefaultAsync(a => a.Id == id);
+            if (advance == null) return RedirectToAction(nameof(Index));
+
+            if (advance.DeductedAmount <= 0)
+            {
+                TempData["Error"] = "لا يوجد مبلغ مسدد على هذه السلفة للتراجع عنه";
+                return RedirectToAction(nameof(Index));
+            }
+
+            return View(advance);
+        }
+
+        // تنفيذ التراجع عن دفعة سداد — ينقص المبلغ المحدد من "المدفوع" ويعيد فتح السلفة
+        // (تُلغى حالة "مسددة" ويُمسح تاريخ السداد إذا أصبح المتبقي أكبر من صفر) حتى يظهر
+        // المبلغ كدين قائم على الموظف مرة أخرى. لا يمس هذا الإجراء أي قيد سبق تسجيله في
+        // الصندوق (Deposit) لعدم وجود ربط مباشر بينه وبين الدفعة؛ يجب على المدير تعديل أو
+        // حذف قيد الإيداع المقابل يدوياً من شاشة الصندوق إذا لزم.
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> UndoPayment(int id, decimal undoAmount)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (!await IsManagerAsync(currentUser))
+            {
+                TempData["Error"] = "غير مصرح لك بالتراجع عن سداد السلف";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var advance = await _context.EmployeeAdvances
+                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                .FirstOrDefaultAsync(a => a.Id == id);
+            if (advance == null) return RedirectToAction(nameof(Index));
+
+            if (advance.DeductedAmount <= 0)
+            {
+                TempData["Error"] = "لا يوجد مبلغ مسدد على هذه السلفة للتراجع عنه";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (undoAmount <= 0 || undoAmount > advance.DeductedAmount)
+            {
+                TempData["Error"] = "مبلغ التراجع غير صحيح";
+                return RedirectToAction(nameof(UndoPayment), new { id });
+            }
+
+            var advanceDept = advance.Employee?.RevenueDepartment ?? advance.Employee?.DepartmentNav?.Name;
+            if (await _closure.IsDateLockedAsync(advance.AdvanceDate, advanceDept))
+            {
+                TempData["Error"] = "لا يمكن التراجع عن سداد سلفة تخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
+                return RedirectToAction(nameof(Index));
+            }
+
+            advance.DeductedAmount -= undoAmount;
+            if (advance.DeductedAmount < advance.Amount)
+            {
+                advance.Status = advance.PaymentMethod == "نقدي"
+                    ? EmployeeAdvance.Statuses.Disbursed
+                    : EmployeeAdvance.Statuses.Transferred;
+                advance.PaidDate = null;
+            }
+
+            await _context.SaveChangesAsync();
+
+            string empName = advance.Employee?.FullName ?? advance.EmployeeId.ToString();
+            await _audit.LogAsync("UndoPayment", "Advances",
+                $"التراجع عن دفعة سداد سلفة الموظف: {empName} بمبلغ {undoAmount:N3} KD",
+                advance.Id);
+
+            TempData["Success"] = "تم التراجع عن الدفعة، أصبح المبلغ ديناً على الموظف مرة أخرى";
+            return RedirectToAction(nameof(Index));
+        }
+
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Cancel(int id)
         {
