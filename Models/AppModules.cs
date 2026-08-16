@@ -67,7 +67,13 @@ namespace Salon.Models
             "PurchaseRequest"
         };
 
-        // جميع مفاتيح الصلاحيات (مشاهدة + إضافة + حذف + عملائي فقط + موافقة)
+        // الشاشات التي تدعم صلاحية "السداد" (سداد سلفة موظف مباشرةً خارج خصم الراتب)
+        public static readonly HashSet<string> HasRepay = new()
+        {
+            "Advances"
+        };
+
+        // جميع مفاتيح الصلاحيات (مشاهدة + إضافة + حذف + عملائي فقط + موافقة + سداد)
         public static IEnumerable<string> AllKeys()
         {
             foreach (var (Key, _, _, _) in All)
@@ -77,6 +83,7 @@ namespace Salon.Models
                 if (HasDelete.Contains(Key)) yield return Key + "Delete";
                 if (HasMyOnly.Contains(Key)) yield return Key + "MyOnly";
                 if (HasApprove.Contains(Key)) yield return Key + "Approve";
+                if (HasRepay.Contains(Key)) yield return Key + "Repay";
             }
         }
     }
