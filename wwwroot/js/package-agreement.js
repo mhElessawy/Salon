@@ -180,9 +180,8 @@ window.PkgAgreement = (function () {
             if (Math.abs((cashAmount + knetAmount) - amount) > 0.001) { showError('مجموع الكاش والكي نت يجب أن يساوي المبلغ المدفوع'); return; }
         }
         if (!agree) { showError('يجب الموافقة على شروط وأحكام الباقة'); return; }
-        if (!hasSignature) { showError('الرجاء التوقيع إلكترونياً قبل إتمام البيع'); return; }
 
-        var signatureData = canvas.toDataURL('image/png');
+        var signatureData = hasSignature ? canvas.toDataURL('image/png') : '';
         var submitBtn = document.getElementById('pkgAgSubmitBtn');
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري الحفظ...';

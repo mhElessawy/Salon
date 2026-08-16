@@ -302,7 +302,7 @@
                     <img src="@Model.SignatureImage" class="sig-img" alt="التوقيع الإلكتروني" />
                 }
                 <div class="sig-meta">
-                    التوقيع الإلكتروني للعميل / Customer Electronic Signature<br />
+                    التوقيع الإلكتروني للعميل (اختياري) / Customer Electronic Signature (Optional)<br />
                     @Model.SignedAt.ToString("yyyy/MM/dd hh:mm tt")
                 </div>
             </div>
@@ -315,7 +315,7 @@
         </div>
 
         <div class="footer-note">
-            اتفاقية إلكترونية موقّعة رقم #@Model.Id — تم إنشاؤها آلياً بواسطة النظام ولا تحتاج توقيعاً ورقياً إضافياً
+            اتفاقية إلكترونية رقم #@Model.Id — تم إنشاؤها آلياً بواسطة النظام ولا تحتاج توقيعاً ورقياً إضافياً
         </div>
 
         @{

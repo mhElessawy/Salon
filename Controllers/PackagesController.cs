@@ -156,9 +156,9 @@ namespace Salon.Controllers
             }
 
             var isNewSale = pricePaid > 0;
-            if (isNewSale && (!agreedToTerms || string.IsNullOrWhiteSpace(signatureData)))
+            if (isNewSale && !agreedToTerms)
             {
-                const string agreementMsg = "يجب الموافقة على شروط وأحكام الباقة والتوقيع الإلكتروني قبل إتمام البيع";
+                const string agreementMsg = "يجب الموافقة على شروط وأحكام الباقة قبل إتمام البيع";
                 if (isAjax) return Json(new { success = false, message = agreementMsg });
                 TempData["Error"] = agreementMsg;
                 return RedirectToAction(nameof(Index), new { tab = "balances" });

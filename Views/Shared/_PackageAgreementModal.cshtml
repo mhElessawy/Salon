@@ -2,7 +2,7 @@
    اتفاقية الباقة الإلكترونية — Modal مشترك يُستخدم من:
    Views/Packages/Index.cshtml, Views/Sales/CreateBarber.cshtml, Views/Sales/CreateMassage.cshtml
    يعرض بيانات العميل/الباقة، طريقة الدفع والمبلغ، الشروط والأحكام، إقرار الموافقة، والتوقيع
-   الإلكتروني — ولا يسمح بإتمام البيع إلا بعد الموافقة والتوقيع (انظر wwwroot/js/package-agreement.js)
+   الإلكتروني الاختياري — ولا يسمح بإتمام البيع إلا بعد الموافقة (انظر wwwroot/js/package-agreement.js)
    ══════════════════════════════════════════════════════════════════ *@
 <div class="modal fade" id="pkgAgreementModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -82,7 +82,7 @@
                 </div>
 
                 <div class="mb-2">
-                    <label class="form-label fw-semibold mb-2">التوقيع الإلكتروني / Electronic Signature <span class="text-danger">*</span></label>
+                    <label class="form-label fw-semibold mb-2">التوقيع الإلكتروني / Electronic Signature <span class="text-muted small">(اختياري)</span></label>
                     <div style="border:2px dashed #ced4da;border-radius:10px;background:#fff;touch-action:none;">
                         <canvas id="pkgAgSignatureCanvas" width="700" height="180" style="width:100%;height:180px;display:block;cursor:crosshair;"></canvas>
                     </div>
