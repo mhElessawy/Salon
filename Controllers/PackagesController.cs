@@ -140,7 +140,8 @@ namespace Salon.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> AssignPackage(
             int customerId, int servicePackageId, decimal pricePaid, string? notes,
-            string? paymentMethod, bool agreedToTerms, string? signatureData)
+            string? paymentMethod, decimal? cashAmount, decimal? knetAmount,
+            bool agreedToTerms, string? signatureData)
         {
             bool isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
 
@@ -165,6 +166,23 @@ namespace Salon.Controllers
 
             var currentUser = await _userManager.GetUserAsync(User);
             var payMethod = string.IsNullOrWhiteSpace(paymentMethod) ? "نقدي" : paymentMethod;
+            decimal? saleCashAmount = null;
+            decimal? saleLinkAmount = null;
+
+            if (payMethod == "كي نت و كاش")
+            {
+                var cashPart = cashAmount ?? 0m;
+                var knetPart = knetAmount ?? Math.Max(0m, pricePaid - cashPart);
+                if (cashPart <= 0 || knetPart <= 0 || Math.Abs((cashPart + knetPart) - pricePaid) > 0.001m)
+                {
+                    const string splitMsg = "في الدفع المختلط يجب أن يكون مجموع الكاش والكي نت مساوياً للمبلغ المدفوع";
+                    if (isAjax) return Json(new { success = false, message = splitMsg });
+                    TempData["Error"] = splitMsg;
+                    return RedirectToAction(nameof(Index), new { tab = "balances" });
+                }
+                saleCashAmount = cashPart;
+                saleLinkAmount = knetPart;
+            }
 
             var customerPkg = new CustomerPackage
             {
@@ -201,6 +219,8 @@ namespace Salon.Controllers
                     TotalAmount = pricePaid,
                     Discount = 0,
                     NetAmount = pricePaid,
+                    CashAmount = saleCashAmount,
+                    LinkAmount = saleLinkAmount,
                     Notes = notes,
                     CreatedByUserId = currentUser?.Id,
                     CreatedByUserName = currentUser?.FullName ?? currentUser?.UserName ?? User.Identity?.Name

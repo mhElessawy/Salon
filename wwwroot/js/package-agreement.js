@@ -75,6 +75,45 @@ window.PkgAgreement = (function () {
 
         var submitBtn = document.getElementById('pkgAgSubmitBtn');
         if (submitBtn) submitBtn.addEventListener('click', submit);
+
+        var paymentMethod = document.getElementById('pkgAgPaymentMethod');
+        var amountInput = document.getElementById('pkgAgAmount');
+        var cashInput = document.getElementById('pkgAgCashAmount');
+        if (paymentMethod) paymentMethod.addEventListener('change', updateSplitPayment);
+        if (amountInput) amountInput.addEventListener('input', updateSplitPayment);
+        if (cashInput) cashInput.addEventListener('input', updateSplitPayment);
+    }
+
+    function formatAmount(value) {
+        var n = Number(value);
+        if (!isFinite(n)) n = 0;
+        return n.toFixed(3);
+    }
+
+    function updateSplitPayment() {
+        var paymentMethod = document.getElementById('pkgAgPaymentMethod');
+        var amountInput = document.getElementById('pkgAgAmount');
+        var cashInput = document.getElementById('pkgAgCashAmount');
+        var knetInput = document.getElementById('pkgAgKnetAmount');
+        var wrap = document.getElementById('pkgAgSplitPaymentWrap');
+        if (!paymentMethod || !amountInput || !cashInput || !knetInput || !wrap) return;
+
+        var isMixed = paymentMethod.value === 'كي نت و كاش';
+        wrap.classList.toggle('d-none', !isMixed);
+        if (!isMixed) {
+            cashInput.value = '';
+            knetInput.value = '';
+            return;
+        }
+
+        var amount = parseFloat(amountInput.value) || 0;
+        var cash = parseFloat(cashInput.value) || 0;
+        if (cash < 0) cash = 0;
+        if (cash > amount) cash = amount;
+        if (cashInput.value !== '' && Number(cashInput.value) !== cash) {
+            cashInput.value = formatAmount(cash);
+        }
+        knetInput.value = formatAmount(Math.max(0, amount - cash));
     }
 
     function fillModal(opts) {
@@ -95,6 +134,9 @@ window.PkgAgreement = (function () {
 
         document.getElementById('pkgAgAmount').value = priceStr;
         document.getElementById('pkgAgPaymentMethod').value = 'كاش';
+        document.getElementById('pkgAgCashAmount').value = '';
+        document.getElementById('pkgAgKnetAmount').value = '';
+        updateSplitPayment();
 
         document.getElementById('pkgAgTermsAr').textContent = opts.termsAr || '';
         document.getElementById('pkgAgTermsEn').textContent = opts.termsEn || '';
@@ -126,8 +168,17 @@ window.PkgAgreement = (function () {
         var agree = document.getElementById('pkgAgAgree').checked;
         var amount = parseFloat(document.getElementById('pkgAgAmount').value) || 0;
         var paymentMethod = document.getElementById('pkgAgPaymentMethod').value;
+        var cashAmount = parseFloat(document.getElementById('pkgAgCashAmount').value) || 0;
+        var knetAmount = parseFloat(document.getElementById('pkgAgKnetAmount').value) || 0;
 
         if (amount <= 0) { showError('الرجاء إدخال مبلغ صحيح'); return; }
+        if (paymentMethod === 'كي نت و كاش') {
+            updateSplitPayment();
+            cashAmount = parseFloat(document.getElementById('pkgAgCashAmount').value) || 0;
+            knetAmount = parseFloat(document.getElementById('pkgAgKnetAmount').value) || 0;
+            if (cashAmount <= 0 || knetAmount <= 0) { showError('في الدفع المختلط يجب إدخال جزء كاش وجزء كي نت'); return; }
+            if (Math.abs((cashAmount + knetAmount) - amount) > 0.001) { showError('مجموع الكاش والكي نت يجب أن يساوي المبلغ المدفوع'); return; }
+        }
         if (!agree) { showError('يجب الموافقة على شروط وأحكام الباقة'); return; }
         if (!hasSignature) { showError('الرجاء التوقيع إلكترونياً قبل إتمام البيع'); return; }
 
@@ -142,6 +193,8 @@ window.PkgAgreement = (function () {
             pricePaid: amount,
             notes: currentOpts.notes || '',
             paymentMethod: paymentMethod,
+            cashAmount: paymentMethod === 'كي نت و كاش' ? cashAmount : '',
+            knetAmount: paymentMethod === 'كي نت و كاش' ? knetAmount : '',
             agreedToTerms: 'true',
             signatureData: signatureData,
             __RequestVerificationToken: currentOpts.antiForgeryToken
@@ -160,6 +213,8 @@ window.PkgAgreement = (function () {
                 if (data && data.success) {
                     data.amountPaid = amount;
                     data.paymentMethod = paymentMethod;
+                    data.cashAmount = cashAmount;
+                    data.knetAmount = knetAmount;
                     bootstrap.Modal.getInstance(document.getElementById('pkgAgreementModal')).hide();
                     if (typeof currentOpts.onSuccess === 'function') currentOpts.onSuccess(data);
                 } else {
