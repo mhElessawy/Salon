@@ -152,6 +152,7 @@
                                     <th>المتبقية</th>
                                     <th>تاريخ الشراء</th>
                                     <th>نوع التسجيل</th>
+                                    <th>الحالة</th>
                                     <th>سجل استخدام الجلسات</th>
                                     @if (canManageOpeningBalance)
                                     {
@@ -166,6 +167,7 @@
                                     var isUsedPkg = cp.RemainingSessions != cp.TotalSessions;
                                     var canDeletePkg = cp.PricePaid == 0;
                                     var linkedAgreement = agreements.FirstOrDefault(a => a.CustomerPackageId == cp.Id);
+                                    var isExpiredPkg = cp.ExpiryDate.HasValue && cp.ExpiryDate.Value < DateTime.Today;
                                     <tr>
                                         <td>@(cp.ServicePackage?.NameAr ?? "-")</td>
                                         <td>@cp.CurrentBalance.ToString("N3") د.ك</td>
@@ -174,6 +176,24 @@
                                         <td><span class="badge @(cp.RemainingSessions > 0 ? "bg-success" : "bg-secondary")">@cp.RemainingSessions</span></td>
                                         <td>@cp.PurchaseDate.ToString("yyyy/MM/dd")</td>
                                         <td><span class="badge @(isOpening ? "bg-warning text-dark" : "bg-primary")">@cp.RegistrationType</span></td>
+                                        <td>
+                                            @if (!cp.IsActive && cp.RemainingSessions == cp.TotalSessions)
+                                            {
+                                                <span class="badge bg-danger">ملغي</span>
+                                            }
+                                            else if (!cp.IsActive || cp.RemainingSessions == 0)
+                                            {
+                                                <span class="badge bg-secondary">مكتمل</span>
+                                            }
+                                            else if (isExpiredPkg)
+                                            {
+                                                <span class="badge bg-warning text-dark">منتهي الصلاحية</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success">نشط</span>
+                                            }
+                                        </td>
                                         <td>
                                             @if (cp.Transactions.Any())
                                             {
@@ -221,7 +241,7 @@
                                 }
                                 @if (!Model.CustomerPackages.Any())
                                 {
-                                    <tr><td colspan="@(canManageOpeningBalance ? 9 : 8)" class="text-center text-muted">لا توجد باقات في المحفظة</td></tr>
+                                    <tr><td colspan="@(canManageOpeningBalance ? 10 : 9)" class="text-center text-muted">لا توجد باقات في المحفظة</td></tr>
                                 }
                             </tbody>
                         </table>
