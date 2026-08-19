@@ -96,13 +96,24 @@ window.PkgAgreement = (function () {
         document.getElementById('pkgAgAmount').value = priceStr;
         document.getElementById('pkgAgPaymentMethod').value = 'كاش';
 
+        var deptRow = document.getElementById('pkgAgDeptRow');
+        if (deptRow) {
+            if (opts.canPickDepartment) {
+                deptRow.classList.remove('d-none');
+                document.getElementById('pkgAgDepartment').value = opts.defaultDepartment || 'باقات';
+            } else {
+                deptRow.classList.add('d-none');
+            }
+        }
+
         document.getElementById('pkgAgTermsAr').textContent = opts.termsAr || '';
         document.getElementById('pkgAgTermsEn').textContent = opts.termsEn || '';
 
         new bootstrap.Modal(document.getElementById('pkgAgreementModal')).show();
     }
 
-    // baseOpts: { customerId, servicePackageId, notes, antiForgeryToken, assignUrl, onSuccess(data), onError(msg) }
+    // baseOpts: { customerId, servicePackageId, notes, antiForgeryToken, assignUrl, canPickDepartment,
+    //             defaultDepartment, onSuccess(data), onError(msg) }
     function openForCustomerAndPackage(baseOpts) {
         currentOpts = baseOpts;
         var url = '/Packages/GetAgreementData?customerId=' + encodeURIComponent(baseOpts.customerId) +
@@ -126,6 +137,9 @@ window.PkgAgreement = (function () {
         var agree = document.getElementById('pkgAgAgree').checked;
         var amount = parseFloat(document.getElementById('pkgAgAmount').value) || 0;
         var paymentMethod = document.getElementById('pkgAgPaymentMethod').value;
+        var deptRow = document.getElementById('pkgAgDeptRow');
+        var saleDepartment = (currentOpts.canPickDepartment && deptRow && !deptRow.classList.contains('d-none'))
+            ? document.getElementById('pkgAgDepartment').value : '';
 
         if (amount <= 0) { showError('الرجاء إدخال مبلغ صحيح'); return; }
         if (!agree) { showError('يجب الموافقة على شروط وأحكام الباقة'); return; }
@@ -144,6 +158,7 @@ window.PkgAgreement = (function () {
             paymentMethod: paymentMethod,
             agreedToTerms: 'true',
             signatureData: signatureData,
+            saleDepartment: saleDepartment,
             __RequestVerificationToken: currentOpts.antiForgeryToken
         });
 

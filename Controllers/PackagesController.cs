@@ -34,6 +34,7 @@ namespace Salon.Controllers
             ViewBag.ActiveTab = tab ?? "packages";
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
+            ViewBag.CanPickSaleDepartment = userDept != "حلاقة" && userDept != "مساج";
 
             var query = _context.ServicePackages.Include(p => p.ServiceCategory).AsQueryable();
 
@@ -143,13 +144,12 @@ namespace Salon.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> AssignPackage(
             int customerId, int servicePackageId, decimal pricePaid, string? notes,
-            string? paymentMethod, bool agreedToTerms, string? signatureData)
+            string? paymentMethod, bool agreedToTerms, string? signatureData, string? saleDepartment)
         {
             bool isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
 
             var customer = await _context.Customers.FindAsync(customerId);
-            var pkg = await _context.ServicePackages.Include(p => p.ServiceCategory)
-                .FirstOrDefaultAsync(p => p.Id == servicePackageId);
+            var pkg = await _context.ServicePackages.FindAsync(servicePackageId);
             if (customer == null || pkg == null)
             {
                 const string notFoundMsg = "بيانات العميل أو الباقة غير صحيحة";
@@ -195,11 +195,14 @@ namespace Salon.Controllers
 
             if (isNewSale)
             {
-                // فاتورة الباقة تتصنف تلقائياً تحت قسم الباقة (حلاقة/مساج) عشان تدخل في اليومية
-                // وحركة الصندوق/البنك الخاصة بنفس القسم — زي أي فاتورة خدمة عادية لنفس القسم.
-                // باقة بلا تصنيف قسم (ServiceCategory=null) تفضل "باقات" (ضمن نطاق "عام" المشترك).
-                var pkgDept = pkg.ServiceCategory?.Department;
-                var saleType = (pkgDept == "حلاقة" || pkgDept == "مساج") ? pkgDept : "باقات";
+                // قسم فاتورة الباقة عشان تدخل في اليومية وحركة الصندوق/البنك الخاصة بنفس القسم:
+                // موظف قسم محدد (حلاقة/مساج) بيعها بتتسجل تلقائياً تحت قسمه هو — بغض النظر عمّا
+                // أُرسل من الفورم (منعاً للتلاعب) — أما الأدمن/المدير (أو أي مستخدم مش مربوط بقسم
+                // محدد) فبيختار القسم بنفسه من الفورم؛ لو محددش قسم صحيح، بتتسجل "باقات" (عام).
+                var sellerDept = currentUser?.UserDepartment;
+                var saleType = (sellerDept == "حلاقة" || sellerDept == "مساج")
+                    ? sellerDept
+                    : (saleDepartment == "حلاقة" || saleDepartment == "مساج") ? saleDepartment : "باقات";
 
                 var sale = new Sale
                 {

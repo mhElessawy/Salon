@@ -186,6 +186,8 @@ namespace Salon.Controllers
                 return Forbid();
 
             await PopulateDeptDropdowns("حلاقة", user, role);
+            ViewBag.UserDepartment = user.UserDepartment;
+            ViewBag.CanPickSaleDepartment = user.UserDepartment != "حلاقة" && user.UserDepartment != "مساج";
             var sale = new Sale
             {
                 InvoiceNumber = await GenerateInvoiceNumber("PAR"),
@@ -223,6 +225,8 @@ namespace Salon.Controllers
                 return Forbid();
 
             await PopulateDeptDropdowns("مساج", user, role);
+            ViewBag.UserDepartment = user.UserDepartment;
+            ViewBag.CanPickSaleDepartment = user.UserDepartment != "حلاقة" && user.UserDepartment != "مساج";
             var sale = new Sale
             {
                 InvoiceNumber = await GenerateInvoiceNumber("MAS"),

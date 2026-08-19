@@ -2013,6 +2013,8 @@
                     notes: notes,
                     antiForgeryToken: token,
                     assignUrl: '/Packages/AssignPackage',
+                    canPickDepartment: @(((bool)(ViewBag.CanPickSaleDepartment ?? false)) ? "true" : "false"),
+                    defaultDepartment: 'مساج',
                     onSuccess: function (data) {
                         // تعيين بيانات الاختيار التلقائي — الباقة أصبحت مدفوعة بالكامل عبر الاتفاقية
                         pendingAutoSelectData = {
