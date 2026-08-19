@@ -280,6 +280,13 @@ namespace Salon.Controllers
                 .Where(s => s.Status == Sale.Statuses.Completed)
                 .Sum(s => s.NetAmount);
 
+            // فواتير باقات القسم (مالهاش موظف محدد وقت البيع) بتدخل ضمن staffSales/totalSales
+            // لكن مش هتظهر تحت أي صف موظف تحت — بنحسبها هنا منفصلة عشان تتعرض كرقم واضح
+            // بدل ما تبان كفجوة غير مفسَّرة بين الإجمالي ومجموع صفوف الموظفين.
+            decimal unassignedRevenue = staffSales
+                .Where(s => s.EmployeeId == null && s.Status == Sale.Statuses.Completed)
+                .Sum(s => s.NetAmount);
+
             EmployeePerformanceRow BuildRow(Employee emp)
             {
                 var empDeptType = emp.DepartmentNav?.Name == "مساج" ? "مساج" : "حلاقة";
@@ -349,6 +356,7 @@ namespace Salon.Controllers
                 SelectedDept = filterDept,
 
                 TotalSales = totalSales,
+                UnassignedRevenue = unassignedRevenue,
                 InvoiceCount = staffSales.Count,
                 CashTotal = cashRevenue,
                 KNetTotal = knetRevenue,

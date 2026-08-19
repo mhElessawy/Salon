@@ -643,6 +643,12 @@
             <div class="c-val" style="color:#16a34a;">@Model.TotalSales.ToString("N3")</div>
             <div class="c-cur">د.ك</div>
             <div class="c-sub">عدد الفواتير: <strong>@Model.InvoiceCount</strong></div>
+            @if (Model.UnassignedRevenue > 0)
+            {
+                <div class="c-sub" title="فواتير باقات مضمّنة في الإجمالي لكن غير مرتبطة بموظف معيّن">
+                    منها باقات غير مرتبطة بموظف: <strong>@Model.UnassignedRevenue.ToString("N3")</strong> د.ك
+                </div>
+            }
         </div>
 
         <!-- 2. كاش -->

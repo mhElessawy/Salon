@@ -49,6 +49,11 @@
         public decimal TipsDelivered { get; set; }
         public decimal TipsRemaining => TipsTotal - TipsDelivered;
 
+        // مبيعات باقات القسم غير المرتبطة بموظف معيّن (فاتورة الباقة مالهاش موظف عليها وقت
+        // البيع) — جزء من TotalSales لكن مش موزّعة على أي صف موظف، فبتتعرض منفصلة عشان
+        // إجمالي صفوف الموظفين + هذا الرقم يطابق TotalSales بالظبط ولا يبان فيه فجوة غامضة.
+        public decimal UnassignedRevenue { get; set; }
+
         public decimal CashPercent => TotalSales > 0 ? Math.Round(CashTotal / TotalSales * 100, 1) : 0;
         public decimal KNetPercent => TotalSales > 0 ? Math.Round(KNetTotal / TotalSales * 100, 1) : 0;
         public decimal EmployeeDebtPercent => TotalSales > 0 ? Math.Round(EmployeeDebtTotal / TotalSales * 100, 1) : 0;

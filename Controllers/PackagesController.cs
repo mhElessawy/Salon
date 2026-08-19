@@ -148,7 +148,8 @@ namespace Salon.Controllers
             bool isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
 
             var customer = await _context.Customers.FindAsync(customerId);
-            var pkg = await _context.ServicePackages.FindAsync(servicePackageId);
+            var pkg = await _context.ServicePackages.Include(p => p.ServiceCategory)
+                .FirstOrDefaultAsync(p => p.Id == servicePackageId);
             if (customer == null || pkg == null)
             {
                 const string notFoundMsg = "بيانات العميل أو الباقة غير صحيحة";
@@ -194,12 +195,18 @@ namespace Salon.Controllers
 
             if (isNewSale)
             {
+                // فاتورة الباقة تتصنف تلقائياً تحت قسم الباقة (حلاقة/مساج) عشان تدخل في اليومية
+                // وحركة الصندوق/البنك الخاصة بنفس القسم — زي أي فاتورة خدمة عادية لنفس القسم.
+                // باقة بلا تصنيف قسم (ServiceCategory=null) تفضل "باقات" (ضمن نطاق "عام" المشترك).
+                var pkgDept = pkg.ServiceCategory?.Department;
+                var saleType = (pkgDept == "حلاقة" || pkgDept == "مساج") ? pkgDept : "باقات";
+
                 var sale = new Sale
                 {
                     CustomerId = customerId,
                     SaleDate = DateTime.Now,
                     PaymentMethod = payMethod,
-                    SaleType = "باقات",
+                    SaleType = saleType,
                     Status = Sale.Statuses.Completed,
                     TotalAmount = pricePaid,
                     Discount = 0,
