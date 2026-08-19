@@ -165,6 +165,7 @@
                                     var isOpening = cp.RegistrationType == Salon.Models.CustomerPackage.RegistrationTypes.OpeningBalance;
                                     var isUsedPkg = cp.RemainingSessions != cp.TotalSessions;
                                     var canDeletePkg = cp.PricePaid == 0;
+                                    var linkedAgreement = agreements.FirstOrDefault(a => a.CustomerPackageId == cp.Id);
                                     <tr>
                                         <td>@(cp.ServicePackage?.NameAr ?? "-")</td>
                                         <td>@cp.CurrentBalance.ToString("N3") د.ك</td>
@@ -207,6 +208,13 @@
                                                         <i class="fas fa-trash-alt"></i>
                                                     </button>
                                                 }
+                                                else
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" title="حذف كامل (باقة + فاتورة + اتفاقية)"
+                                                            onclick="deleteWalletPackageWithSale(@cp.Id, '@Html.Raw((cp.ServicePackage?.NameAr ?? "").Replace("'", "\\'"))', '@Html.Raw((linkedAgreement?.InvoiceNumber ?? "").Replace("'", "\\'"))')">
+                                                        <i class="fas fa-trash-alt"></i><i class="fas fa-file-invoice ms-1"></i>
+                                                    </button>
+                                                }
                                             </td>
                                         }
                                     </tr>
@@ -237,6 +245,29 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
                     body: new URLSearchParams({ id: id, forceDeleteUsed: isUsed ? 'true' : 'false', __RequestVerificationToken: token })
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.error || 'حدث خطأ أثناء الحذف');
+                    }
+                })
+                .catch(function () { alert('حدث خطأ في الاتصال'); });
+            }
+
+            function deleteWalletPackageWithSale(id, name, invoiceNumber) {
+                var invoiceText = invoiceNumber ? ('رقم ' + invoiceNumber) : '';
+                var msg = 'هل تريد حذف الباقة "' + name + '" نهائياً؟\n' +
+                    'هذه الباقة مدفوعة ولها فاتورة ' + invoiceText + ' واتفاقية موقّعة — سيتم حذف الباقة والفاتورة وبنودها والاتفاقية نهائياً من النظام، ولا يمكن التراجع عن ذلك.\n' +
+                    'استخدم هذا الخيار فقط لتصحيح خطأ تسجيل، وليس لإلغاء اشتراك عميل فعلي.';
+                if (!confirm(msg)) return;
+                var token = document.querySelector('#walletPackageAntiForgeryForm input[name="__RequestVerificationToken"]').value;
+                fetch('@Url.Action("DeleteCustomerPackageAndSale", "Packages")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: new URLSearchParams({ id: id, __RequestVerificationToken: token })
                 })
                 .then(function (r) { return r.json(); })
                 .then(function (data) {

@@ -16,13 +16,16 @@ namespace Salon.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IAuditService _audit;
         private readonly IEmailService _emailService;
+        private readonly IDailyClosureService _closure;
 
-        public PackagesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IAuditService audit, IEmailService emailService)
+        public PackagesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager,
+            IAuditService audit, IEmailService emailService, IDailyClosureService closure)
         {
             _context = context;
             _userManager = userManager;
             _audit = audit;
             _emailService = emailService;
+            _closure = closure;
         }
 
         // ─── الباقات - Tab 1 ─────────────────────────────────────────
@@ -415,6 +418,51 @@ namespace Salon.Controllers
             await _context.SaveChangesAsync();
             var logNote = isUsed ? " (تم استخدام جلسات منها — حُذف سجل الاستخدام معها)" : "";
             await _audit.LogAsync("Delete", "Packages", $"Delete customer package ID {id}{logNote}: {cp.ServicePackage?.NameAr}", id);
+
+            return Json(new { success = true });
+        }
+
+        // ─── حذف كامل لباقة مدفوعة مع فاتورتها واتفاقيتها — أدمن/مدير فقط ───
+        // يُستخدم فقط لتصحيح خطأ تسجيل (باقة اتباعت غلط) قبل اعتماد يومية ذلك اليوم؛ بيمسح
+        // الباقة وسجل استخدامها والاتفاقية الموقّعة والفاتورة (وبنودها) نهائياً من قاعدة
+        // البيانات — عكس DeleteCustomerPackage اللي بيرفض أي باقة مدفوعة تماماً.
+        [HttpPost, ValidateAntiForgeryToken, Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> DeleteCustomerPackageAndSale(int id)
+        {
+            var cp = await _context.CustomerPackages
+                .Include(x => x.ServicePackage)
+                .Include(x => x.Transactions)
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (cp == null)
+                return Json(new { success = false, error = "الباقة غير موجودة" });
+
+            var agreement = await _context.PackageAgreements.FirstOrDefaultAsync(a => a.CustomerPackageId == id);
+
+            Sale? sale = null;
+            if (agreement?.SaleId != null)
+                sale = await _context.Sales
+                    .Include(s => s.SaleItems)
+                    .Include(s => s.Refunds)
+                    .FirstOrDefaultAsync(s => s.Id == agreement.SaleId.Value);
+
+            if (sale != null)
+            {
+                if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.SaleType))
+                    return Json(new { success = false, error = "لا يمكن حذف فاتورة تخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية أولاً" });
+
+                if (sale.Refunds.Any())
+                    return Json(new { success = false, error = "لا يمكن حذف هذه الباقة — الفاتورة المرتبطة بها لها مبالغ مستردة مسجّلة" });
+            }
+
+            _context.CustomerPackageTransactions.RemoveRange(cp.Transactions);
+            if (agreement != null) _context.PackageAgreements.Remove(agreement);
+            _context.CustomerPackages.Remove(cp);
+            if (sale != null) _context.Sales.Remove(sale);
+            await _context.SaveChangesAsync();
+
+            var logNote = sale != null ? $" مع فاتورتها رقم {sale.InvoiceNumber}" : "";
+            await _audit.LogAsync("Delete", "Packages", $"حذف كامل لباقة مدفوعة ID {id}{logNote}: {cp.ServicePackage?.NameAr}", id);
 
             return Json(new { success = true });
         }
