@@ -153,12 +153,17 @@
                                     <th>تاريخ الشراء</th>
                                     <th>نوع التسجيل</th>
                                     <th>سجل استخدام الجلسات</th>
+                                    @if (canManageOpeningBalance)
+                                    {
+                                        <th>الإجراءات</th>
+                                    }
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var cp in Model.CustomerPackages.OrderByDescending(p => p.PurchaseDate))
                                 {
                                     var isOpening = cp.RegistrationType == Salon.Models.CustomerPackage.RegistrationTypes.OpeningBalance;
+                                    var canDeletePkg = cp.RemainingSessions == cp.TotalSessions && cp.PricePaid == 0;
                                     <tr>
                                         <td>@(cp.ServicePackage?.NameAr ?? "-")</td>
                                         <td>@cp.CurrentBalance.ToString("N3") د.ك</td>
@@ -191,11 +196,23 @@
                                                 <span class="text-muted small">لا يوجد استخدام</span>
                                             }
                                         </td>
+                                        @if (canManageOpeningBalance)
+                                        {
+                                            <td>
+                                                @if (canDeletePkg)
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" title="حذف الباقة"
+                                                            onclick="deleteWalletPackage(@cp.Id, '@Html.Raw((cp.ServicePackage?.NameAr ?? "").Replace("'", "\\'"))')">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                }
+                                            </td>
+                                        }
                                     </tr>
                                 }
                                 @if (!Model.CustomerPackages.Any())
                                 {
-                                    <tr><td colspan="8" class="text-center text-muted">لا توجد باقات في المحفظة</td></tr>
+                                    <tr><td colspan="@(canManageOpeningBalance ? 9 : 8)" class="text-center text-muted">لا توجد باقات في المحفظة</td></tr>
                                 }
                             </tbody>
                         </table>
@@ -204,6 +221,31 @@
             </div>
         </div>
     </div>
+
+    @if (canManageOpeningBalance)
+    {
+        <form id="walletPackageAntiForgeryForm">@Html.AntiForgeryToken()</form>
+        <script>
+            function deleteWalletPackage(id, name) {
+                if (!confirm('هل تريد حذف الباقة "' + name + '"؟\nيمكن حذف الباقات غير المستخدمة وغير المدفوعة فقط.')) return;
+                var token = document.querySelector('#walletPackageAntiForgeryForm input[name="__RequestVerificationToken"]').value;
+                fetch('@Url.Action("DeleteCustomerPackage", "Packages")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: new URLSearchParams({ id: id, __RequestVerificationToken: token })
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.error || 'حدث خطأ أثناء الحذف');
+                    }
+                })
+                .catch(function () { alert('حدث خطأ في الاتصال'); });
+            }
+        </script>
+    }
 }
 
 @if (agreements.Any())
