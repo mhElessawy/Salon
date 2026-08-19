@@ -163,7 +163,8 @@
                                 @foreach (var cp in Model.CustomerPackages.OrderByDescending(p => p.PurchaseDate))
                                 {
                                     var isOpening = cp.RegistrationType == Salon.Models.CustomerPackage.RegistrationTypes.OpeningBalance;
-                                    var canDeletePkg = cp.RemainingSessions == cp.TotalSessions && cp.PricePaid == 0;
+                                    var isUsedPkg = cp.RemainingSessions != cp.TotalSessions;
+                                    var canDeletePkg = cp.PricePaid == 0;
                                     <tr>
                                         <td>@(cp.ServicePackage?.NameAr ?? "-")</td>
                                         <td>@cp.CurrentBalance.ToString("N3") د.ك</td>
@@ -202,7 +203,7 @@
                                                 @if (canDeletePkg)
                                                 {
                                                     <button type="button" class="btn btn-sm btn-outline-danger" title="حذف الباقة"
-                                                            onclick="deleteWalletPackage(@cp.Id, '@Html.Raw((cp.ServicePackage?.NameAr ?? "").Replace("'", "\\'"))')">
+                                                            onclick="deleteWalletPackage(@cp.Id, '@Html.Raw((cp.ServicePackage?.NameAr ?? "").Replace("'", "\\'"))', @(isUsedPkg ? "true" : "false"))">
                                                         <i class="fas fa-trash-alt"></i>
                                                     </button>
                                                 }
@@ -226,13 +227,16 @@
     {
         <form id="walletPackageAntiForgeryForm">@Html.AntiForgeryToken()</form>
         <script>
-            function deleteWalletPackage(id, name) {
-                if (!confirm('هل تريد حذف الباقة "' + name + '"؟\nيمكن حذف الباقات غير المستخدمة وغير المدفوعة فقط.')) return;
+            function deleteWalletPackage(id, name, isUsed) {
+                var msg = isUsed
+                    ? 'هل تريد حذف الباقة "' + name + '"؟\nتم استخدام جلسات من هذه الباقة — سيتم حذف سجل استخدام الجلسات المرتبط بها نهائياً ولا يمكن التراجع عن ذلك.'
+                    : 'هل تريد حذف الباقة "' + name + '"؟';
+                if (!confirm(msg)) return;
                 var token = document.querySelector('#walletPackageAntiForgeryForm input[name="__RequestVerificationToken"]').value;
                 fetch('@Url.Action("DeleteCustomerPackage", "Packages")', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
-                    body: new URLSearchParams({ id: id, __RequestVerificationToken: token })
+                    body: new URLSearchParams({ id: id, forceDeleteUsed: isUsed ? 'true' : 'false', __RequestVerificationToken: token })
                 })
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
