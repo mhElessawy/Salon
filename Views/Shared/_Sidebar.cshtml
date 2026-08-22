@@ -17,6 +17,7 @@
     bool IsGroupOpen(params string[] controllers)
         => controllers.Any(c => ctrl == c.ToLower());
 
+    bool customersOpen = IsGroupOpen("customers", "messages");
     bool shiftsOpen = IsGroupOpen("shifts", "dailyclosure");
     bool salesOpen = IsGroupOpen("sales", "appointments", "packages");
     bool defsOpen = IsGroupOpen("services", "servicecategories", "departments", "packages");
@@ -50,11 +51,84 @@
         @* العملاء *@
         @if (canSee("Customers"))
         {
-            <li>
-                <a href="@Url.Action("Index", "Customers")" class="@IsActive("Customers")">
+            <li class="has-submenu @(customersOpen ? "open" : "")">
+                <a href="#" class="submenu-toggle @(customersOpen ? "active-parent" : "")"
+                   onclick="toggleMenu(this); return false;">
                     <i class="fas fa-users"></i>
                     <span data-i18n-en="Customers">العملاء</span>
+                    <i class="fas fa-chevron-left arrow-icon"></i>
                 </a>
+                <ul class="submenu @(customersOpen ? "show" : "")">
+                    <li>
+                        <a href="@Url.Action("Index", "Customers")" class="@IsActive("Customers", "Index")">
+                            <i class="fas fa-list"></i>
+                            <span data-i18n-en="Customer List">قائمة العملاء</span>
+                        </a>
+                    </li>
+                    @if (canSee("CustomersAdd"))
+                    {
+                        <li>
+                            <a href="@Url.Action("Create", "Customers")" class="@IsActive("Customers", "Create")">
+                                <i class="fas fa-user-plus"></i>
+                                <span data-i18n-en="Add New Customer">إضافة عميل جديد</span>
+                            </a>
+                        </li>
+                    }
+                    <li>
+                        <a href="@Url.Action("Index", "Customers")" class="@IsActive("Customers", "Details")">
+                            <i class="fas fa-id-card"></i>
+                            <span data-i18n-en="Customer Card">بطاقة العميل</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="@Url.Action("Index", "Customers")">
+                            <i class="fas fa-wallet"></i>
+                            <span data-i18n-en="Customer Wallet">محفظة العميل</span>
+                        </a>
+                    </li>
+                    @if (canSee("Packages"))
+                    {
+                        <li>
+                            <a href="@Url.Action("Index", "Packages")" class="@IsActive("Packages")">
+                                <i class="fas fa-box-open"></i>
+                                <span data-i18n-en="Packages &amp; Subscriptions">الباقات والاشتراكات</span>
+                            </a>
+                        </li>
+                    }
+                    <li>
+                        <a href="@Url.Action("Index", "Customers")">
+                            <i class="fas fa-clock-rotate-left"></i>
+                            <span data-i18n-en="Visit Log">سجل الزيارات</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="@Url.Action("Index", "Customers")">
+                            <i class="fas fa-heart"></i>
+                            <span data-i18n-en="Favorite Employee">الموظف المفضل</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="@Url.Action("Index", "Customers")">
+                            <i class="fas fa-note-sticky"></i>
+                            <span data-i18n-en="Customer Notes">ملاحظات العميل</span>
+                        </a>
+                    </li>
+                    @if (canSee("Messages"))
+                    {
+                        <li>
+                            <a href="@Url.Action("Index", "Messages")" class="@IsActive("Messages")">
+                                <i class="fas fa-envelope"></i>
+                                <span data-i18n-en="Customer Messages">الرسائل الخاصة بالعميل</span>
+                            </a>
+                        </li>
+                    }
+                    <li>
+                        <a href="@Url.Action("Index", "Customers")">
+                            <i class="fas fa-user-check"></i>
+                            <span data-i18n-en="Customer Statuses">حالات العملاء</span>
+                        </a>
+                    </li>
+                </ul>
             </li>
         }
 
