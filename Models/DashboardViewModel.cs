@@ -1,6 +1,6 @@
-namespace Salon.Models
+ï»¿namespace Salon.Models
 {
-    /// <summary>ŞíãÉ ãæÒøÚÉ Úáì ÇáÃŞÓÇã ÇáÅíÑÇÏíÉ (ÍáÇŞÉ/ãÓÇÌ) ÈÇáÅÖÇİÉ ááÅÌãÇáí ÇáÚÇã.</summary>
+    /// <summary>Ù‚ÙŠÙ…Ø© Ù…ÙˆØ²Ù‘Ø¹Ø© Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ø³Ø§Ù… Ø§Ù„Ø¥ÙŠØ±Ø§Ø¯ÙŠØ© (Ø­Ù„Ø§Ù‚Ø©/Ù…Ø³Ø§Ø¬) Ø¨Ø§Ù„Ø¥Ø¶Ø§ÙØ© Ù„Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø¹Ø§Ù….</summary>
     public class DashboardDeptValue
     {
         public decimal Haircut { get; set; }
@@ -22,7 +22,7 @@ namespace Salon.Models
     {
         public bool HasAccess { get; set; } = true;
 
-        /// <summary>äØÇŞ ÇáÚÑÖ ÍÓÈ ÕáÇÍíÉ ÇáãÓÊÎÏã: All (ÃÏãä/ãÏíÑ) | Haircut | Massage (ÓßÑÊíÑ ŞÓã) | Personal (ãæÙİ)</summary>
+        /// <summary>Ù†Ø·Ø§Ù‚ Ø§Ù„Ø¹Ø±Ø¶ Ø­Ø³Ø¨ ØµÙ„Ø§Ø­ÙŠØ© Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…: All (Ø£Ø¯Ù…Ù†/Ù…Ø¯ÙŠØ±) | Haircut | Massage (Ø³ÙƒØ±ØªÙŠØ± Ù‚Ø³Ù…) | Personal (Ù…ÙˆØ¸Ù)</summary>
         public string ViewScope { get; set; } = "All";
         public string? UserDepartment { get; set; }
 
