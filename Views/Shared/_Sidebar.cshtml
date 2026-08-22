@@ -25,7 +25,6 @@
     bool hrOpen = IsGroupOpen("employees", "salaries", "advances", "custody", "attendance");
     bool cashOpen = IsGroupOpen("expenses", "deposits", "withdrawals");
     bool reportsOpen = IsGroupOpen("reports", "barberdaily") || (ctrl == "attendance" && act == "reports");
-    bool messagesOpen = IsGroupOpen("messages", "notifications");
     bool settingsOpen = IsGroupOpen("settings", "users");
 }
 
@@ -75,18 +74,6 @@
                             </a>
                         </li>
                     }
-                    <li>
-                        <a href="@Url.Action("Index", "Customers")" class="@IsActive("Customers", "Details")">
-                            <i class="fas fa-id-card"></i>
-                            <span data-i18n-en="Customer Card">بطاقة العميل</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="@Url.Action("Index", "Customers")">
-                            <i class="fas fa-wallet"></i>
-                            <span data-i18n-en="Customer Wallet">محفظة العميل</span>
-                        </a>
-                    </li>
                     @if (canSee("Packages"))
                     {
                         <li>
@@ -96,24 +83,6 @@
                             </a>
                         </li>
                     }
-                    <li>
-                        <a href="@Url.Action("Index", "Customers")">
-                            <i class="fas fa-clock-rotate-left"></i>
-                            <span data-i18n-en="Visit Log">سجل الزيارات</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="@Url.Action("Index", "Customers")">
-                            <i class="fas fa-heart"></i>
-                            <span data-i18n-en="Favorite Employee">الموظف المفضل</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="@Url.Action("Index", "Customers")">
-                            <i class="fas fa-note-sticky"></i>
-                            <span data-i18n-en="Customer Notes">ملاحظات العميل</span>
-                        </a>
-                    </li>
                     @if (canSee("Messages"))
                     {
                         <li>
@@ -123,12 +92,6 @@
                             </a>
                         </li>
                     }
-                    <li>
-                        <a href="@Url.Action("Index", "Customers")">
-                            <i class="fas fa-user-check"></i>
-                            <span data-i18n-en="Customer Statuses">حالات العملاء</span>
-                        </a>
-                    </li>
                 </ul>
             </li>
         }
@@ -161,12 +124,6 @@
                                 </a>
                             </li>
                         }
-                        <li>
-                            <a href="@Url.Action("Index", "Shifts")">
-                                <i class="fas fa-stop-circle"></i>
-                                <span data-i18n-en="Close Shift">إغلاق شفت</span>
-                            </a>
-                        </li>
                         <li>
                             <a href="@Url.Action("Reports", "Shifts")" class="@IsActive("Shifts", "Reports")">
                                 <i class="fas fa-file-alt"></i>
@@ -648,36 +605,14 @@
             </li>
         }
 
-        @* الرسائل والإشعارات *@
+        @* الرسائل *@
         @if (canSee("Messages"))
         {
-            <li class="has-submenu @(messagesOpen ? "open" : "")">
-                <a href="#" class="submenu-toggle @(messagesOpen ? "active-parent" : "")"
-                   onclick="toggleMenu(this); return false;">
+            <li>
+                <a href="@Url.Action("Index", "Messages")" class="@IsActive("Messages")">
                     <i class="fas fa-envelope"></i>
-                    <span data-i18n-en="Messages &amp; Notifications">الرسائل والإشعارات</span>
-                    <i class="fas fa-chevron-left arrow-icon"></i>
+                    <span data-i18n-en="Messages">الرسائل</span>
                 </a>
-                <ul class="submenu @(messagesOpen ? "show" : "")">
-                    <li>
-                        <a href="@Url.Action("Index", "Messages")" class="@IsActive("Messages", "Index")">
-                            <i class="fas fa-user-friends"></i>
-                            <span data-i18n-en="Customer Messages">رسائل العملاء</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="@Url.Action("Index", "Messages")">
-                            <i class="fas fa-user-tie"></i>
-                            <span data-i18n-en="Employee Messages">رسائل الموظفين</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="@Url.Action("Index", "Employees")">
-                            <i class="fas fa-sticky-note"></i>
-                            <span data-i18n-en="Employee Notes">ملاحظات الموظفين</span>
-                        </a>
-                    </li>
-                </ul>
             </li>
         }
 
