@@ -64,9 +64,9 @@ namespace Salon.Services
 
             // Apply department-based filtering: each department sees only its own invoice type
             var appUser = await _userManager.FindByIdAsync(userId!);
-            if (appUser?.UserDepartment == "����")
+            if (appUser?.UserDepartment == "مساج")
                 result.Remove("BarberInvoice");
-            else if (appUser?.UserDepartment == "�����")
+            else if (appUser?.UserDepartment == "حلاقة")
                 result.Remove("MassageInvoice");
 
             // Employees cannot create product invoices
