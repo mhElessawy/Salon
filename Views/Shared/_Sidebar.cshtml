@@ -24,7 +24,12 @@
     bool inventoryOpen = IsGroupOpen("inventory", "suppliers", "purchaserequests", "supplierinvoices");
     bool hrOpen = IsGroupOpen("employees", "salaries", "advances", "custody", "attendance");
     bool cashOpen = IsGroupOpen("expenses", "deposits", "withdrawals");
-    bool reportsOpen = IsGroupOpen("reports", "barberdaily") || (ctrl == "attendance" && act == "reports");
+    bool reportsOpen = IsGroupOpen("reports", "barberdaily")
+        || (ctrl == "attendance" && act == "reports")
+        || (ctrl == "shifts" && act == "reports")
+        || (ctrl == "advances" && act == "report")
+        || (ctrl == "custody" && act == "report")
+        || (ctrl == "inventory" && act == "consumereport");
     bool settingsOpen = IsGroupOpen("settings", "users");
 }
 
@@ -124,12 +129,6 @@
                                 </a>
                             </li>
                         }
-                        <li>
-                            <a href="@Url.Action("Reports", "Shifts")" class="@IsActive("Shifts", "Reports")">
-                                <i class="fas fa-file-alt"></i>
-                                <span data-i18n-en="Shift Reports">تقارير الشفتات</span>
-                            </a>
-                        </li>
                     }
                     @if (canSee("DailyClosure"))
                     {
@@ -137,12 +136,6 @@
                             <a href="@Url.Action("Review", "DailyClosure")" class="@IsActive("DailyClosure", "Review")">
                                 <i class="fas fa-clipboard-check"></i>
                                 <span data-i18n-en="Approve Daily Closure">اعتماد اليومية</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="@Url.Action("Closures", "Reports")" class="@IsActive("Reports", "Closures")">
-                                <i class="fas fa-calendar-days"></i>
-                                <span data-i18n-en="Closures Report">تقرير الإغلاقات</span>
                             </a>
                         </li>
                     }
@@ -357,15 +350,6 @@
                             </a>
                         </li>
                     }
-                    @if (canSee("Inventory"))
-                    {
-                        <li>
-                            <a href="@Url.Action("ConsumeReport", "Inventory")" class="@IsActive("Inventory", "ConsumeReport")">
-                                <i class="fas fa-file-alt" style="color:#6f42c1"></i>
-                                <span data-i18n-en="Consumption Report">تقرير الاستهلاك</span>
-                            </a>
-                        </li>
-                    }
                 </ul>
             </li>
         }
@@ -417,12 +401,6 @@
                                 <span data-i18n-en="Employee Advances">سلف الموظفين</span>
                             </a>
                         </li>
-                        <li>
-                            <a href="@Url.Action("Report", "Advances")" class="@IsActive("Advances", "Report")">
-                                <i class="fas fa-file-invoice-dollar"></i>
-                                <span data-i18n-en="Advances Report">تقرير السلف</span>
-                            </a>
-                        </li>
                     }
                     @if (canSee("Custody"))
                     {
@@ -430,12 +408,6 @@
                             <a href="@Url.Action("Index", "Custody")" class="@IsActive("Custody", "Index")">
                                 <i class="fas fa-hand-holding"></i>
                                 <span data-i18n-en="Employee Custody">عهد الموظفين</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="@Url.Action("Report", "Custody")" class="@IsActive("Custody", "Report")">
-                                <i class="fas fa-file-invoice-dollar"></i>
-                                <span data-i18n-en="Custody Report">تقرير العهد</span>
                             </a>
                         </li>
                     }
@@ -526,7 +498,7 @@
 
         @* التقارير *@
         @{
-            bool hasReportsGroup = canSee("Reports") || canSee("BarberDaily");
+            bool hasReportsGroup = canSee("Reports") || canSee("BarberDaily") || canSee("Shifts") || canSee("Advances") || canSee("Custody") || canSee("Inventory");
         }
         @if (hasReportsGroup)
         {
@@ -595,9 +567,51 @@
                             </a>
                         </li>
                         <li>
+                            <a href="@Url.Action("Closures", "Reports")" class="@IsActive("Reports", "Closures")">
+                                <i class="fas fa-calendar-days"></i>
+                                <span data-i18n-en="Closures Report">تقرير الإغلاقات</span>
+                            </a>
+                        </li>
+                        <li>
                             <a href="@Url.Action("Index", "Reports")" class="@IsActive("Reports", "Index")">
                                 <i class="fas fa-th-list"></i>
                                 <span data-i18n-en="General Reports">تقارير عامة</span>
+                            </a>
+                        </li>
+                    }
+                    @if (canSee("Shifts"))
+                    {
+                        <li>
+                            <a href="@Url.Action("Reports", "Shifts")" class="@IsActive("Shifts", "Reports")">
+                                <i class="fas fa-file-alt"></i>
+                                <span data-i18n-en="Shift Reports">تقارير الشفتات</span>
+                            </a>
+                        </li>
+                    }
+                    @if (canSee("Advances"))
+                    {
+                        <li>
+                            <a href="@Url.Action("Report", "Advances")" class="@IsActive("Advances", "Report")">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                                <span data-i18n-en="Advances Report">تقرير السلف</span>
+                            </a>
+                        </li>
+                    }
+                    @if (canSee("Custody"))
+                    {
+                        <li>
+                            <a href="@Url.Action("Report", "Custody")" class="@IsActive("Custody", "Report")">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                                <span data-i18n-en="Custody Report">تقرير العهد</span>
+                            </a>
+                        </li>
+                    }
+                    @if (canSee("Inventory"))
+                    {
+                        <li>
+                            <a href="@Url.Action("ConsumeReport", "Inventory")" class="@IsActive("Inventory", "ConsumeReport")">
+                                <i class="fas fa-file-alt" style="color:#6f42c1"></i>
+                                <span data-i18n-en="Consumption Report">تقرير الاستهلاك</span>
                             </a>
                         </li>
                     }
