@@ -26,42 +26,51 @@
             </a>
         </div>
     }
-    <div class="col-md-4">
-        <a href="@Url.Action("Revenue")" class="text-decoration-none">
-            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3" style="font-size:48px; color:#16a34a;"><i class="fas fa-chart-column"></i></div>
-                    <h5>تقرير الإيرادات حسب الفترة</h5>
-                    <p class="text-muted small">ملخص الإيرادات اليومية مع تفصيل طرق الدفع</p>
+    @if (canSee("ReportRevenue"))
+    {
+        <div class="col-md-4">
+            <a href="@Url.Action("Revenue")" class="text-decoration-none">
+                <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3" style="font-size:48px; color:#16a34a;"><i class="fas fa-chart-column"></i></div>
+                        <h5>تقرير الإيرادات حسب الفترة</h5>
+                        <p class="text-muted small">ملخص الإيرادات اليومية مع تفصيل طرق الدفع</p>
+                    </div>
                 </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-4">
-        <a href="@Url.Action("EmployeeRevenue")" class="text-decoration-none">
-            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3" style="font-size:48px; color:#0284c7;"><i class="fas fa-users"></i></div>
-                    <h5>تقرير الإيراد حسب الموظف</h5>
-                    <p class="text-muted small">إيرادات وعمولات وصافي كل موظف مع السلف والخصومات والإكراميات</p>
+            </a>
+        </div>
+    }
+    @if (canSee("ReportEmployeeRevenue"))
+    {
+        <div class="col-md-4">
+            <a href="@Url.Action("EmployeeRevenue")" class="text-decoration-none">
+                <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3" style="font-size:48px; color:#0284c7;"><i class="fas fa-users"></i></div>
+                        <h5>تقرير الإيراد حسب الموظف</h5>
+                        <p class="text-muted small">إيرادات وعمولات وصافي كل موظف مع السلف والخصومات والإكراميات</p>
+                    </div>
                 </div>
-            </div>
-        </a>
-    </div>
+            </a>
+        </div>
+    }
 
     @* ── الصف الثاني ── *@
-    <div class="col-md-4">
-        <a href="@Url.Action("ProfitLoss")" class="text-decoration-none">
-            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3" style="font-size:48px; color:#15803d;"><i class="fas fa-scale-balanced"></i></div>
-                    <h5>تقرير الأرباح والخسائر الشهري</h5>
-                    <p class="text-muted small">ملخص شامل للمبيعات والمصروفات والرواتب وصافي الربح لأداء الشهر</p>
+    @if (canSee("ReportProfitLoss"))
+    {
+        <div class="col-md-4">
+            <a href="@Url.Action("ProfitLoss")" class="text-decoration-none">
+                <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3" style="font-size:48px; color:#15803d;"><i class="fas fa-scale-balanced"></i></div>
+                        <h5>تقرير الأرباح والخسائر الشهري</h5>
+                        <p class="text-muted small">ملخص شامل للمبيعات والمصروفات والرواتب وصافي الربح لأداء الشهر</p>
+                    </div>
                 </div>
-            </div>
-        </a>
-    </div>
-    @if (canSee("DailyClosure"))
+            </a>
+        </div>
+    }
+    @if (canSee("DailyClosure") && canSee("ReportClosures"))
     {
         <div class="col-md-4">
             <a href="@Url.Action("Closures")" class="text-decoration-none">
@@ -75,127 +84,188 @@
             </a>
         </div>
     }
-    <div class="col-md-4">
-        <a href="@Url.Action("CashMovement")" class="text-decoration-none">
-            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3" style="font-size:48px; color:#6f42c1;"><i class="fas fa-cash-register"></i></div>
-                    <h5>تقرير حركة الصندوق</h5>
-                    <p class="text-muted small">جميع المصروفات والإيداعات مجمعة مع فلتر النوع والتاريخ</p>
+    @if (canSee("ReportCashMovement"))
+    {
+        <div class="col-md-4">
+            <a href="@Url.Action("CashMovement")" class="text-decoration-none">
+                <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3" style="font-size:48px; color:#6f42c1;"><i class="fas fa-cash-register"></i></div>
+                        <h5>تقرير حركة الصندوق</h5>
+                        <p class="text-muted small">جميع المصروفات والإيداعات مجمعة مع فلتر النوع والتاريخ</p>
+                    </div>
                 </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-4">
-        <a href="@Url.Action("BankMovement")" class="text-decoration-none">
-            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3" style="font-size:48px; color:#0ea5e9;"><i class="fas fa-university"></i></div>
-                    <h5>تقرير حركة البنك</h5>
-                    <p class="text-muted small">مبيعات الكي نت والحركات غير النقدية مجمعة مع فلتر النوع والتاريخ</p>
+            </a>
+        </div>
+    }
+    @if (canSee("ReportBankMovement"))
+    {
+        <div class="col-md-4">
+            <a href="@Url.Action("BankMovement")" class="text-decoration-none">
+                <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3" style="font-size:48px; color:#0ea5e9;"><i class="fas fa-university"></i></div>
+                        <h5>تقرير حركة البنك</h5>
+                        <p class="text-muted small">مبيعات الكي نت والحركات غير النقدية مجمعة مع فلتر النوع والتاريخ</p>
+                    </div>
                 </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-4">
-        <a href="@Url.Action("InventoryReport")" class="text-decoration-none">
-            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3" style="font-size:48px; color:#0891b2;"><i class="fas fa-boxes"></i></div>
-                    <h5>تقرير المخزون</h5>
-                    <p class="text-muted small">مبيعات واستهلاك المنتجات مع الكميات والإيرادات خلال فترة</p>
+            </a>
+        </div>
+    }
+    @if (canSee("ReportInventory"))
+    {
+        <div class="col-md-4">
+            <a href="@Url.Action("InventoryReport")" class="text-decoration-none">
+                <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3" style="font-size:48px; color:#0891b2;"><i class="fas fa-boxes"></i></div>
+                        <h5>تقرير المخزون</h5>
+                        <p class="text-muted small">مبيعات واستهلاك المنتجات مع الكميات والإيرادات خلال فترة</p>
+                    </div>
                 </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-4">
-        <a href="@Url.Action("Refunds")" class="text-decoration-none">
-            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3" style="font-size:48px; color:#dc2626;"><i class="fas fa-undo-alt"></i></div>
-                    <h5>تقرير الاستردادات</h5>
-                    <p class="text-muted small">جميع مبالغ الفواتير المستردة (كلياً أو جزئياً) مع السبب وطريقة الاسترداد</p>
+            </a>
+        </div>
+    }
+    @if (canSee("ReportConsumption"))
+    {
+        <div class="col-md-4">
+            <a href="@Url.Action("ConsumeReport", "Inventory")" class="text-decoration-none">
+                <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3" style="font-size:48px; color:#6f42c1;"><i class="fas fa-file-alt"></i></div>
+                        <h5>تقرير الاستهلاك</h5>
+                        <p class="text-muted small">استهلاك الموظفين من المنتجات خلال فترة محددة</p>
+                    </div>
                 </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-4">
-        <a href="@Url.Action("Expenses")" class="text-decoration-none">
-            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3" style="font-size:48px; color:#dc3545;"><i class="fas fa-file-invoice-dollar"></i></div>
-                    <h5>تقرير المصروفات</h5>
-                    <p class="text-muted small">تقرير تفصيلي لجميع المصروفات خلال فترة محددة</p>
+            </a>
+        </div>
+    }
+    @if (canSee("ReportRefunds"))
+    {
+        <div class="col-md-4">
+            <a href="@Url.Action("Refunds")" class="text-decoration-none">
+                <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3" style="font-size:48px; color:#dc2626;"><i class="fas fa-undo-alt"></i></div>
+                        <h5>تقرير الاستردادات</h5>
+                        <p class="text-muted small">جميع مبالغ الفواتير المستردة (كلياً أو جزئياً) مع السبب وطريقة الاسترداد</p>
+                    </div>
                 </div>
-            </div>
-        </a>
-    </div>
+            </a>
+        </div>
+    }
+    @if (canSee("ReportExpenses"))
+    {
+        <div class="col-md-4">
+            <a href="@Url.Action("Expenses")" class="text-decoration-none">
+                <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3" style="font-size:48px; color:#dc3545;"><i class="fas fa-file-invoice-dollar"></i></div>
+                        <h5>تقرير المصروفات</h5>
+                        <p class="text-muted small">تقرير تفصيلي لجميع المصروفات خلال فترة محددة</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    }
 
     @* ── باقي التقارير ── *@
-    <div class="col-md-4">
-        <a href="@Url.Action("Reports", "Attendance")" class="text-decoration-none">
-            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3" style="font-size:48px; color:#17a2b8;"><i class="fas fa-calendar-check"></i></div>
-                    <h5>تقارير الحضور</h5>
-                    <p class="text-muted small">سجلات حضور وانصراف الموظفين</p>
+    @if (canSee("ReportShifts"))
+    {
+        <div class="col-md-4">
+            <a href="@Url.Action("Reports", "Shifts")" class="text-decoration-none">
+                <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3" style="font-size:48px; color:#0d6efd;"><i class="fas fa-clock"></i></div>
+                        <h5>تقارير الشفتات</h5>
+                        <p class="text-muted small">تقارير تفصيلية لكل شفت مع الإيرادات والحركة النقدية</p>
+                    </div>
                 </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-4">
-        <a href="@Url.Action("Report", "Advances")" class="text-decoration-none">
-            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3" style="font-size:48px; color:#e83e8c;"><i class="fas fa-hand-holding-usd"></i></div>
-                    <h5>تقرير السلف</h5>
-                    <p class="text-muted small">تقرير تفصيلي لسلف الموظفين والمبالغ المسددة والمتبقية</p>
+            </a>
+        </div>
+    }
+    @if (canSee("ReportAttendance"))
+    {
+        <div class="col-md-4">
+            <a href="@Url.Action("Reports", "Attendance")" class="text-decoration-none">
+                <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3" style="font-size:48px; color:#17a2b8;"><i class="fas fa-calendar-check"></i></div>
+                        <h5>تقارير الحضور</h5>
+                        <p class="text-muted small">سجلات حضور وانصراف الموظفين</p>
+                    </div>
                 </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-4">
-        <a href="@Url.Action("EvaluationList")" class="text-decoration-none">
-            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3" style="font-size:48px; color:#fd7e14;"><i class="fas fa-users-cog"></i></div>
-                    <h5>تقييم الموظفين</h5>
-                    <p class="text-muted small">قائمة بجميع الموظفين مع حضورهم ومبيعاتهم</p>
+            </a>
+        </div>
+    }
+    @if (canSee("ReportAdvances"))
+    {
+        <div class="col-md-4">
+            <a href="@Url.Action("Report", "Advances")" class="text-decoration-none">
+                <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3" style="font-size:48px; color:#e83e8c;"><i class="fas fa-hand-holding-usd"></i></div>
+                        <h5>تقرير السلف</h5>
+                        <p class="text-muted small">تقرير تفصيلي لسلف الموظفين والمبالغ المسددة والمتبقية</p>
+                    </div>
                 </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-4">
-        <a href="@Url.Action("EmployeeEvaluation")" class="text-decoration-none">
-            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3" style="font-size:48px; color:#6f42c1;"><i class="fas fa-user-check"></i></div>
-                    <h5>تقييم موظف واحد</h5>
-                    <p class="text-muted small">تقرير تفصيلي لحضور ومبيعات موظف بعينه</p>
+            </a>
+        </div>
+    }
+    @if (canSee("ReportEvaluationList"))
+    {
+        <div class="col-md-4">
+            <a href="@Url.Action("EvaluationList")" class="text-decoration-none">
+                <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3" style="font-size:48px; color:#fd7e14;"><i class="fas fa-users-cog"></i></div>
+                        <h5>تقييم الموظفين</h5>
+                        <p class="text-muted small">قائمة بجميع الموظفين مع حضورهم ومبيعاتهم</p>
+                    </div>
                 </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-4">
-        <a href="@Url.Action("Report", "Custody")" class="text-decoration-none">
-            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3" style="font-size:48px; color:#6f42c1;"><i class="fas fa-hand-holding"></i></div>
-                    <h5>تقرير العهد</h5>
-                    <p class="text-muted small">عهد الموظفين المسلَّمة نقداً أو عن طريق لينك</p>
+            </a>
+        </div>
+    }
+    @if (canSee("ReportEmployeeEvaluation"))
+    {
+        <div class="col-md-4">
+            <a href="@Url.Action("EmployeeEvaluation")" class="text-decoration-none">
+                <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3" style="font-size:48px; color:#6f42c1;"><i class="fas fa-user-check"></i></div>
+                        <h5>تقييم موظف واحد</h5>
+                        <p class="text-muted small">تقرير تفصيلي لحضور ومبيعات موظف بعينه</p>
+                    </div>
                 </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-4">
-        <a href="@Url.Action("SalesByCustomer")" class="text-decoration-none">
-            <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3" style="font-size:48px; color:#0284c7;"><i class="fas fa-user-tag"></i></div>
-                    <h5>المبيعات على حسب العملاء</h5>
-                    <p class="text-muted small">إجمالي مبيعات كل عميل مع عدد الزيارات وطرق الدفع</p>
+            </a>
+        </div>
+    }
+    @if (canSee("ReportCustody"))
+    {
+        <div class="col-md-4">
+            <a href="@Url.Action("Report", "Custody")" class="text-decoration-none">
+                <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3" style="font-size:48px; color:#6f42c1;"><i class="fas fa-hand-holding"></i></div>
+                        <h5>تقرير العهد</h5>
+                        <p class="text-muted small">عهد الموظفين المسلَّمة نقداً أو عن طريق لينك</p>
+                    </div>
                 </div>
-            </div>
-        </a>
-    </div>
+            </a>
+        </div>
+    }
+    @if (canSee("ReportSalesByCustomer"))
+    {
+        <div class="col-md-4">
+            <a href="@Url.Action("SalesByCustomer")" class="text-decoration-none">
+                <div class="card h-100" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3" style="font-size:48px; color:#0284c7;"><i class="fas fa-user-tag"></i></div>
+                        <h5>المبيعات على حسب العملاء</h5>
+                        <p class="text-muted small">إجمالي مبيعات كل عميل مع عدد الزيارات وطرق الدفع</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    }
 </div>

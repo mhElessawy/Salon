@@ -183,6 +183,9 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> Report(DateTime? dateFrom, DateTime? dateTo, int? employeeId, string? status)
         {
+            if (!await _perms.HasAccessAsync("ReportAdvances"))
+                return Forbid();
+
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
 
