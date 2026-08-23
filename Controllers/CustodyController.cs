@@ -16,13 +16,15 @@ namespace Salon.Controllers
         private readonly IAuditService _audit;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IDailyClosureService _closure;
+        private readonly IPermissionService _perms;
 
-        public CustodyController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager, IDailyClosureService closure)
+        public CustodyController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager, IDailyClosureService closure, IPermissionService perms)
         {
             _context = context;
             _audit = audit;
             _userManager = userManager;
             _closure = closure;
+            _perms = perms;
         }
 
         private async Task<bool> IsManagerAsync(ApplicationUser? user)
@@ -185,6 +187,9 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> Report(DateTime? dateFrom, DateTime? dateTo, int? employeeId, string? paymentMethod)
         {
+            if (!await _perms.HasAccessAsync("ReportCustody"))
+                return Forbid();
+
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
             bool isManager = await IsManagerAsync(currentUser);

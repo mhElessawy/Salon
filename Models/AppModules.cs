@@ -28,7 +28,6 @@ namespace Salon.Models
             ("Deposits",          "الإيداعات",          "fas fa-money-bill-wave",  "المالية"),
             ("Withdrawals",       "السحوبات",           "fas fa-hand-holding-usd", "المالية"),
             ("Reports",           "التقارير",           "fas fa-chart-bar",        "المالية"),
-            ("BarberDaily",       "تقرير الأداء اليومي", "fas fa-cut",              "المالية"),
             ("Messages",          "الرسائل",            "fas fa-envelope",         "عام"),
             ("Settings",          "الإعدادات",          "fas fa-cog",              "الإدارة"),
             ("Users",             "المستخدمين",         "fas fa-user-shield",      "الإدارة"),
@@ -37,6 +36,26 @@ namespace Salon.Models
             ("CustomerDebt",      "دين على العميل",     "fas fa-user-minus",       "المبيعات"),
             ("SalesInvoiceEdit",  "تعديل بيانات الفاتورة (التاريخ / طريقة الدفع / الموظف)", "fas fa-edit", "المبيعات"),
             ("SalesRefund",       "استرداد مبلغ الفاتورة", "fas fa-undo-alt",      "المبيعات"),
+
+            // ── التقارير الفردية: تتحكم في ظهور كل تقرير بالاسم في شاشة التقارير العامة ──
+            ("BarberDaily",           "تقرير الأداء اليومي",              "fas fa-cut",                 "التقارير"),
+            ("ReportRevenue",         "تقرير الإيرادات حسب الفترة",       "fas fa-chart-column",        "التقارير"),
+            ("ReportEmployeeRevenue", "تقرير الإيراد حسب الموظف",         "fas fa-users",                "التقارير"),
+            ("ReportProfitLoss",      "تقرير الأرباح والخسائر الشهري",    "fas fa-scale-balanced",      "التقارير"),
+            ("ReportClosures",        "تقرير الإغلاقات اليومية",          "fas fa-calendar-days",       "التقارير"),
+            ("ReportCashMovement",    "تقرير حركة الصندوق",               "fas fa-cash-register",       "التقارير"),
+            ("ReportBankMovement",    "تقرير حركة البنك",                 "fas fa-university",          "التقارير"),
+            ("ReportInventory",       "تقرير المخزون",                    "fas fa-boxes",                "التقارير"),
+            ("ReportRefunds",         "تقرير الاستردادات",                "fas fa-undo-alt",            "التقارير"),
+            ("ReportExpenses",        "تقرير المصروفات",                  "fas fa-file-invoice-dollar", "التقارير"),
+            ("ReportAttendance",      "تقارير الحضور",                    "fas fa-calendar-check",      "التقارير"),
+            ("ReportAdvances",        "تقرير السلف",                      "fas fa-hand-holding-usd",    "التقارير"),
+            ("ReportEvaluationList",  "تقييم الموظفين",                   "fas fa-users-cog",           "التقارير"),
+            ("ReportEmployeeEvaluation", "تقييم موظف واحد",               "fas fa-user-check",          "التقارير"),
+            ("ReportCustody",         "تقرير العهد",                      "fas fa-hand-holding",         "التقارير"),
+            ("ReportSalesByCustomer", "المبيعات على حسب العملاء",         "fas fa-user-tag",             "التقارير"),
+            ("ReportShifts",          "تقارير الشفتات",                   "fas fa-file-alt",             "التقارير"),
+            ("ReportConsumption",     "تقرير الاستهلاك",                  "fas fa-file-alt",             "التقارير"),
         };
 
         // الشاشات التي تدعم صلاحية الإضافة
