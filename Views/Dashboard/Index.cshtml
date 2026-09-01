@@ -5,6 +5,10 @@
 }
 
 @functions {
+    // يرجع القيمة المناسبة لنطاق العرض الحالي: قيمة القسم لسكرتير القسم، أو الإجمالي للأدمن
+    decimal ScopedValue(string scope, decimal haircut, decimal massage, decimal total)
+        => scope == "Haircut" ? haircut : scope == "Massage" ? massage : total;
+
     // يعرض قيمة واحدة (نطاق سكرتير قسم/موظف) أو 3 أعمدة (نطاق الأدمن: حلاقة/مساج/الإجمالي)
     IHtmlContent DeptColumns(string scope, decimal haircut, decimal massage, decimal total, bool isMoney)
     {
@@ -198,7 +202,7 @@ else
                     <span class="dash-card-title" data-i18n-en="Sales Today">مبيعات اليوم</span>
                     <div class="dash-card-icon green"><i class="fas fa-dollar-sign"></i></div>
                 </div>
-                <div class="stat-value mb-2">@Model.Sales.Total.ToString("N3") د.ك</div>
+                <div class="stat-value mb-2">@ScopedValue(Model.ViewScope, Model.Sales.Haircut, Model.Sales.Massage, Model.Sales.Total).ToString("N3") د.ك</div>
                 @DeptColumns(Model.ViewScope, Model.Sales.Haircut, Model.Sales.Massage, Model.Sales.Total, true)
                 <span class="dash-card-link" data-i18n-en="View Details">عرض التفاصيل ‹</span>
             </a>
@@ -208,7 +212,7 @@ else
                     <span class="dash-card-title" data-i18n-en="Customers Today">عملاء اليوم</span>
                     <div class="dash-card-icon blue"><i class="fas fa-users"></i></div>
                 </div>
-                <div class="stat-value mb-2">@Model.Customers.Total.ToString("N0")</div>
+                <div class="stat-value mb-2">@ScopedValue(Model.ViewScope, Model.Customers.Haircut, Model.Customers.Massage, Model.Customers.Total).ToString("N0")</div>
                 @DeptColumns(Model.ViewScope, Model.Customers.Haircut, Model.Customers.Massage, Model.Customers.Total, false)
                 <span class="dash-card-link" data-i18n-en="View Details">عرض التفاصيل ‹</span>
             </a>
@@ -218,7 +222,7 @@ else
                     <span class="dash-card-title" data-i18n-en="Cancelled Invoices">فواتير ملغاة</span>
                     <div class="dash-card-icon red"><i class="fas fa-ban"></i></div>
                 </div>
-                <div class="stat-value mb-2" style="color:#dc2626;">@Model.CancelledSalesCount.Total.ToString("N0") فاتورة</div>
+                <div class="stat-value mb-2" style="color:#dc2626;">@ScopedValue(Model.ViewScope, Model.CancelledSalesCount.Haircut, Model.CancelledSalesCount.Massage, Model.CancelledSalesCount.Total).ToString("N0") فاتورة</div>
                 @DeptColumns(Model.ViewScope, Model.CancelledSalesCount.Haircut, Model.CancelledSalesCount.Massage, Model.CancelledSalesCount.Total, false)
                 <span class="dash-card-link" data-i18n-en="View Details">عرض التفاصيل ‹</span>
             </a>
@@ -228,7 +232,7 @@ else
                     <span class="dash-card-title" data-i18n-en="Refunded Invoices">فواتير مسترجعة</span>
                     <div class="dash-card-icon gray"><i class="fas fa-undo"></i></div>
                 </div>
-                <div class="stat-value mb-2">@Model.RefundedSalesCount.Total.ToString("N0") فاتورة</div>
+                <div class="stat-value mb-2">@ScopedValue(Model.ViewScope, Model.RefundedSalesCount.Haircut, Model.RefundedSalesCount.Massage, Model.RefundedSalesCount.Total).ToString("N0") فاتورة</div>
                 @DeptColumns(Model.ViewScope, Model.RefundedSalesCount.Haircut, Model.RefundedSalesCount.Massage, Model.RefundedSalesCount.Total, false)
                 <span class="dash-card-link" data-i18n-en="View Details">عرض التفاصيل ‹</span>
             </a>
@@ -241,7 +245,7 @@ else
                     <span class="dash-card-title" data-i18n-en="Expenses Today">مصروفات اليوم</span>
                     <div class="dash-card-icon orange"><i class="fas fa-shopping-bag"></i></div>
                 </div>
-                <div class="stat-value mb-2">@Model.Expenses.Total.ToString("N3") د.ك</div>
+                <div class="stat-value mb-2">@ScopedValue(Model.ViewScope, Model.Expenses.Haircut, Model.Expenses.Massage, Model.Expenses.Total).ToString("N3") د.ك</div>
                 @DeptColumns(Model.ViewScope, Model.Expenses.Haircut, Model.Expenses.Massage, Model.Expenses.Total, true)
             </div>
 
@@ -250,7 +254,7 @@ else
                     <span class="dash-card-title" data-i18n-en="Advances Today">سلف اليوم</span>
                     <div class="dash-card-icon rose"><i class="fas fa-hand-holding-usd"></i></div>
                 </div>
-                <div class="stat-value mb-2" style="color:#9f1239;">@Model.Advances.Total.ToString("N3") د.ك</div>
+                <div class="stat-value mb-2" style="color:#9f1239;">@ScopedValue(Model.ViewScope, Model.Advances.Haircut, Model.Advances.Massage, Model.Advances.Total).ToString("N3") د.ك</div>
                 @DeptColumns(Model.ViewScope, Model.Advances.Haircut, Model.Advances.Massage, Model.Advances.Total, true)
             </div>
 
@@ -259,7 +263,7 @@ else
                     <span class="dash-card-title" data-i18n-en="Net Profit Today">صافي الربح اليوم</span>
                     <div class="dash-card-icon green"><i class="fas fa-arrow-up"></i></div>
                 </div>
-                <div class="stat-value mb-2">@Model.NetProfit.Total.ToString("N3") د.ك</div>
+                <div class="stat-value mb-2">@ScopedValue(Model.ViewScope, Model.NetProfit.Haircut, Model.NetProfit.Massage, Model.NetProfit.Total).ToString("N3") د.ك</div>
                 @DeptColumns(Model.ViewScope, Model.NetProfit.Haircut, Model.NetProfit.Massage, Model.NetProfit.Total, true)
             </div>
         </div>
