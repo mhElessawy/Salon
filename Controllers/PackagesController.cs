@@ -140,7 +140,8 @@ namespace Salon.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> AssignPackage(
             int customerId, int servicePackageId, decimal pricePaid, string? notes,
-            string? paymentMethod, bool agreedToTerms, string? signatureData)
+            string? paymentMethod, bool agreedToTerms, string? signatureData,
+            decimal? cashAmount, decimal? linkAmount)
         {
             bool isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
 
@@ -165,6 +166,20 @@ namespace Salon.Controllers
 
             var currentUser = await _userManager.GetUserAsync(User);
             var payMethod = string.IsNullOrWhiteSpace(paymentMethod) ? "نقدي" : paymentMethod;
+
+            var isSplitPayment = payMethod == "كي نت و كاش";
+            if (isNewSale && isSplitPayment)
+            {
+                var cash = cashAmount ?? 0;
+                var link = linkAmount ?? 0;
+                if (cash <= 0 || link <= 0 || Math.Abs(cash + link - pricePaid) >= 0.005m)
+                {
+                    const string splitMsg = "مجموع مبلغ الكاش ومبلغ الكي نت يجب أن يساوي المبلغ المدفوع الآن";
+                    if (isAjax) return Json(new { success = false, message = splitMsg });
+                    TempData["Error"] = splitMsg;
+                    return RedirectToAction(nameof(Index), new { tab = "balances" });
+                }
+            }
 
             var customerPkg = new CustomerPackage
             {
@@ -202,6 +217,8 @@ namespace Salon.Controllers
                     Discount = 0,
                     NetAmount = pricePaid,
                     Notes = notes,
+                    CashAmount = isSplitPayment ? cashAmount : null,
+                    LinkAmount = isSplitPayment ? linkAmount : null,
                     CreatedByUserId = currentUser?.Id,
                     CreatedByUserName = currentUser?.FullName ?? currentUser?.UserName ?? User.Identity?.Name
                 };
@@ -252,6 +269,8 @@ namespace Salon.Controllers
                     PurchaseDate = customerPkg.PurchaseDate,
                     ExpiryDate = customerPkg.ExpiryDate,
                     PaymentMethod = payMethod,
+                    CashAmount = isSplitPayment ? cashAmount : null,
+                    LinkAmount = isSplitPayment ? linkAmount : null,
                     InvoiceNumber = sale.InvoiceNumber,
                     TermsAr = settings.GetValueOrDefault("PackageAgreementTermsAr", PackageAgreement.DefaultTermsAr),
                     TermsEn = settings.GetValueOrDefault("PackageAgreementTermsEn", PackageAgreement.DefaultTermsEn),

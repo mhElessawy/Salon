@@ -37,6 +37,7 @@
                         <select id="pkgAgPaymentMethod" class="form-select">
                             <option value="كاش">كاش / Cash</option>
                             <option value="كي نت">كي نت / KNET</option>
+                            <option value="كي نت و كاش">كي نت و كاش / Cash + KNET</option>
                             <option value="تحويل بنكي">تحويل بنكي / Bank Transfer</option>
                         </select>
                     </div>
@@ -46,6 +47,26 @@
                             <input type="number" id="pkgAgAmount" step="0.001" min="0.001" class="form-control" />
                             <span class="input-group-text">د.ك</span>
                         </div>
+                    </div>
+                </div>
+
+                <div id="pkgAgSplitSection" class="row g-3 mb-3 d-none">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold"><i class="fas fa-money-bill-wave me-1 text-success"></i>مبلغ الكاش</label>
+                        <div class="input-group">
+                            <input type="number" id="pkgAgCashAmount" step="0.001" min="0" class="form-control" />
+                            <span class="input-group-text">د.ك</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold"><i class="fas fa-credit-card me-1 text-primary"></i>مبلغ كي نت</label>
+                        <div class="input-group">
+                            <input type="number" id="pkgAgLinkAmount" step="0.001" min="0" class="form-control" />
+                            <span class="input-group-text">د.ك</span>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div id="pkgAgSplitStatus" class="d-none small fw-semibold rounded p-2 text-center"></div>
                     </div>
                 </div>
 
