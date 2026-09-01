@@ -13,15 +13,20 @@ namespace Salon.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IPermissionService _perms;
 
-        public ReportsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public ReportsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IPermissionService perms)
         {
             _context = context;
             _userManager = userManager;
+            _perms = perms;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            if (!await _perms.HasAccessAsync("Reports"))
+                return Forbid();
+
             return View();
         }
 
@@ -161,6 +166,9 @@ namespace Salon.Controllers
         // ===== تقرير الاستردادات =====
         public async Task<IActionResult> Refunds(string? from, string? to, string? saleType, string? method)
         {
+            if (!await _perms.HasAccessAsync("ReportRefunds"))
+                return Forbid();
+
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
 
@@ -200,6 +208,9 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> Expenses(string? from, string? to, string? dept)
         {
+            if (!await _perms.HasAccessAsync("ReportExpenses"))
+                return Forbid();
+
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
 
@@ -412,6 +423,9 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> EvaluationList(string? from, string? to, string? dept)
         {
+            if (!await _perms.HasAccessAsync("ReportEvaluationList"))
+                return Forbid();
+
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
 
@@ -781,6 +795,9 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> CashMovement(string? from, string? to, string? type, string? dept)
         {
+            if (!await _perms.HasAccessAsync("ReportCashMovement"))
+                return Forbid();
+
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
 
@@ -1124,6 +1141,9 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> BankMovement(string? from, string? to, string? type, string? dept)
         {
+            if (!await _perms.HasAccessAsync("ReportBankMovement"))
+                return Forbid();
+
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
 
@@ -1318,6 +1338,9 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> EmployeeEvaluation(int? employeeId, string? from, string? to)
         {
+            if (!await _perms.HasAccessAsync("ReportEmployeeEvaluation"))
+                return Forbid();
+
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
 
@@ -1380,6 +1403,9 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> Revenue(string? from, string? to, int? employeeId, string? saleType)
         {
+            if (!await _perms.HasAccessAsync("ReportRevenue"))
+                return Forbid();
+
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
 
@@ -1538,6 +1564,9 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> ProfitLoss(int? month, int? year, string? dept)
         {
+            if (!await _perms.HasAccessAsync("ReportProfitLoss"))
+                return Forbid();
+
             int selectedYear = year ?? DateTime.Today.Year;
             int selectedMonth = month is >= 1 and <= 12 ? month.Value : DateTime.Today.Month;
             DateTime dateFrom = new DateTime(selectedYear, selectedMonth, 1);
@@ -1701,6 +1730,9 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> EmployeeRevenue(string? from, string? to, string? saleType, int? employeeId, string? invoiceNumber, string? cardNumber)
         {
+            if (!await _perms.HasAccessAsync("ReportEmployeeRevenue"))
+                return Forbid();
+
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
 
@@ -1866,6 +1898,9 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> InventoryReport(string? from, string? to, string? category, string? movementType)
         {
+            if (!await _perms.HasAccessAsync("ReportInventory"))
+                return Forbid();
+
             DateTime dateFrom = string.IsNullOrEmpty(from)
                 ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)
                 : DateTime.Parse(from);
@@ -1974,6 +2009,9 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> SalesByCustomer(string? from, string? to, string? saleType, int? customerId)
         {
+            if (!await _perms.HasAccessAsync("ReportSalesByCustomer"))
+                return Forbid();
+
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
             DateTime dateTo = string.IsNullOrEmpty(to) ? DateTime.Today.AddDays(1) : DateTime.Parse(to).AddDays(1);
 
@@ -2085,6 +2123,9 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> Closures(string? from, string? to, string? dept)
         {
+            if (!await _perms.HasAccessAsync("ReportClosures"))
+                return Forbid();
+
             DateTime dateFrom = string.IsNullOrEmpty(from) ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : DateTime.Parse(from);
             DateTime dateToInclusive = string.IsNullOrEmpty(to) ? DateTime.Today : DateTime.Parse(to);
             DateTime dateTo = dateToInclusive.Date.AddDays(1);

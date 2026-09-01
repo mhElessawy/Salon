@@ -12,11 +12,13 @@ namespace Salon.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _audit;
+        private readonly IPermissionService _perms;
 
-        public ShiftsController(ApplicationDbContext context, IAuditService audit)
+        public ShiftsController(ApplicationDbContext context, IAuditService audit, IPermissionService perms)
         {
             _context = context;
             _audit = audit;
+            _perms = perms;
         }
 
         public async Task<IActionResult> Index()
@@ -71,6 +73,9 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> Reports(string? date)
         {
+            if (!await _perms.HasAccessAsync("ReportShifts"))
+                return Forbid();
+
             DateTime filterDate = string.IsNullOrEmpty(date) ? DateTime.Today : DateTime.Parse(date);
             var nextDay = filterDate.AddDays(1);
 

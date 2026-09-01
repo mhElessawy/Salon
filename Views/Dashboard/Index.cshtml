@@ -1,6 +1,54 @@
 @model Salon.Models.DashboardViewModel
+@using Microsoft.AspNetCore.Html
 @{
     ViewData["Title"] = "لوحة التحكم";
+}
+
+@functions {
+    // يرجع القيمة المناسبة لنطاق العرض الحالي: قيمة القسم لسكرتير القسم، أو الإجمالي للأدمن
+    decimal ScopedValue(string scope, decimal haircut, decimal massage, decimal total)
+        => scope == "Haircut" ? haircut : scope == "Massage" ? massage : total;
+
+    // يعرض قيمة واحدة (نطاق سكرتير قسم/موظف) أو 3 أعمدة (نطاق الأدمن: حلاقة/مساج/الإجمالي)
+    IHtmlContent DeptColumns(string scope, decimal haircut, decimal massage, decimal total, bool isMoney)
+    {
+        string Fmt(decimal v) => isMoney ? v.ToString("N3") + " د.ك" : v.ToString("N0");
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<div class=\"dash-columns\">");
+        if (scope == "All")
+        {
+            sb.Append($"<div class=\"dash-col\"><div class=\"dash-col-value\">{Fmt(haircut)}</div><div class=\"dash-col-label\">✂ حلاقة</div></div>");
+            sb.Append($"<div class=\"dash-col\"><div class=\"dash-col-value\">{Fmt(massage)}</div><div class=\"dash-col-label\">🌿 مساج</div></div>");
+            sb.Append($"<div class=\"dash-col\"><div class=\"dash-col-value\">{Fmt(total)}</div><div class=\"dash-col-label\">الإجمالي</div></div>");
+        }
+        else
+        {
+            var val = scope == "Haircut" ? haircut : scope == "Massage" ? massage : total;
+            sb.Append($"<div class=\"dash-col\"><div class=\"dash-col-value\">{Fmt(val)}</div><div class=\"dash-col-label\">اليوم</div></div>");
+        }
+        sb.Append("</div>");
+        return new HtmlString(sb.ToString());
+    }
+
+    IHtmlContent AttendanceColumns(string scope, int hp, int ht, int mp, int mt, int ap, int at)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<div class=\"dash-columns\">");
+        if (scope == "All")
+        {
+            sb.Append($"<div class=\"dash-col\"><div class=\"dash-col-value\">{hp} / {ht}</div><div class=\"dash-col-label\">✂ حلاقة</div></div>");
+            sb.Append($"<div class=\"dash-col\"><div class=\"dash-col-value\">{mp} / {mt}</div><div class=\"dash-col-label\">🌿 مساج</div></div>");
+            sb.Append($"<div class=\"dash-col\"><div class=\"dash-col-value\">{ap} / {at}</div><div class=\"dash-col-label\">الإجمالي</div></div>");
+        }
+        else
+        {
+            var present = scope == "Haircut" ? hp : mp;
+            var totalCount = scope == "Haircut" ? ht : mt;
+            sb.Append($"<div class=\"dash-col\"><div class=\"dash-col-value\">{present} / {totalCount}</div><div class=\"dash-col-label\">حاضر / إجمالي</div></div>");
+        }
+        sb.Append("</div>");
+        return new HtmlString(sb.ToString());
+    }
 }
 
 @if (Model.InvoicesWithNotes.Any())
@@ -88,64 +136,25 @@
     <h1>
         <span data-i18n-en="Dashboard">لوحة التحكم</span>
         -
-        @if (Model.UserDepartment == "حلاقة")
+        @if (Model.ViewScope == "Haircut")
         {
             <span data-i18n-en="Barber">الحلاقة</span>
         }
-        else if (Model.UserDepartment == "مساج")
+        else if (Model.ViewScope == "Massage")
         {
             <span data-i18n-en="Massage">المساج</span>
         }
+        else if (Model.ViewScope == "Personal")
+        {
+            <span data-i18n-en="My Data">بياناتي</span>
+        }
         else
         {
-            <span data-i18n-en="All">الكل</span>
+            <span data-i18n-en="All">الإدارة</span>
         }
     </h1>
-    <p>نظرة عامة على أداء القسم اليوم</p>
+    <p data-i18n-en="Overview of today's salon performance">نظرة عامة على أداء الصالون والمعاهد في الوقت الحالي</p>
 </div>
-
-@{
-    string DeptLabel(string d) => d switch
-    {
-        "حلاقة" => "✂ حلاقة",
-        "مساج" => "🌿 مساج",
-        _ => "🗂 عام"
-    };
-    var closuresByDept = Model.UnapprovedClosures
-        .GroupBy(c => c.Department)
-        .OrderBy(g => g.Key == "حلاقة" ? 0 : g.Key == "مساج" ? 1 : 2)
-        .ToList();
-}
-@if (Model.UnapprovedClosures.Any())
-{
-    <a asp-controller="Reports" asp-action="Closures" class="text-decoration-none">
-        <div class="stat-card mb-3" style="border-right:4px solid #f59e0b; max-width:260px; cursor:pointer;">
-            <div class="stat-card-header">
-                <span class="stat-label">يوميات بانتظار الاعتماد</span>
-                <div class="stat-icon" style="background:#f59e0b;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-            </div>
-            @if (closuresByDept.Count > 1)
-            {
-                <div class="d-flex gap-4">
-                    @foreach (var g in closuresByDept)
-                    {
-                        <div>
-                            <div class="stat-value" style="color:#b45309;font-size:20px;">@g.Count()</div>
-                            <div class="stat-sub">@DeptLabel(g.Key)</div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <div class="stat-value" style="color:#b45309;">@Model.UnapprovedClosures.Count</div>
-                <div class="stat-sub">@DeptLabel(closuresByDept[0].Key) — اضغط للمراجعة</div>
-            }
-        </div>
-    </a>
-}
 
 @if (!Model.HasAccess)
 {
@@ -156,183 +165,176 @@
 }
 else
 {
-    <!-- Stat Cards Row -->
-    <div class="stat-cards">
-        <div class="stat-card green">
-            <div class="stat-card-header">
-                <span class="stat-label">مبيعات اليوم</span>
-                <div class="stat-icon green"><i class="fas fa-dollar-sign"></i></div>
-            </div>
-            <div class="stat-value">@Model.SalesToday.ToString("N3") د.ك</div>
-            <div class="stat-sub">إجمالي مبيعات اليوم (الفعّالة)</div>
-        </div>
-
-        <div class="stat-card" style="border-right:4px solid #dc2626;">
-            <div class="stat-card-header">
-                <span class="stat-label">فواتير ملغاة اليوم</span>
-                <div class="stat-icon" style="background:#dc2626;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;">
-                    <i class="fas fa-ban"></i>
+    @if (Model.ViewScope != "Personal")
+    {
+        <!-- الصف الأول: الحضور + يوميات بانتظار الاعتماد -->
+        <div class="dash-row-top">
+            <div class="dash-card purple">
+                <div class="dash-card-header">
+                    <span class="dash-card-title" data-i18n-en="Staff Attendance Today">حضور الموظفين اليوم</span>
+                    <div class="dash-card-icon purple"><i class="fas fa-user-clock"></i></div>
                 </div>
-            </div>
-            <div class="stat-value" style="color:#dc2626;">@Model.CancelledSalesToday.ToString("N3") د.ك</div>
-            <div class="stat-sub">@Model.CancelledSalesCountToday فاتورة ملغاة</div>
-        </div>
-
-        <div class="stat-card blue">
-            <div class="stat-card-header">
-                <span class="stat-label">عدد العملاء اليوم</span>
-                <div class="stat-icon blue"><i class="fas fa-users"></i></div>
-            </div>
-            <div class="stat-value">@Model.CustomersToday</div>
-            <div class="stat-sub">عملاء تمت خدمتهم</div>
-        </div>
-
-        <div class="stat-card red">
-            <div class="stat-card-header">
-                <span class="stat-label">
-                    مصروفات اليوم
-                    @if (Model.UserDepartment == "حلاقة")
-                    {
-                        <small class="badge bg-secondary ms-1">الحلاقة</small>
-                    }
-                    else if (Model.UserDepartment == "مساج")
-                    {
-                        <small class="badge bg-secondary ms-1">المساج</small>
-                    }
-            </span>
-            <div class="stat-icon red"><i class="fas fa-shopping-bag"></i></div>
-        </div>
-        <div class="stat-value">@Model.ExpensesToday.ToString("N3") د.ك</div>
-        <div class="stat-sub">
-            @(Model.UserDepartment == "حلاقة" ? "مصروفات الحلاقة اليوم" :
-                        Model.UserDepartment == "مساج" ? "مصروفات المساج اليوم" :
-                        "إجمالي مصروفات اليوم")
-        </div>
+                @AttendanceColumns(Model.ViewScope, Model.Attendance.HaircutPresent, Model.Attendance.HaircutTotal,
+                Model.Attendance.MassagePresent, Model.Attendance.MassageTotal,
+                Model.Attendance.AllPresent, Model.Attendance.AllTotal)
     </div>
 
-        <div class="stat-card" style="border-right:4px solid #9f1239;">
-            <div class="stat-card-header">
-                <span class="stat-label">سلف اليوم</span>
-                <div class="stat-icon" style="background:#9f1239;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-hand-holding-usd"></i></div>
-            </div>
-            <div class="stat-value" style="color:#9f1239;">@Model.AdvancesToday.ToString("N3") د.ك</div>
-            <div class="stat-sub">سلف الموظفين اليوم</div>
-        </div>
-
-        <div class="stat-card orange">
-            <div class="stat-card-header">
-                <span class="stat-label">صافي الربح اليوم</span>
-                <div class="stat-icon orange">
-                    <i class="fas fa-arrow-up"></i>
+    @{
+                var closuresByDept = Model.UnapprovedClosures.GroupBy(c => c.Department).ToDictionary(g => g.Key, g => g.Count());
+                int ClosureCount(string dept) => closuresByDept.TryGetValue(dept, out var c) ? c : 0;
+                var closureHaircut = ClosureCount(Salon.Models.Shift.ClosureDepartments.Haircut);
+                var closureMassage = ClosureCount(Salon.Models.Shift.ClosureDepartments.Massage);
+                var closureTotal = Model.UnapprovedClosures.Count;
+            }
+            <a asp-controller="Reports" asp-action="Closures" class="dash-card amber">
+                <div class="dash-card-header">
+                    <span class="dash-card-title" data-i18n-en="Pending Closure Approvals">يوميات بانتظار الاعتماد والإغلاق</span>
+                    <div class="dash-card-icon amber"><i class="fas fa-exclamation-triangle"></i></div>
                 </div>
-            </div>
-            <div class="stat-value">@Model.NetProfitToday.ToString("N3") د.ك</div>
-            <div class="stat-sub">ربح</div>
-        </div>
-    </div>
-
-    <!-- Secondary Cards -->
-    <div class="secondary-cards">
-        <div class="sec-card green-bg">
-            <div class="sec-card-info">
-                <h4>عملاء جدد اليوم</h4>
-                <div class="count">@Model.NewCustomersToday</div>
-                <div class="sub-text">تم إضافتهم اليوم</div>
-            </div>
-            <div class="sec-card-icon"><i class="fas fa-user-plus"></i></div>
+                @DeptColumns(Model.ViewScope, closureHaircut, closureMassage, closureTotal, false)
+            </a>
         </div>
 
-        <div class="sec-card blue-bg">
-            <div class="sec-card-info">
-                <h4>أعياد ميلاد قريبة</h4>
-                <div class="count">@Model.UpcomingBirthdays.Count</div>
-                <div class="sub-text">خلال 7 أيام القادمة</div>
-            </div>
-            <div class="sec-card-icon"><i class="fas fa-calendar-day"></i></div>
-        </div>
-
-        <div class="sec-card orange-bg">
-            <div class="sec-card-info">
-                <h4 style="color:var(--primary);">منتجات قاربت صلاحيتها</h4>
-                <div class="count" style="color:var(--primary);">@Model.ExpiringProducts.Count</div>
-                <div class="sub-text">خلال 30 يوم القادمة</div>
-            </div>
-            <div class="sec-card-icon"><i class="fas fa-box"></i></div>
-        </div>
-    </div>
-
-    <!-- Info Cards -->
-    <div class="info-cards">
-        <div class="info-card">
-            <div class="info-card-header">
-                <i class="fas fa-box"></i>
-                <span style="color:var(--primary);">منتجات قاربت صلاحيتها</span>
-            </div>
-        @if (!Model.ExpiringProducts.Any())
-            {
-                <div class="info-card-empty">
-                    <i class="fas fa-check-circle fa-2x mb-2" style="color:#28a745;"></i>
-                    <div>لا توجد منتجات قريبة من الانتهاء</div>
+        <!-- الصف الثاني: مبيعات / عملاء / فواتير ملغاة / فواتير مسترجعة -->
+        <div class="dash-grid-4">
+            <a asp-controller="Reports" asp-action="Sales" class="dash-card green">
+                <div class="dash-card-header">
+                    <span class="dash-card-title" data-i18n-en="Sales Today">مبيعات اليوم</span>
+                    <div class="dash-card-icon green"><i class="fas fa-dollar-sign"></i></div>
                 </div>
-            }
-            else
-            {
-                <table class="table table-sm">
-                    <thead>
-                        <tr>
-                            <th>المنتج</th>
-                            <th>تاريخ الانتهاء</th>
-                            <th>الكمية</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var p in Model.ExpiringProducts)
-                        {
-                            <tr>
-                                <td>@p.Name</td>
-                                <td>@p.ExpiryDate?.ToString("yyyy/MM/dd")</td>
-                                <td>@p.StockQuantity</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
+                <div class="stat-value mb-2">@ScopedValue(Model.ViewScope, Model.Sales.Haircut, Model.Sales.Massage, Model.Sales.Total).ToString("N3") د.ك</div>
+                @DeptColumns(Model.ViewScope, Model.Sales.Haircut, Model.Sales.Massage, Model.Sales.Total, true)
+                <span class="dash-card-link" data-i18n-en="View Details">عرض التفاصيل ‹</span>
+            </a>
+
+            <a asp-controller="Customers" asp-action="Index" class="dash-card blue">
+                <div class="dash-card-header">
+                    <span class="dash-card-title" data-i18n-en="Customers Today">عملاء اليوم</span>
+                    <div class="dash-card-icon blue"><i class="fas fa-users"></i></div>
+                </div>
+                <div class="stat-value mb-2">@ScopedValue(Model.ViewScope, Model.Customers.Haircut, Model.Customers.Massage, Model.Customers.Total).ToString("N0")</div>
+                @DeptColumns(Model.ViewScope, Model.Customers.Haircut, Model.Customers.Massage, Model.Customers.Total, false)
+                <span class="dash-card-link" data-i18n-en="View Details">عرض التفاصيل ‹</span>
+            </a>
+
+            <a asp-controller="Reports" asp-action="Sales" class="dash-card red">
+                <div class="dash-card-header">
+                    <span class="dash-card-title" data-i18n-en="Cancelled Invoices">فواتير ملغاة</span>
+                    <div class="dash-card-icon red"><i class="fas fa-ban"></i></div>
+                </div>
+                <div class="stat-value mb-2" style="color:#dc2626;">@ScopedValue(Model.ViewScope, Model.CancelledSalesCount.Haircut, Model.CancelledSalesCount.Massage, Model.CancelledSalesCount.Total).ToString("N0") فاتورة</div>
+                @DeptColumns(Model.ViewScope, Model.CancelledSalesCount.Haircut, Model.CancelledSalesCount.Massage, Model.CancelledSalesCount.Total, false)
+                <span class="dash-card-link" data-i18n-en="View Details">عرض التفاصيل ‹</span>
+            </a>
+
+            <a asp-controller="Reports" asp-action="Refunds" class="dash-card gray">
+                <div class="dash-card-header">
+                    <span class="dash-card-title" data-i18n-en="Refunded Invoices">فواتير مسترجعة</span>
+                    <div class="dash-card-icon gray"><i class="fas fa-undo"></i></div>
+                </div>
+                <div class="stat-value mb-2">@ScopedValue(Model.ViewScope, Model.RefundedSalesCount.Haircut, Model.RefundedSalesCount.Massage, Model.RefundedSalesCount.Total).ToString("N0") فاتورة</div>
+                @DeptColumns(Model.ViewScope, Model.RefundedSalesCount.Haircut, Model.RefundedSalesCount.Massage, Model.RefundedSalesCount.Total, false)
+                <span class="dash-card-link" data-i18n-en="View Details">عرض التفاصيل ‹</span>
+            </a>
         </div>
 
-        <div class="info-card">
-            <div class="info-card-header">
-                <i class="fas fa-calendar-day"></i>
-                <span>أعياد ميلاد قريبة</span>
-            </div>
-            @if (!Model.UpcomingBirthdays.Any())
-            {
-                <div class="info-card-empty">
-                    <i class="fas fa-birthday-cake fa-2x mb-2" style="color:#adb5bd;"></i>
-                    <div>لا توجد أعياد ميلاد قريبة</div>
+        <!-- الصف الثالث: مصروفات / سلف / صافي الربح -->
+        <div class="dash-grid-3">
+            <div class="dash-card orange">
+                <div class="dash-card-header">
+                    <span class="dash-card-title" data-i18n-en="Expenses Today">مصروفات اليوم</span>
+                    <div class="dash-card-icon orange"><i class="fas fa-shopping-bag"></i></div>
                 </div>
-            }
-            else
-            {
-                <table class="table table-sm">
-                    <thead>
-                        <tr>
-                            <th>الاسم</th>
-                            <th>تاريخ الميلاد</th>
-                            <th>الهاتف</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var c in Model.UpcomingBirthdays)
-                        {
-                            <tr>
-                                <td>@c.FullName</td>
-                                <td>@c.BirthDate?.ToString("MM/dd")</td>
-                                <td>@c.Phone</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
+                <div class="stat-value mb-2">@ScopedValue(Model.ViewScope, Model.Expenses.Haircut, Model.Expenses.Massage, Model.Expenses.Total).ToString("N3") د.ك</div>
+                @DeptColumns(Model.ViewScope, Model.Expenses.Haircut, Model.Expenses.Massage, Model.Expenses.Total, true)
+            </div>
+
+            <div class="dash-card rose">
+                <div class="dash-card-header">
+                    <span class="dash-card-title" data-i18n-en="Advances Today">سلف اليوم</span>
+                    <div class="dash-card-icon rose"><i class="fas fa-hand-holding-usd"></i></div>
+                </div>
+                <div class="stat-value mb-2" style="color:#9f1239;">@ScopedValue(Model.ViewScope, Model.Advances.Haircut, Model.Advances.Massage, Model.Advances.Total).ToString("N3") د.ك</div>
+                @DeptColumns(Model.ViewScope, Model.Advances.Haircut, Model.Advances.Massage, Model.Advances.Total, true)
+            </div>
+
+            <div class="dash-card green">
+                <div class="dash-card-header">
+                    <span class="dash-card-title" data-i18n-en="Net Profit Today">صافي الربح اليوم</span>
+                    <div class="dash-card-icon green"><i class="fas fa-arrow-up"></i></div>
+                </div>
+                <div class="stat-value mb-2">@ScopedValue(Model.ViewScope, Model.NetProfit.Haircut, Model.NetProfit.Massage, Model.NetProfit.Total).ToString("N3") د.ك</div>
+                @DeptColumns(Model.ViewScope, Model.NetProfit.Haircut, Model.NetProfit.Massage, Model.NetProfit.Total, true)
+            </div>
         </div>
-    </div>
+
+        <!-- تنبيهات مهمة -->
+        <div class="dash-notices-bar">
+            <span class="dash-notices-title"><i class="fas fa-bell" style="color:var(--primary);"></i> <span data-i18n-en="Important Notices">تنبيهات مهمة</span></span>
+            <div class="dash-notices-items">
+                <a asp-controller="Inventory" asp-action="Index" class="dash-notice-item text-decoration-none">
+                    <div class="dash-notice-icon" style="background:#f59e0b;"><i class="fas fa-box"></i></div>
+                    <div>
+                        <div class="dash-notice-value">@Model.ExpiringProducts.Count</div>
+                        <div class="dash-notice-label" data-i18n-en="Products near expiry (30 days)">منتجات قريبة الانتهاء / خلال 30 يوم</div>
+                    </div>
+                </a>
+                <a asp-controller="Customers" asp-action="Index" class="dash-notice-item text-decoration-none">
+                    <div class="dash-notice-icon" style="background:#7c3aed;"><i class="fas fa-birthday-cake"></i></div>
+                    <div>
+                        <div class="dash-notice-value">@Model.UpcomingBirthdays.Count</div>
+                        <div class="dash-notice-label" data-i18n-en="Upcoming birthdays (7 days)">أعياد ميلاد قريبة / خلال 7 أيام</div>
+                    </div>
+                </a>
+                <a asp-controller="Employees" asp-action="Index" class="dash-notice-item text-decoration-none">
+                    <div class="dash-notice-icon" style="background:#2563eb;"><i class="fas fa-id-card"></i></div>
+                    <div>
+                        <div class="dash-notice-value">@Model.ExpiringResidencies.Count</div>
+                        <div class="dash-notice-label" data-i18n-en="Residencies expiring soon (30 days)">إقامات تنتهي قريباً / خلال 30 يوم</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- نطاق الموظف: بياناته الشخصية فقط -->
+        <div class="stat-cards">
+            <div class="stat-card green">
+                <div class="stat-card-header">
+                    <span class="stat-label">مبيعاتي اليوم</span>
+                    <div class="stat-icon green"><i class="fas fa-dollar-sign"></i></div>
+                </div>
+                <div class="stat-value">@Model.Sales.Total.ToString("N3") د.ك</div>
+                <div class="stat-sub">إجمالي مبيعاتي اليوم (الفعّالة)</div>
+            </div>
+
+            <div class="stat-card blue">
+                <div class="stat-card-header">
+                    <span class="stat-label">عملائي اليوم</span>
+                    <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+                </div>
+                <div class="stat-value">@Model.Customers.Total.ToString("N0")</div>
+                <div class="stat-sub">عملاء تمت خدمتهم اليوم</div>
+            </div>
+
+            <div class="stat-card" style="border-top:4px solid #9f1239;">
+                <div class="stat-card-header">
+                    <span class="stat-label">سلفي اليوم</span>
+                    <div class="stat-icon" style="background:#fde8ef;color:#9f1239;"><i class="fas fa-hand-holding-usd"></i></div>
+                </div>
+                <div class="stat-value" style="color:#9f1239;">@Model.Advances.Total.ToString("N3") د.ك</div>
+                <div class="stat-sub">سلفي اليوم</div>
+            </div>
+
+            <div class="stat-card orange">
+                <div class="stat-card-header">
+                    <span class="stat-label">صافي ربحي اليوم</span>
+                    <div class="stat-icon orange"><i class="fas fa-arrow-up"></i></div>
+                </div>
+                <div class="stat-value">@Model.NetProfit.Total.ToString("N3") د.ك</div>
+                <div class="stat-sub">ربح</div>
+            </div>
+        </div>
+    }
 }

@@ -16,13 +16,16 @@ namespace Salon.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IAuditService _audit;
         private readonly IEmailService _emailService;
+        private readonly IDailyClosureService _closure;
 
-        public PackagesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IAuditService audit, IEmailService emailService)
+        public PackagesController(ApplicationDbContext context, UserManager<ApplicationUser> userManager,
+            IAuditService audit, IEmailService emailService, IDailyClosureService closure)
         {
             _context = context;
             _userManager = userManager;
             _audit = audit;
             _emailService = emailService;
+            _closure = closure;
         }
 
         // ─── الباقات - Tab 1 ─────────────────────────────────────────
@@ -31,6 +34,7 @@ namespace Salon.Controllers
             ViewBag.ActiveTab = tab ?? "packages";
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
+            ViewBag.CanPickSaleDepartment = userDept != "حلاقة" && userDept != "مساج";
 
             var query = _context.ServicePackages.Include(p => p.ServiceCategory).AsQueryable();
 
@@ -140,7 +144,8 @@ namespace Salon.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> AssignPackage(
             int customerId, int servicePackageId, decimal pricePaid, string? notes,
-            string? paymentMethod, bool agreedToTerms, string? signatureData)
+            string? paymentMethod, decimal? cashAmount, decimal? linkAmount,
+            bool agreedToTerms, string? signatureData, string? saleDepartment)
         {
             bool isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
 
@@ -165,6 +170,19 @@ namespace Salon.Controllers
 
             var currentUser = await _userManager.GetUserAsync(User);
             var payMethod = string.IsNullOrWhiteSpace(paymentMethod) ? "نقدي" : paymentMethod;
+            var isSplitPayment = payMethod == "كي نت و كاش";
+            if (isNewSale && isSplitPayment)
+            {
+                var cash = cashAmount ?? 0;
+                var link = linkAmount ?? 0;
+                if (cash <= 0 || link <= 0 || Math.Abs(cash + link - pricePaid) >= 0.005m)
+                {
+                    const string splitMsg = "مجموع مبلغ الكاش ومبلغ الكي نت يجب أن يساوي المبلغ المدفوع الآن";
+                    if (isAjax) return Json(new { success = false, message = splitMsg });
+                    TempData["Error"] = splitMsg;
+                    return RedirectToAction(nameof(Index), new { tab = "balances" });
+                }
+            }
 
             var customerPkg = new CustomerPackage
             {
@@ -191,16 +209,27 @@ namespace Salon.Controllers
 
             if (isNewSale)
             {
+                // قسم فاتورة الباقة عشان تدخل في اليومية وحركة الصندوق/البنك الخاصة بنفس القسم:
+                // موظف قسم محدد (حلاقة/مساج) بيعها بتتسجل تلقائياً تحت قسمه هو — بغض النظر عمّا
+                // أُرسل من الفورم (منعاً للتلاعب) — أما الأدمن/المدير (أو أي مستخدم مش مربوط بقسم
+                // محدد) فبيختار القسم بنفسه من الفورم؛ لو محددش قسم صحيح، بتتسجل "باقات" (عام).
+                var sellerDept = currentUser?.UserDepartment;
+                var saleType = (sellerDept == "حلاقة" || sellerDept == "مساج")
+                    ? sellerDept
+                    : (saleDepartment == "حلاقة" || saleDepartment == "مساج") ? saleDepartment : "باقات";
+
                 var sale = new Sale
                 {
                     CustomerId = customerId,
                     SaleDate = DateTime.Now,
                     PaymentMethod = payMethod,
-                    SaleType = "باقات",
+                    SaleType = saleType,
                     Status = Sale.Statuses.Completed,
                     TotalAmount = pricePaid,
                     Discount = 0,
                     NetAmount = pricePaid,
+                    CashAmount = isSplitPayment ? cashAmount : null,
+                    LinkAmount = isSplitPayment ? linkAmount : null,
                     Notes = notes,
                     CreatedByUserId = currentUser?.Id,
                     CreatedByUserName = currentUser?.FullName ?? currentUser?.UserName ?? User.Identity?.Name
@@ -252,6 +281,8 @@ namespace Salon.Controllers
                     PurchaseDate = customerPkg.PurchaseDate,
                     ExpiryDate = customerPkg.ExpiryDate,
                     PaymentMethod = payMethod,
+                    CashAmount = isSplitPayment ? cashAmount : null,
+                    LinkAmount = isSplitPayment ? linkAmount : null,
                     InvoiceNumber = sale.InvoiceNumber,
                     TermsAr = settings.GetValueOrDefault("PackageAgreementTermsAr", PackageAgreement.DefaultTermsAr),
                     TermsEn = settings.GetValueOrDefault("PackageAgreementTermsEn", PackageAgreement.DefaultTermsEn),
@@ -376,25 +407,90 @@ namespace Salon.Controllers
         }
 
         // ─── حذف باقة غير مستخدمة وغير مدفوعة ───────────────────────
+        // مدير/أدمن فقط يقدر يحذف باقة تم استخدام جلسات منها (forceDeleteUsed) — بيتم حذف سجل
+        // استخدام الجلسات المرتبط بيها كمان. الباقة المدفوعة (PricePaid > 0) ما بتتحذفش أبداً من
+        // هنا لأن لها فاتورة/تحصيل فعلي، لازم تُلغى عبر إلغاء الاشتراك مش الحذف.
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteCustomerPackage(int id)
+        public async Task<IActionResult> DeleteCustomerPackage(int id, bool forceDeleteUsed = false)
         {
             var cp = await _context.CustomerPackages
                 .Include(x => x.ServicePackage)
+                .Include(x => x.Transactions)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
             if (cp == null)
                 return Json(new { success = false, error = "الباقة غير موجودة" });
 
-            if (cp.RemainingSessions != cp.TotalSessions)
-                return Json(new { success = false, error = "لا يمكن حذف باقة تم استخدامها" });
-
             if (cp.PricePaid > 0)
                 return Json(new { success = false, error = "لا يمكن حذف باقة تم دفعها" });
 
+            bool isUsed = cp.RemainingSessions != cp.TotalSessions;
+            if (isUsed)
+            {
+                bool isAdminOrManager = User.IsInRole("Admin") || User.IsInRole("Manager");
+                if (!isAdminOrManager)
+                    return Json(new { success = false, error = "لا يمكن حذف باقة تم استخدامها" });
+
+                if (!forceDeleteUsed)
+                    return Json(new
+                    {
+                        success = false,
+                        requiresConfirmation = true,
+                        error = "تم استخدام جلسات من هذه الباقة، وسيتم حذف سجل استخدام الجلسات المرتبط بها نهائياً — أعد المحاولة مع التأكيد"
+                    });
+
+                _context.CustomerPackageTransactions.RemoveRange(cp.Transactions);
+            }
+
             _context.CustomerPackages.Remove(cp);
             await _context.SaveChangesAsync();
-            await _audit.LogAsync("Delete", "Packages", $"Delete unregistered customer package ID {id}: {cp.ServicePackage?.NameAr}", id);
+            var logNote = isUsed ? " (تم استخدام جلسات منها — حُذف سجل الاستخدام معها)" : "";
+            await _audit.LogAsync("Delete", "Packages", $"Delete customer package ID {id}{logNote}: {cp.ServicePackage?.NameAr}", id);
+
+            return Json(new { success = true });
+        }
+
+        // ─── حذف كامل لباقة مدفوعة مع فاتورتها واتفاقيتها — أدمن/مدير فقط ───
+        // يُستخدم فقط لتصحيح خطأ تسجيل (باقة اتباعت غلط) قبل اعتماد يومية ذلك اليوم؛ بيمسح
+        // الباقة وسجل استخدامها والاتفاقية الموقّعة والفاتورة (وبنودها) نهائياً من قاعدة
+        // البيانات — عكس DeleteCustomerPackage اللي بيرفض أي باقة مدفوعة تماماً.
+        [HttpPost, ValidateAntiForgeryToken, Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> DeleteCustomerPackageAndSale(int id)
+        {
+            var cp = await _context.CustomerPackages
+                .Include(x => x.ServicePackage)
+                .Include(x => x.Transactions)
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (cp == null)
+                return Json(new { success = false, error = "الباقة غير موجودة" });
+
+            var agreement = await _context.PackageAgreements.FirstOrDefaultAsync(a => a.CustomerPackageId == id);
+
+            Sale? sale = null;
+            if (agreement?.SaleId != null)
+                sale = await _context.Sales
+                    .Include(s => s.SaleItems)
+                    .Include(s => s.Refunds)
+                    .FirstOrDefaultAsync(s => s.Id == agreement.SaleId.Value);
+
+            if (sale != null)
+            {
+                if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.SaleType))
+                    return Json(new { success = false, error = "لا يمكن حذف فاتورة تخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية أولاً" });
+
+                if (sale.Refunds.Any())
+                    return Json(new { success = false, error = "لا يمكن حذف هذه الباقة — الفاتورة المرتبطة بها لها مبالغ مستردة مسجّلة" });
+            }
+
+            _context.CustomerPackageTransactions.RemoveRange(cp.Transactions);
+            if (agreement != null) _context.PackageAgreements.Remove(agreement);
+            _context.CustomerPackages.Remove(cp);
+            if (sale != null) _context.Sales.Remove(sale);
+            await _context.SaveChangesAsync();
+
+            var logNote = sale != null ? $" مع فاتورتها رقم {sale.InvoiceNumber}" : "";
+            await _audit.LogAsync("Delete", "Packages", $"حذف كامل لباقة مدفوعة ID {id}{logNote}: {cp.ServicePackage?.NameAr}", id);
 
             return Json(new { success = true });
         }

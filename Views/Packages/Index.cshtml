@@ -1,4 +1,4 @@
-﻿@model    Salon.Models.ServicePackage
+﻿@model     Salon.Models.ServicePackage
 @using Salon.Models
 @{
     ViewData["Title"] = "الباقات";
@@ -669,6 +669,7 @@
                 notes: notes,
                 antiForgeryToken: token,
                 assignUrl: '@Url.Action("AssignPackage")',
+                canPickDepartment: @(((bool)(ViewBag.CanPickSaleDepartment ?? false)) ? "true" : "false"),
                 onSuccess: function (data) {
                     var msg = isEn ? 'Package sold successfully. Print the agreement now?' : 'تم بيع الباقة بنجاح. هل تريد طباعة الاتفاقية الآن؟';
                     if (data.printUrl && confirm(msg)) {

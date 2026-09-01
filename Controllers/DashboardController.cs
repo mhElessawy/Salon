@@ -43,126 +43,154 @@ namespace Salon.Controllers
             var currentUser = await _userManager.GetUserAsync(User);
             var userDept = currentUser?.UserDepartment;
 
+            // نطاق العرض: الأدمن/المدير يشوف كل حاجة، سكرتير القسم (حلاقة/مساج) يشوف قسمه فقط،
+            // والموظف المرتبط بسجل موظف (LinkedEmployeeId) يشوف بياناته الشخصية فقط.
+            bool isAdmin = User.IsInRole("Admin") || User.IsInRole("Manager");
+            bool isPersonalScope = !isAdmin && User.IsInRole("Employee") && currentUser?.LinkedEmployeeId != null;
+            string viewScope = isPersonalScope ? "Personal"
+                : userDept == Shift.ClosureDepartments.Haircut ? "Haircut"
+                : userDept == Shift.ClosureDepartments.Massage ? "Massage"
+                : "All";
+
+            var vm = new DashboardViewModel
+            {
+                ViewScope = viewScope,
+                UserDepartment = userDept
+            };
+
             var salesBase = _context.Sales.Where(s => s.SaleDate >= today && s.SaleDate < tomorrow);
-            if (userDept == "حلاقة")
-                salesBase = salesBase.Where(s => s.SaleType != "مساج");
-            else if (userDept == "مساج")
-                salesBase = salesBase.Where(s => s.SaleType != "حلاقة");
 
-            var activeSales = salesBase.Where(s => s.Status != "ملغي");
-            var cancelledSales = salesBase.Where(s => s.Status == "ملغي");
+            if (isPersonalScope)
+            {
+                var empId = currentUser!.LinkedEmployeeId!.Value;
+                var mySales = salesBase.Where(s => s.EmployeeId == empId);
+                var myActive = mySales.Where(s => s.Status != Sale.Statuses.Cancelled);
 
-            var salesToday = (await activeSales.Select(s => s.NetAmount).ToListAsync()).Sum();
-            var cancelledSalesToday = (await cancelledSales.Select(s => s.NetAmount).ToListAsync()).Sum();
-            var cancelledSalesCountToday = await cancelledSales.CountAsync();
+                vm.Sales.Total = (await myActive.Select(s => s.NetAmount).ToListAsync()).Sum();
+                vm.CancelledSales.Total = (await mySales.Where(s => s.Status == Sale.Statuses.Cancelled).Select(s => s.NetAmount).ToListAsync()).Sum();
+                vm.CancelledSalesCount.Total = await mySales.CountAsync(s => s.Status == Sale.Statuses.Cancelled);
+                vm.RefundedSales.Total = (await mySales.Where(s => s.Status == Sale.Statuses.Refunded || s.Status == Sale.Statuses.PartiallyRefunded).Select(s => s.NetAmount).ToListAsync()).Sum();
+                vm.RefundedSalesCount.Total = await mySales.CountAsync(s => s.Status == Sale.Statuses.Refunded || s.Status == Sale.Statuses.PartiallyRefunded);
+                vm.Customers.Total = await myActive.Where(s => s.CustomerId != null).Select(s => s.CustomerId).Distinct().CountAsync();
 
-            var customersToday = await activeSales
-                .Where(s => s.CustomerId != null)
-                .Select(s => s.CustomerId)
-                .Distinct()
-                .CountAsync();
+                var myExpenses = _context.Expenses.Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow && e.EmployeeId == empId);
+                vm.Expenses.Total = (await myExpenses.Select(e => e.Amount).ToListAsync()).Sum();
 
-            var expensesQuery = _context.Expenses
-                .Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow);
+                var myAdvances = _context.EmployeeAdvances.Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow
+                    && a.EmployeeId == empId && EmployeeAdvance.Statuses.Realized.Contains(a.Status));
+                vm.Advances.Total = (await myAdvances.Select(a => a.Amount).ToListAsync()).Sum();
 
-            // فلترة المصاريف حسب قسم المستخدم
-            if (userDept == "حلاقة")
-                expensesQuery = expensesQuery.Where(e => e.Department == "حلاقة" || e.Department == null);
-            else if (userDept == "مساج")
-                expensesQuery = expensesQuery.Where(e => e.Department == "مساج" || e.Department == null);
-            // الأدمن يرى كل المصاريف
-
-            var expensesToday = (await expensesQuery.Select(e => e.Amount).ToListAsync()).Sum();
-
-            var advancesQuery = _context.EmployeeAdvances
-                .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
-                .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow
-                         && EmployeeAdvance.Statuses.Realized.Contains(a.Status));
-
-            if (userDept == "حلاقة" || userDept == "مساج")
-                advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
-
-            var advancesToday = (await advancesQuery.Select(a => a.Amount).ToListAsync()).Sum();
-
-            var netProfit = salesToday - expensesToday - advancesToday;
-
-            var newCustomersToday = await _context.Customers
-                .Where(c => c.CreatedAt >= today && c.CreatedAt < tomorrow)
-                .CountAsync();
-
-            // Birthdays in next 7 days
-            var nowDayOfYear = today.DayOfYear;
-            var upcomingBirthdays = await _context.Customers
-                .Where(c => c.BirthDate != null && c.IsActive)
-                .ToListAsync();
-
-            var birthdayList = upcomingBirthdays
-                .Where(c => {
-                    if (c.BirthDate == null) return false;
-                    var bDay = new DateTime(today.Year, c.BirthDate.Value.Month, c.BirthDate.Value.Day);
-                    if (bDay < today) bDay = bDay.AddYears(1);
-                    return (bDay - today).TotalDays <= 7;
-                })
-                .OrderBy(c => {
-                    var bDay = new DateTime(today.Year, c.BirthDate!.Value.Month, c.BirthDate.Value.Day);
-                    if (bDay < today) bDay = bDay.AddYears(1);
-                    return bDay;
-                })
-                .Take(10)
-                .ToList();
-
-            // Products expiring in next 30 days
-            var expiryDate = today.AddDays(30);
-            var expiringProducts = await _context.Products
-                .Where(p => p.ExpiryDate != null && p.ExpiryDate <= expiryDate && p.IsActive)
-                .OrderBy(p => p.ExpiryDate)
-                .Take(10)
-                .ToListAsync();
-
-            // الأيام السابقة اللي فيها مبيعات ومالهاش سجل اعتماد معتمد — تظهر للكاشير والإدارة
-            // كتنبيه فوري، لكل قسم لوحده (كاشير مرتبط بقسم يشوف قسمه بس).
-            var unapprovedClosures = new List<(string Department, DateTime Date)>();
-            bool isAdminOrManager = User.IsInRole("Admin") || User.IsInRole("Manager");
-            List<string> departmentsToCheck;
-            if (!isAdminOrManager && (userDept == Shift.ClosureDepartments.Haircut || userDept == Shift.ClosureDepartments.Massage))
-                departmentsToCheck = new List<string> { userDept! };
-            else if (isAdminOrManager || User.IsInRole("Cashier"))
-                departmentsToCheck = Shift.ClosureDepartments.All.ToList();
+                vm.NetProfit.Total = vm.Sales.Total - vm.Expenses.Total - vm.Advances.Total;
+            }
             else
-                departmentsToCheck = new List<string>();
+            {
+                var active = salesBase.Where(s => s.Status != Sale.Statuses.Cancelled);
+                var cancelled = salesBase.Where(s => s.Status == Sale.Statuses.Cancelled);
+                var refunded = salesBase.Where(s => s.Status == Sale.Statuses.Refunded || s.Status == Sale.Statuses.PartiallyRefunded);
 
-            if (departmentsToCheck.Count > 0)
-                unapprovedClosures = await _closure.FindAllPendingApprovalsAsync(departmentsToCheck);
+                vm.Sales.Haircut = (await active.Where(s => s.SaleType == Shift.ClosureDepartments.Haircut).Select(s => s.NetAmount).ToListAsync()).Sum();
+                vm.Sales.Massage = (await active.Where(s => s.SaleType == Shift.ClosureDepartments.Massage).Select(s => s.NetAmount).ToListAsync()).Sum();
+                vm.Sales.Total = (await active.Select(s => s.NetAmount).ToListAsync()).Sum();
+
+                vm.CancelledSales.Haircut = (await cancelled.Where(s => s.SaleType == Shift.ClosureDepartments.Haircut).Select(s => s.NetAmount).ToListAsync()).Sum();
+                vm.CancelledSales.Massage = (await cancelled.Where(s => s.SaleType == Shift.ClosureDepartments.Massage).Select(s => s.NetAmount).ToListAsync()).Sum();
+                vm.CancelledSales.Total = (await cancelled.Select(s => s.NetAmount).ToListAsync()).Sum();
+                vm.CancelledSalesCount.Haircut = await cancelled.CountAsync(s => s.SaleType == Shift.ClosureDepartments.Haircut);
+                vm.CancelledSalesCount.Massage = await cancelled.CountAsync(s => s.SaleType == Shift.ClosureDepartments.Massage);
+                vm.CancelledSalesCount.Total = await cancelled.CountAsync();
+
+                vm.RefundedSales.Haircut = (await refunded.Where(s => s.SaleType == Shift.ClosureDepartments.Haircut).Select(s => s.NetAmount).ToListAsync()).Sum();
+                vm.RefundedSales.Massage = (await refunded.Where(s => s.SaleType == Shift.ClosureDepartments.Massage).Select(s => s.NetAmount).ToListAsync()).Sum();
+                vm.RefundedSales.Total = (await refunded.Select(s => s.NetAmount).ToListAsync()).Sum();
+                vm.RefundedSalesCount.Haircut = await refunded.CountAsync(s => s.SaleType == Shift.ClosureDepartments.Haircut);
+                vm.RefundedSalesCount.Massage = await refunded.CountAsync(s => s.SaleType == Shift.ClosureDepartments.Massage);
+                vm.RefundedSalesCount.Total = await refunded.CountAsync();
+
+                vm.Customers.Haircut = await active.Where(s => s.SaleType == Shift.ClosureDepartments.Haircut && s.CustomerId != null).Select(s => s.CustomerId).Distinct().CountAsync();
+                vm.Customers.Massage = await active.Where(s => s.SaleType == Shift.ClosureDepartments.Massage && s.CustomerId != null).Select(s => s.CustomerId).Distinct().CountAsync();
+                vm.Customers.Total = await active.Where(s => s.CustomerId != null).Select(s => s.CustomerId).Distinct().CountAsync();
+
+                var expensesBase = _context.Expenses.Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow);
+                vm.Expenses.Haircut = (await expensesBase.Where(e => e.Department == Shift.ClosureDepartments.Haircut || e.Department == null).Select(e => e.Amount).ToListAsync()).Sum();
+                vm.Expenses.Massage = (await expensesBase.Where(e => e.Department == Shift.ClosureDepartments.Massage || e.Department == null).Select(e => e.Amount).ToListAsync()).Sum();
+                vm.Expenses.Total = (await expensesBase.Select(e => e.Amount).ToListAsync()).Sum();
+
+                var advancesBase = _context.EmployeeAdvances
+                    .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
+                    .Where(a => a.AdvanceDate >= today && a.AdvanceDate < tomorrow && EmployeeAdvance.Statuses.Realized.Contains(a.Status));
+                vm.Advances.Haircut = (await advancesBase.Where(a => a.Employee!.DepartmentNav!.Name == Shift.ClosureDepartments.Haircut).Select(a => a.Amount).ToListAsync()).Sum();
+                vm.Advances.Massage = (await advancesBase.Where(a => a.Employee!.DepartmentNav!.Name == Shift.ClosureDepartments.Massage).Select(a => a.Amount).ToListAsync()).Sum();
+                vm.Advances.Total = (await advancesBase.Select(a => a.Amount).ToListAsync()).Sum();
+
+                vm.NetProfit.Haircut = vm.Sales.Haircut - vm.Expenses.Haircut - vm.Advances.Haircut;
+                vm.NetProfit.Massage = vm.Sales.Massage - vm.Expenses.Massage - vm.Advances.Massage;
+                vm.NetProfit.Total = vm.Sales.Total - vm.Expenses.Total - vm.Advances.Total;
+
+                // حضور الموظفين اليوم — لأقسام الحلاقة والمساج فقط
+                vm.Attendance.HaircutTotal = await _context.Employees.CountAsync(e => e.IsActive && e.DepartmentNav!.Name == Shift.ClosureDepartments.Haircut);
+                vm.Attendance.MassageTotal = await _context.Employees.CountAsync(e => e.IsActive && e.DepartmentNav!.Name == Shift.ClosureDepartments.Massage);
+                vm.Attendance.HaircutPresent = await _context.Attendances.CountAsync(a => a.AttendanceDate == today && a.Employee!.IsActive && a.Employee.DepartmentNav!.Name == Shift.ClosureDepartments.Haircut);
+                vm.Attendance.MassagePresent = await _context.Attendances.CountAsync(a => a.AttendanceDate == today && a.Employee!.IsActive && a.Employee.DepartmentNav!.Name == Shift.ClosureDepartments.Massage);
+                vm.Attendance.AllTotal = vm.Attendance.HaircutTotal + vm.Attendance.MassageTotal;
+                vm.Attendance.AllPresent = vm.Attendance.HaircutPresent + vm.Attendance.MassagePresent;
+
+                // الأيام السابقة اللي فيها مبيعات ومالهاش سجل اعتماد معتمد — تظهر للكاشير والإدارة
+                // كتنبيه فوري، لكل قسم لوحده (سكرتير قسم يشوف قسمه بس).
+                List<string> departmentsToCheck = viewScope == "Haircut" ? new List<string> { Shift.ClosureDepartments.Haircut }
+                    : viewScope == "Massage" ? new List<string> { Shift.ClosureDepartments.Massage }
+                    : isAdmin || User.IsInRole("Cashier") ? Shift.ClosureDepartments.All.ToList()
+                    : new List<string>();
+
+                if (departmentsToCheck.Count > 0)
+                    vm.UnapprovedClosures = await _closure.FindAllPendingApprovalsAsync(departmentsToCheck);
+
+                vm.NewCustomersToday = await _context.Customers.CountAsync(c => c.CreatedAt >= today && c.CreatedAt < tomorrow);
+
+                // Birthdays in next 7 days
+                var upcomingBirthdays = await _context.Customers.Where(c => c.BirthDate != null && c.IsActive).ToListAsync();
+                vm.UpcomingBirthdays = upcomingBirthdays
+                    .Where(c => {
+                        if (c.BirthDate == null) return false;
+                        var bDay = new DateTime(today.Year, c.BirthDate.Value.Month, c.BirthDate.Value.Day);
+                        if (bDay < today) bDay = bDay.AddYears(1);
+                        return (bDay - today).TotalDays <= 7;
+                    })
+                    .OrderBy(c => {
+                        var bDay = new DateTime(today.Year, c.BirthDate!.Value.Month, c.BirthDate.Value.Day);
+                        if (bDay < today) bDay = bDay.AddYears(1);
+                        return bDay;
+                    })
+                    .Take(10)
+                    .ToList();
+
+                // Products expiring in next 30 days
+                var expiryDate = today.AddDays(30);
+                vm.ExpiringProducts = await _context.Products
+                    .Where(p => p.ExpiryDate != null && p.ExpiryDate <= expiryDate && p.IsActive)
+                    .OrderBy(p => p.ExpiryDate)
+                    .Take(10)
+                    .ToListAsync();
+
+                // إقامات الموظفين التي تنتهي قريباً — لسكرتير القسم تُعرض موظفي قسمه فقط
+                var residencyQuery = _context.Employees.Where(e => e.IsActive && e.ResidencyExpiry != null && e.ResidencyExpiry <= expiryDate);
+                if (viewScope == "Haircut")
+                    residencyQuery = residencyQuery.Where(e => e.DepartmentNav!.Name == Shift.ClosureDepartments.Haircut);
+                else if (viewScope == "Massage")
+                    residencyQuery = residencyQuery.Where(e => e.DepartmentNav!.Name == Shift.ClosureDepartments.Massage);
+                vm.ExpiringResidencies = await residencyQuery.OrderBy(e => e.ResidencyExpiry).Take(10).ToListAsync();
+            }
 
             // فواتير اليوم التي بها ملاحظات للموظف المرتبط بالمستخدم
-            var invoicesWithNotes = new List<Sale>();
-            if ((userDept == "حلاقة" || userDept == "مساج") && currentUser?.LinkedEmployeeId.HasValue == true)
+            if (currentUser?.LinkedEmployeeId.HasValue == true)
             {
-                invoicesWithNotes = await _context.Sales
+                vm.InvoicesWithNotes = await _context.Sales
                     .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow
                                 && s.EmployeeId == currentUser.LinkedEmployeeId!.Value
-                                && s.Status != "ملغي"
+                                && s.Status != Sale.Statuses.Cancelled
                                 && s.Notes != null && s.Notes != "")
                     .OrderBy(s => s.SaleDate)
                     .ToListAsync();
             }
-
-            var vm = new DashboardViewModel
-            {
-                SalesToday = salesToday,
-                CancelledSalesToday = cancelledSalesToday,
-                CancelledSalesCountToday = cancelledSalesCountToday,
-                CustomersToday = customersToday,
-                ExpensesToday = expensesToday,
-                AdvancesToday = advancesToday,
-                NetProfitToday = netProfit,
-                NewCustomersToday = newCustomersToday,
-                UpcomingBirthdays = birthdayList,
-                ExpiringProducts = expiringProducts,
-                UserDepartment = userDept,
-                InvoicesWithNotes = invoicesWithNotes,
-                UnapprovedClosures = unapprovedClosures
-            };
 
             return View(vm);
         }

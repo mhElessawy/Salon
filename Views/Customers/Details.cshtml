@@ -152,13 +152,22 @@
                                     <th>المتبقية</th>
                                     <th>تاريخ الشراء</th>
                                     <th>نوع التسجيل</th>
+                                    <th>الحالة</th>
                                     <th>سجل استخدام الجلسات</th>
+                                    @if (canManageOpeningBalance)
+                                    {
+                                        <th>الإجراءات</th>
+                                    }
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var cp in Model.CustomerPackages.OrderByDescending(p => p.PurchaseDate))
                                 {
                                     var isOpening = cp.RegistrationType == Salon.Models.CustomerPackage.RegistrationTypes.OpeningBalance;
+                                    var isUsedPkg = cp.RemainingSessions != cp.TotalSessions;
+                                    var canDeletePkg = cp.PricePaid == 0;
+                                    var linkedAgreement = agreements.FirstOrDefault(a => a.CustomerPackageId == cp.Id);
+                                    var isExpiredPkg = cp.ExpiryDate.HasValue && cp.ExpiryDate.Value < DateTime.Today;
                                     <tr>
                                         <td>@(cp.ServicePackage?.NameAr ?? "-")</td>
                                         <td>@cp.CurrentBalance.ToString("N3") د.ك</td>
@@ -167,6 +176,24 @@
                                         <td><span class="badge @(cp.RemainingSessions > 0 ? "bg-success" : "bg-secondary")">@cp.RemainingSessions</span></td>
                                         <td>@cp.PurchaseDate.ToString("yyyy/MM/dd")</td>
                                         <td><span class="badge @(isOpening ? "bg-warning text-dark" : "bg-primary")">@cp.RegistrationType</span></td>
+                                        <td>
+                                            @if (!cp.IsActive && cp.RemainingSessions == cp.TotalSessions)
+                                            {
+                                                <span class="badge bg-danger">ملغي</span>
+                                            }
+                                            else if (!cp.IsActive || cp.RemainingSessions == 0)
+                                            {
+                                                <span class="badge bg-secondary">مكتمل</span>
+                                            }
+                                            else if (isExpiredPkg)
+                                            {
+                                                <span class="badge bg-warning text-dark">منتهي الصلاحية</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success">نشط</span>
+                                            }
+                                        </td>
                                         <td>
                                             @if (cp.Transactions.Any())
                                             {
@@ -191,11 +218,30 @@
                                                 <span class="text-muted small">لا يوجد استخدام</span>
                                             }
                                         </td>
+                                        @if (canManageOpeningBalance)
+                                        {
+                                            <td>
+                                                @if (canDeletePkg)
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" title="حذف الباقة"
+                                                            onclick="deleteWalletPackage(@cp.Id, '@Html.Raw((cp.ServicePackage?.NameAr ?? "").Replace("'", "\\'"))', @(isUsedPkg ? "true" : "false"))">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" title="حذف كامل (باقة + فاتورة + اتفاقية)"
+                                                            onclick="deleteWalletPackageWithSale(@cp.Id, '@Html.Raw((cp.ServicePackage?.NameAr ?? "").Replace("'", "\\'"))', '@Html.Raw((linkedAgreement?.InvoiceNumber ?? "").Replace("'", "\\'"))')">
+                                                        <i class="fas fa-trash-alt"></i><i class="fas fa-file-invoice ms-1"></i>
+                                                    </button>
+                                                }
+                                            </td>
+                                        }
                                     </tr>
                                 }
                                 @if (!Model.CustomerPackages.Any())
                                 {
-                                    <tr><td colspan="8" class="text-center text-muted">لا توجد باقات في المحفظة</td></tr>
+                                    <tr><td colspan="@(canManageOpeningBalance ? 10 : 9)" class="text-center text-muted">لا توجد باقات في المحفظة</td></tr>
                                 }
                             </tbody>
                         </table>
@@ -204,6 +250,57 @@
             </div>
         </div>
     </div>
+
+    @if (canManageOpeningBalance)
+    {
+        <form id="walletPackageAntiForgeryForm">@Html.AntiForgeryToken()</form>
+        <script>
+            function deleteWalletPackage(id, name, isUsed) {
+                var msg = isUsed
+                    ? 'هل تريد حذف الباقة "' + name + '"؟\nتم استخدام جلسات من هذه الباقة — سيتم حذف سجل استخدام الجلسات المرتبط بها نهائياً ولا يمكن التراجع عن ذلك.'
+                    : 'هل تريد حذف الباقة "' + name + '"؟';
+                if (!confirm(msg)) return;
+                var token = document.querySelector('#walletPackageAntiForgeryForm input[name="__RequestVerificationToken"]').value;
+                fetch('@Url.Action("DeleteCustomerPackage", "Packages")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: new URLSearchParams({ id: id, forceDeleteUsed: isUsed ? 'true' : 'false', __RequestVerificationToken: token })
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.error || 'حدث خطأ أثناء الحذف');
+                    }
+                })
+                .catch(function () { alert('حدث خطأ في الاتصال'); });
+            }
+
+            function deleteWalletPackageWithSale(id, name, invoiceNumber) {
+                var invoiceText = invoiceNumber ? ('رقم ' + invoiceNumber) : '';
+                var msg = 'هل تريد حذف الباقة "' + name + '" نهائياً؟\n' +
+                    'هذه الباقة مدفوعة ولها فاتورة ' + invoiceText + ' واتفاقية موقّعة — سيتم حذف الباقة والفاتورة وبنودها والاتفاقية نهائياً من النظام، ولا يمكن التراجع عن ذلك.\n' +
+                    'استخدم هذا الخيار فقط لتصحيح خطأ تسجيل، وليس لإلغاء اشتراك عميل فعلي.';
+                if (!confirm(msg)) return;
+                var token = document.querySelector('#walletPackageAntiForgeryForm input[name="__RequestVerificationToken"]').value;
+                fetch('@Url.Action("DeleteCustomerPackageAndSale", "Packages")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: new URLSearchParams({ id: id, __RequestVerificationToken: token })
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.error || 'حدث خطأ أثناء الحذف');
+                    }
+                })
+                .catch(function () { alert('حدث خطأ في الاتصال'); });
+            }
+        </script>
+    }
 }
 
 @if (agreements.Any())
@@ -236,7 +333,13 @@
                                         <td>@a.PackageNameAr</td>
                                         <td>@a.InvoiceNumber</td>
                                         <td>@a.AmountPaid.ToString("N3") د.ك</td>
-                                        <td>@a.PaymentMethod</td>
+                                        <td>
+                                            @a.PaymentMethod
+                                            @if (a.PaymentMethod == "كي نت و كاش" && (a.CashAmount.HasValue || a.LinkAmount.HasValue))
+                                            {
+                                                <div class="small text-muted">كاش: @((a.CashAmount ?? 0).ToString("N3")) | كي نت: @((a.LinkAmount ?? 0).ToString("N3"))</div>
+                                            }
+                                        </td>
                                         <td>
                                             <div class="d-flex gap-1 flex-wrap">
                                                 <a href="@Url.Action("PrintAgreement", "Packages", new { id = a.Id })" target="_blank"

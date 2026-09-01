@@ -1,4 +1,4 @@
-﻿@model Salon.Models.PackageAgreement
+﻿@model  Salon.Models.PackageAgreement
 @{
     Layout = null;
 
@@ -275,6 +275,11 @@
                 <div class="row-line"><span class="lbl">قيمة الباقة</span><span class="val">@Model.PackagePrice.ToString("N3") د.ك</span></div>
                 <div class="row-line"><span class="lbl">المبلغ المدفوع</span><span class="val">@Model.AmountPaid.ToString("N3") د.ك</span></div>
                 <div class="row-line"><span class="lbl">طريقة الدفع</span><span class="val">@Model.PaymentMethod</span></div>
+                @if (Model.PaymentMethod == "كي نت و كاش" && (Model.CashAmount.HasValue || Model.LinkAmount.HasValue))
+                {
+                    <div class="row-line"><span class="lbl">مبلغ الكاش</span><span class="val">@((Model.CashAmount ?? 0).ToString("N3")) د.ك</span></div>
+                    <div class="row-line"><span class="lbl">مبلغ كي نت</span><span class="val">@((Model.LinkAmount ?? 0).ToString("N3")) د.ك</span></div>
+                }
                 <div class="row-line"><span class="lbl">رقم الفاتورة</span><span class="val">@Model.InvoiceNumber</span></div>
             </div>
             <div class="box">
@@ -302,7 +307,7 @@
                     <img src="@Model.SignatureImage" class="sig-img" alt="التوقيع الإلكتروني" />
                 }
                 <div class="sig-meta">
-                    التوقيع الإلكتروني للعميل / Customer Electronic Signature<br />
+                    التوقيع الإلكتروني للعميل (اختياري) / Customer Electronic Signature (Optional)<br />
                     @Model.SignedAt.ToString("yyyy/MM/dd hh:mm tt")
                 </div>
             </div>
@@ -315,7 +320,7 @@
         </div>
 
         <div class="footer-note">
-            اتفاقية إلكترونية موقّعة رقم #@Model.Id — تم إنشاؤها آلياً بواسطة النظام ولا تحتاج توقيعاً ورقياً إضافياً
+            اتفاقية إلكترونية رقم #@Model.Id — تم إنشاؤها آلياً بواسطة النظام ولا تحتاج توقيعاً ورقياً إضافياً
         </div>
 
         @{
