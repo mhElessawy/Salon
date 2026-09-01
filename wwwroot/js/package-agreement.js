@@ -75,6 +75,35 @@ window.PkgAgreement = (function () {
 
         var submitBtn = document.getElementById('pkgAgSubmitBtn');
         if (submitBtn) submitBtn.addEventListener('click', submit);
+
+        var paymentSelect = document.getElementById('pkgAgPaymentMethod');
+        if (paymentSelect) paymentSelect.addEventListener('change', toggleSplitPayment);
+
+        var amountInput = document.getElementById('pkgAgAmount');
+        if (amountInput) amountInput.addEventListener('input', updateKnetAmount);
+
+        var cashInput = document.getElementById('pkgAgCashAmount');
+        if (cashInput) cashInput.addEventListener('input', updateKnetAmount);
+    }
+
+    function toggleSplitPayment() {
+        var wrap = document.getElementById('pkgAgSplitPaymentWrap');
+        if (!wrap) return;
+        var isSplit = document.getElementById('pkgAgPaymentMethod').value === 'كي نت و كاش';
+        wrap.classList.toggle('d-none', !isSplit);
+        if (isSplit) {
+            document.getElementById('pkgAgCashAmount').value = '';
+            document.getElementById('pkgAgKnetAmount').value = '';
+        }
+    }
+
+    function updateKnetAmount() {
+        var amount = parseFloat(document.getElementById('pkgAgAmount').value) || 0;
+        var cashInput = document.getElementById('pkgAgCashAmount');
+        var cash = parseFloat(cashInput.value) || 0;
+        if (cash > amount) { cash = amount; cashInput.value = amount.toFixed(3); }
+        var knet = Math.max(0, amount - cash);
+        document.getElementById('pkgAgKnetAmount').value = knet.toFixed(3);
     }
 
     function fillModal(opts) {
@@ -95,6 +124,7 @@ window.PkgAgreement = (function () {
 
         document.getElementById('pkgAgAmount').value = priceStr;
         document.getElementById('pkgAgPaymentMethod').value = 'كاش';
+        toggleSplitPayment();
 
         var deptRow = document.getElementById('pkgAgDeptRow');
         if (deptRow) {
@@ -145,6 +175,16 @@ window.PkgAgreement = (function () {
         if (!agree) { showError('يجب الموافقة على شروط وأحكام الباقة'); return; }
         if (!hasSignature) { showError('الرجاء التوقيع إلكترونياً قبل إتمام البيع'); return; }
 
+        var cashAmount = '', knetAmount = '';
+        if (paymentMethod === 'كي نت و كاش') {
+            cashAmount = parseFloat(document.getElementById('pkgAgCashAmount').value) || 0;
+            knetAmount = parseFloat(document.getElementById('pkgAgKnetAmount').value) || 0;
+            if (cashAmount <= 0 || knetAmount <= 0) {
+                showError('في الدفع المختلط يجب إدخال مبلغ الكاش بحيث يتبقى جزء لكي نت');
+                return;
+            }
+        }
+
         var signatureData = canvas.toDataURL('image/png');
         var submitBtn = document.getElementById('pkgAgSubmitBtn');
         submitBtn.disabled = true;
@@ -156,6 +196,8 @@ window.PkgAgreement = (function () {
             pricePaid: amount,
             notes: currentOpts.notes || '',
             paymentMethod: paymentMethod,
+            cashAmount: cashAmount,
+            knetAmount: knetAmount,
             agreedToTerms: 'true',
             signatureData: signatureData,
             saleDepartment: saleDepartment,
