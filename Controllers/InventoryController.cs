@@ -13,11 +13,13 @@ namespace Salon.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _audit;
+        private readonly IPermissionService _perms;
 
-        public InventoryController(ApplicationDbContext context, IAuditService audit)
+        public InventoryController(ApplicationDbContext context, IAuditService audit, IPermissionService perms)
         {
             _context = context;
             _audit = audit;
+            _perms = perms;
         }
 
         // ===== قائمة المنتجات =====
@@ -256,6 +258,9 @@ namespace Salon.Controllers
         public async Task<IActionResult> ConsumeReport(int? employeeId, int? productId,
             DateTime? dateFrom, DateTime? dateTo)
         {
+            if (!await _perms.HasAccessAsync("ReportConsumption"))
+                return Forbid();
+
             var query = _context.StockMovements
                 .Include(m => m.Product)
                 .Include(m => m.Employee)

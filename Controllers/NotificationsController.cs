@@ -172,8 +172,8 @@ namespace Salon.Controllers
                 }
             }
 
-            // 1b. نتيجة اعتماد/إغلاق اليومية — إشعار صاحب المحل فقط (لا يعتمد بنفسه، يستقبل النتيجة)
-            if (viewerIsManager)
+            // 1b. نتيجة اعتماد/إغلاق اليومية — يظهر فقط للمدير والكاشير، ولا يظهر لأي صلاحية أخرى
+            if (viewerIsCashier)
             {
                 var closureUpdates = await _context.Shifts
                     .Where(s => s.IsClosureRecord && s.ShiftDate >= weekAgo && (

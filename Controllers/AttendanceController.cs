@@ -16,16 +16,19 @@ namespace Salon.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailService _emailService;
         private readonly IAuditService _audit;
+        private readonly IPermissionService _perms;
 
         public AttendanceController(ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
             IEmailService emailService,
-            IAuditService audit)
+            IAuditService audit,
+            IPermissionService perms)
         {
             _context = context;
             _userManager = userManager;
             _emailService = emailService;
             _audit = audit;
+            _perms = perms;
         }
 
         private static readonly TimeZoneInfo KuwaitTz =
@@ -465,6 +468,9 @@ namespace Salon.Controllers
 
         public async Task<IActionResult> Reports(string? dateFrom, string? dateTo, int? employeeId)
         {
+            if (!await _perms.HasAccessAsync("ReportAttendance"))
+                return Forbid();
+
             var today = KuwaitToday;
             var from = string.IsNullOrEmpty(dateFrom)
                 ? new DateTime(today.Year, today.Month, 1)
