@@ -144,7 +144,7 @@ namespace Salon.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> AssignPackage(
             int customerId, int servicePackageId, decimal pricePaid, string? notes,
-            string? paymentMethod, decimal? cashAmount, decimal? knetAmount,
+            string? paymentMethod, decimal? cashAmount, decimal? linkAmount,
             bool agreedToTerms, string? signatureData, string? saleDepartment)
         {
             bool isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
@@ -170,22 +170,18 @@ namespace Salon.Controllers
 
             var currentUser = await _userManager.GetUserAsync(User);
             var payMethod = string.IsNullOrWhiteSpace(paymentMethod) ? "نقدي" : paymentMethod;
-            decimal? saleCashAmount = null;
-            decimal? saleLinkAmount = null;
-
-            if (payMethod == "كي نت و كاش")
+            var isSplitPayment = payMethod == "كي نت و كاش";
+            if (isNewSale && isSplitPayment)
             {
-                var cashPart = cashAmount ?? 0m;
-                var knetPart = knetAmount ?? Math.Max(0m, pricePaid - cashPart);
-                if (cashPart <= 0 || knetPart <= 0 || Math.Abs((cashPart + knetPart) - pricePaid) > 0.001m)
+                var cash = cashAmount ?? 0;
+                var link = linkAmount ?? 0;
+                if (cash <= 0 || link <= 0 || Math.Abs(cash + link - pricePaid) >= 0.005m)
                 {
-                    const string splitMsg = "في الدفع المختلط يجب أن يكون مجموع الكاش والكي نت مساوياً للمبلغ المدفوع";
+                    const string splitMsg = "مجموع مبلغ الكاش ومبلغ الكي نت يجب أن يساوي المبلغ المدفوع الآن";
                     if (isAjax) return Json(new { success = false, message = splitMsg });
                     TempData["Error"] = splitMsg;
                     return RedirectToAction(nameof(Index), new { tab = "balances" });
                 }
-                saleCashAmount = cashPart;
-                saleLinkAmount = knetPart;
             }
 
             var customerPkg = new CustomerPackage
@@ -232,8 +228,8 @@ namespace Salon.Controllers
                     TotalAmount = pricePaid,
                     Discount = 0,
                     NetAmount = pricePaid,
-                    CashAmount = saleCashAmount,
-                    LinkAmount = saleLinkAmount,
+                    CashAmount = isSplitPayment ? cashAmount : null,
+                    LinkAmount = isSplitPayment ? linkAmount : null,
                     Notes = notes,
                     CreatedByUserId = currentUser?.Id,
                     CreatedByUserName = currentUser?.FullName ?? currentUser?.UserName ?? User.Identity?.Name
@@ -285,6 +281,8 @@ namespace Salon.Controllers
                     PurchaseDate = customerPkg.PurchaseDate,
                     ExpiryDate = customerPkg.ExpiryDate,
                     PaymentMethod = payMethod,
+                    CashAmount = isSplitPayment ? cashAmount : null,
+                    LinkAmount = isSplitPayment ? linkAmount : null,
                     InvoiceNumber = sale.InvoiceNumber,
                     TermsAr = settings.GetValueOrDefault("PackageAgreementTermsAr", PackageAgreement.DefaultTermsAr),
                     TermsEn = settings.GetValueOrDefault("PackageAgreementTermsEn", PackageAgreement.DefaultTermsEn),

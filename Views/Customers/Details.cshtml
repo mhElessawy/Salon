@@ -333,7 +333,13 @@
                                         <td>@a.PackageNameAr</td>
                                         <td>@a.InvoiceNumber</td>
                                         <td>@a.AmountPaid.ToString("N3") د.ك</td>
-                                        <td>@a.PaymentMethod</td>
+                                        <td>
+                                            @a.PaymentMethod
+                                            @if (a.PaymentMethod == "كي نت و كاش" && (a.CashAmount.HasValue || a.LinkAmount.HasValue))
+                                            {
+                                                <div class="small text-muted">كاش: @((a.CashAmount ?? 0).ToString("N3")) | كي نت: @((a.LinkAmount ?? 0).ToString("N3"))</div>
+                                            }
+                                        </td>
                                         <td>
                                             <div class="d-flex gap-1 flex-wrap">
                                                 <a href="@Url.Action("PrintAgreement", "Packages", new { id = a.Id })" target="_blank"

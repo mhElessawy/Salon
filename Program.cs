@@ -469,6 +469,8 @@ using (var scope = app.Services.CreateScope())
                 CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
                 FOREIGN KEY (CustomerPackageId) REFERENCES CustomerPackages(Id) ON DELETE CASCADE,
                 FOREIGN KEY (SaleId) REFERENCES Sales(Id) ON DELETE SET NULL)");
+            TryExec("ALTER TABLE PackageAgreements ADD COLUMN CashAmount REAL NULL");
+            TryExec("ALTER TABLE PackageAgreements ADD COLUMN LinkAmount REAL NULL");
         }
         else
         {
@@ -813,6 +815,8 @@ using (var scope = app.Services.CreateScope())
                     REFERENCES CustomerPackages(Id) ON DELETE CASCADE,
                 CONSTRAINT FK_PackageAgreements_Sales FOREIGN KEY (SaleId)
                     REFERENCES Sales(Id) ON DELETE SET NULL)");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='PackageAgreements' AND COLUMN_NAME='CashAmount') ALTER TABLE PackageAgreements ADD CashAmount DECIMAL(18,3) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='PackageAgreements' AND COLUMN_NAME='LinkAmount') ALTER TABLE PackageAgreements ADD LinkAmount DECIMAL(18,3) NULL");
         }
 
         // ترحيل لمرة واحدة: قبل هذا الفصل كانت شاشة "اعتماد اليومية" تعيد استخدام آخر صف Shift

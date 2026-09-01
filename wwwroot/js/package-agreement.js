@@ -77,33 +77,83 @@ window.PkgAgreement = (function () {
         if (submitBtn) submitBtn.addEventListener('click', submit);
 
         var paymentSelect = document.getElementById('pkgAgPaymentMethod');
-        if (paymentSelect) paymentSelect.addEventListener('change', toggleSplitPayment);
+        if (paymentSelect) paymentSelect.addEventListener('change', onPaymentMethodChange);
 
         var amountInput = document.getElementById('pkgAgAmount');
-        if (amountInput) amountInput.addEventListener('input', updateKnetAmount);
+        if (amountInput) amountInput.addEventListener('input', function () {
+            if (paymentSelect && paymentSelect.value === 'كي نت و كاش') validateSplit();
+        });
 
         var cashInput = document.getElementById('pkgAgCashAmount');
-        if (cashInput) cashInput.addEventListener('input', updateKnetAmount);
+        if (cashInput) cashInput.addEventListener('input', onCashInput);
+
+        var linkInput = document.getElementById('pkgAgLinkAmount');
+        if (linkInput) linkInput.addEventListener('input', onLinkInput);
     }
 
-    function toggleSplitPayment() {
-        var wrap = document.getElementById('pkgAgSplitPaymentWrap');
-        if (!wrap) return;
-        var isSplit = document.getElementById('pkgAgPaymentMethod').value === 'كي نت و كاش';
-        wrap.classList.toggle('d-none', !isSplit);
-        if (isSplit) {
+    function getAmount() {
+        return parseFloat(document.getElementById('pkgAgAmount').value) || 0;
+    }
+
+    function onPaymentMethodChange() {
+        var pm = document.getElementById('pkgAgPaymentMethod').value;
+        var splitSection = document.getElementById('pkgAgSplitSection');
+        var status = document.getElementById('pkgAgSplitStatus');
+        if (pm === 'كي نت و كاش') {
+            splitSection.classList.remove('d-none');
             document.getElementById('pkgAgCashAmount').value = '';
-            document.getElementById('pkgAgKnetAmount').value = '';
+            document.getElementById('pkgAgLinkAmount').value = '';
+            status.classList.add('d-none');
+        } else {
+            splitSection.classList.add('d-none');
+            status.classList.add('d-none');
         }
     }
 
-    function updateKnetAmount() {
-        var amount = parseFloat(document.getElementById('pkgAgAmount').value) || 0;
-        var cashInput = document.getElementById('pkgAgCashAmount');
-        var cash = parseFloat(cashInput.value) || 0;
-        if (cash > amount) { cash = amount; cashInput.value = amount.toFixed(3); }
-        var knet = Math.max(0, amount - cash);
-        document.getElementById('pkgAgKnetAmount').value = knet.toFixed(3);
+    function updateSplitDisplay(cash, link, amount) {
+        var status = document.getElementById('pkgAgSplitStatus');
+        var bothZero = cash <= 0 && link <= 0;
+        var eitherZero = cash <= 0 || link <= 0;
+        var sumOk = Math.abs(cash + link - amount) < 0.005;
+        if (bothZero) {
+            status.classList.add('d-none');
+        } else if (eitherZero) {
+            status.className = 'small fw-semibold rounded p-2 text-center';
+            status.style.background = '#f8d7da'; status.style.color = '#842029';
+            status.textContent = 'يجب أن يكون مبلغ الكاش ومبلغ الكي نت أكبر من صفر';
+        } else if (!sumOk) {
+            status.className = 'small fw-semibold rounded p-2 text-center';
+            status.style.background = '#fff3cd'; status.style.color = '#664d03';
+            status.textContent = 'مجموع الكاش والكي نت (' + (cash + link).toFixed(3) + ' د.ك) لا يساوي المبلغ المدفوع الآن (' + amount.toFixed(3) + ' د.ك)';
+        } else {
+            status.className = 'small fw-semibold rounded p-2 text-center';
+            status.style.background = '#d1e7dd'; status.style.color = '#0f5132';
+            status.textContent = 'صحيح — الكاش + الكي نت = ' + amount.toFixed(3) + ' د.ك';
+        }
+    }
+
+    function onCashInput() {
+        var amount = getAmount();
+        var cash = parseFloat(document.getElementById('pkgAgCashAmount').value) || 0;
+        if (cash > amount) { cash = amount; document.getElementById('pkgAgCashAmount').value = amount.toFixed(3); }
+        var link = Math.max(0, +(amount - cash).toFixed(3));
+        document.getElementById('pkgAgLinkAmount').value = link.toFixed(3);
+        updateSplitDisplay(cash, link, amount);
+    }
+
+    function onLinkInput() {
+        var amount = getAmount();
+        var link = parseFloat(document.getElementById('pkgAgLinkAmount').value) || 0;
+        if (link > amount) { link = amount; document.getElementById('pkgAgLinkAmount').value = amount.toFixed(3); }
+        var cash = Math.max(0, +(amount - link).toFixed(3));
+        document.getElementById('pkgAgCashAmount').value = cash.toFixed(3);
+        updateSplitDisplay(cash, link, amount);
+    }
+
+    function validateSplit() {
+        var cash = parseFloat(document.getElementById('pkgAgCashAmount').value) || 0;
+        var link = parseFloat(document.getElementById('pkgAgLinkAmount').value) || 0;
+        updateSplitDisplay(cash, link, getAmount());
     }
 
     function fillModal(opts) {
@@ -124,7 +174,10 @@ window.PkgAgreement = (function () {
 
         document.getElementById('pkgAgAmount').value = priceStr;
         document.getElementById('pkgAgPaymentMethod').value = 'كاش';
-        toggleSplitPayment();
+        document.getElementById('pkgAgSplitSection').classList.add('d-none');
+        document.getElementById('pkgAgSplitStatus').classList.add('d-none');
+        document.getElementById('pkgAgCashAmount').value = '';
+        document.getElementById('pkgAgLinkAmount').value = '';
 
         var deptRow = document.getElementById('pkgAgDeptRow');
         if (deptRow) {
@@ -172,37 +225,37 @@ window.PkgAgreement = (function () {
             ? document.getElementById('pkgAgDepartment').value : '';
 
         if (amount <= 0) { showError('الرجاء إدخال مبلغ صحيح'); return; }
-        if (!agree) { showError('يجب الموافقة على شروط وأحكام الباقة'); return; }
-        if (!hasSignature) { showError('الرجاء التوقيع إلكترونياً قبل إتمام البيع'); return; }
 
-        var cashAmount = '', knetAmount = '';
+        var cashAmount = null, linkAmount = null;
         if (paymentMethod === 'كي نت و كاش') {
             cashAmount = parseFloat(document.getElementById('pkgAgCashAmount').value) || 0;
-            knetAmount = parseFloat(document.getElementById('pkgAgKnetAmount').value) || 0;
-            if (cashAmount <= 0 || knetAmount <= 0) {
-                showError('في الدفع المختلط يجب إدخال مبلغ الكاش بحيث يتبقى جزء لكي نت');
-                return;
-            }
+            linkAmount = parseFloat(document.getElementById('pkgAgLinkAmount').value) || 0;
+            if (cashAmount <= 0 || linkAmount <= 0) { showError('يجب أن يكون مبلغ الكاش ومبلغ الكي نت أكبر من صفر'); return; }
+            if (Math.abs(cashAmount + linkAmount - amount) >= 0.005) { showError('مجموع الكاش والكي نت يجب أن يساوي المبلغ المدفوع الآن'); return; }
         }
+
+        if (!agree) { showError('يجب الموافقة على شروط وأحكام الباقة'); return; }
+        if (!hasSignature) { showError('الرجاء التوقيع إلكترونياً قبل إتمام البيع'); return; }
 
         var signatureData = canvas.toDataURL('image/png');
         var submitBtn = document.getElementById('pkgAgSubmitBtn');
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري الحفظ...';
 
-        var body = new URLSearchParams({
+        var bodyFields = {
             customerId: currentOpts.customerId,
             servicePackageId: currentOpts.servicePackageId,
             pricePaid: amount,
             notes: currentOpts.notes || '',
             paymentMethod: paymentMethod,
-            cashAmount: cashAmount,
-            knetAmount: knetAmount,
             agreedToTerms: 'true',
             signatureData: signatureData,
             saleDepartment: saleDepartment,
             __RequestVerificationToken: currentOpts.antiForgeryToken
-        });
+        };
+        if (cashAmount !== null) bodyFields.cashAmount = cashAmount;
+        if (linkAmount !== null) bodyFields.linkAmount = linkAmount;
+        var body = new URLSearchParams(bodyFields);
 
         fetch(currentOpts.assignUrl || '/Packages/AssignPackage', {
             method: 'POST',

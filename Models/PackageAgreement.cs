@@ -78,6 +78,16 @@ namespace Salon.Models
         [Display(Name = "طريقة الدفع")]
         public string PaymentMethod { get; set; } = string.Empty;
 
+        // مبلغ الكاش ومبلغ الكي نت عند اختيار طريقة الدفع "كي نت و كاش" (دفع مختلط) — يجب أن
+        // يساوي مجموعهما AmountPaid. تُترك null لأي طريقة دفع أخرى.
+        [Display(Name = "مبلغ الكاش")]
+        [DataType(DataType.Currency)]
+        public decimal? CashAmount { get; set; }
+
+        [Display(Name = "مبلغ كي نت")]
+        [DataType(DataType.Currency)]
+        public decimal? LinkAmount { get; set; }
+
         [Display(Name = "رقم الفاتورة")]
         public string InvoiceNumber { get; set; } = string.Empty;
 
