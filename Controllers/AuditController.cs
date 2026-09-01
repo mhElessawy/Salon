@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Salon.Data;
 using Salon.Models;
-
+         
 namespace Salon.Controllers
 {
     [Authorize]
