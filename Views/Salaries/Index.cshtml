@@ -76,16 +76,30 @@
         </h5>
         <span class="badge bg-secondary fs-6">@Model.Count() <span data-i18n-en="Record">سجل</span></span>
     </div>
+    <style>
+        #salariesTableScroll table { font-size: 0.82rem; }
+        #salariesTableScroll .sal-sticky-name {
+            position: sticky;
+            right: 0;
+            z-index: 2;
+            background: #fff;
+            box-shadow: -2px 0 4px rgba(0,0,0,0.08);
+        }
+        #salariesTableScroll thead .sal-sticky-name {
+            z-index: 3;
+            background: #f8f9fa;
+        }
+    </style>
     <div class="card-body p-0">
         <div class="table-responsive" id="salariesTableScroll" style="width: 0; min-width: 100%;">
-            <table class="table table-hover mb-0">
+            <table class="table table-sm table-hover mb-0">
                 <thead class="table-light">
                     <tr>
                         @if (showMonthCol)
                         {
                             <th>الشهر</th>
                         }
-                        <th>الموظف</th>
+                        <th class="sal-sticky-name">الموظف</th>
                         <th>إجمالي الاستحقاقات</th>
                         <th>الخصومات</th>
                         <th>دين الموظف</th>
@@ -112,7 +126,7 @@
                             {
                                 <td><span class="badge bg-light text-dark border">@arabicMonths[s.Month]</span></td>
                             }
-                            <td><strong>@(s.Employee?.FullName ?? "-")</strong></td>
+                            <td class="sal-sticky-name"><strong>@(s.Employee?.FullName ?? "-")</strong></td>
                             <td>@s.TotalEntitlements.ToString("N3") د.ك</td>
                             <td>@s.Deductions.ToString("N3") د.ك</td>
                             <td>@s.EmployeeDebtDeducted.ToString("N3") د.ك</td>
