@@ -819,7 +819,16 @@ namespace Salon.Migrations
                 b.Property<decimal>("Allowances")
                     .HasColumnType("decimal(18,3)");
 
+                b.Property<decimal>("AvailableForAdvanceRepayment")
+                    .HasColumnType("decimal(18,3)");
+
+                b.Property<string>("AutoNote")
+                    .HasColumnType("nvarchar(max)");
+
                 b.Property<decimal>("BasicSalary")
+                    .HasColumnType("decimal(18,3)");
+
+                b.Property<decimal>("CarriedAdvanceBalance")
                     .HasColumnType("decimal(18,3)");
 
                 b.Property<decimal>("CommissionAmount")
@@ -834,7 +843,13 @@ namespace Salon.Migrations
                 b.Property<int>("EmployeeId")
                     .HasColumnType("int");
 
+                b.Property<decimal>("EmployeeDebtDeducted")
+                    .HasColumnType("decimal(18,3)");
+
                 b.Property<decimal?>("GiftAmount")
+                    .HasColumnType("decimal(18,3)");
+
+                b.Property<decimal?>("HadiyaAmount")
                     .HasColumnType("decimal(18,3)");
 
                 b.Property<int>("Month")
@@ -843,15 +858,28 @@ namespace Salon.Migrations
                 b.Property<decimal>("NetSalary")
                     .HasColumnType("decimal(18,3)");
 
+                b.Property<decimal>("NewAdvancesAmount")
+                    .HasColumnType("decimal(18,3)");
+
                 b.Property<string>("Notes")
                     .HasColumnType("nvarchar(max)");
 
                 b.Property<DateTime?>("PaidDate")
                     .HasColumnType("datetime2");
 
+                b.Property<string>("PaymentMethod")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<decimal>("RemainingAdvanceCarried")
+                    .HasColumnType("decimal(18,3)");
+
                 b.Property<string>("Status")
                     .IsRequired()
                     .HasColumnType("nvarchar(max)");
+
+                b.Property<decimal>("TotalAdvanceDue")
+                    .HasColumnType("decimal(18,3)");
 
                 b.Property<int>("Year")
                     .HasColumnType("int");

@@ -86,12 +86,14 @@
                             <th>الشهر</th>
                         }
                         <th>الموظف</th>
-                        <th>الراتب الأساسي</th>
-                        <th>البدلات</th>
+                        <th>إجمالي الاستحقاقات</th>
                         <th>الخصومات</th>
-                        <th>السلف</th>
                         <th>دين الموظف</th>
-                        <th>الصافي</th>
+                        <th>رصيد السلف المستحق</th>
+                        <th>المخصوم من السلف</th>
+                        <th>السلف المرحلة للشهر القادم</th>
+                        <th>صافي الراتب</th>
+                        <th>المصروف فعلياً</th>
                         <th>طريقة الدفع</th>
                         <th>الحالة</th>
                         <th>الإجراءات</th>
@@ -100,24 +102,31 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="@(showMonthCol ? 11 : 10)" class="text-center text-muted py-4">لا توجد رواتب مسجلة</td></tr>
+                        <tr><td colspan="@(showMonthCol ? 13 : 12)" class="text-center text-muted py-4">لا توجد رواتب مسجلة</td></tr>
                     }
                     @foreach (var s in Model)
                     {
+                        decimal actuallyPaid = s.Status == Salon.Models.Salary.Statuses.Paid ? s.NetSalary : 0m;
                         <tr>
                             @if (showMonthCol)
                             {
                                 <td><span class="badge bg-light text-dark border">@arabicMonths[s.Month]</span></td>
                             }
                             <td><strong>@(s.Employee?.FullName ?? "-")</strong></td>
-                            <td>@s.BasicSalary.ToString("N3") د.ك</td>
-                            <td>@s.Allowances.ToString("N3") د.ك</td>
+                            <td>@s.TotalEntitlements.ToString("N3") د.ك</td>
                             <td>@s.Deductions.ToString("N3") د.ك</td>
-                            <td>@s.AdvanceDeducted.ToString("N3") د.ك</td>
                             <td>@s.EmployeeDebtDeducted.ToString("N3") د.ك</td>
+                            <td>@s.TotalAdvanceDue.ToString("N3") د.ك</td>
+                            <td>@s.AdvanceDeducted.ToString("N3") د.ك</td>
+                            <td>@s.RemainingAdvanceCarried.ToString("N3") د.ك</td>
                             <td><strong>@s.NetSalary.ToString("N3") د.ك</strong></td>
+                            <td><strong class="@(actuallyPaid > 0 ? "text-success" : "text-muted")">@actuallyPaid.ToString("N3") د.ك</strong></td>
                             <td>
-                                @if (s.PaymentMethod == "كي نت")
+                                @if (s.Status != Salon.Models.Salary.Statuses.Paid)
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                                else if (s.PaymentMethod == "كي نت")
                                 {
                                     <span class="badge bg-info text-dark"><i class="fas fa-credit-card me-1"></i>كي نت</span>
                                 }
@@ -131,7 +140,7 @@
                                 }
                             </td>
                             <td>
-                                <span class="badge @(s.Status == "مصروف" ? "bg-success" : "bg-warning text-dark")">
+                                <span class="badge @(s.Status == Salon.Models.Salary.Statuses.Paid ? "bg-success" : s.Status == Salon.Models.Salary.Statuses.SettledNoPayment ? "bg-info text-dark" : "bg-warning text-dark")">
                                     @s.Status
                                 </span>
                             </td>
@@ -139,7 +148,7 @@
                                 <a href="@Url.Action("Details", new { id = s.Id })" class="btn btn-sm btn-info text-white me-1" title="تفاصيل">
                                     <i class="fas fa-eye me-1"></i> تفاصيل
                                 </a>
-                                @if (s.Status == "معلق")
+                                @if (s.Status == Salon.Models.Salary.Statuses.Pending)
                                 {
                                     <form asp-action="Pay" asp-route-id="@s.Id" method="post" style="display:inline"
                                           onsubmit="return confirm('تأكيد صرف الراتب؟')">

@@ -1,12 +1,12 @@
 @{
-    ViewData["Title"] = "إضافة راتب";
+    ViewData["Title"] = "تسوية راتب";
     string[] arabicMonths = { "", "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
                                "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر" };
     var currentMonth = DateTime.Today.Month;
 }
 
 <div class="page-header">
-    <h1><i class="fas fa-plus-circle me-2"></i>إضافة راتب موظف</h1>
+    <h1><i class="fas fa-plus-circle me-2"></i>تسوية راتب موظف</h1>
 </div>
 <div class="card">
     <div class="card-body">
@@ -16,17 +16,14 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">الموظف</label>
-                    <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select" id="employeeSelect" onchange="loadSalary()">
+                    <select name="EmployeeId" asp-items="@ViewBag.Employees" class="form-select" id="employeeSelect" onchange="loadSalary(true)">
                         <option value="">-- اختر الموظف --</option>
                     </select>
-                    <div id="alreadyPaidAlert" class="alert alert-danger mt-2 py-2 d-none">
-                        <i class="fas fa-exclamation-triangle me-1"></i>
-                        <strong>تنبيه:</strong> تم صرف راتب هذا الموظف لهذا الشهر مسبقاً
-                    </div>
+                    <div id="alreadyPaidAlert" class="alert alert-danger mt-2 py-2 d-none"></div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">الشهر</label>
-                    <select name="Month" id="monthSelect" class="form-select" onchange="loadSalary()">
+                    <select name="Month" id="monthSelect" class="form-select" onchange="loadSalary(true)">
                         @for (int m = 1; m <= 12; m++)
                         {
                             if (m == currentMonth)
@@ -42,75 +39,182 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">السنة</label>
-                    <input type="number" name="Year" id="yearInput" value="@DateTime.Today.Year" class="form-control" onchange="loadSalary()" />
+                    <input type="number" name="Year" id="yearInput" value="@DateTime.Today.Year" class="form-control" onchange="loadSalary(true)" />
                 </div>
 
                 <div id="targetStatusCard" class="col-12 d-none">
                     <div id="targetStatusInner"></div>
                 </div>
 
+                @* ─────────────────────────── أولاً: الاستحقاقات ─────────────────────────── *@
                 <div class="col-12">
-                    <h6 class="fw-bold text-muted mb-0"><i class="fas fa-clipboard-list me-1"></i> الملخص</h6>
+                    <h6 class="fw-bold text-success mb-0"><i class="fas fa-plus-circle me-1"></i> أولاً: الاستحقاقات</h6>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">الراتب الأساسي</label>
-                    <input type="number" name="BasicSalary" id="basicSalary" step="0.001" class="form-control" value="0" oninput="calcNet()" />
+                    <input type="number" name="BasicSalary" id="basicSalary" step="0.001" class="form-control" value="0" oninput="onEditableInputChanged()" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">
                         عمولة الفواتير
                         <small class="text-muted fw-normal" id="commissionPctLabel"></small>
                     </label>
-                    <input type="number" name="CommissionAmount" id="commissionAmount" step="0.001" class="form-control" value="0" oninput="calcNet()"
-                           style="background:#f0f8ff;" />
+                    <input type="number" id="commissionAmount" step="0.001" class="form-control" value="0" readonly style="background:#eee;" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">البدلات</label>
-                    <input type="number" name="Allowances" id="allowances" step="0.001" class="form-control" value="0" oninput="calcNet()" />
+                    <input type="number" name="Allowances" id="allowances" step="0.001" class="form-control" value="0" oninput="onEditableInputChanged()" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">
                         إجمالي خدمات الموظف
                         <small class="text-muted fw-normal">(من الفواتير)</small>
                     </label>
-                    <input type="number" name="GiftAmount" id="giftAmount" step="0.001" class="form-control" value="0" oninput="calcNet()"
-                           style="background:#fff8f0;" />
+                    <input type="number" id="giftAmount" step="0.001" class="form-control" value="0" readonly style="background:#eee;" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label" style="color:#c0392b;">
-                        <i class="fas fa-gift me-1"></i>إكرامية للموظف
+                        <i class="fas fa-gift me-1"></i>إكرامية الموظف
                         <small class="text-muted fw-normal">(من الفواتير)</small>
                     </label>
-                    <input type="number" name="HadiyaAmount" id="hadiyaAmount" step="0.001" class="form-control" value="0" oninput="calcNet()"
-                           style="background:#fdf2f2;border-color:#e74c3c;" />
+                    <input type="number" id="hadiyaAmount" step="0.001" class="form-control" value="0" readonly style="background:#fdf2f2;border-color:#e74c3c;" />
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-9">
+                    <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 h-100">
+                        <strong>إجمالي الاستحقاقات</strong>
+                        <strong class="text-success fs-5" id="totalEntitlementsDisplay">0.000 د.ك</strong>
+                    </div>
+                </div>
+
+                @* حقول مخفية ترسل القيم المحسوبة فعلياً من الخادم (مصدرها العمولة/الفواتير) *@
+                <input type="hidden" name="CommissionAmount" id="commissionAmountHidden" value="0" />
+                <input type="hidden" name="GiftAmount" id="giftAmountHidden" value="0" />
+                <input type="hidden" name="HadiyaAmount" id="hadiyaAmountHidden" value="0" />
+
+                @* ─────────────────────────── ثانياً: الخصومات والالتزامات ─────────────────────────── *@
+                <div class="col-12 mt-4">
+                    <h6 class="fw-bold text-danger mb-0"><i class="fas fa-minus-circle me-1"></i> ثانياً: الخصومات والالتزامات</h6>
+                </div>
+                <div class="col-md-4">
                     <label class="form-label">الخصومات</label>
-                    <input type="number" name="Deductions" id="deductions" step="0.001" class="form-control" value="0" oninput="calcNet()" />
+                    <input type="number" name="Deductions" id="deductions" step="0.001" class="form-control" value="0" oninput="onEditableInputChanged()" />
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label">السلف المخصومة</label>
-                    <input type="number" name="AdvanceDeducted" id="advanceDeducted" step="0.001" class="form-control" value="0" oninput="calcNet()" />
-                </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label class="form-label">
                         دين على الموظف <small class="text-muted fw-normal">(من الفواتير)</small>
                     </label>
-                    <input type="number" name="EmployeeDebtDeducted" id="employeeDebtDeducted" step="0.001" class="form-control" value="0" oninput="calcNet()"
-                           style="background:#fff3cd;" />
+                    <input type="number" id="employeeDebtDeducted" step="0.001" class="form-control" value="0" readonly style="background:#fff3cd;" />
+                    <input type="hidden" name="EmployeeDebtDeducted" id="employeeDebtDeductedHidden" value="0" />
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">الصافي</label>
-                    <input type="number" name="NetSalary" id="netSalary" step="0.001" class="form-control" value="0" readonly style="background:#f0fff0; font-weight:bold;" />
-                    <div id="negativeNetAlert" class="alert alert-danger mt-2 py-2 d-none">
-                        <i class="fas fa-exclamation-triangle me-1"></i> الصافي أقل من صفر — لا يمكن حفظ أو صرف الراتب
+                    <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 h-100">
+                        <span class="text-muted">المبلغ المتاح لسداد السلف</span>
+                        <strong id="availableForAdvanceDisplay">0.000 د.ك</strong>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">تاريخ الصرف <small class="text-muted fw-normal">(اختياري - إذا تم الصرف)</small></label>
+
+                <div class="col-12">
+                    <div class="card border-warning border-opacity-50 mt-2">
+                        <div class="card-header bg-warning bg-opacity-10">
+                            <i class="fas fa-hand-holding-usd me-1 text-warning"></i><strong>رصيد السلف</strong>
+                            <small class="text-muted">— مرتبط مباشرة بسجل سلف الموظف، لا يُدخل يدوياً</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted">سلف مرحّلة من أشهر سابقة</label>
+                                    <input type="text" id="carriedAdvanceBalance" class="form-control" value="0.000" readonly />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted">سلف جديدة هذا الشهر</label>
+                                    <input type="text" id="newAdvancesAmount" class="form-control" value="0.000" readonly />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold">إجمالي رصيد السلف المستحق</label>
+                                    <input type="text" id="totalAdvanceDue" class="form-control fw-bold" value="0.000" readonly />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold text-danger">المخصوم فعلياً من السلف</label>
+                                    <input type="text" id="advanceDeducted" class="form-control fw-bold text-danger" value="0.000" readonly />
+                                </div>
+                            </div>
+                            <div class="alert alert-light border mt-3 mb-0 d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-forward me-1"></i> رصيد السلف المتبقي المرحّل للشهر القادم</span>
+                                <strong id="remainingAdvanceCarried">0.000 د.ك</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="hidden" name="CarriedAdvanceBalance" id="carriedAdvanceBalanceHidden" value="0" />
+                <input type="hidden" name="NewAdvancesAmount" id="newAdvancesAmountHidden" value="0" />
+                <input type="hidden" name="TotalAdvanceDue" id="totalAdvanceDueHidden" value="0" />
+                <input type="hidden" name="AvailableForAdvanceRepayment" id="availableForAdvanceRepaymentHidden" value="0" />
+                <input type="hidden" name="AdvanceDeducted" id="advanceDeductedHidden" value="0" />
+                <input type="hidden" name="RemainingAdvanceCarried" id="remainingAdvanceCarriedHidden" value="0" />
+
+                @* ─────────────────────────── ثالثاً: تسوية الراتب ─────────────────────────── *@
+                <div class="col-12 mt-4">
+                    <h6 class="fw-bold text-primary mb-0"><i class="fas fa-balance-scale me-1"></i> ثالثاً: تسوية الراتب</h6>
+                </div>
+                <div class="col-12">
+                    <div class="card border-primary">
+                        <div class="card-body">
+                            <table class="table table-sm mb-0">
+                                <tbody>
+                                    <tr>
+                                        <td>إجمالي الاستحقاقات</td>
+                                        <td class="text-end fw-bold text-success" id="summaryEntitlements">0.000 د.ك</td>
+                                    </tr>
+                                    <tr>
+                                        <td>إجمالي الخصومات الأخرى (خصومات + دين الموظف)</td>
+                                        <td class="text-end fw-bold text-danger" id="summaryOtherDeductions">0.000 د.ك</td>
+                                    </tr>
+                                    <tr>
+                                        <td>المبلغ المتاح لسداد السلف</td>
+                                        <td class="text-end fw-bold" id="summaryAvailable">0.000 د.ك</td>
+                                    </tr>
+                                    <tr>
+                                        <td>السلف المخصومة فعلياً</td>
+                                        <td class="text-end fw-bold text-danger" id="summaryAdvanceDeducted">0.000 د.ك</td>
+                                    </tr>
+                                    <tr>
+                                        <td>رصيد السلف المتبقي للترحيل للشهر القادم</td>
+                                        <td class="text-end fw-bold" id="summaryRemainingAdvance">0.000 د.ك</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot class="table-success">
+                                    <tr>
+                                        <td class="fw-bold fs-5">صافي الراتب المستحق للصرف</td>
+                                        <td class="text-end fw-bold fs-5" id="netSalary">0.000 د.ك</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                            <div id="zeroNetAlert" class="alert alert-info mt-3 mb-0 d-none py-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                صافي الراتب <strong>صفر</strong> — لن يتم إنشاء أي حركة صرف كاش أو تحويل بنكي، وستكون حالة العملية
+                                <strong>«تمت تسوية الراتب – لا يوجد مبلغ للصرف»</strong>.
+                            </div>
+                            <div id="negativeNetAlert" class="alert alert-danger mt-3 mb-0 d-none py-2">
+                                <i class="fas fa-exclamation-triangle me-1"></i> الخصومات والالتزامات أكبر من الاستحقاقات — لا يمكن حفظ التسوية.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="hidden" name="NetSalary" id="netSalaryHidden" value="0" />
+                <input type="hidden" name="AutoNote" id="autoNoteHidden" value="" />
+
+                @* ─────────────────────────── رابعاً: الصرف الفعلي ─────────────────────────── *@
+                <div class="col-12 mt-4" id="actualPaymentSection">
+                    <h6 class="fw-bold text-dark mb-0"><i class="fas fa-money-check-alt me-1"></i> رابعاً: الصرف الفعلي</h6>
+                    <small class="text-muted">يتعلق فقط بالمبلغ الذي سيُدفع فعلياً للموظف</small>
+                </div>
+                <div class="col-md-4" id="paidDateWrap">
+                    <label class="form-label">تاريخ الصرف <small class="text-muted fw-normal">(اختياري - إذا تم الصرف الآن)</small></label>
                     <input type="date" name="PaidDate" id="paidDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-4" id="paymentMethodWrap">
                     <label class="form-label">وسيلة الدفع</label>
                     <select name="PaymentMethod" id="paymentMethod" class="form-select">
                         <option value="كاش">💵 كاش</option>
@@ -120,7 +224,7 @@
                 </div>
                 <div class="col-12">
                     <label class="form-label">ملاحظات</label>
-                    <textarea name="Notes" class="form-control" rows="2"></textarea>
+                    <textarea name="Notes" class="form-control" rows="2" placeholder="ملاحظة المستخدم (منفصلة عن الملاحظة الآلية التي يولّدها النظام)"></textarea>
                 </div>
 
                 <div class="col-12">
@@ -223,31 +327,85 @@
 
 @section Scripts {
     <script>
-        function calcNet() {
-            const basic  = parseFloat(document.getElementById('basicSalary').value)          || 0;
-            const comm   = parseFloat(document.getElementById('commissionAmount').value)      || 0;
-            const allow  = parseFloat(document.getElementById('allowances').value)            || 0;
-            const gift   = parseFloat(document.getElementById('giftAmount').value)            || 0;
-            const hadiya = parseFloat(document.getElementById('hadiyaAmount').value)          || 0;
-            const ded    = parseFloat(document.getElementById('deductions').value)            || 0;
-            const adv    = parseFloat(document.getElementById('advanceDeducted').value)       || 0;
-            const debt   = parseFloat(document.getElementById('employeeDebtDeducted').value)  || 0;
-            const net = basic + comm + allow + gift + hadiya - ded - adv - debt;
-            document.getElementById('netSalary').value = net.toFixed(3);
+        let debounceTimer = null;
 
-            const negativeAlert = document.getElementById('negativeNetAlert');
+        function onEditableInputChanged() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(function () { loadSalary(false); }, 350);
+        }
+
+        function applyBreakdown(data) {
+            // الاستحقاقات
+            document.getElementById('commissionAmount').value = data.commissionAmount.toFixed(3);
+            document.getElementById('commissionAmountHidden').value = data.commissionAmount.toFixed(3);
+            document.getElementById('giftAmount').value = data.totalGifts.toFixed(3);
+            document.getElementById('giftAmountHidden').value = data.totalGifts.toFixed(3);
+            document.getElementById('hadiyaAmount').value = (data.totalHadiya || 0).toFixed(3);
+            document.getElementById('hadiyaAmountHidden').value = (data.totalHadiya || 0).toFixed(3);
+            document.getElementById('totalEntitlementsDisplay').textContent = data.totalEntitlements.toFixed(3) + ' د.ك';
+
+            // الخصومات والالتزامات
+            document.getElementById('employeeDebtDeducted').value = (data.employeeDebtTotal || 0).toFixed(3);
+            document.getElementById('employeeDebtDeductedHidden').value = (data.employeeDebtTotal || 0).toFixed(3);
+            document.getElementById('availableForAdvanceDisplay').textContent = data.availableForAdvanceRepayment.toFixed(3) + ' د.ك';
+
+            // رصيد السلف
+            document.getElementById('carriedAdvanceBalance').value = data.carriedAdvanceBalance.toFixed(3);
+            document.getElementById('newAdvancesAmount').value = data.newAdvancesAmount.toFixed(3);
+            document.getElementById('totalAdvanceDue').value = data.totalAdvanceDue.toFixed(3);
+            document.getElementById('advanceDeducted').value = data.advanceDeducted.toFixed(3);
+            document.getElementById('remainingAdvanceCarried').textContent = data.remainingAdvanceCarried.toFixed(3) + ' د.ك';
+
+            document.getElementById('carriedAdvanceBalanceHidden').value = data.carriedAdvanceBalance.toFixed(3);
+            document.getElementById('newAdvancesAmountHidden').value = data.newAdvancesAmount.toFixed(3);
+            document.getElementById('totalAdvanceDueHidden').value = data.totalAdvanceDue.toFixed(3);
+            document.getElementById('availableForAdvanceRepaymentHidden').value = data.availableForAdvanceRepayment.toFixed(3);
+            document.getElementById('advanceDeductedHidden').value = data.advanceDeducted.toFixed(3);
+            document.getElementById('remainingAdvanceCarriedHidden').value = data.remainingAdvanceCarried.toFixed(3);
+
+            // ملخص التسوية
+            const otherDeductions = (parseFloat(document.getElementById('deductions').value) || 0) + (data.employeeDebtTotal || 0);
+            document.getElementById('summaryEntitlements').textContent = data.totalEntitlements.toFixed(3) + ' د.ك';
+            document.getElementById('summaryOtherDeductions').textContent = otherDeductions.toFixed(3) + ' د.ك';
+            document.getElementById('summaryAvailable').textContent = data.availableForAdvanceRepayment.toFixed(3) + ' د.ك';
+            document.getElementById('summaryAdvanceDeducted').textContent = data.advanceDeducted.toFixed(3) + ' د.ك';
+            document.getElementById('summaryRemainingAdvance').textContent = data.remainingAdvanceCarried.toFixed(3) + ' د.ك';
+            document.getElementById('netSalary').textContent = data.netSalary.toFixed(3) + ' د.ك';
+            document.getElementById('netSalaryHidden').value = data.netSalary.toFixed(3);
+            document.getElementById('autoNoteHidden').value = data.autoNote || '';
+
+            const zeroAlert = document.getElementById('zeroNetAlert');
+            const negAlert = document.getElementById('negativeNetAlert');
             const submitBtn = document.querySelector('button[type="submit"]');
+            const paidDateWrap = document.getElementById('paidDateWrap');
+            const paymentMethodWrap = document.getElementById('paymentMethodWrap');
             const alreadyPaid = !document.getElementById('alreadyPaidAlert').classList.contains('d-none');
-            if (net < 0) {
-                negativeAlert.classList.remove('d-none');
+
+            if (data.netSalary < -0.0005) {
+                negAlert.classList.remove('d-none');
+                zeroAlert.classList.add('d-none');
                 submitBtn.disabled = true;
-            } else {
-                negativeAlert.classList.add('d-none');
+                paidDateWrap.classList.add('d-none');
+                paymentMethodWrap.classList.add('d-none');
+            } else if (data.netSalary <= 0.0005) {
+                negAlert.classList.add('d-none');
+                zeroAlert.classList.remove('d-none');
                 submitBtn.disabled = alreadyPaid;
+                paidDateWrap.classList.add('d-none');
+                paymentMethodWrap.classList.add('d-none');
+            } else {
+                negAlert.classList.add('d-none');
+                zeroAlert.classList.add('d-none');
+                submitBtn.disabled = alreadyPaid;
+                paidDateWrap.classList.remove('d-none');
+                paymentMethodWrap.classList.remove('d-none');
             }
         }
 
-        async function loadSalary() {
+        // reset=true (عند اختيار موظف/شهر/سنة جديد): يعيد اقتراح الراتب الأساسي من بيانات الموظف
+        // ويصفّر البدلات/الخصومات. reset=false (عند تعديل المستخدم لأي من الحقول القابلة للتعديل):
+        // يرسل القيم الحالية كما هي ويعيد حساب كل شيء آخر (عمولة/دين/سلف/صافي) من مصادرها فقط.
+        async function loadSalary(reset) {
             const empId = document.getElementById('employeeSelect').value;
             const month = document.getElementById('monthSelect').value;
             const year  = document.getElementById('yearInput').value;
@@ -259,28 +417,30 @@
                 return;
             }
 
+            let url = `/Salaries/GetEmployeeInfo?employeeId=${empId}&month=${month}&year=${year}`;
+            if (!reset) {
+                const basicSalary = document.getElementById('basicSalary').value || 0;
+                const allowances  = document.getElementById('allowances').value || 0;
+                const deductions  = document.getElementById('deductions').value || 0;
+                url += `&basicSalary=${basicSalary}&allowances=${allowances}&deductions=${deductions}`;
+            }
+
             try {
-                const res = await fetch(`/Salaries/GetEmployeeInfo?employeeId=${empId}&month=${month}&year=${year}`);
+                const res = await fetch(url);
                 if (!res.ok) return;
                 const data = await res.json();
 
-                // حقول الراتب
-                document.getElementById('basicSalary').value          = data.basicSalary.toFixed(3);
-                document.getElementById('commissionAmount').value      = data.commissionAmount.toFixed(3);
-                document.getElementById('advanceDeducted').value       = data.advanceDeducted.toFixed(3);
-                document.getElementById('giftAmount').value            = data.totalGifts.toFixed(3);
-                document.getElementById('hadiyaAmount').value          = (data.totalHadiya || 0).toFixed(3);
-                document.getElementById('employeeDebtDeducted').value  = (data.employeeDebtTotal || 0).toFixed(3);
-
-                // توتالات طرق الدفع
-                document.getElementById('cashTotalDisplay').textContent     = (data.cashTotal || 0).toFixed(3);
-                document.getElementById('knetTotalDisplay').textContent     = (data.knetTotal || 0).toFixed(3);
-                document.getElementById('employeeDebtDisplay').textContent  = (data.employeeDebtTotal || 0).toFixed(3);
-                document.getElementById('customerDebtDisplay').textContent  = (data.customerDebtTotal || 0).toFixed(3);
+                if (reset) {
+                    document.getElementById('basicSalary').value = data.basicSalary.toFixed(3);
+                    document.getElementById('allowances').value = '0.000';
+                    document.getElementById('deductions').value = '0.000';
+                }
 
                 // تحديث تسمية العمولة
                 const pct = data.commission || 0;
                 document.getElementById('commissionPctLabel').textContent = pct > 0 ? `(${pct}%)` : '';
+
+                applyBreakdown(data);
 
                 // عرض حالة التارجت
                 const targetCard = document.getElementById('targetStatusCard');
@@ -323,8 +483,11 @@
                 document.getElementById('totalSalesDisplay').textContent    = data.totalSalesAmount.toFixed(3) + ' د.ك';
                 document.getElementById('commissionAmountDisplay').textContent = data.commissionAmount.toFixed(3) + ' د.ك';
                 document.getElementById('salesCountBadge').textContent = data.sales.length + ' فاتورة';
+                document.getElementById('cashTotalDisplay').textContent     = (data.cashTotal || 0).toFixed(3);
+                document.getElementById('knetTotalDisplay').textContent     = (data.knetTotal || 0).toFixed(3);
+                document.getElementById('employeeDebtDisplay').textContent  = (data.employeeDebtTotal || 0).toFixed(3);
+                document.getElementById('customerDebtDisplay').textContent  = (data.customerDebtTotal || 0).toFixed(3);
 
-                // فواتير مكتملة
                 const tbody = document.getElementById('salesTableBody');
                 function paymentBadge(method) {
                     if (!method) return '<span class="badge bg-success">نقدي</span>';
@@ -355,7 +518,6 @@
                             }</td>
                         </tr>`
                     ).join('');
-                    // تحديث إجمالي الإكراميات في الـ tfoot
                     const totalHadiyaVal = data.totalHadiya || 0;
                     const hadiyaDisplay = document.getElementById('totalHadiyaTableDisplay');
                     if (hadiyaDisplay) {
@@ -366,7 +528,6 @@
                     salesCard.classList.remove('d-none');
                 }
 
-                // فواتير ملغاة
                 const cancelledCard  = document.getElementById('cancelledCard');
                 const cancelledTbody = document.getElementById('cancelledTableBody');
                 const cancelled = data.cancelledSales || [];
@@ -387,13 +548,22 @@
                     cancelledCard.classList.add('d-none');
                 }
 
-                if (data.alreadyPaid) {
+                if (data.alreadyExists) {
+                    let msg = 'تم تسجيل راتب هذا الموظف لهذا الشهر مسبقاً';
+                    if (data.existingStatus === 'مصروف') {
+                        msg = 'تم صرف راتب هذا الموظف لهذا الشهر مسبقاً';
+                    } else if (data.existingStatus === 'تمت تسوية الراتب - لا يوجد مبلغ للصرف') {
+                        msg = 'تمت تسوية راتب هذا الموظف لهذا الشهر مسبقاً — بدون صرف أي مبلغ';
+                    } else if (data.existingStatus === 'معلق') {
+                        msg = 'تم تسجيل راتب هذا الموظف لهذا الشهر مسبقاً — بانتظار الصرف';
+                    }
+                    alertEl.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i><strong>تنبيه:</strong> ${msg}`;
                     alertEl.classList.remove('d-none');
                 } else {
                     alertEl.classList.add('d-none');
                 }
 
-                calcNet();
+                applyBreakdown(data);
             } catch (e) {
                 console.error('خطأ في جلب بيانات الموظف', e);
             }

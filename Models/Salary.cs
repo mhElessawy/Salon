@@ -5,6 +5,13 @@ namespace Salon.Models
 {
     public class Salary
     {
+        public static class Statuses
+        {
+            public const string Pending = "معلق";
+            public const string Paid = "مصروف";
+            public const string SettledNoPayment = "تمت تسوية الراتب - لا يوجد مبلغ للصرف";
+        }
+
         public int Id { get; set; }
 
         [Required]
@@ -40,6 +47,28 @@ namespace Salon.Models
         [DataType(DataType.Currency)]
         public decimal EmployeeDebtDeducted { get; set; }
 
+        // ─── تفصيل رصيد السلف وقت التسوية (لقطة تاريخية لا تتغيّر بعدها حتى لو تغيّر سجل السلف) ───
+
+        [Display(Name = "السلف المرحلة من الأشهر السابقة")]
+        [DataType(DataType.Currency)]
+        public decimal CarriedAdvanceBalance { get; set; }
+
+        [Display(Name = "السلف الجديدة خلال الشهر الحالي")]
+        [DataType(DataType.Currency)]
+        public decimal NewAdvancesAmount { get; set; }
+
+        [Display(Name = "إجمالي رصيد السلف المستحق")]
+        [DataType(DataType.Currency)]
+        public decimal TotalAdvanceDue { get; set; }
+
+        [Display(Name = "المبلغ المتاح لسداد السلف")]
+        [DataType(DataType.Currency)]
+        public decimal AvailableForAdvanceRepayment { get; set; }
+
+        [Display(Name = "رصيد السلف المتبقي المرحّل للشهر القادم")]
+        [DataType(DataType.Currency)]
+        public decimal RemainingAdvanceCarried { get; set; }
+
         [Display(Name = "الصافي")]
         [DataType(DataType.Currency)]
         public decimal NetSalary { get; set; }
@@ -66,9 +95,18 @@ namespace Salon.Models
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
 
+        [Display(Name = "ملاحظة آلية")]
+        public string? AutoNote { get; set; }
+
         [Display(Name = "طريقة الدفع")]
         public string PaymentMethod { get; set; } = "نقدي";
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        [NotMapped]
+        public decimal TotalEntitlements => BasicSalary + CommissionAmount + Allowances + (GiftAmount ?? 0) + (HadiyaAmount ?? 0);
+
+        [NotMapped]
+        public bool IsSettledWithoutPayment => Status == Statuses.SettledNoPayment;
     }
 }
