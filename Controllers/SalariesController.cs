@@ -135,7 +135,8 @@ namespace Salon.Controllers
 
         [HttpGet]
         public async Task<IActionResult> GetEmployeeInfo(int employeeId, int month, int year,
-            decimal? basicSalary = null, decimal? allowances = null, decimal? deductions = null)
+            decimal? basicSalary = null, decimal? allowances = null, decimal? deductions = null,
+            decimal? advanceDeducted = null)
         {
             var employee = await _context.Employees.FindAsync(employeeId);
             if (employee == null) return NotFound();
@@ -145,7 +146,8 @@ namespace Salon.Controllers
 
             string monthLabel = ArabicMonths[month];
             var result = await SalarySettlementCalculator.ComputeAsync(_context, employee, month, year,
-                basicSalary ?? employee.BasicSalary, allowances ?? 0, deductions ?? 0, monthLabel);
+                basicSalary ?? employee.BasicSalary, allowances ?? 0, deductions ?? 0, monthLabel,
+                advanceDeducted);
 
             return Json(new
             {
@@ -180,6 +182,7 @@ namespace Salon.Controllers
                 totalAdvanceDue = result.TotalAdvanceDue,
                 availableForAdvanceRepayment = result.AvailableForAdvanceRepayment,
                 advanceDeducted = result.AdvanceDeducted,
+                maxAdvanceDeductible = result.MaxAdvanceDeductible,
                 remainingAdvanceCarried = result.RemainingAdvanceCarried,
                 netSalary = result.NetSalary,
                 autoNote = result.AutoNote,
@@ -222,10 +225,16 @@ namespace Salon.Controllers
 
                 string monthLabel = ArabicMonths[model.Month];
 
+                // المستخدم يختار كم يريد أن يُخصَم من رصيد السلف هذا الشهر (قد يكون أقل من
+                // الحد الأقصى المتاح لترحيل جزء أكبر للشهر القادم) — الخادم يتكفّل بضبطه ضمن
+                // الحدود المسموحة (لا سالب، ولا يتعدى رصيد السلف المستحق أو المتاح للسداد).
+                decimal desiredAdvanceDeducted = model.AdvanceDeducted;
+
                 // كل الأرقام المرتبطة بمصادر أخرى (عمولة/دين/سلف) تُحسب هنا من سجلاتها الأصلية
-                // مباشرة وقت الحفظ، ولا يُعتمد على أي قيمة مُرسَلة من الشاشة لهذه الحقول.
+                // مباشرة وقت الحفظ، ولا يُعتمد على أي قيمة مُرسَلة من الشاشة لهذه الحقول عدا
+                // مبلغ خصم السلف المطلوب أعلاه (يُضبط ضمن حدوده تلقائياً).
                 var result = await SalarySettlementCalculator.ComputeAsync(_context, employee, model.Month, model.Year,
-                    model.BasicSalary, model.Allowances, model.Deductions, monthLabel);
+                    model.BasicSalary, model.Allowances, model.Deductions, monthLabel, desiredAdvanceDeducted);
 
                 if (result.NetSalary < 0)
                 {

@@ -24,6 +24,7 @@ namespace Salon.Services
         public decimal TotalAdvanceDue { get; set; }
         public decimal AvailableForAdvanceRepayment { get; set; }
         public decimal AdvanceDeducted { get; set; }
+        public decimal MaxAdvanceDeductible { get; set; }
         public decimal RemainingAdvanceCarried { get; set; }
 
         // ─── التسوية النهائية ───
@@ -54,7 +55,8 @@ namespace Salon.Services
     {
         public static async Task<SalarySettlementResult> ComputeAsync(
             ApplicationDbContext context, Employee employee, int month, int year,
-            decimal basicSalary, decimal allowances, decimal deductions, string monthLabel)
+            decimal basicSalary, decimal allowances, decimal deductions, string monthLabel,
+            decimal? desiredAdvanceDeducted = null)
         {
             var rangeStart = new DateTime(year, month, 1);
             var rangeEnd = rangeStart.AddMonths(1);
@@ -111,7 +113,13 @@ namespace Salon.Services
             decimal totalEntitlements = basicSalary + commissionAmount + allowances + totalGifts + totalHadiya;
             decimal availableForAdvanceRepayment = totalEntitlements - deductions - employeeDebtTotal;
 
-            decimal advanceDeducted = Math.Max(0, Math.Min(totalAdvanceDue, availableForAdvanceRepayment));
+            // أقصى مبلغ يمكن خصمه من السلف هذا الشهر (لا يتعدى رصيد السلف المستحق ولا المتاح
+            // من الاستحقاقات بعد الخصومات ودين الموظف). المستخدم يختار خصم أقل من هذا الحد إن
+            // أراد ترحيل جزء أكبر من السلفة للشهر القادم بدل سدادها بالكامل دفعة واحدة.
+            decimal maxAdvanceDeductible = Math.Max(0, Math.Min(totalAdvanceDue, availableForAdvanceRepayment));
+            decimal advanceDeducted = desiredAdvanceDeducted.HasValue
+                ? Math.Max(0, Math.Min(desiredAdvanceDeducted.Value, maxAdvanceDeductible))
+                : maxAdvanceDeductible;
             decimal remainingAdvanceCarried = totalAdvanceDue - advanceDeducted;
             decimal netSalary = availableForAdvanceRepayment - advanceDeducted;
 
@@ -134,6 +142,7 @@ namespace Salon.Services
                 TotalAdvanceDue = totalAdvanceDue,
                 AvailableForAdvanceRepayment = availableForAdvanceRepayment,
                 AdvanceDeducted = advanceDeducted,
+                MaxAdvanceDeductible = maxAdvanceDeductible,
                 RemainingAdvanceCarried = remainingAdvanceCarried,
 
                 NetSalary = netSalary,
