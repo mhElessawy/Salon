@@ -225,6 +225,16 @@ else
                                 <td class="text-end">@Model.OutstandingEmployeeDebts.ToString("N3") د.ك</td>
                             </tr>
                             <tr>
+                                <td></td>
+                                <td>دين على الموظف (اليوم)</td>
+                                <td class="text-end">@Model.EmployeeDebtToday.ToString("N3") د.ك</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td>دين على الإدارة (اليوم)</td>
+                                <td class="text-end">@Model.OwnerDebtToday.ToString("N3") د.ك</td>
+                            </tr>
+                            <tr>
                                 <td><input type="checkbox" class="form-check-input" name="reviewedCustody" value="true" required /></td>
                                 <td>العهد المالية (المتبقي)</td>
                                 <td class="text-end">@Model.CustodyRemaining.ToString("N3") د.ك</td>

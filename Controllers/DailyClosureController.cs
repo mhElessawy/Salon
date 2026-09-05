@@ -241,6 +241,8 @@ namespace Salon.Controllers
             var totalRevenue = sales.Sum(s => s.NetAmount);
             var systemKnet = sales.Sum(s => KnetMethods.Contains(s.PaymentMethod) ? s.NetAmount
                 : MixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0m);
+            var employeeDebtToday = sales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
+            var ownerDebtToday = sales.Where(s => s.PaymentMethod == "دين على الإدارة").Sum(s => s.NetAmount);
 
             var expensesQuery = _context.Expenses.Where(e => e.ExpenseDate >= day && e.ExpenseDate < dayEnd && e.Category != "عهدة");
             expensesQuery = isShared
@@ -307,6 +309,8 @@ namespace Salon.Controllers
                 TotalDeposits = deposits.Sum(d => d.Amount),
                 TotalAdvancesToday = advancesToday.Sum(a => a.Amount),
                 OutstandingEmployeeDebts = outstandingDebts,
+                EmployeeDebtToday = employeeDebtToday,
+                OwnerDebtToday = ownerDebtToday,
                 CustodyRemaining = custodies.Sum(c => c.RemainingAmount),
                 ExpectedCashBalance = snapshot.ClosingBalance,
                 IsLocked = shift.ApprovalStatus == Shift.ApprovalStatuses.Approved
