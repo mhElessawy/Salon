@@ -123,10 +123,7 @@
                     {
                         <option value="مساج" selected="@(filterType == "مساج" ? "selected" : null)">مساج (MAS)</option>
                     }
-                    @if (string.IsNullOrEmpty(userDept))
-                    {
-                        <option value="منتجات" selected="@(filterType == "منتجات" ? "selected" : null)">منتجات (PRD)</option>
-                    }
+                    <option value="منتجات" selected="@(filterType == "منتجات" ? "selected" : null)">منتجات (PRD)</option>
                 </select>
                 <select name="status" class="form-select" style="max-width:130px;">
                     <option value="">كل الحالات</option>
