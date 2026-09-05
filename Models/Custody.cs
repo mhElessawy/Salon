@@ -1,10 +1,20 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Salon.Models
 {
+    // كل صف هنا هو إيداع عهدة مستقل (تاريخ/وقت/مبلغ ثابت لا يتغير)، لكن "الرصيد المتاح" الفعلي
+    // للموظف موحَّد على مستوى الموظف نفسه ويُجمع من كل إيداعاته المفتوحة معاً — انظر
+    // Services/CustodyPoolCalculator. لهذا لا يوجد هنا أي مبلغ "محجوز" أو "متاح لطلب جديد" على
+    // مستوى الصف نفسه؛ ده بقى مفهوم على مستوى الموظف بالكامل.
     public class Custody
     {
+        public static class SettlementTypes
+        {
+            public const string RolledOver = "ترحيل";
+            public const string Closed = "إقفال";
+        }
+
         public int Id { get; set; }
 
         [Required]
@@ -43,34 +53,31 @@ namespace Salon.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-        // طلبات الشراء المصروفة من هذه العهدة — لازم تُحمَّل (Include) في أي استعلام يستخدم الخصائص المحسوبة تحت
-        public List<PurchaseRequest> PurchaseRequests { get; set; } = new();
+        // null = إيداع نشط يُحسب ضمن رصيد الموظف الموحَّد. غير ذلك (RolledOver/Closed) = تمت
+        // تسويته ولم يعد يُحسب ضمن الرصيد المتاح — انظر CustodyController.Settle
+        public string? SettlementType { get; set; }
+
+        public DateTime? SettledAt { get; set; }
+
+        // true لإيداع أُنشئ تلقائياً كرصيد افتتاحي مرحَّل من تسوية سابقة (انظر CustodyController.Settle)
+        public bool IsOpeningBalance { get; set; } = false;
+
+        [NotMapped]
+        public bool IsSettled => SettlementType != null;
+
+        // توزيعات هذه العهدة على طلبات شراء مُعتمَدة (نقداً من العهدة) — لازم تُحمَّل (Include)
+        // في أي استعلام يستخدم SpentAmount/RemainingAmount تحت. طلب شراء واحد ممكن يتوزَّع على
+        // أكثر من عهدة لو مفيش عهدة واحدة كانت كافية لوحدها (انظر PurchaseRequestCustodyAllocation)
+        public List<PurchaseRequestCustodyAllocation> Allocations { get; set; } = new();
 
         // دفعات فواتير موردين آجلة سُدِّدت من هذه العهدة — لازم تُحمَّل (Include) أيضاً في نفس الاستعلامات
         public List<SupplierInvoicePayment> InvoicePayments { get; set; } = new();
 
-        // المبلغ المصروف فعلياً — طلبات الشراء المعتمَدة (بعد مطابقة الكاشير) المموَّلة نقداً من
-        // العهدة مباشرة، بالإضافة لأي دفعات فواتير موردين آجلة سُدِّدت من هذه العهدة. طلبات الشراء
-        // بطريقة "آجل من المورد" مستبعدة هنا لأنها لم تُخصم من العهدة وقت الاعتماد، وتُخصم فقط عند
-        // سداد دفعاتها الفعلية (المحسوبة في InvoicePayments)
+        // المبلغ المصروف فعلياً من هذا الإيداع تحديداً
         [NotMapped]
-        public decimal SpentAmount => PurchaseRequests
-            .Where(p => p.Status == PurchaseRequest.Statuses.Completed && p.PurchaseMethod != PurchaseRequest.PurchaseMethods.Deferred)
-            .Sum(p => p.ActualAmount ?? 0)
-            + InvoicePayments.Sum(ip => ip.Amount);
-
-        // محجوز لطلبات شراء بانتظار الموافقة أو الشراء (تقديرياً، لم يُخصم بعد)
-        [NotMapped]
-        public decimal ReservedAmount => PurchaseRequests
-            .Where(p => p.Status == PurchaseRequest.Statuses.Pending || p.Status == PurchaseRequest.Statuses.Approved)
-            .Sum(p => p.EstimatedAmount);
+        public decimal SpentAmount => Allocations.Sum(a => a.Amount) + InvoicePayments.Sum(ip => ip.Amount);
 
         [NotMapped]
         public decimal RemainingAmount => Amount - SpentAmount;
-
-        // الحد الأقصى المتاح لطلب شراء جديد (يستبعد المحجوز حتى لا يتجاوز مجموع الطلبات
-        // المعتمدة مستقبلاً مبلغ العهدة الأصلي)
-        [NotMapped]
-        public decimal AvailableForRequest => RemainingAmount - ReservedAmount;
     }
 }

@@ -471,6 +471,24 @@ using (var scope = app.Services.CreateScope())
                 FOREIGN KEY (SaleId) REFERENCES Sales(Id) ON DELETE SET NULL)");
             TryExec("ALTER TABLE PackageAgreements ADD COLUMN CashAmount REAL NULL");
             TryExec("ALTER TABLE PackageAgreements ADD COLUMN LinkAmount REAL NULL");
+
+            // رصيد عهدة موحَّد لكل موظف: كل إيداع عهدة يبقى سجلاً مستقلاً، لكن الاستخدام (الصرف
+            // والحجز) يُحسب على مستوى الموظف بجمع كل إيداعاته المفتوحة (غير المسوَّاة) معاً —
+            // انظر Services/CustodyPoolCalculator. التسوية (ترحيل/إقفال) تُعلّم الإيداعات القديمة
+            // كمغلقة بدل حذفها، فيبقى سجل الإيداعات القديم محفوظاً بالكامل للمراجعة.
+            TryExec("ALTER TABLE Custodies ADD COLUMN SettlementType TEXT NULL");
+            TryExec("ALTER TABLE Custodies ADD COLUMN SettledAt TEXT NULL");
+            TryExec("ALTER TABLE Custodies ADD COLUMN IsOpeningBalance INTEGER NOT NULL DEFAULT 0");
+            // طلب شراء واحد ممكن يتوزَّع على أكثر من عهدة (إيداع) لو مفيش إيداع واحد كافي لوحده
+            // — كل صف هنا هو جزء من طلب شراء اتخصم من عهدة معيَّنة وقت مطابقة الكاشير
+            TryExec(@"CREATE TABLE IF NOT EXISTS PurchaseRequestCustodyAllocations (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                PurchaseRequestId INTEGER NOT NULL,
+                CustodyId INTEGER NOT NULL,
+                Amount REAL NOT NULL DEFAULT 0,
+                CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+                FOREIGN KEY (PurchaseRequestId) REFERENCES PurchaseRequests(Id) ON DELETE CASCADE,
+                FOREIGN KEY (CustodyId) REFERENCES Custodies(Id))");
         }
         else
         {
@@ -817,6 +835,26 @@ using (var scope = app.Services.CreateScope())
                     REFERENCES Sales(Id) ON DELETE SET NULL)");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='PackageAgreements' AND COLUMN_NAME='CashAmount') ALTER TABLE PackageAgreements ADD CashAmount DECIMAL(18,3) NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='PackageAgreements' AND COLUMN_NAME='LinkAmount') ALTER TABLE PackageAgreements ADD LinkAmount DECIMAL(18,3) NULL");
+
+            // رصيد عهدة موحَّد لكل موظف: كل إيداع عهدة يبقى سجلاً مستقلاً، لكن الاستخدام (الصرف
+            // والحجز) يُحسب على مستوى الموظف بجمع كل إيداعاته المفتوحة (غير المسوَّاة) معاً —
+            // انظر Services/CustodyPoolCalculator. التسوية (ترحيل/إقفال) تُعلّم الإيداعات القديمة
+            // كمغلقة بدل حذفها، فيبقى سجل الإيداعات القديم محفوظاً بالكامل للمراجعة.
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Custodies' AND COLUMN_NAME='SettlementType') ALTER TABLE Custodies ADD SettlementType NVARCHAR(50) NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Custodies' AND COLUMN_NAME='SettledAt') ALTER TABLE Custodies ADD SettledAt DATETIME NULL");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Custodies' AND COLUMN_NAME='IsOpeningBalance') ALTER TABLE Custodies ADD IsOpeningBalance BIT NOT NULL DEFAULT 0");
+            // طلب شراء واحد ممكن يتوزَّع على أكثر من عهدة (إيداع) لو مفيش إيداع واحد كافي لوحده
+            // — كل صف هنا هو جزء من طلب شراء اتخصم من عهدة معيَّنة وقت مطابقة الكاشير
+            TryExec(@"IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='PurchaseRequestCustodyAllocations')
+                CREATE TABLE PurchaseRequestCustodyAllocations (Id INT IDENTITY PRIMARY KEY,
+                PurchaseRequestId INT NOT NULL,
+                CustodyId INT NOT NULL,
+                Amount DECIMAL(18,3) NOT NULL DEFAULT 0,
+                CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                CONSTRAINT FK_PRCustodyAllocations_PurchaseRequests FOREIGN KEY (PurchaseRequestId)
+                    REFERENCES PurchaseRequests(Id) ON DELETE CASCADE,
+                CONSTRAINT FK_PRCustodyAllocations_Custodies FOREIGN KEY (CustodyId)
+                    REFERENCES Custodies(Id))");
         }
 
         // ترحيل لمرة واحدة: قبل هذا الفصل كانت شاشة "اعتماد اليومية" تعيد استخدام آخر صف Shift

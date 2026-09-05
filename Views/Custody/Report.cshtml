@@ -6,7 +6,8 @@
     decimal totalLink = Model.Where(c => c.PaymentMethod == "لينك").Sum(c => c.Amount);
     decimal totalSpent = Model.Sum(c => c.SpentAmount);
     decimal totalRemaining = Model.Sum(c => c.RemainingAmount);
-    decimal totalReserved = Model.Sum(c => c.ReservedAmount);
+    var reservedByEmployee = (Dictionary<int, decimal>)ViewBag.ReservedByEmployee;
+    decimal totalReserved = reservedByEmployee.Values.Sum();
     var grouped = Model.GroupBy(c => c.Employee?.FullName ?? "-").OrderBy(g => g.Key);
 }
 
@@ -121,6 +122,8 @@ else
         decimal gLink = group.Where(c => c.PaymentMethod == "لينك").Sum(c => c.Amount);
         decimal gSpent = group.Sum(c => c.SpentAmount);
         decimal gRemaining = group.Sum(c => c.RemainingAmount);
+        int gEmployeeId = group.First().EmployeeId;
+        decimal gReserved = reservedByEmployee.TryGetValue(gEmployeeId, out var rv) ? rv : 0;
 
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -131,6 +134,10 @@ else
                     <span style="color:#6f42c1;">الإجمالي: <strong>@gAll.ToString("N3")</strong> د.ك</span>
                     <span style="color:#16a34a;">المصروف: <strong>@gSpent.ToString("N3")</strong> د.ك</span>
                     <span style="color:#d97706;">المتبقي: <strong>@gRemaining.ToString("N3")</strong> د.ك</span>
+                    @if (gReserved > 0)
+                    {
+                        <span style="color:#b45309;">محجوز: <strong>@gReserved.ToString("N3")</strong> د.ك</span>
+                    }
                 </div>
             </div>
             <div class="card-body p-0">

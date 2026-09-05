@@ -63,8 +63,7 @@ namespace Salon.Controllers
                 .Include(p => p.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Include(p => p.Supplier)
                 .Include(p => p.Items)
-                .Include(p => p.Custody).ThenInclude(c => c!.PurchaseRequests)
-                .Include(p => p.Custody).ThenInclude(c => c!.InvoicePayments)
+                .Include(p => p.Allocations).ThenInclude(a => a.Custody)
                 .Include(p => p.SupplierInvoice).ThenInclude(inv => inv!.Payments)
                 .Include(p => p.SupplierInvoice).ThenInclude(inv => inv!.Installments)
                 .AsQueryable();
@@ -99,6 +98,14 @@ namespace Salon.Controllers
             ViewBag.PendingCount = requests.Count(r => r.Status == PurchaseRequest.Statuses.Pending);
             ViewBag.ApprovedCount = requests.Count(r => r.Status == PurchaseRequest.Statuses.Approved);
             ViewBag.CompletedTotal = requests.Where(r => r.Status == PurchaseRequest.Statuses.Completed).Sum(r => r.ActualAmount ?? 0);
+
+            // رصيد عهدة كل موظف موحَّد (انظر CustodyPoolCalculator) — تُعرض في عمود "رصيد العهدة"
+            // ونافذة مطابقة الكاشير بدل رصيد إيداع واحد بعينه
+            var poolsByEmployee = new Dictionary<int, EmployeeCustodyPool>();
+            foreach (var empId in requests.Select(r => r.EmployeeId).Distinct())
+                poolsByEmployee[empId] = await CustodyPoolCalculator.GetPoolAsync(_context, empId);
+            ViewBag.EmployeePools = poolsByEmployee;
+
             return View(requests);
         }
 
@@ -109,7 +116,7 @@ namespace Salon.Controllers
             var userDept = currentUser?.UserDepartment;
 
             var empQuery = _context.Employees.Include(e => e.DepartmentNav)
-                .Where(e => e.IsActive && _context.Custodies.Any(c => c.EmployeeId == e.Id));
+                .Where(e => e.IsActive && _context.Custodies.Any(c => c.EmployeeId == e.Id && c.SettlementType == null));
             if (userDept == "حلاقة" || userDept == "مساج")
                 empQuery = empQuery.Where(e => (e.RevenueDepartment ?? e.DepartmentNav!.Name) == userDept);
 
@@ -117,28 +124,19 @@ namespace Salon.Controllers
             if (linkedEmpId.HasValue && !isManager)
                 empQuery = empQuery.Where(e => e.Id == linkedEmpId.Value);
 
-            ViewBag.Employees = new SelectList(await empQuery.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName", linkedEmpId);
+            var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+            ViewBag.Employees = new SelectList(employees, "Id", "FullName", linkedEmpId);
+
+            // رصيد العهدة الموحَّد المتاح لكل موظف — يُعرض مباشرة عند اختيار الموظف بدل ما
+            // يختار المستخدم عهدة (إيداع) بعينها من قائمة قديمة
+            var availableByEmployee = new Dictionary<int, decimal>();
+            foreach (var emp in employees)
+                availableByEmployee[emp.Id] = (await CustodyPoolCalculator.GetPoolAsync(_context, emp.Id)).AvailableForRequest;
+            ViewBag.EmployeeAvailable = availableByEmployee;
+
             ViewBag.Suppliers = new SelectList(await _context.Suppliers.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync(), "Id", "Name");
-            ViewBag.Custodies = await GetCustodyOptionsAsync(userDept, isManager, linkedEmpId);
             ViewBag.IsManager = isManager;
             return View(new PurchaseRequest { RequestDate = DateTime.Today });
-        }
-
-        private async Task<List<Custody>> GetCustodyOptionsAsync(string? userDept, bool isManager, int? linkedEmpId)
-        {
-            var custodyQuery = _context.Custodies
-                .Include(c => c.Employee)
-                .Include(c => c.PurchaseRequests)
-                .Include(c => c.InvoicePayments)
-                .AsQueryable();
-
-            if (userDept == "حلاقة" || userDept == "مساج")
-                custodyQuery = custodyQuery.Where(c => (c.Employee!.RevenueDepartment ?? c.Employee!.DepartmentNav!.Name) == userDept);
-
-            if (!isManager && linkedEmpId.HasValue)
-                custodyQuery = custodyQuery.Where(c => c.EmployeeId == linkedEmpId.Value);
-
-            return await custodyQuery.OrderByDescending(c => c.CustodyDate).ToListAsync();
         }
 
         [HttpPost, ValidateAntiForgeryToken]
@@ -170,13 +168,13 @@ namespace Salon.Controllers
 
             ModelState.Remove(nameof(PurchaseRequest.Items));
 
-            var custody = await _context.Custodies.Include(c => c.PurchaseRequests).Include(c => c.InvoicePayments).FirstOrDefaultAsync(c => c.Id == model.CustodyId);
-            if (custody == null)
-                ModelState.AddModelError("", "العهدة المختارة غير موجودة");
-            else if (custody.EmployeeId != model.EmployeeId)
-                ModelState.AddModelError("", "العهدة المختارة لا تتبع هذا الموظف");
-            else if (model.EstimatedAmount > custody.AvailableForRequest)
-                ModelState.AddModelError("", $"القيمة التقديرية أكبر من المتاح في العهدة ({custody.AvailableForRequest:N3} د.ك)");
+            // التحقق من الرصيد يتم على رصيد عهدة الموظف الموحَّد (كل إيداعاته المفتوحة مجموعة
+            // معاً)، مش على إيداع واحد بعينه — حتى لو محتاج مبلغ موزَّع أصلاً على أكثر من إيداع
+            var pool = await CustodyPoolCalculator.GetPoolAsync(_context, model.EmployeeId);
+            if (pool.TotalDeposited <= 0)
+                ModelState.AddModelError("", "لا توجد عهدة مسجَّلة لهذا الموظف");
+            else if (model.EstimatedAmount > pool.AvailableForRequest)
+                ModelState.AddModelError("", $"القيمة التقديرية أكبر من رصيد العهدة المتاح لهذا الموظف ({pool.AvailableForRequest:N3} د.ك)");
 
             if (ModelState.IsValid)
             {
@@ -200,12 +198,18 @@ namespace Salon.Controllers
 
             var userDept = currentUser?.UserDepartment;
             var empQuery = _context.Employees.Include(e => e.DepartmentNav)
-                .Where(e => e.IsActive && _context.Custodies.Any(c => c.EmployeeId == e.Id));
+                .Where(e => e.IsActive && _context.Custodies.Any(c => c.EmployeeId == e.Id && c.SettlementType == null));
             if (userDept == "حلاقة" || userDept == "مساج")
                 empQuery = empQuery.Where(e => (e.RevenueDepartment ?? e.DepartmentNav!.Name) == userDept);
-            ViewBag.Employees = new SelectList(await empQuery.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName");
+            var employees = await empQuery.OrderBy(e => e.FullName).ToListAsync();
+            ViewBag.Employees = new SelectList(employees, "Id", "FullName");
+
+            var availableByEmployee = new Dictionary<int, decimal>();
+            foreach (var emp in employees)
+                availableByEmployee[emp.Id] = (await CustodyPoolCalculator.GetPoolAsync(_context, emp.Id)).AvailableForRequest;
+            ViewBag.EmployeeAvailable = availableByEmployee;
+
             ViewBag.Suppliers = new SelectList(await _context.Suppliers.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync(), "Id", "Name");
-            ViewBag.Custodies = await GetCustodyOptionsAsync(userDept, isManager, linkedEmpId);
             ViewBag.IsManager = isManager;
             model.Items = items;
             return View(model);
@@ -295,8 +299,7 @@ namespace Salon.Controllers
             var request = await _context.PurchaseRequests
                 .Include(p => p.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Include(p => p.Items)
-                .Include(p => p.Custody).ThenInclude(c => c!.PurchaseRequests)
-                .Include(p => p.Custody).ThenInclude(c => c!.InvoicePayments)
+                .Include(p => p.Allocations)
                 .FirstOrDefaultAsync(p => p.Id == id);
             if (request == null) return RedirectToAction(nameof(Index));
 
@@ -320,13 +323,17 @@ namespace Salon.Controllers
 
             bool isDeferred = purchaseMethod == PurchaseRequest.PurchaseMethods.Deferred;
 
+            List<Custody> openCustodies = new();
             if (!isDeferred)
             {
                 // إعادة التحقق وقت الاعتماد (وليس وقت الطلب فقط) من أن المبلغ الفعلي لا يتجاوز
-                // المتبقي الحالي في العهدة، لضمان عدم تجاوز مجموع المشتريات المعتمدة مبلغ العهدة الأصلي
-                if (request.Custody != null && actualAmount > request.Custody.RemainingAmount)
+                // رصيد عهدة الموظف الموحَّد المتبقي (كل إيداعاته المفتوحة مجموعة معاً)، لضمان عدم
+                // تجاوز مجموع المشتريات المعتمدة مجموع مبالغ العهدة الأصلية
+                openCustodies = await CustodyPoolCalculator.GetOpenCustodiesAsync(_context, request.EmployeeId);
+                decimal poolRemaining = openCustodies.PoolRemaining();
+                if (actualAmount > poolRemaining + 0.001m)
                 {
-                    TempData["Error"] = $"لا يمكن الاعتماد — المبلغ الفعلي ({actualAmount:N3}) أكبر من المتبقي الحالي في العهدة ({request.Custody.RemainingAmount:N3}) د.ك";
+                    TempData["Error"] = $"لا يمكن الاعتماد — المبلغ الفعلي ({actualAmount:N3}) أكبر من رصيد عهدة الموظف المتبقي ({poolRemaining:N3}) د.ك";
                     return RedirectToAction(nameof(Index));
                 }
             }
@@ -442,6 +449,22 @@ namespace Salon.Controllers
             request.ExpenseId = expenseId;
             request.SupplierInvoiceId = supplierInvoiceId;
             request.Status = PurchaseRequest.Statuses.Completed;
+
+            if (!isDeferred)
+            {
+                // توزيع المبلغ الفعلي على إيداعات عهدة الموظف المفتوحة الأقدم أولاً (FIFO) — بيسمح
+                // بشراء واحد يتغطى من أكثر من إيداع لو مفيش إيداع واحد لوحده كان بيكفي المبلغ كامل
+                decimal toAllocate = actualAmount;
+                foreach (var c in openCustodies.OrderBy(c => c.CustodyDate).ThenBy(c => c.CreatedAt))
+                {
+                    if (toAllocate <= 0.0005m) break;
+                    decimal share = Math.Min(c.RemainingAmount, toAllocate);
+                    if (share <= 0.0005m) continue;
+                    request.Allocations.Add(new PurchaseRequestCustodyAllocation { CustodyId = c.Id, Amount = share });
+                    toAllocate -= share;
+                }
+            }
+
             await _context.SaveChangesAsync();
 
             await _audit.LogAsync("Approve", "PurchaseRequest",

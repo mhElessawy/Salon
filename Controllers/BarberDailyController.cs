@@ -113,8 +113,9 @@ namespace Salon.Controllers
             // movement.
             var allCustodiesQuery = _context.Custodies
                 .Include(c => c.Employee)
-                .Include(c => c.PurchaseRequests)
+                .Include(c => c.Allocations)
                 .Include(c => c.InvoicePayments)
+                .Where(c => c.SettlementType == null)
                 .AsQueryable();
 
             if (!isEmployee)

@@ -31,13 +31,6 @@ namespace Salon.Models
         [ForeignKey("EmployeeId")]
         public Employee? Employee { get; set; }
 
-        [Required]
-        [Display(Name = "العهدة")]
-        public int CustodyId { get; set; }
-
-        [ForeignKey("CustodyId")]
-        public Custody? Custody { get; set; }
-
         [Display(Name = "تاريخ الطلب")]
         [DataType(DataType.Date)]
         public DateTime RequestDate { get; set; } = DateTime.Today;
@@ -113,6 +106,10 @@ namespace Salon.Models
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public List<PurchaseRequestItem> Items { get; set; } = new();
+
+        // توزيع المبلغ الفعلي المصروف على عهدة/عهد الموظف — يُملأ فقط عند مطابقة الكاشير
+        // واعتماد الطلب بطريقة الشراء "نقدًا من العهدة" (انظر PurchaseRequestCustodyAllocation)
+        public List<PurchaseRequestCustodyAllocation> Allocations { get; set; } = new();
 
         [NotMapped]
         public string ItemsSummary => Items.Count == 0

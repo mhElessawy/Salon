@@ -30,6 +30,7 @@ namespace Salon.Data
         public DbSet<Custody> Custodies { get; set; }
         public DbSet<PurchaseRequest> PurchaseRequests { get; set; }
         public DbSet<PurchaseRequestItem> PurchaseRequestItems { get; set; }
+        public DbSet<PurchaseRequestCustodyAllocation> PurchaseRequestCustodyAllocations { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<UserPermission> UserPermissions { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
@@ -201,6 +202,26 @@ namespace Salon.Data
                 .Property(p => p.ActualAmount)
                 .HasColumnType("decimal(18,3)");
 
+            builder.Entity<Custody>()
+                .Property(c => c.Amount)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<PurchaseRequestCustodyAllocation>()
+                .Property(a => a.Amount)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<PurchaseRequestCustodyAllocation>()
+                .HasOne(a => a.PurchaseRequest)
+                .WithMany(p => p.Allocations)
+                .HasForeignKey(a => a.PurchaseRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<PurchaseRequestCustodyAllocation>()
+                .HasOne(a => a.Custody)
+                .WithMany(c => c.Allocations)
+                .HasForeignKey(a => a.CustodyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.Entity<SupplierInvoice>()
                 .Property(i => i.TotalAmount)
                 .HasColumnType("decimal(18,3)");
@@ -289,9 +310,9 @@ namespace Salon.Data
                 .HasForeignKey(a => a.CustomerPackageId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Restrict (áÇ Cascade) áÃä ÇáæÕæá áÜ Customer/ServicePackage ããßä ÃíÖÇğ ÈÔßá ÛíÑ
-            // ãÈÇÔÑ ÚÈÑ CustomerPackageId — áæ ÎáíäÇåÇ Cascade åíÈŞì İíå ÃßÊÑ ãä ãÓÇÑ Cascade
-            // áäİÓ ÇáÌÏæá (PackageAgreements) æSQL Server åíÑİÖ ÅäÔÇÁ ÇáŞíæÏ (Error 1785)
+            // Restrict (ï¿½ï¿½ Cascade) ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ Customer/ServicePackage ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ CustomerPackageId ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Cascade ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Cascade
+            // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (PackageAgreements) ï¿½SQL Server ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (Error 1785)
             builder.Entity<PackageAgreement>()
                 .HasOne(a => a.Customer)
                 .WithMany()
