@@ -272,7 +272,8 @@ namespace Salon.Controllers
             var advancesToday = await advancesQuery.OrderByDescending(a => a.CreatedAt).ToListAsync();
 
             var outstandingDebtsQuery = _context.EmployeeAdvances.Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
-                .Where(a => EmployeeAdvance.Statuses.Realized.Contains(a.Status) && a.Status != EmployeeAdvance.Statuses.Repaid);
+                .Where(a => a.AdvanceDate < dayEnd
+                         && EmployeeAdvance.Statuses.Realized.Contains(a.Status) && a.Status != EmployeeAdvance.Statuses.Repaid);
             outstandingDebtsQuery = isShared
                 ? outstandingDebtsQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) != Shift.ClosureDepartments.Haircut
                                                  && (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) != Shift.ClosureDepartments.Massage)
