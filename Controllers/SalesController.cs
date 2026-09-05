@@ -67,9 +67,9 @@ namespace Salon.Controllers
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo);
 
             if (userDept == "مساج")
-                query = query.Where(s => s.SaleType == "مساج");
+                query = query.Where(s => s.SaleType == "مساج" || (s.SaleType == "منتجات" && s.Department == "مساج"));
             else if (userDept == "حلاقة")
-                query = query.Where(s => s.SaleType == "حلاقة");
+                query = query.Where(s => s.SaleType == "حلاقة" || (s.SaleType == "منتجات" && s.Department == "حلاقة"));
 
             if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
                 query = query.Where(s => s.EmployeeId == user.LinkedEmployeeId!.Value);
@@ -280,6 +280,9 @@ namespace Salon.Controllers
 
             var user = await _userManager.GetUserAsync(User);
             model.SaleType = "منتجات";
+            model.Department = user?.UserDepartment == Shift.ClosureDepartments.Haircut || user?.UserDepartment == Shift.ClosureDepartments.Massage
+                ? user.UserDepartment
+                : null;
 
             // ===== استهلاك موظف =====
             if (transactionType == "Consumption")
@@ -514,9 +517,9 @@ namespace Salon.Controllers
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
 
             if (userDept == "مساج")
-                query = query.Where(s => s.SaleType == "مساج");
+                query = query.Where(s => s.SaleType == "مساج" || (s.SaleType == "منتجات" && s.Department == "مساج"));
             else if (userDept == "حلاقة")
-                query = query.Where(s => s.SaleType == "حلاقة");
+                query = query.Where(s => s.SaleType == "حلاقة" || (s.SaleType == "منتجات" && s.Department == "حلاقة"));
 
             if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
                 query = query.Where(s => s.EmployeeId == user.LinkedEmployeeId!.Value);

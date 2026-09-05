@@ -53,6 +53,10 @@ namespace Salon.Models
         [Display(Name = "نوع الفاتورة")]
         public string SaleType { get; set; } = "خدمة"; // "خدمة" أو "منتجات"
 
+        /// <summary>القسم اللي عمل فاتورة المنتجات (حلاقة/مساج)، عشان تظهر في قائمة فواتير قسمها بدل قائمة عامة. فاضي لفواتير الخدمات (SaleType بيحدد قسمها هي أصلاً).</summary>
+        [Display(Name = "القسم")]
+        public string? Department { get; set; }
+
         [Display(Name = "الحالة")]
         public string Status { get; set; } = "مكتمل";
 
