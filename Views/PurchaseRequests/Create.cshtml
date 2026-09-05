@@ -1,4 +1,4 @@
-﻿@model Salon.Models.PurchaseRequest
+﻿@model  Salon.Models.PurchaseRequest
 @{
     ViewData["Title"] = "طلب شراء جديد";
 }
@@ -17,7 +17,7 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label fw-bold">الموظف <span class="text-danger">*</span></label>
-                    <select name="EmployeeId" asp-items="ViewBag.Employees" class="form-select" required>
+                    <select name="EmployeeId" id="employeeSelect" asp-items="ViewBag.Employees" class="form-select" required>
                         <option value="">-- اختر الموظف --</option>
                     </select>
                 </div>
@@ -27,17 +27,13 @@
                 </div>
 
                 <div class="col-12">
-                    <label class="form-label fw-bold">العهدة <span class="text-danger">*</span></label>
-                    <select name="CustodyId" id="custodySelect" class="form-select" required>
-                        <option value="">-- اختر العهدة --</option>
-                        @foreach (Salon.Models.Custody c in (IEnumerable<Salon.Models.Custody>)ViewBag.Custodies)
-                        {
-                            <option value="@c.Id" data-emp="@c.EmployeeId">
-                                @(c.Employee?.FullName) — عهدة بتاريخ @c.CustodyDate.ToString("yyyy/MM/dd") — المتاح: @c.AvailableForRequest.ToString("N3") د.ك (من أصل @c.Amount.ToString("N3"))
-                            </option>
-                        }
-                    </select>
-                    <div class="form-text">تظهر فقط عهد الموظف المختار أعلاه</div>
+                    <div id="custodyAvailableBox" class="alert alert-success d-none mb-0">
+                        <i class="fas fa-hand-holding-dollar me-1"></i>
+                        رصيد العهدة المتاح حاليًا: <strong id="custodyAvailableValue">0.000</strong> د.ك
+                    </div>
+                    <div id="custodyNoneBox" class="alert alert-warning d-none mb-0">
+                        <i class="fas fa-exclamation-triangle me-1"></i> لا توجد عهدة متاحة لهذا الموظف
+                    </div>
                 </div>
 
                 <div class="col-12">
@@ -113,22 +109,24 @@
             }
         }
 
-        function filterCustodyOptions() {
-            var empId = document.querySelector('select[name="EmployeeId"]').value;
-            var custodySelect = document.getElementById('custodySelect');
-            var hasVisibleSelected = false;
-            for (var i = 0; i < custodySelect.options.length; i++) {
-                var opt = custodySelect.options[i];
-                if (!opt.value) continue;
-                var matches = !empId || opt.getAttribute('data-emp') === empId;
-                opt.hidden = !matches;
-                opt.disabled = !matches;
-                if (matches && opt.selected) hasVisibleSelected = true;
+        var employeeAvailable = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((Dictionary<int, decimal>)ViewBag.EmployeeAvailable));
+
+        function updateCustodyAvailable() {
+            var empId = document.getElementById('employeeSelect').value;
+            var availableBox = document.getElementById('custodyAvailableBox');
+            var noneBox = document.getElementById('custodyNoneBox');
+            availableBox.classList.add('d-none');
+            noneBox.classList.add('d-none');
+            if (!empId) return;
+            if (Object.prototype.hasOwnProperty.call(employeeAvailable, empId)) {
+                document.getElementById('custodyAvailableValue').textContent = employeeAvailable[empId].toFixed(3);
+                availableBox.classList.remove('d-none');
+            } else {
+                noneBox.classList.remove('d-none');
             }
-            if (!hasVisibleSelected) custodySelect.value = '';
         }
 
-        document.querySelector('select[name="EmployeeId"]').addEventListener('change', filterCustodyOptions);
-        filterCustodyOptions();
+        document.getElementById('employeeSelect').addEventListener('change', updateCustodyAvailable);
+        updateCustodyAvailable();
     </script>
 }

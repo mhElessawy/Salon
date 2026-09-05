@@ -1,4 +1,4 @@
-﻿@model   IEnumerable<Salon.Models.SupplierInvoice>
+﻿@model    IEnumerable<Salon.Models.SupplierInvoice>
 @using System.Text.Json
 @{
     ViewData["Title"] = "فواتير الموردين الآجلة";
@@ -659,13 +659,13 @@
                             </select>
                         </div>
                         <div class="mb-3 d-none" id="payCustodyRow">
-                            <label class="form-label fw-bold">العهدة <span class="text-danger">*</span></label>
+                            <label class="form-label fw-bold">الموظف <span class="text-danger">*</span></label>
                             <select name="custodyId" id="payCustodyId" class="form-select">
-                                <option value="">-- اختر العهدة --</option>
-                                @foreach (var c in (IEnumerable<Salon.Models.Custody>)ViewBag.Custodies)
+                                <option value="">-- اختر الموظف --</option>
+                                @foreach (var c in (List<(int EmployeeId, string EmployeeName, decimal Remaining)>)ViewBag.Custodies)
                                 {
-                                    <option value="@c.Id" data-remaining="@c.RemainingAmount.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)">
-                                        @(c.Employee?.FullName ?? "-") — متبقي @c.RemainingAmount.ToString("N3") د.ك
+                                    <option value="@c.EmployeeId" data-remaining="@c.Remaining.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)">
+                                        @c.EmployeeName — رصيد عهدة متاح @c.Remaining.ToString("N3") د.ك
                                     </option>
                                 }
                             </select>
@@ -934,12 +934,12 @@
                                 </select>
                             </div>
                             <div class="col-md-3 d-none" id="createPaymentCustodyRow">
-                                <label class="form-label small mb-1">العهدة</label>
+                                <label class="form-label small mb-1">الموظف</label>
                                 <select name="paymentCustodyId" class="form-select">
-                                    <option value="">-- اختر العهدة --</option>
-                                    @foreach (var c in (IEnumerable<Salon.Models.Custody>)ViewBag.Custodies)
+                                    <option value="">-- اختر الموظف --</option>
+                                    @foreach (var c in (List<(int EmployeeId, string EmployeeName, decimal Remaining)>)ViewBag.Custodies)
                                     {
-                                        <option value="@c.Id">@(c.Employee?.FullName ?? "-") — متبقي @c.RemainingAmount.ToString("N3") د.ك</option>
+                                        <option value="@c.EmployeeId">@c.EmployeeName — رصيد متاح @c.Remaining.ToString("N3") د.ك</option>
                                     }
                                 </select>
                             </div>

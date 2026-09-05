@@ -1,4 +1,4 @@
-﻿@model   IEnumerable<Salon.Models.PurchaseRequest>
+﻿@model    IEnumerable<Salon.Models.PurchaseRequest>
 @{
     ViewData["Title"] = "طلبات الشراء";
     bool isManager = (bool)(ViewBag.IsManager ?? false);
@@ -7,6 +7,8 @@
     int pendingCount = (int)ViewBag.PendingCount;
     int approvedCount = (int)ViewBag.ApprovedCount;
     decimal completedTotal = (decimal)ViewBag.CompletedTotal;
+
+    var employeePools = (Dictionary<int, Salon.Services.EmployeeCustodyPool>)ViewBag.EmployeePools;
 
     string StatusBadge(string status) => status switch
     {
@@ -113,6 +115,7 @@
                     @foreach (var p in Model)
                     {
                         var rowId = "pr-" + p.Id;
+                        var empPool = employeePools.TryGetValue(p.EmployeeId, out var pl) ? pl : null;
                         <tr>
                             <td>@p.Id</td>
                             <td>@(p.Employee?.FullName ?? "-")</td>
@@ -125,9 +128,9 @@
                             <td><strong class="text-danger">@p.EstimatedAmount.ToString("N3") د.ك</strong></td>
                             <td>@(p.Supplier?.Name ?? "-")</td>
                             <td>
-                                @if (p.Custody != null)
+                                @if (empPool != null)
                                 {
-                                    <span class="@(p.Custody.RemainingAmount > 0 ? "text-warning fw-bold" : "text-muted")">@p.Custody.RemainingAmount.ToString("N3") د.ك</span>
+                                    <span class="@(empPool.RemainingAmount > 0 ? "text-warning fw-bold" : "text-muted")">@empPool.RemainingAmount.ToString("N3") د.ك</span>
                                 }
                                 else
                                 {
@@ -157,7 +160,7 @@
                                             data-cashier-id="@p.Id"
                                             data-cashier-emp="@(p.Employee?.FullName ?? "-")"
                                             data-cashier-estimated="@p.EstimatedAmount.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)"
-                                            data-cashier-remaining="@((p.Custody?.RemainingAmount ?? 0).ToString("F3", System.Globalization.CultureInfo.InvariantCulture))">
+                                            data-cashier-remaining="@((empPool?.RemainingAmount ?? 0).ToString("F3", System.Globalization.CultureInfo.InvariantCulture))">
                                         <i class="fas fa-clipboard-check"></i> مطابقة واستلام
                                     </button>
                                 }
@@ -184,12 +187,17 @@
                                                     <li>@item.ProductName — الكمية: @item.Quantity</li>
                                                 }
                                             </ul>
-                                            @if (p.Custody != null)
+                                            @if (p.Allocations.Any())
                                             {
                                                 <div class="mt-2 text-muted">
-                                                    <strong>العهدة:</strong> بتاريخ @p.Custody.CustodyDate.ToString("yyyy/MM/dd") —
-                                                    الأصل @p.Custody.Amount.ToString("N3") د.ك —
-                                                    المتبقي حالياً @p.Custody.RemainingAmount.ToString("N3") د.ك
+                                                    <strong>دُفع من عهدة:</strong>
+                                                    @string.Join("، ", p.Allocations.Select(a => $"{a.Amount:N3} د.ك (إيداع {a.Custody?.CustodyDate.ToString("yyyy/MM/dd")})"))
+                                                </div>
+                                            }
+                                            else if (empPool != null)
+                                            {
+                                                <div class="mt-2 text-muted">
+                                                    <strong>رصيد عهدة الموظف المتبقي حالياً:</strong> @empPool.RemainingAmount.ToString("N3") د.ك
                                                 </div>
                                             }
                                         </div>

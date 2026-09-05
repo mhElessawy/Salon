@@ -131,14 +131,26 @@ namespace Salon.Controllers
             return View(invoices);
         }
 
-        private async Task<List<Custody>> GetCustodyOptionsAsync()
+        // خيارات الدفع "من عهدة" — رصيد كل موظف موحَّد من كل إيداعاته المفتوحة معاً (انظر
+        // CustodyPoolCalculator)، فيظهر موظف واحد بقائمة اختيار الفاتورة بدل كل إيداع بياناته لوحده
+        private async Task<List<(int EmployeeId, string EmployeeName, decimal Remaining)>> GetCustodyOptionsAsync()
         {
-            return await _context.Custodies
-                .Include(c => c.Employee)
-                .Include(c => c.PurchaseRequests)
-                .Include(c => c.InvoicePayments)
-                .OrderByDescending(c => c.CustodyDate)
+            var employeeIds = await _context.Custodies
+                .Where(c => c.SettlementType == null)
+                .Select(c => c.EmployeeId)
+                .Distinct()
                 .ToListAsync();
+
+            var result = new List<(int, string, decimal)>();
+            foreach (var empId in employeeIds)
+            {
+                var open = await CustodyPoolCalculator.GetOpenCustodiesAsync(_context, empId);
+                decimal remaining = open.PoolRemaining();
+                if (remaining <= 0.0005m) continue;
+                var emp = await _context.Employees.FindAsync(empId);
+                result.Add((empId, emp?.FullName ?? "-", remaining));
+            }
+            return result.OrderByDescending(x => x.Item3).ToList();
         }
 
         private async Task<(string? path, string? error)> SaveAttachmentAsync(IFormFile? file, string folder)
@@ -700,8 +712,10 @@ namespace Salon.Controllers
         }
 
         // يتحقَّق من صحة بيانات دفعة ويُسجِّلها فعلياً (يُستخدم من Create ومن RegisterPayment)
+        // custodyEmployeeId: الموظف المختار للسداد من عهدته (لا يوجد اختيار لإيداع بعينه — رصيد
+        // العهدة موحَّد على مستوى الموظف، انظر CustodyPoolCalculator)
         private async Task<(bool ok, string? error)> ValidateAndCreatePaymentAsync(SupplierInvoice invoice, decimal amount,
-            DateTime paymentDate, string source, int? custodyId, string? referenceNumber, string? notes,
+            DateTime paymentDate, string source, int? custodyEmployeeId, string? referenceNumber, string? notes,
             IFormFile? attachment, ApplicationUser? currentUser)
         {
             if (amount <= 0)
@@ -716,20 +730,24 @@ namespace Salon.Controllers
                 return (false, "مصدر الدفع غير صحيح");
 
             Custody? custody = null;
+            Employee? custodyEmployee = null;
             if (source == SupplierInvoicePayment.Sources.Custody)
             {
-                if (!custodyId.HasValue)
-                    return (false, "يجب اختيار العهدة المستخدمة للسداد");
+                if (!custodyEmployeeId.HasValue)
+                    return (false, "يجب اختيار الموظف المسدَّد من عهدته");
 
-                custody = await _context.Custodies
-                    .Include(c => c.PurchaseRequests)
-                    .Include(c => c.InvoicePayments)
-                    .FirstOrDefaultAsync(c => c.Id == custodyId.Value);
-                if (custody == null)
-                    return (false, "العهدة المختارة غير موجودة");
+                var openCustodies = await CustodyPoolCalculator.GetOpenCustodiesAsync(_context, custodyEmployeeId.Value);
+                if (openCustodies.Count == 0)
+                    return (false, "لا توجد عهدة مفتوحة لهذا الموظف");
 
-                if (amount > custody.RemainingAmount + 0.001m)
-                    return (false, $"مبلغ الدفعة ({amount:N3}) أكبر من المتبقي في العهدة المختارة ({custody.RemainingAmount:N3}) د.ك");
+                decimal poolRemaining = openCustodies.PoolRemaining();
+                if (amount > poolRemaining + 0.001m)
+                    return (false, $"مبلغ الدفعة ({amount:N3}) أكبر من رصيد عهدة الموظف المتبقي ({poolRemaining:N3}) د.ك");
+
+                // العهدة صف واحد بالـ DB لأسباب تاريخية فقط — نختار الإيداع صاحب أكبر رصيد متبقٍ
+                // كمرجع، لكن التحقق أعلاه دايماً على رصيد الموظف الموحَّد مش على هذا الصف لوحده
+                custody = openCustodies.OrderByDescending(c => c.RemainingAmount).First();
+                custodyEmployee = await _context.Employees.FindAsync(custodyEmployeeId.Value);
             }
 
             string? attachmentPath = null;
@@ -746,7 +764,7 @@ namespace Salon.Controllers
                 Amount = amount,
                 PaymentDate = paymentDate == default ? DateTime.Today : paymentDate,
                 Source = source,
-                CustodyId = source == SupplierInvoicePayment.Sources.Custody ? custodyId : null,
+                CustodyId = source == SupplierInvoicePayment.Sources.Custody ? custody!.Id : null,
                 ReferenceNumber = referenceNumber?.Trim(),
                 Notes = notes,
                 AttachmentPath = attachmentPath,
@@ -778,7 +796,7 @@ namespace Salon.Controllers
 
             await _audit.LogAsync("Add", "SupplierInvoicePayment",
                 $"دفعة لفاتورة المورد {invoice.Supplier?.Name ?? "-"} رقم {invoice.InvoiceNumber} بمبلغ {amount:N3} KD | المصدر: {source}"
-                + (custody != null ? $" ({custody.Employee?.FullName})" : ""),
+                + (custodyEmployee != null ? $" ({custodyEmployee.FullName})" : ""),
                 payment.Id);
 
             return (true, null);

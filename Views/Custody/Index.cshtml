@@ -1,4 +1,5 @@
-﻿@model IEnumerable<Salon.Models.Custody>
+﻿@using Salon.Controllers
+@model IEnumerable<Salon.Models.Custody>
 @{
     ViewData["Title"] = "العهد";
     bool isManager = (bool)(ViewBag.IsManager ?? false);
@@ -8,12 +9,13 @@
     decimal totalSpent = (decimal)ViewBag.TotalSpent;
     decimal totalReserved = (decimal)ViewBag.TotalReserved;
     decimal totalRemaining = (decimal)ViewBag.TotalRemaining;
+    var summaries = (List<EmployeeCustodySummary>)ViewBag.EmployeeSummaries;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
         <h1><i class="fas fa-hand-holding me-2"></i>عهد الموظفين</h1>
-        <p>تسليم العهد للموظفين (كاش أو لينك) — الشراء منها يتم عبر طلبات الشراء</p>
+        <p>رصيد عهدة كل موظف موحَّد من كل إيداعاته معاً — العهدة مبلغ مخصص للموظف ولا يخصم من رصيد الصندوق إلا عند اعتماد المصروف الفعلي.</p>
     </div>
     <div class="d-flex gap-2">
         <a href="@Url.Action("Index", "PurchaseRequests")" class="btn btn-outline-primary">
@@ -67,13 +69,74 @@
     <div class="col-sm-6 col-md-4">
         <div class="card border-0 shadow-sm h-100" style="border-right:4px solid #d97706 !important;">
             <div class="card-body">
-                <div class="text-muted small mb-1"><i class="fas fa-clock me-1" style="color:#d97706;"></i>إجمالي المتبقي</div>
+                <div class="text-muted small mb-1"><i class="fas fa-clock me-1" style="color:#d97706;"></i>إجمالي المتبقي (موحَّد لكل موظف)</div>
                 <div class="fw-bold fs-4" style="color:#d97706;">@totalRemaining.ToString("N3") <small class="text-muted">د.ك</small></div>
                 @if (totalReserved > 0)
                 {
                     <div class="small mt-1" style="color:#b45309;"><i class="fas fa-hourglass-half me-1"></i><span>محجوز لطلبات قيد المعالجة:</span> @totalReserved.ToString("N3") د.ك</div>
                 }
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <strong><i class="fas fa-users me-2"></i>رصيد العهدة الموحَّد لكل موظف</strong>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>الموظف</th>
+                        <th>عدد الإيداعات المفتوحة</th>
+                        <th>إجمالي المودَع</th>
+                        <th>المصروف</th>
+                        <th>محجوز</th>
+                        <th>المتاح لطلب جديد</th>
+                        <th>الرصيد المتبقي</th>
+                        @if (isManager)
+                        {
+                            <th>الإجراءات</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!summaries.Any())
+                    {
+                        <tr><td colspan="8" class="text-center text-muted py-4">لا توجد عهد مسجلة</td></tr>
+                    }
+                    @foreach (var s in summaries)
+                    {
+                        <tr>
+                            <td>@s.EmployeeName</td>
+                            <td>@s.OpenDepositsCount</td>
+                            <td>@s.TotalDeposited.ToString("N3") د.ك</td>
+                            <td class="@(s.TotalSpent > 0 ? "text-success fw-bold" : "text-muted")">@s.TotalSpent.ToString("N3") د.ك</td>
+                            <td class="@(s.TotalReserved > 0 ? "text-warning fw-bold" : "text-muted")">@s.TotalReserved.ToString("N3") د.ك</td>
+                            <td class="fw-bold" style="color:#16a34a;">@s.AvailableForRequest.ToString("N3") د.ك</td>
+                            <td class="@(s.RemainingAmount > 0 ? "text-warning fw-bold" : "text-muted")">@s.RemainingAmount.ToString("N3") د.ك</td>
+                            @if (isManager)
+                            {
+                                <td class="text-nowrap">
+                                    <a href="@Url.Action("Ledger", new { employeeId = s.EmployeeId })" class="btn btn-sm btn-outline-primary" title="تفاصيل / كشف حساب">
+                                        <i class="fas fa-list"></i> تفاصيل
+                                    </a>
+                                    @if (s.RemainingAmount > 0)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-warning js-settle-btn" title="تسوية العهدة"
+                                                data-settle-emp="@s.EmployeeId" data-settle-name="@s.EmployeeName"
+                                                data-settle-remaining="@s.RemainingAmount.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)">
+                                            <i class="fas fa-scale-balanced"></i> تسوية
+                                        </button>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -99,6 +162,9 @@
 </div>
 
 <div class="card">
+    <div class="card-header bg-white">
+        <strong><i class="fas fa-history me-2"></i>سجل الإيداعات (للمراجعة)</strong>
+    </div>
     <div class="card-body">
         <div class="table-responsive">
             <table class="table">
@@ -110,7 +176,8 @@
                         <th>طريقة التسليم</th>
                         <th>تاريخ التسليم</th>
                         <th>السبب / البيان</th>
-                        <th>المتبقي</th>
+                        <th>المتبقي من هذا الإيداع</th>
+                        <th>الحالة</th>
                         <th>ملاحظات</th>
                         @if (isManager)
                         {
@@ -121,7 +188,7 @@
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr><td colspan="9" class="text-center text-muted py-4">لا توجد عهد مسجلة</td></tr>
+                        <tr><td colspan="10" class="text-center text-muted py-4">لا توجد عهد مسجلة</td></tr>
                     }
                     @foreach (var c in Model)
                     {
@@ -140,22 +207,35 @@
                                 }
                             </td>
                             <td>@c.CustodyDate.ToString("yyyy/MM/dd")</td>
-                            <td>@(c.Reason ?? "-")</td>
+                            <td>@(c.Reason ?? "-") @(c.IsOpeningBalance ? " (رصيد مرحّل)" : "")</td>
                             <td>
                                 <span class="@(c.RemainingAmount > 0 ? "text-warning fw-bold" : "text-muted")">@c.RemainingAmount.ToString("N3") د.ك</span>
-                                @if (c.ReservedAmount > 0)
+                            </td>
+                            <td>
+                                @if (c.SettlementType == null)
                                 {
-                                    <div class="small" style="color:#b45309;"><i class="fas fa-hourglass-half me-1"></i><span>محجوز:</span> @c.ReservedAmount.ToString("N3")</div>
+                                    <span class="badge bg-success bg-opacity-10 text-success">نشطة</span>
+                                }
+                                else if (c.SettlementType == Salon.Models.Custody.SettlementTypes.RolledOver)
+                                {
+                                    <span class="badge bg-info bg-opacity-10 text-info" title="@c.SettledAt?.ToString("yyyy/MM/dd HH:mm")">مرحَّلة</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary bg-opacity-25 text-secondary" title="@c.SettledAt?.ToString("yyyy/MM/dd HH:mm")">مقفلة</span>
                                 }
                             </td>
                             <td class="text-muted">@(c.Notes ?? "-")</td>
                             @if (isManager)
                             {
                                 <td class="text-nowrap">
-                                    <button type="button" class="btn btn-sm btn-outline-danger" title="حذف"
-                                            onclick="confirmDelete(@c.Id, '@Html.Raw((c.Employee?.FullName ?? "").Replace("'", "\\'"))')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    @if (c.SettlementType == null)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="حذف"
+                                                onclick="confirmDelete(@c.Id, '@Html.Raw((c.Employee?.FullName ?? "").Replace("'", "\\'"))')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    }
                                 </td>
                             }
                         </tr>
@@ -167,9 +247,8 @@
                         <tr>
                             <td colspan="2" class="text-end">الإجمالي</td>
                             <td class="text-danger">@total.ToString("N3") د.ك</td>
-                            <td colspan="3"></td>
-                            <td class="text-warning">@totalRemaining.ToString("N3") د.ك</td>
-                            <td colspan="@(isManager ? 2 : 1)"></td>
+                            <td colspan="4"></td>
+                            <td colspan="@(isManager ? 3 : 2)"></td>
                         </tr>
                     </tfoot>
                 }
@@ -204,6 +283,52 @@
         </div>
     </div>
 
+    <!-- Modal تسوية العهدة -->
+    <div class="modal fade" id="settleModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#d97706;color:#fff;">
+                    <h5 class="modal-title"><i class="fas fa-scale-balanced me-2"></i>تسوية العهدة</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="settleForm" method="post" asp-action="Settle">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="employeeId" id="settleEmployeeId" />
+                    <div class="modal-body">
+                        <div class="mb-3 p-3 rounded" style="background:#fffbeb;border:1px solid #fde68a;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted">الموظف</span>
+                                <strong id="settleEmpName" class="fs-6"></strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="text-muted">الرصيد المتبقي</span>
+                                <strong id="settleRemaining" class="fs-6 text-warning"></strong>
+                                <span class="text-muted small">د.ك</span>
+                            </div>
+                        </div>
+                        <label class="form-label fw-bold">نوع التسوية <span class="text-danger">*</span></label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="settlementType" id="settleRollover" value="@Salon.Models.Custody.SettlementTypes.RolledOver" checked>
+                            <label class="form-check-label" for="settleRollover">
+                                ترحيل الرصيد للشهر القادم — يبقى الرصيد كما هو كرصيد افتتاحي جديد، ولا يتغير رصيد الصندوق
+                            </label>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="radio" name="settlementType" id="settleClose" value="@Salon.Models.Custody.SettlementTypes.Closed">
+                            <label class="form-check-label" for="settleClose">
+                                إقفال / تصفية العهدة — يصبح الرصيد صفراً نهائياً، ولا يتغير رصيد الصندوق (لأن المتبقي لم يُخصم منه أصلاً)
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-warning px-4"><i class="fas fa-check me-1"></i> تأكيد التسوية</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     @section Scripts {
         <script>
             function confirmDelete(id, empName) {
@@ -211,6 +336,15 @@
                 document.getElementById('deleteForm').action = '@Url.Action("Delete")/' + id;
                 new bootstrap.Modal(document.getElementById('deleteModal')).show();
             }
+
+            document.querySelectorAll('.js-settle-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    document.getElementById('settleEmployeeId').value = btn.dataset.settleEmp;
+                    document.getElementById('settleEmpName').textContent = btn.dataset.settleName;
+                    document.getElementById('settleRemaining').textContent = parseFloat(btn.dataset.settleRemaining).toFixed(3);
+                    new bootstrap.Modal(document.getElementById('settleModal')).show();
+                });
+            });
         </script>
     }
 }

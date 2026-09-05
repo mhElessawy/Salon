@@ -281,8 +281,9 @@ namespace Salon.Controllers
             // نوعه IIncludableQueryable بسبب الـ Include المتتالي، وإعادة تعيينه بـ .Where() تاني
             // (اللي بترجّع IQueryable عادي) بترمي InvalidCastException وقت التشغيل.
             IQueryable<Custody> custodiesQuery = _context.Custodies.Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
-                .Include(c => c.PurchaseRequests)
-                .Include(c => c.InvoicePayments);
+                .Include(c => c.Allocations)
+                .Include(c => c.InvoicePayments)
+                .Where(c => c.SettlementType == null);
             custodiesQuery = isShared
                 ? custodiesQuery.Where(c => (c.Employee!.RevenueDepartment ?? c.Employee!.DepartmentNav!.Name) != Shift.ClosureDepartments.Haircut
                                           && (c.Employee!.RevenueDepartment ?? c.Employee!.DepartmentNav!.Name) != Shift.ClosureDepartments.Massage)

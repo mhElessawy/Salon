@@ -827,8 +827,9 @@ namespace Salon.Controllers
             // شاشة BarberDaily. العهدة معلوماتية فقط ولا تدخل في حساب رصيد الكاش أعلاه.
             var custodyQuery = _context.Custodies
                 .Include(c => c.Employee).ThenInclude(e => e!.DepartmentNav)
-                .Include(c => c.PurchaseRequests)
+                .Include(c => c.Allocations)
                 .Include(c => c.InvoicePayments)
+                .Where(c => c.SettlementType == null)
                 .AsQueryable();
             if (filterDept)
                 custodyQuery = custodyQuery.Where(c => (c.Employee!.RevenueDepartment ?? c.Employee!.DepartmentNav!.Name) == dept);
