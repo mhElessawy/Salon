@@ -255,9 +255,7 @@ namespace Salon.Controllers
         // ===== فاتورة مبيعات منتجات (PRD-) =====
         public async Task<IActionResult> CreateProduct()
         {
-            var user = await _userManager.GetUserAsync(User);
-            var roles = await _userManager.GetRolesAsync(user!);
-            if (!roles.Contains("Admin") && (roles.Contains("Employee") || !string.IsNullOrEmpty(user?.UserDepartment)))
+            if (!await _perms.HasAccessAsync("ProductInvoiceAdd"))
                 return Forbid();
 
             await PopulateProductDropdowns();
@@ -277,11 +275,10 @@ namespace Salon.Controllers
             decimal[]? itemPrices, int[]? itemQtys,
             string? transactionType, int? employeeRecipientId)
         {
-            var user = await _userManager.GetUserAsync(User);
-            var roles = await _userManager.GetRolesAsync(user!);
-            if (!roles.Contains("Admin") && (roles.Contains("Employee") || !string.IsNullOrEmpty(user?.UserDepartment)))
+            if (!await _perms.HasAccessAsync("ProductInvoiceAdd"))
                 return Forbid();
 
+            var user = await _userManager.GetUserAsync(User);
             model.SaleType = "منتجات";
 
             // ===== استهلاك موظف =====
