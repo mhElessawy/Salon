@@ -171,6 +171,30 @@ else
             <div class="col-md-3">
                 <div class="card text-center">
                     <div class="card-body">
+                        <div class="text-muted small">إجمالي المصاريف</div>
+                        <div class="fs-5 fw-bold">@Model.TotalExpenses.ToString("N3")</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <div class="text-muted small">دين على الموظف</div>
+                        <div class="fs-5 fw-bold">@Model.EmployeeDebtToday.ToString("N3")</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <div class="text-muted small">دين على الإدارة</div>
+                        <div class="fs-5 fw-bold">@Model.OwnerDebtToday.ToString("N3")</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
                         <div class="text-muted small">الرصيد المتوقع بالصندوق</div>
                         <div class="fs-5 fw-bold">@Model.ExpectedCashBalance.ToString("N3")</div>
                     </div>
@@ -223,16 +247,6 @@ else
                                 <td><input type="checkbox" class="form-check-input" name="reviewedEmployeeDebts" value="true" required /></td>
                                 <td>ديون الموظفين (سلف حتى تاريخ اليومية)</td>
                                 <td class="text-end">@Model.OutstandingEmployeeDebts.ToString("N3") د.ك</td>
-                            </tr>
-                            <tr>
-                                <td></td>
-                                <td>دين على الموظف (اليوم)</td>
-                                <td class="text-end">@Model.EmployeeDebtToday.ToString("N3") د.ك</td>
-                            </tr>
-                            <tr>
-                                <td></td>
-                                <td>دين على الإدارة (اليوم)</td>
-                                <td class="text-end">@Model.OwnerDebtToday.ToString("N3") د.ك</td>
                             </tr>
                             <tr>
                                 <td><input type="checkbox" class="form-check-input" name="reviewedCustody" value="true" required /></td>
