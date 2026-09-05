@@ -70,7 +70,7 @@ namespace Salon.Controllers
                 .AsQueryable();
 
             if (userDept == "حلاقة" || userDept == "مساج")
-                query = query.Where(p => p.Employee!.DepartmentNav!.Name == userDept);
+                query = query.Where(p => (p.Employee!.RevenueDepartment ?? p.Employee!.DepartmentNav!.Name) == userDept);
 
             if (!isCashier && linkedEmpId.HasValue)
                 query = query.Where(p => p.EmployeeId == linkedEmpId.Value);
@@ -85,7 +85,7 @@ namespace Salon.Controllers
 
             var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
             if (userDept == "حلاقة" || userDept == "مساج")
-                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
+                empQuery = empQuery.Where(e => (e.RevenueDepartment ?? e.DepartmentNav!.Name) == userDept);
             ViewBag.Employees = (await empQuery.OrderBy(e => e.FullName).ToListAsync())
                 .Select(e => new SelectListItem { Value = e.Id.ToString(), Text = e.FullName })
                 .ToList();
@@ -111,7 +111,7 @@ namespace Salon.Controllers
             var empQuery = _context.Employees.Include(e => e.DepartmentNav)
                 .Where(e => e.IsActive && _context.Custodies.Any(c => c.EmployeeId == e.Id));
             if (userDept == "حلاقة" || userDept == "مساج")
-                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
+                empQuery = empQuery.Where(e => (e.RevenueDepartment ?? e.DepartmentNav!.Name) == userDept);
 
             int? linkedEmpId = currentUser?.LinkedEmployeeId;
             if (linkedEmpId.HasValue && !isManager)
@@ -133,7 +133,7 @@ namespace Salon.Controllers
                 .AsQueryable();
 
             if (userDept == "حلاقة" || userDept == "مساج")
-                custodyQuery = custodyQuery.Where(c => c.Employee!.DepartmentNav!.Name == userDept);
+                custodyQuery = custodyQuery.Where(c => (c.Employee!.RevenueDepartment ?? c.Employee!.DepartmentNav!.Name) == userDept);
 
             if (!isManager && linkedEmpId.HasValue)
                 custodyQuery = custodyQuery.Where(c => c.EmployeeId == linkedEmpId.Value);
@@ -202,7 +202,7 @@ namespace Salon.Controllers
             var empQuery = _context.Employees.Include(e => e.DepartmentNav)
                 .Where(e => e.IsActive && _context.Custodies.Any(c => c.EmployeeId == e.Id));
             if (userDept == "حلاقة" || userDept == "مساج")
-                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
+                empQuery = empQuery.Where(e => (e.RevenueDepartment ?? e.DepartmentNav!.Name) == userDept);
             ViewBag.Employees = new SelectList(await empQuery.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName");
             ViewBag.Suppliers = new SelectList(await _context.Suppliers.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync(), "Id", "Name");
             ViewBag.Custodies = await GetCustodyOptionsAsync(userDept, isManager, linkedEmpId);
