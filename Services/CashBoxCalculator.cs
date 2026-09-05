@@ -80,9 +80,13 @@ namespace Salon.Services
             // الصندوق غلط.
             string[] cashSalesMethods = { "كاش", "نقدي", "Cash" };
             string[] mixedSalesMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
+            // فاتورة منتجات معلّمة بقسم (Department) تتبع قسمها هي، مش "عام" — راجع تعليق
+            // Sale.Department. اللي فاضله بدون قسم (اتباعت من كاشير عام/أدمن) هو بس اللي يفضل
+            // "عام".
             var salesQuery = context.Sales.Where(s => s.SaleDate >= from && s.SaleDate < to && s.Status != "ملغي");
-            if (sharedOnly) salesQuery = salesQuery.Where(s => s.SaleType != "حلاقة" && s.SaleType != "مساج");
-            else if (filterDept) salesQuery = salesQuery.Where(s => s.SaleType == dept);
+            if (sharedOnly) salesQuery = salesQuery.Where(s => s.SaleType != "حلاقة" && s.SaleType != "مساج"
+                     && !(s.SaleType == "منتجات" && (s.Department == "حلاقة" || s.Department == "مساج")));
+            else if (filterDept) salesQuery = salesQuery.Where(s => s.SaleType == dept || (s.SaleType == "منتجات" && s.Department == dept));
             var sales = await salesQuery.ToListAsync();
             decimal cashRevenue = sales.Sum(s =>
                 cashSalesMethods.Contains(s.PaymentMethod) ? s.NetAmount :

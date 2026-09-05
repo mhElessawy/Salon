@@ -217,8 +217,9 @@ namespace Salon.Controllers
             var dayEnd = day.AddDays(1);
             var query = _context.Sales.Where(s => s.SaleDate >= day && s.SaleDate < dayEnd && s.Status != "ملغي");
             query = IsShared(department)
-                ? query.Where(s => s.SaleType != Shift.ClosureDepartments.Haircut && s.SaleType != Shift.ClosureDepartments.Massage)
-                : query.Where(s => s.SaleType == department);
+                ? query.Where(s => s.SaleType != Shift.ClosureDepartments.Haircut && s.SaleType != Shift.ClosureDepartments.Massage
+                                 && !(s.SaleType == "منتجات" && (s.Department == Shift.ClosureDepartments.Haircut || s.Department == Shift.ClosureDepartments.Massage)))
+                : query.Where(s => s.SaleType == department || (s.SaleType == "منتجات" && s.Department == department));
             var sales = await query.ToListAsync();
             return sales.Sum(s => KnetMethods.Contains(s.PaymentMethod) ? s.NetAmount
                 : MixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0m);
@@ -235,8 +236,9 @@ namespace Salon.Controllers
 
             var salesQuery = _context.Sales.Where(s => s.SaleDate >= day && s.SaleDate < dayEnd && s.Status != "ملغي");
             salesQuery = isShared
-                ? salesQuery.Where(s => s.SaleType != Shift.ClosureDepartments.Haircut && s.SaleType != Shift.ClosureDepartments.Massage)
-                : salesQuery.Where(s => s.SaleType == department);
+                ? salesQuery.Where(s => s.SaleType != Shift.ClosureDepartments.Haircut && s.SaleType != Shift.ClosureDepartments.Massage
+                                      && !(s.SaleType == "منتجات" && (s.Department == Shift.ClosureDepartments.Haircut || s.Department == Shift.ClosureDepartments.Massage)))
+                : salesQuery.Where(s => s.SaleType == department || (s.SaleType == "منتجات" && s.Department == department));
             var sales = await salesQuery.ToListAsync();
             var totalRevenue = sales.Sum(s => s.NetAmount);
             var systemKnet = sales.Sum(s => KnetMethods.Contains(s.PaymentMethod) ? s.NetAmount

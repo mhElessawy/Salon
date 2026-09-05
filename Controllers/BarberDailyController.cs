@@ -413,7 +413,7 @@ namespace Salon.Controllers
         public async Task<IActionResult> UpdatePaymentSplit(int saleId, decimal cashAmount, decimal linkAmount, string date, string? dept)
         {
             var sale = await _context.Sales.FindAsync(saleId);
-            if (sale != null && !await _closure.IsDateLockedAsync(sale.SaleDate, sale.SaleType))
+            if (sale != null && !await _closure.IsDateLockedAsync(sale.SaleDate, sale.Department ?? sale.SaleType))
             {
                 sale.CashAmount = cashAmount;
                 sale.LinkAmount = linkAmount;

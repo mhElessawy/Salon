@@ -46,9 +46,9 @@ namespace Salon.Controllers
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo);
 
             if (userDept == "مساج")
-                query = query.Where(s => s.SaleType == "مساج");
+                query = query.Where(s => s.SaleType == "مساج" || (s.SaleType == "منتجات" && s.Department == "مساج"));
             else if (userDept == "حلاقة")
-                query = query.Where(s => s.SaleType == "حلاقة");
+                query = query.Where(s => s.SaleType == "حلاقة" || (s.SaleType == "منتجات" && s.Department == "حلاقة"));
 
             if (employeeId.HasValue)
                 query = query.Where(s => s.EmployeeId == employeeId);
@@ -180,9 +180,9 @@ namespace Salon.Controllers
                 .Where(r => r.RefundDate >= dateFrom && r.RefundDate < dateTo);
 
             if (userDept == "مساج")
-                query = query.Where(r => r.Sale!.SaleType == "مساج");
+                query = query.Where(r => r.Sale!.SaleType == "مساج" || (r.Sale!.SaleType == "منتجات" && r.Sale!.Department == "مساج"));
             else if (userDept == "حلاقة")
-                query = query.Where(r => r.Sale!.SaleType == "حلاقة");
+                query = query.Where(r => r.Sale!.SaleType == "حلاقة" || (r.Sale!.SaleType == "منتجات" && r.Sale!.Department == "حلاقة"));
 
             if (!string.IsNullOrEmpty(saleType))
                 query = query.Where(r => r.Sale!.SaleType == saleType);
@@ -300,9 +300,9 @@ namespace Salon.Controllers
                 .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow);
 
             if (userDept == "حلاقة")
-                baseQuery = baseQuery.Where(s => s.SaleType != "مساج");
+                baseQuery = baseQuery.Where(s => s.SaleType == "حلاقة" || (s.SaleType == "منتجات" && s.Department == "حلاقة"));
             else if (userDept == "مساج")
-                baseQuery = baseQuery.Where(s => s.SaleType != "حلاقة");
+                baseQuery = baseQuery.Where(s => s.SaleType == "مساج" || (s.SaleType == "منتجات" && s.Department == "مساج"));
 
             var allSales = await baseQuery.OrderByDescending(s => s.SaleDate).ToListAsync();
             var activeSalesReport = allSales.Where(s => s.Status != "ملغي").ToList();
@@ -640,9 +640,9 @@ namespace Salon.Controllers
 
                 // For dept-specific users, show only their dept cash in the movement
                 if (isBarberOnly)
-                    monthAllSales = monthAllSales.Where(s => s.SaleType == "حلاقة").ToList();
+                    monthAllSales = monthAllSales.Where(s => s.SaleType == "حلاقة" || (s.SaleType == "منتجات" && s.Department == "حلاقة")).ToList();
                 else if (isMassageOnly)
-                    monthAllSales = monthAllSales.Where(s => s.SaleType == "مساج").ToList();
+                    monthAllSales = monthAllSales.Where(s => s.SaleType == "مساج" || (s.SaleType == "منتجات" && s.Department == "مساج")).ToList();
 
                 var monthExpenses = await _context.Expenses
                     .Where(e => e.ExpenseDate >= monthStart && e.ExpenseDate < tomorrow)
@@ -939,7 +939,7 @@ namespace Salon.Controllers
                     .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
 
                 if (filterDept)
-                    salesQuery = salesQuery.Where(s => s.SaleType == dept);
+                    salesQuery = salesQuery.Where(s => s.SaleType == dept || (s.SaleType == "منتجات" && s.Department == dept));
 
                 var salesRaw = await salesQuery.ToListAsync();
 
@@ -1106,7 +1106,7 @@ namespace Salon.Controllers
             string[] cashOnlyMethods = { "نقدي", "كاش", "Cash" };
 
             var salesQuery = _context.Sales.Where(s => s.SaleDate >= from && s.SaleDate < to && s.Status != "ملغي");
-            if (filterDept) salesQuery = salesQuery.Where(s => s.SaleType == dept);
+            if (filterDept) salesQuery = salesQuery.Where(s => s.SaleType == dept || (s.SaleType == "منتجات" && s.Department == dept));
             var sales = await salesQuery.ToListAsync();
             decimal bankRevenue = sales.Sum(s =>
                 knetSalesMethods.Contains(s.PaymentMethod) ? s.NetAmount :
@@ -1261,7 +1261,7 @@ namespace Salon.Controllers
                 var salesQuery = _context.Sales
                     .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
                 if (filterDept)
-                    salesQuery = salesQuery.Where(s => s.SaleType == dept);
+                    salesQuery = salesQuery.Where(s => s.SaleType == dept || (s.SaleType == "منتجات" && s.Department == dept));
                 var salesRaw = await salesQuery.ToListAsync();
 
                 var dailyKNet = salesRaw
@@ -1421,9 +1421,9 @@ namespace Salon.Controllers
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
 
             if (userDept == "مساج")
-                query = query.Where(s => s.SaleType == "مساج");
+                query = query.Where(s => s.SaleType == "مساج" || (s.SaleType == "منتجات" && s.Department == "مساج"));
             else if (userDept == "حلاقة")
-                query = query.Where(s => s.SaleType == "حلاقة");
+                query = query.Where(s => s.SaleType == "حلاقة" || (s.SaleType == "منتجات" && s.Department == "حلاقة"));
 
             if (!string.IsNullOrEmpty(saleType))
                 query = query.Where(s => s.SaleType == saleType);
@@ -1436,8 +1436,8 @@ namespace Salon.Controllers
             // Cancelled sales (same dept/type/employee filters)
             var cancelledQuery = _context.Sales
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status == "ملغي");
-            if (userDept == "مساج") cancelledQuery = cancelledQuery.Where(s => s.SaleType == "مساج");
-            else if (userDept == "حلاقة") cancelledQuery = cancelledQuery.Where(s => s.SaleType == "حلاقة");
+            if (userDept == "مساج") cancelledQuery = cancelledQuery.Where(s => s.SaleType == "مساج" || (s.SaleType == "منتجات" && s.Department == "مساج"));
+            else if (userDept == "حلاقة") cancelledQuery = cancelledQuery.Where(s => s.SaleType == "حلاقة" || (s.SaleType == "منتجات" && s.Department == "حلاقة"));
             if (!string.IsNullOrEmpty(saleType)) cancelledQuery = cancelledQuery.Where(s => s.SaleType == saleType);
             if (employeeId.HasValue) cancelledQuery = cancelledQuery.Where(s => s.EmployeeId == employeeId);
             var cancelledSales = await cancelledQuery.ToListAsync();
@@ -1587,8 +1587,8 @@ namespace Salon.Controllers
                 LoadPeriodAsync(DateTime periodFrom, DateTime periodTo)
             {
                 var salesQ = _context.Sales.Where(s => s.SaleDate >= periodFrom && s.SaleDate < periodTo && s.Status != "ملغي");
-                if (effectiveDept == "مساج") salesQ = salesQ.Where(s => s.SaleType == "مساج");
-                else if (effectiveDept == "حلاقة") salesQ = salesQ.Where(s => s.SaleType == "حلاقة");
+                if (effectiveDept == "مساج") salesQ = salesQ.Where(s => s.SaleType == "مساج" || (s.SaleType == "منتجات" && s.Department == "مساج"));
+                else if (effectiveDept == "حلاقة") salesQ = salesQ.Where(s => s.SaleType == "حلاقة" || (s.SaleType == "منتجات" && s.Department == "حلاقة"));
                 var periodSales = await salesQ.ToListAsync();
 
                 decimal pSales = periodSales.Sum(s => s.NetAmount);
@@ -1746,8 +1746,8 @@ namespace Salon.Controllers
                 .Include(s => s.SaleItems)
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
 
-            if (userDept == "مساج") salesQuery = salesQuery.Where(s => s.SaleType == "مساج");
-            else if (userDept == "حلاقة") salesQuery = salesQuery.Where(s => s.SaleType == "حلاقة");
+            if (userDept == "مساج") salesQuery = salesQuery.Where(s => s.SaleType == "مساج" || (s.SaleType == "منتجات" && s.Department == "مساج"));
+            else if (userDept == "حلاقة") salesQuery = salesQuery.Where(s => s.SaleType == "حلاقة" || (s.SaleType == "منتجات" && s.Department == "حلاقة"));
             if (!string.IsNullOrEmpty(saleType)) salesQuery = salesQuery.Where(s => s.SaleType == saleType);
             if (!string.IsNullOrEmpty(invoiceNumber)) salesQuery = salesQuery.Where(s => s.InvoiceNumber.Contains(invoiceNumber));
             if (!string.IsNullOrEmpty(cardNumber)) salesQuery = salesQuery.Where(s => s.KnetReceiptNumber != null && s.KnetReceiptNumber.Contains(cardNumber));
@@ -2024,9 +2024,9 @@ namespace Salon.Controllers
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
 
             if (userDept == "مساج")
-                query = query.Where(s => s.SaleType == "مساج");
+                query = query.Where(s => s.SaleType == "مساج" || (s.SaleType == "منتجات" && s.Department == "مساج"));
             else if (userDept == "حلاقة")
-                query = query.Where(s => s.SaleType == "حلاقة");
+                query = query.Where(s => s.SaleType == "حلاقة" || (s.SaleType == "منتجات" && s.Department == "حلاقة"));
 
             if (!string.IsNullOrEmpty(saleType))
                 query = query.Where(s => s.SaleType == saleType);
@@ -2106,9 +2106,9 @@ namespace Salon.Controllers
                 .Where(s => s.CustomerId == customerId && s.SaleDate >= dateFrom && s.SaleDate < dateTo);
 
             if (userDept == "مساج")
-                salesQuery = salesQuery.Where(s => s.SaleType == "مساج");
+                salesQuery = salesQuery.Where(s => s.SaleType == "مساج" || (s.SaleType == "منتجات" && s.Department == "مساج"));
             else if (userDept == "حلاقة")
-                salesQuery = salesQuery.Where(s => s.SaleType == "حلاقة");
+                salesQuery = salesQuery.Where(s => s.SaleType == "حلاقة" || (s.SaleType == "منتجات" && s.Department == "حلاقة"));
 
             var sales = await salesQuery.OrderByDescending(s => s.SaleDate).ToListAsync();
 
@@ -2171,8 +2171,9 @@ namespace Salon.Controllers
 
             var salesQuery = _context.Sales.Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
             salesQuery = isShared
-                ? salesQuery.Where(s => s.SaleType != Shift.ClosureDepartments.Haircut && s.SaleType != Shift.ClosureDepartments.Massage)
-                : salesQuery.Where(s => s.SaleType == department);
+                ? salesQuery.Where(s => s.SaleType != Shift.ClosureDepartments.Haircut && s.SaleType != Shift.ClosureDepartments.Massage
+                                      && !(s.SaleType == "منتجات" && (s.Department == Shift.ClosureDepartments.Haircut || s.Department == Shift.ClosureDepartments.Massage)))
+                : salesQuery.Where(s => s.SaleType == department || (s.SaleType == "منتجات" && s.Department == department));
             var sales = await salesQuery.ToListAsync();
             var revenueByDay = sales
                 .GroupBy(s => s.SaleDate.Date)

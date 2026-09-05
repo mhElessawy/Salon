@@ -476,7 +476,7 @@ namespace Salon.Controllers
 
             if (sale != null)
             {
-                if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.SaleType))
+                if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.Department ?? sale.SaleType))
                     return Json(new { success = false, error = "لا يمكن حذف فاتورة تخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية أولاً" });
 
                 if (sale.Refunds.Any())
