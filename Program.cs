@@ -157,6 +157,12 @@ using (var scope = app.Services.CreateScope())
             TryExec("ALTER TABLE Salaries ADD COLUMN CommissionAmount REAL NOT NULL DEFAULT 0");
             TryExec("ALTER TABLE Salaries ADD COLUMN PaymentMethod TEXT NOT NULL DEFAULT '����'");
             TryExec("ALTER TABLE Salaries ADD COLUMN EmployeeDebtDeducted REAL NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Salaries ADD COLUMN CarriedAdvanceBalance REAL NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Salaries ADD COLUMN NewAdvancesAmount REAL NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Salaries ADD COLUMN TotalAdvanceDue REAL NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Salaries ADD COLUMN AvailableForAdvanceRepayment REAL NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Salaries ADD COLUMN RemainingAdvanceCarried REAL NOT NULL DEFAULT 0");
+            TryExec("ALTER TABLE Salaries ADD COLUMN AutoNote TEXT NULL");
             TryExec("ALTER TABLE Employees ADD COLUMN SalesTarget REAL NULL");
             TryExec("ALTER TABLE Employees ADD COLUMN CommissionAfterTarget REAL NULL");
             TryExec("ALTER TABLE Employees ADD COLUMN RevenueDepartment TEXT NULL");
@@ -505,6 +511,12 @@ using (var scope = app.Services.CreateScope())
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='CommissionAmount') ALTER TABLE Salaries ADD CommissionAmount DECIMAL(18,3) NOT NULL DEFAULT 0");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='PaymentMethod') ALTER TABLE Salaries ADD PaymentMethod NVARCHAR(50) NOT NULL DEFAULT N'����'");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='EmployeeDebtDeducted') ALTER TABLE Salaries ADD EmployeeDebtDeducted DECIMAL(18,3) NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='CarriedAdvanceBalance') ALTER TABLE Salaries ADD CarriedAdvanceBalance DECIMAL(18,3) NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='NewAdvancesAmount') ALTER TABLE Salaries ADD NewAdvancesAmount DECIMAL(18,3) NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='TotalAdvanceDue') ALTER TABLE Salaries ADD TotalAdvanceDue DECIMAL(18,3) NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='AvailableForAdvanceRepayment') ALTER TABLE Salaries ADD AvailableForAdvanceRepayment DECIMAL(18,3) NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='RemainingAdvanceCarried') ALTER TABLE Salaries ADD RemainingAdvanceCarried DECIMAL(18,3) NOT NULL DEFAULT 0");
+            TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Salaries' AND COLUMN_NAME='AutoNote') ALTER TABLE Salaries ADD AutoNote NVARCHAR(MAX) NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Employees' AND COLUMN_NAME='SalesTarget') ALTER TABLE Employees ADD SalesTarget DECIMAL(18,3) NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Employees' AND COLUMN_NAME='CommissionAfterTarget') ALTER TABLE Employees ADD CommissionAfterTarget DECIMAL(18,2) NULL");
             TryExec("IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Employees' AND COLUMN_NAME='RevenueDepartment') ALTER TABLE Employees ADD RevenueDepartment NVARCHAR(MAX) NULL");

@@ -16,6 +16,9 @@ namespace Salon.Controllers
         private readonly IAuditService _audit;
         private readonly UserManager<ApplicationUser> _userManager;
 
+        private static readonly string[] ArabicMonths = { "", "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+                               "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر" };
+
         public SalariesController(ApplicationDbContext context, IAuditService audit, UserManager<ApplicationUser> userManager)
         {
             _context = context;
@@ -131,102 +134,62 @@ namespace Salon.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetEmployeeInfo(int employeeId, int month, int year)
+        public async Task<IActionResult> GetEmployeeInfo(int employeeId, int month, int year,
+            decimal? basicSalary = null, decimal? allowances = null, decimal? deductions = null,
+            decimal? advanceDeducted = null)
         {
             var employee = await _context.Employees.FindAsync(employeeId);
             if (employee == null) return NotFound();
 
-            var pendingAdvances = await _context.EmployeeAdvances
-                .Where(a => a.EmployeeId == employeeId
-                         && (a.Status == EmployeeAdvance.Statuses.Disbursed || a.Status == EmployeeAdvance.Statuses.Transferred)
-                         && a.PaidDate == null)
-                .ToListAsync();
-            var totalAdvances = pendingAdvances.Sum(a => a.Amount - a.DeductedAmount);
+            var existing = await _context.Salaries
+                .FirstOrDefaultAsync(s => s.EmployeeId == employeeId && s.Month == month && s.Year == year);
 
-            bool alreadyPaid = await _context.Salaries
-                .AnyAsync(s => s.EmployeeId == employeeId && s.Month == month && s.Year == year);
+            string monthLabel = ArabicMonths[month];
+            var result = await SalarySettlementCalculator.ComputeAsync(_context, employee, month, year,
+                basicSalary ?? employee.BasicSalary, allowances ?? 0, deductions ?? 0, monthLabel,
+                advanceDeducted);
 
-            var rangeStart = new DateTime(year, month, 1);
-            var rangeEnd = rangeStart.AddMonths(1);
-
-            var allSalesRaw = await _context.Sales
-                .Where(s => s.EmployeeId == employeeId
-                         && s.SaleDate >= rangeStart
-                         && s.SaleDate < rangeEnd)
-                .OrderBy(s => s.SaleDate)
-                .Select(s => new
+            return Json(new
+            {
+                basicSalary = result.BasicSalary,
+                commission = result.TargetReached ? result.CommissionAfterTargetRate : result.NormalCommissionRate,
+                sales = result.ActiveSales.Select(s => new
                 {
                     invoiceNumber = s.InvoiceNumber,
                     saleDate = s.SaleDate.ToString("yyyy-MM-dd"),
                     netAmount = s.NetAmount,
-                    status = s.Status,
                     paymentMethod = s.PaymentMethod,
-                    cashAmount = s.CashAmount,
-                    linkAmount = s.LinkAmount,
                     giftForEmployee = s.GiftForEmployee ?? 0
-                })
-                .ToListAsync();
-
-            var sales = allSalesRaw.Where(s => s.status != "ملغي").ToList();
-            var cancelledSales = allSalesRaw.Where(s => s.status == "ملغي").ToList();
-
-            string[] cashMethods = { "كاش", "نقدي", "Cash" };
-            string[] knetMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
-            string[] mixedMethods = { "كي نت و كاش", "مناصفة", "Cash & K-Net" };
-
-            var totalSalesAmount = sales.Sum(s => s.netAmount);
-            bool targetReached = employee.SalesTarget.HasValue
-                                 && employee.SalesTarget.Value > 0
-                                 && totalSalesAmount >= employee.SalesTarget.Value;
-            var effectiveCommission = (targetReached && employee.CommissionAfterTarget.HasValue)
-                                      ? employee.CommissionAfterTarget.Value
-                                      : employee.Commission;
-            var commissionAmount = Math.Round(totalSalesAmount * effectiveCommission / 100, 3);
-
-            var cashTotal = Math.Round(sales.Sum(s =>
-                cashMethods.Contains(s.paymentMethod) ? s.netAmount :
-                mixedMethods.Contains(s.paymentMethod) ? (s.cashAmount ?? 0) : 0), 3);
-            var knetTotal = Math.Round(sales.Sum(s =>
-                knetMethods.Contains(s.paymentMethod) ? s.netAmount :
-                mixedMethods.Contains(s.paymentMethod) ? (s.linkAmount ?? 0) : 0), 3);
-            var employeeDebtTotal = Math.Round(sales.Where(s => s.paymentMethod == "دين على الموظف").Sum(s => s.netAmount), 3);
-            var customerDebtTotal = Math.Round(sales.Where(s => s.paymentMethod == "دين على العميل").Sum(s => s.netAmount), 3);
-
-            var totalGifts = await _context.Sales
-                .Where(s => s.EmployeeId == employeeId
-                         && s.SaleDate >= rangeStart
-                         && s.SaleDate < rangeEnd
-                         && s.Status != "ملغي"
-                         && s.EmployeeGift != null && s.EmployeeGift > 0)
-                .Select(s => s.EmployeeGift!.Value)
-                .SumAsync();
-
-            var totalHadiya = await _context.Sales
-                .Where(s => s.EmployeeId == employeeId
-                         && s.SaleDate >= rangeStart
-                         && s.SaleDate < rangeEnd
-                         && s.Status != "ملغي"
-                         && s.GiftForEmployee != null && s.GiftForEmployee > 0)
-                .SumAsync(s => s.GiftForEmployee!.Value);
-
-            return Json(new
-            {
-                basicSalary = employee.BasicSalary,
-                commission = effectiveCommission,
-                sales,
-                cancelledSales,
-                totalSalesAmount,
-                commissionAmount,
-                cashTotal,
-                knetTotal,
-                employeeDebtTotal,
-                customerDebtTotal,
-                advanceDeducted = totalAdvances,
-                totalGifts,
-                totalHadiya,
-                alreadyPaid,
+                }),
+                cancelledSales = result.CancelledSales.Select(s => new
+                {
+                    invoiceNumber = s.InvoiceNumber,
+                    saleDate = s.SaleDate.ToString("yyyy-MM-dd"),
+                    netAmount = s.NetAmount,
+                    paymentMethod = s.PaymentMethod
+                }),
+                totalSalesAmount = result.TotalSalesAmount,
+                commissionAmount = result.CommissionAmount,
+                cashTotal = result.CashTotal,
+                knetTotal = result.KnetTotal,
+                employeeDebtTotal = result.EmployeeDebtTotal,
+                customerDebtTotal = result.CustomerDebtTotal,
+                totalGifts = result.GiftAmount,
+                totalHadiya = result.HadiyaAmount,
+                totalEntitlements = result.TotalEntitlements,
+                carriedAdvanceBalance = result.CarriedAdvanceBalance,
+                newAdvancesAmount = result.NewAdvancesAmount,
+                totalAdvanceDue = result.TotalAdvanceDue,
+                availableForAdvanceRepayment = result.AvailableForAdvanceRepayment,
+                advanceDeducted = result.AdvanceDeducted,
+                maxAdvanceDeductible = result.MaxAdvanceDeductible,
+                remainingAdvanceCarried = result.RemainingAdvanceCarried,
+                netSalary = result.NetSalary,
+                autoNote = result.AutoNote,
+                alreadyExists = existing != null,
+                existingStatus = existing?.Status,
                 salesTarget = employee.SalesTarget,
-                targetReached,
+                targetReached = result.TargetReached,
                 normalCommission = employee.Commission,
                 commissionAfterTarget = employee.CommissionAfterTarget
             });
@@ -242,7 +205,7 @@ namespace Salon.Controllers
 
                 if (alreadyExists)
                 {
-                    ModelState.AddModelError("", "Salary already recorded for this employee this month");
+                    ModelState.AddModelError("", "تمت معالجة راتب هذا الموظف لهذا الشهر مسبقاً");
                     var cu2 = await _userManager.GetUserAsync(User);
                     var ud2 = cu2?.UserDepartment;
                     var eq2 = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
@@ -251,34 +214,77 @@ namespace Salon.Controllers
                     return View(model);
                 }
 
-                model.NetSalary = model.BasicSalary + model.CommissionAmount + model.Allowances + (model.GiftAmount ?? 0) + (model.HadiyaAmount ?? 0) - model.Deductions - model.AdvanceDeducted - model.EmployeeDebtDeducted;
-
-                if (model.NetSalary < 0)
+                var employee = await _context.Employees.FindAsync(model.EmployeeId);
+                if (employee == null)
                 {
-                    ModelState.AddModelError("", "لا يمكن حفظ الراتب لأن الصافي أقل من صفر");
-                    var cuNeg = await _userManager.GetUserAsync(User);
-                    var udNeg = cuNeg?.UserDepartment;
+                    ModelState.AddModelError("", "الموظف غير موجود");
+                    var eq0 = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
+                    ViewBag.Employees = new SelectList(await eq0.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName");
+                    return View(model);
+                }
+
+                string monthLabel = ArabicMonths[model.Month];
+
+                // المستخدم يختار كم يريد أن يُخصَم من رصيد السلف هذا الشهر (قد يكون أقل من
+                // الحد الأقصى المتاح لترحيل جزء أكبر للشهر القادم) — الخادم يتكفّل بضبطه ضمن
+                // الحدود المسموحة (لا سالب، ولا يتعدى رصيد السلف المستحق أو المتاح للسداد).
+                decimal desiredAdvanceDeducted = model.AdvanceDeducted;
+
+                // كل الأرقام المرتبطة بمصادر أخرى (عمولة/دين/سلف) تُحسب هنا من سجلاتها الأصلية
+                // مباشرة وقت الحفظ، ولا يُعتمد على أي قيمة مُرسَلة من الشاشة لهذه الحقول عدا
+                // مبلغ خصم السلف المطلوب أعلاه (يُضبط ضمن حدوده تلقائياً).
+                var result = await SalarySettlementCalculator.ComputeAsync(_context, employee, model.Month, model.Year,
+                    model.BasicSalary, model.Allowances, model.Deductions, monthLabel, desiredAdvanceDeducted);
+
+                if (result.NetSalary < 0)
+                {
+                    ModelState.AddModelError("", "لا يمكن حفظ الراتب لأن الخصومات والالتزامات أكبر من إجمالي الاستحقاقات");
                     var eqNeg = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
-                    if (udNeg == "حلاقة" || udNeg == "مساج") eqNeg = eqNeg.Where(e => e.DepartmentNav!.Name == udNeg);
                     ViewBag.Employees = new SelectList(await eqNeg.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName");
                     return View(model);
                 }
 
-                model.CreatedAt = DateTime.Now;
-                if (model.PaidDate.HasValue)
+                model.CommissionAmount = result.CommissionAmount;
+                model.GiftAmount = result.GiftAmount;
+                model.HadiyaAmount = result.HadiyaAmount;
+                model.EmployeeDebtDeducted = result.EmployeeDebtTotal;
+                model.CarriedAdvanceBalance = result.CarriedAdvanceBalance;
+                model.NewAdvancesAmount = result.NewAdvancesAmount;
+                model.TotalAdvanceDue = result.TotalAdvanceDue;
+                model.AvailableForAdvanceRepayment = result.AvailableForAdvanceRepayment;
+                model.AdvanceDeducted = result.AdvanceDeducted;
+                model.RemainingAdvanceCarried = result.RemainingAdvanceCarried;
+                model.NetSalary = result.NetSalary;
+                model.AutoNote = result.AutoNote;
+
+                if (model.NetSalary == 0)
                 {
-                    model.Status = "مصروف";
-                    await AdvanceReconciliationHelper.ReconcileAsync(_context, model.EmployeeId, model.AdvanceDeducted);
+                    model.Status = Salary.Statuses.SettledNoPayment;
+                    model.PaidDate = null;
+                    model.PaymentMethod = "-";
                 }
+                else if (model.PaidDate.HasValue)
+                {
+                    model.Status = Salary.Statuses.Paid;
+                }
+                else
+                {
+                    model.Status = Salary.Statuses.Pending;
+                }
+
+                // خصم رصيد السلف من سجلاتها الأصلية يتم فور اعتماد التسوية، بغض النظر عن تاريخ
+                // صرف المبلغ المتبقي فعلياً للموظف — فرصيد السلف حقيقة محاسبية مستقلة عن توقيت الكاش.
+                await AdvanceReconciliationHelper.ReconcileAsync(_context, model.EmployeeId, model.AdvanceDeducted);
+
+                model.CreatedAt = DateTime.Now;
                 _context.Salaries.Add(model);
                 await _context.SaveChangesAsync();
 
-                var emp = await _context.Employees.FindAsync(model.EmployeeId);
                 await _audit.LogAsync("Add", "Salaries",
-                    $"إضافة راتب شهر {model.Month}/{model.Year} للموظف: {emp?.FullName ?? model.EmployeeId.ToString()} صافي: {model.NetSalary:N3} KD",
+                    $"تسوية راتب شهر {monthLabel}/{model.Year} للموظف: {employee.FullName} صافي: {model.NetSalary:N3} KD - {model.Status}",
                     model.Id);
 
-                TempData["Success"] = "Employee salary added created successfully";
+                TempData["Success"] = "تمت تسوية راتب الموظف بنجاح";
                 return RedirectToAction(nameof(Index));
             }
             var cu3 = await _userManager.GetUserAsync(User);
@@ -295,16 +301,16 @@ namespace Salon.Controllers
             var salary = await _context.Salaries.Include(s => s.Employee).FirstOrDefaultAsync(s => s.Id == id);
             if (salary != null)
             {
-                if (salary.NetSalary < 0)
+                if (salary.NetSalary <= 0)
                 {
-                    TempData["Error"] = "لا يمكن صرف راتب صافيه أقل من صفر";
+                    TempData["Error"] = "لا يوجد مبلغ مستحق الصرف لهذا الراتب";
                     return RedirectToAction(nameof(Index));
                 }
 
-                salary.Status = "مصروف";
+                // خصم السلف تم بالفعل عند حفظ التسوية (Create) — هذا الإجراء يقتصر على تسجيل
+                // تاريخ الصرف الفعلي لمبلغ الصافي المحسوب مسبقاً، دون إعادة حساب أي رصيد سلف.
+                salary.Status = Salary.Statuses.Paid;
                 salary.PaidDate = DateTime.Today;
-
-                await AdvanceReconciliationHelper.ReconcileAsync(_context, salary.EmployeeId, salary.AdvanceDeducted);
 
                 await _context.SaveChangesAsync();
 
