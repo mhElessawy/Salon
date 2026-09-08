@@ -490,6 +490,21 @@ using (var scope = app.Services.CreateScope())
                 CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
                 FOREIGN KEY (PurchaseRequestId) REFERENCES PurchaseRequests(Id) ON DELETE CASCADE,
                 FOREIGN KEY (CustodyId) REFERENCES Custodies(Id))");
+
+            // ترحيل لمرة واحدة: قبل التحويل لرصيد العهدة الموحَّد كان كل طلب شراء مرتبطاً بعهدة
+            // واحدة فقط عبر PurchaseRequests.CustodyId (العمود لسه موجود بالبيانات القديمة، بس
+            // النموذج بقى مبيقراش منه). لازم ننسخ كل طلب شراء قديم معتمد ومموَّل من العهدة لصف
+            // في PurchaseRequestCustodyAllocations، وإلا هيفضل رصيد الموظف الموحَّد يظهر كأن
+            // المصروف القديم ده لسه متاح ومحدش صرفه. الشرط NOT EXISTS يمنع تكرار النسخ لو الكود ده اتنفذ قبل كده.
+            TryExec(@"INSERT INTO PurchaseRequestCustodyAllocations (PurchaseRequestId, CustodyId, Amount, CreatedAt)
+                SELECT pr.Id, pr.CustodyId, pr.ActualAmount, COALESCE(pr.ReviewedAt, pr.CreatedAt)
+                FROM PurchaseRequests pr
+                WHERE pr.Status = 'معتمدة'
+                  AND pr.PurchaseMethod <> 'آجل من المورد'
+                  AND pr.CustodyId IS NOT NULL AND pr.CustodyId <> 0
+                  AND pr.ActualAmount IS NOT NULL
+                  AND EXISTS (SELECT 1 FROM Custodies c WHERE c.Id = pr.CustodyId)
+                  AND NOT EXISTS (SELECT 1 FROM PurchaseRequestCustodyAllocations a WHERE a.PurchaseRequestId = pr.Id)");
         }
         else
         {
@@ -857,6 +872,21 @@ using (var scope = app.Services.CreateScope())
                     REFERENCES PurchaseRequests(Id) ON DELETE CASCADE,
                 CONSTRAINT FK_PRCustodyAllocations_Custodies FOREIGN KEY (CustodyId)
                     REFERENCES Custodies(Id))");
+
+            // ترحيل لمرة واحدة: قبل التحويل لرصيد العهدة الموحَّد كان كل طلب شراء مرتبطاً بعهدة
+            // واحدة فقط عبر PurchaseRequests.CustodyId (العمود لسه موجود بالبيانات القديمة، بس
+            // النموذج بقى مبيقراش منه). لازم ننسخ كل طلب شراء قديم معتمد ومموَّل من العهدة لصف
+            // في PurchaseRequestCustodyAllocations، وإلا هيفضل رصيد الموظف الموحَّد يظهر كأن
+            // المصروف القديم ده لسه متاح ومحدش صرفه. الشرط NOT EXISTS يمنع تكرار النسخ لو الكود ده اتنفذ قبل كده.
+            TryExec(@"INSERT INTO PurchaseRequestCustodyAllocations (PurchaseRequestId, CustodyId, Amount, CreatedAt)
+                SELECT pr.Id, pr.CustodyId, pr.ActualAmount, COALESCE(pr.ReviewedAt, pr.CreatedAt)
+                FROM PurchaseRequests pr
+                WHERE pr.Status = N'معتمدة'
+                  AND pr.PurchaseMethod <> N'آجل من المورد'
+                  AND pr.CustodyId IS NOT NULL AND pr.CustodyId <> 0
+                  AND pr.ActualAmount IS NOT NULL
+                  AND EXISTS (SELECT 1 FROM Custodies c WHERE c.Id = pr.CustodyId)
+                  AND NOT EXISTS (SELECT 1 FROM PurchaseRequestCustodyAllocations a WHERE a.PurchaseRequestId = pr.Id)");
         }
 
         // ترحيل لمرة واحدة: قبل هذا الفصل كانت شاشة "اعتماد اليومية" تعيد استخدام آخر صف Shift
