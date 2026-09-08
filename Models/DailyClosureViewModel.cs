@@ -25,6 +25,13 @@
         public decimal TotalDeposits { get; set; }
         public decimal TotalAdvancesToday { get; set; }
         public decimal OutstandingEmployeeDebts { get; set; }
+
+        /// <summary>مبيعات اليوم المسجّلة بطريقة دفع "دين على الموظف".</summary>
+        public decimal EmployeeDebtToday { get; set; }
+
+        /// <summary>مبيعات اليوم المسجّلة بطريقة دفع "دين على الإدارة".</summary>
+        public decimal OwnerDebtToday { get; set; }
+
         public decimal CustodyRemaining { get; set; }
 
         public decimal ExpectedCashBalance { get; set; }

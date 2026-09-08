@@ -113,7 +113,7 @@ namespace Salon.Services
 
             var salesRows = await _context.Sales
                 .Where(s => s.SaleDate >= lookbackStart && s.SaleDate < DateTime.Today && s.Status != "ملغي")
-                .Select(s => new { s.SaleType, Date = s.SaleDate.Date })
+                .Select(s => new { s.SaleType, s.Department, Date = s.SaleDate.Date })
                 .Distinct()
                 .ToListAsync();
 
@@ -123,8 +123,9 @@ namespace Salon.Services
                 bool isShared = dept == Shift.ClosureDepartments.Shared;
                 var deptSaleDates = salesRows
                     .Where(r => isShared
-                        ? (r.SaleType != Shift.ClosureDepartments.Haircut && r.SaleType != Shift.ClosureDepartments.Massage)
-                        : r.SaleType == dept)
+                        ? (r.SaleType != Shift.ClosureDepartments.Haircut && r.SaleType != Shift.ClosureDepartments.Massage
+                            && !(r.SaleType == "منتجات" && (r.Department == Shift.ClosureDepartments.Haircut || r.Department == Shift.ClosureDepartments.Massage)))
+                        : (r.SaleType == dept || (r.SaleType == "منتجات" && r.Department == dept)))
                     .Select(r => r.Date)
                     .Distinct();
 

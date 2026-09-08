@@ -902,6 +902,9 @@ namespace Salon.Migrations
                 b.Property<int?>("CustomerId")
                     .HasColumnType("int");
 
+                b.Property<string>("Department")
+                    .HasColumnType("nvarchar(max)");
+
                 b.Property<decimal>("Discount")
                     .HasColumnType("decimal(18,3)");
 

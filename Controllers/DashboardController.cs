@@ -88,26 +88,26 @@ namespace Salon.Controllers
                 var cancelled = salesBase.Where(s => s.Status == Sale.Statuses.Cancelled);
                 var refunded = salesBase.Where(s => s.Status == Sale.Statuses.Refunded || s.Status == Sale.Statuses.PartiallyRefunded);
 
-                vm.Sales.Haircut = (await active.Where(s => s.SaleType == Shift.ClosureDepartments.Haircut).Select(s => s.NetAmount).ToListAsync()).Sum();
-                vm.Sales.Massage = (await active.Where(s => s.SaleType == Shift.ClosureDepartments.Massage).Select(s => s.NetAmount).ToListAsync()).Sum();
+                vm.Sales.Haircut = (await active.Where(s => (s.SaleType == Shift.ClosureDepartments.Haircut || (s.SaleType == "منتجات" && s.Department == Shift.ClosureDepartments.Haircut))).Select(s => s.NetAmount).ToListAsync()).Sum();
+                vm.Sales.Massage = (await active.Where(s => (s.SaleType == Shift.ClosureDepartments.Massage || (s.SaleType == "منتجات" && s.Department == Shift.ClosureDepartments.Massage))).Select(s => s.NetAmount).ToListAsync()).Sum();
                 vm.Sales.Total = (await active.Select(s => s.NetAmount).ToListAsync()).Sum();
 
-                vm.CancelledSales.Haircut = (await cancelled.Where(s => s.SaleType == Shift.ClosureDepartments.Haircut).Select(s => s.NetAmount).ToListAsync()).Sum();
-                vm.CancelledSales.Massage = (await cancelled.Where(s => s.SaleType == Shift.ClosureDepartments.Massage).Select(s => s.NetAmount).ToListAsync()).Sum();
+                vm.CancelledSales.Haircut = (await cancelled.Where(s => (s.SaleType == Shift.ClosureDepartments.Haircut || (s.SaleType == "منتجات" && s.Department == Shift.ClosureDepartments.Haircut))).Select(s => s.NetAmount).ToListAsync()).Sum();
+                vm.CancelledSales.Massage = (await cancelled.Where(s => (s.SaleType == Shift.ClosureDepartments.Massage || (s.SaleType == "منتجات" && s.Department == Shift.ClosureDepartments.Massage))).Select(s => s.NetAmount).ToListAsync()).Sum();
                 vm.CancelledSales.Total = (await cancelled.Select(s => s.NetAmount).ToListAsync()).Sum();
-                vm.CancelledSalesCount.Haircut = await cancelled.CountAsync(s => s.SaleType == Shift.ClosureDepartments.Haircut);
-                vm.CancelledSalesCount.Massage = await cancelled.CountAsync(s => s.SaleType == Shift.ClosureDepartments.Massage);
+                vm.CancelledSalesCount.Haircut = await cancelled.CountAsync(s => (s.SaleType == Shift.ClosureDepartments.Haircut || (s.SaleType == "منتجات" && s.Department == Shift.ClosureDepartments.Haircut)));
+                vm.CancelledSalesCount.Massage = await cancelled.CountAsync(s => (s.SaleType == Shift.ClosureDepartments.Massage || (s.SaleType == "منتجات" && s.Department == Shift.ClosureDepartments.Massage)));
                 vm.CancelledSalesCount.Total = await cancelled.CountAsync();
 
-                vm.RefundedSales.Haircut = (await refunded.Where(s => s.SaleType == Shift.ClosureDepartments.Haircut).Select(s => s.NetAmount).ToListAsync()).Sum();
-                vm.RefundedSales.Massage = (await refunded.Where(s => s.SaleType == Shift.ClosureDepartments.Massage).Select(s => s.NetAmount).ToListAsync()).Sum();
+                vm.RefundedSales.Haircut = (await refunded.Where(s => (s.SaleType == Shift.ClosureDepartments.Haircut || (s.SaleType == "منتجات" && s.Department == Shift.ClosureDepartments.Haircut))).Select(s => s.NetAmount).ToListAsync()).Sum();
+                vm.RefundedSales.Massage = (await refunded.Where(s => (s.SaleType == Shift.ClosureDepartments.Massage || (s.SaleType == "منتجات" && s.Department == Shift.ClosureDepartments.Massage))).Select(s => s.NetAmount).ToListAsync()).Sum();
                 vm.RefundedSales.Total = (await refunded.Select(s => s.NetAmount).ToListAsync()).Sum();
-                vm.RefundedSalesCount.Haircut = await refunded.CountAsync(s => s.SaleType == Shift.ClosureDepartments.Haircut);
-                vm.RefundedSalesCount.Massage = await refunded.CountAsync(s => s.SaleType == Shift.ClosureDepartments.Massage);
+                vm.RefundedSalesCount.Haircut = await refunded.CountAsync(s => (s.SaleType == Shift.ClosureDepartments.Haircut || (s.SaleType == "منتجات" && s.Department == Shift.ClosureDepartments.Haircut)));
+                vm.RefundedSalesCount.Massage = await refunded.CountAsync(s => (s.SaleType == Shift.ClosureDepartments.Massage || (s.SaleType == "منتجات" && s.Department == Shift.ClosureDepartments.Massage)));
                 vm.RefundedSalesCount.Total = await refunded.CountAsync();
 
-                vm.Customers.Haircut = await active.Where(s => s.SaleType == Shift.ClosureDepartments.Haircut && s.CustomerId != null).Select(s => s.CustomerId).Distinct().CountAsync();
-                vm.Customers.Massage = await active.Where(s => s.SaleType == Shift.ClosureDepartments.Massage && s.CustomerId != null).Select(s => s.CustomerId).Distinct().CountAsync();
+                vm.Customers.Haircut = await active.Where(s => (s.SaleType == Shift.ClosureDepartments.Haircut || (s.SaleType == "منتجات" && s.Department == Shift.ClosureDepartments.Haircut)) && s.CustomerId != null).Select(s => s.CustomerId).Distinct().CountAsync();
+                vm.Customers.Massage = await active.Where(s => (s.SaleType == Shift.ClosureDepartments.Massage || (s.SaleType == "منتجات" && s.Department == Shift.ClosureDepartments.Massage)) && s.CustomerId != null).Select(s => s.CustomerId).Distinct().CountAsync();
                 vm.Customers.Total = await active.Where(s => s.CustomerId != null).Select(s => s.CustomerId).Distinct().CountAsync();
 
                 var expensesBase = _context.Expenses.Where(e => e.ExpenseDate >= today && e.ExpenseDate < tomorrow);

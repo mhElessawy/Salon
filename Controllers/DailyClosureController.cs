@@ -217,8 +217,9 @@ namespace Salon.Controllers
             var dayEnd = day.AddDays(1);
             var query = _context.Sales.Where(s => s.SaleDate >= day && s.SaleDate < dayEnd && s.Status != "ملغي");
             query = IsShared(department)
-                ? query.Where(s => s.SaleType != Shift.ClosureDepartments.Haircut && s.SaleType != Shift.ClosureDepartments.Massage)
-                : query.Where(s => s.SaleType == department);
+                ? query.Where(s => s.SaleType != Shift.ClosureDepartments.Haircut && s.SaleType != Shift.ClosureDepartments.Massage
+                                 && !(s.SaleType == "منتجات" && (s.Department == Shift.ClosureDepartments.Haircut || s.Department == Shift.ClosureDepartments.Massage)))
+                : query.Where(s => s.SaleType == department || (s.SaleType == "منتجات" && s.Department == department));
             var sales = await query.ToListAsync();
             return sales.Sum(s => KnetMethods.Contains(s.PaymentMethod) ? s.NetAmount
                 : MixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0m);
@@ -235,12 +236,15 @@ namespace Salon.Controllers
 
             var salesQuery = _context.Sales.Where(s => s.SaleDate >= day && s.SaleDate < dayEnd && s.Status != "ملغي");
             salesQuery = isShared
-                ? salesQuery.Where(s => s.SaleType != Shift.ClosureDepartments.Haircut && s.SaleType != Shift.ClosureDepartments.Massage)
-                : salesQuery.Where(s => s.SaleType == department);
+                ? salesQuery.Where(s => s.SaleType != Shift.ClosureDepartments.Haircut && s.SaleType != Shift.ClosureDepartments.Massage
+                                      && !(s.SaleType == "منتجات" && (s.Department == Shift.ClosureDepartments.Haircut || s.Department == Shift.ClosureDepartments.Massage)))
+                : salesQuery.Where(s => s.SaleType == department || (s.SaleType == "منتجات" && s.Department == department));
             var sales = await salesQuery.ToListAsync();
             var totalRevenue = sales.Sum(s => s.NetAmount);
             var systemKnet = sales.Sum(s => KnetMethods.Contains(s.PaymentMethod) ? s.NetAmount
                 : MixedMethods.Contains(s.PaymentMethod) ? (s.LinkAmount ?? 0) : 0m);
+            var employeeDebtToday = sales.Where(s => s.PaymentMethod == "دين على الموظف").Sum(s => s.NetAmount);
+            var ownerDebtToday = sales.Where(s => s.PaymentMethod == "دين على الإدارة").Sum(s => s.NetAmount);
 
             var expensesQuery = _context.Expenses.Where(e => e.ExpenseDate >= day && e.ExpenseDate < dayEnd && e.Category != "عهدة");
             expensesQuery = isShared
@@ -270,7 +274,8 @@ namespace Salon.Controllers
             var advancesToday = await advancesQuery.OrderByDescending(a => a.CreatedAt).ToListAsync();
 
             var outstandingDebtsQuery = _context.EmployeeAdvances.Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
-                .Where(a => EmployeeAdvance.Statuses.Realized.Contains(a.Status) && a.Status != EmployeeAdvance.Statuses.Repaid);
+                .Where(a => a.AdvanceDate < dayEnd
+                         && EmployeeAdvance.Statuses.Realized.Contains(a.Status) && a.Status != EmployeeAdvance.Statuses.Repaid);
             outstandingDebtsQuery = isShared
                 ? outstandingDebtsQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) != Shift.ClosureDepartments.Haircut
                                                  && (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) != Shift.ClosureDepartments.Massage)
@@ -307,6 +312,8 @@ namespace Salon.Controllers
                 TotalDeposits = deposits.Sum(d => d.Amount),
                 TotalAdvancesToday = advancesToday.Sum(a => a.Amount),
                 OutstandingEmployeeDebts = outstandingDebts,
+                EmployeeDebtToday = employeeDebtToday,
+                OwnerDebtToday = ownerDebtToday,
                 CustodyRemaining = custodies.Sum(c => c.RemainingAmount),
                 ExpectedCashBalance = snapshot.ClosingBalance,
                 IsLocked = shift.ApprovalStatus == Shift.ApprovalStatuses.Approved

@@ -67,9 +67,9 @@ namespace Salon.Controllers
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo);
 
             if (userDept == "مساج")
-                query = query.Where(s => s.SaleType == "مساج");
+                query = query.Where(s => s.SaleType == "مساج" || (s.SaleType == "منتجات" && s.Department == "مساج"));
             else if (userDept == "حلاقة")
-                query = query.Where(s => s.SaleType == "حلاقة");
+                query = query.Where(s => s.SaleType == "حلاقة" || (s.SaleType == "منتجات" && s.Department == "حلاقة"));
 
             if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
                 query = query.Where(s => s.EmployeeId == user.LinkedEmployeeId!.Value);
@@ -255,9 +255,7 @@ namespace Salon.Controllers
         // ===== فاتورة مبيعات منتجات (PRD-) =====
         public async Task<IActionResult> CreateProduct()
         {
-            var user = await _userManager.GetUserAsync(User);
-            var roles = await _userManager.GetRolesAsync(user!);
-            if (!roles.Contains("Admin") && (roles.Contains("Employee") || !string.IsNullOrEmpty(user?.UserDepartment)))
+            if (!await _perms.HasAccessAsync("ProductInvoiceAdd"))
                 return Forbid();
 
             await PopulateProductDropdowns();
@@ -277,12 +275,14 @@ namespace Salon.Controllers
             decimal[]? itemPrices, int[]? itemQtys,
             string? transactionType, int? employeeRecipientId)
         {
-            var user = await _userManager.GetUserAsync(User);
-            var roles = await _userManager.GetRolesAsync(user!);
-            if (!roles.Contains("Admin") && (roles.Contains("Employee") || !string.IsNullOrEmpty(user?.UserDepartment)))
+            if (!await _perms.HasAccessAsync("ProductInvoiceAdd"))
                 return Forbid();
 
+            var user = await _userManager.GetUserAsync(User);
             model.SaleType = "منتجات";
+            model.Department = user?.UserDepartment == Shift.ClosureDepartments.Haircut || user?.UserDepartment == Shift.ClosureDepartments.Massage
+                ? user.UserDepartment
+                : null;
 
             // ===== استهلاك موظف =====
             if (transactionType == "Consumption")
@@ -517,9 +517,9 @@ namespace Salon.Controllers
                 .Where(s => s.SaleDate >= dateFrom && s.SaleDate < dateTo && s.Status != "ملغي");
 
             if (userDept == "مساج")
-                query = query.Where(s => s.SaleType == "مساج");
+                query = query.Where(s => s.SaleType == "مساج" || (s.SaleType == "منتجات" && s.Department == "مساج"));
             else if (userDept == "حلاقة")
-                query = query.Where(s => s.SaleType == "حلاقة");
+                query = query.Where(s => s.SaleType == "حلاقة" || (s.SaleType == "منتجات" && s.Department == "حلاقة"));
 
             if (isEmployee && user?.LinkedEmployeeId.HasValue == true)
                 query = query.Where(s => s.EmployeeId == user.LinkedEmployeeId!.Value);
@@ -545,7 +545,7 @@ namespace Salon.Controllers
                 .FirstOrDefaultAsync(s => s.Id == id);
             if (sale != null)
             {
-                if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.SaleType))
+                if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.Department ?? sale.SaleType))
                 {
                     TempData["Error"] = "لا يمكن حذف فاتورة تخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
                     return RedirectToAction(nameof(Index));
@@ -611,7 +611,7 @@ namespace Salon.Controllers
                 return Back();
             }
 
-            if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.SaleType))
+            if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.Department ?? sale.SaleType))
             {
                 TempData["Error"] = "لا يمكن استرداد مبلغ فاتورة تخص يومية معتمدة — استخدم صلاحية إعادة فتح اليومية";
                 return Back();
@@ -680,7 +680,7 @@ namespace Salon.Controllers
         {
             var sale = await _context.Sales.FindAsync(id);
             if (sale == null) return Json(new { success = false, message = "الفاتورة غير موجودة" });
-            if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.SaleType))
+            if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.Department ?? sale.SaleType))
                 return Json(new { success = false, message = "لا يمكن تعديل فاتورة تخص يومية معتمدة" });
             sale.Notes = notes?.Trim();
             await _context.SaveChangesAsync();
@@ -693,7 +693,7 @@ namespace Salon.Controllers
         {
             var sale = await _context.Sales.FindAsync(id);
             if (sale == null) return Json(new { success = false, message = "الفاتورة غير موجودة" });
-            if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.SaleType))
+            if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.Department ?? sale.SaleType))
                 return Json(new { success = false, message = "لا يمكن تعديل فاتورة تخص يومية معتمدة" });
 
             var trimmed = receipt?.Trim();
@@ -730,7 +730,7 @@ namespace Salon.Controllers
 
             var newSaleDate = newDateOnly.Date + sale.SaleDate.TimeOfDay;
 
-            if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.SaleType) || await _closure.IsDateLockedAsync(newSaleDate, sale.SaleType))
+            if (await _closure.IsDateLockedAsync(sale.SaleDate, sale.Department ?? sale.SaleType) || await _closure.IsDateLockedAsync(newSaleDate, sale.Department ?? sale.SaleType))
                 return Json(new { success = false, message = "لا يمكن تعديل فاتورة تخص يومية معتمدة" });
 
             if (string.IsNullOrWhiteSpace(paymentMethod))

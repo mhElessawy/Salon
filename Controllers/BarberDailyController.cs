@@ -52,10 +52,13 @@ namespace Salon.Controllers
             if (isEmployee)
                 salesQuery = salesQuery.Where(s => s.EmployeeId == (linkedEmpId ?? -1));
             else if (filterDept == "حلاقة")
-                salesQuery = salesQuery.Where(s => s.SaleType == "حلاقة");
+                salesQuery = salesQuery.Where(s => s.SaleType == "حلاقة" || (s.SaleType == "منتجات" && s.Department == "حلاقة"));
             else if (filterDept == "مساج")
-                salesQuery = salesQuery.Where(s => s.SaleType == "مساج");
+                salesQuery = salesQuery.Where(s => s.SaleType == "مساج" || (s.SaleType == "منتجات" && s.Department == "مساج"));
 
+            // ملحوظة: فواتير المنتجات المضافة هنا بتظهر في قائمة الفواتير (Invoices أدناه) بس —
+            // staffSales بيعيد فلترتها بـSaleType فقط (بند تالي) فتفضل مستبعدة عمداً من حساب
+            // العمولة/حركة الصندوق، زي ما موضّح في التعليقات تحت.
             var allSales = await salesQuery.OrderByDescending(s => s.SaleDate).ToListAsync();
             var staffSales = allSales.Where(s => s.SaleType == "حلاقة" || s.SaleType == "مساج").ToList();
 
@@ -410,7 +413,7 @@ namespace Salon.Controllers
         public async Task<IActionResult> UpdatePaymentSplit(int saleId, decimal cashAmount, decimal linkAmount, string date, string? dept)
         {
             var sale = await _context.Sales.FindAsync(saleId);
-            if (sale != null && !await _closure.IsDateLockedAsync(sale.SaleDate, sale.SaleType))
+            if (sale != null && !await _closure.IsDateLockedAsync(sale.SaleDate, sale.Department ?? sale.SaleType))
             {
                 sale.CashAmount = cashAmount;
                 sale.LinkAmount = linkAmount;
