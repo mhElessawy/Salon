@@ -1698,8 +1698,7 @@
                 // ── عرض modal التأكيد ──
                 var net3 = getNet();
                 var custName = document.getElementById('customerDisplayName').textContent.trim() || _t('بدون عميل','No Customer');
-                var empName  = document.getElementById('selectedEmployeeId').selectedOptions?.[0]?.text ||
-                               document.querySelector('#employeeCards .emp-card.selected .emp-name')?.textContent?.trim() || '—';
+                var empName  = document.querySelector('.emp-list .emp-item.emp-selected .emp-name')?.textContent?.trim() || '—';
                 var pmDisplayNamesConfirm = {
                     'كاش': _t('كاش','Cash'),
                     'كي نت': _t('كي نت','K-Net'),
