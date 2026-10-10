@@ -122,7 +122,7 @@ namespace Salon.Services
             var expQuery = context.Expenses.Where(e => e.ExpenseDate >= from && e.ExpenseDate < to
                      && (e.PaymentMethod == "نقدي" || e.PaymentMethod == "كاش" || e.PaymentMethod == "Cash") && e.Category != "عهدة");
             if (sharedOnly) expQuery = expQuery.Where(e => e.Department != "حلاقة" && e.Department != "مساج");
-            else if (filterDept) expQuery = expQuery.Where(e => e.Department == dept);
+            else if (filterDept) expQuery = expQuery.Where(e => e.Department == dept || e.Department == null || e.Department == "");
             decimal cashExpenses = (await expQuery.ToListAsync()).Sum(e => e.Amount);
 
             // القسم "الفعلي" للموظف يُحسب حسب RevenueDepartment إن وُجد، أو قسم سجل الموظف،

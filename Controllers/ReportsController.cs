@@ -853,7 +853,7 @@ namespace Salon.Controllers
                 var expensesQuery = _context.Expenses
                     .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo && e.Category != "عهدة");
                 if (filterDept)
-                    expensesQuery = expensesQuery.Where(e => e.Department == dept);
+                    expensesQuery = expensesQuery.Where(e => e.Department == dept || e.Department == null || e.Department == "");
                 var expenses = await expensesQuery
                     .OrderByDescending(e => e.ExpenseDate)
                     .ToListAsync();
@@ -1143,7 +1143,7 @@ namespace Salon.Controllers
 
             var expQuery = _context.Expenses.Where(e => e.ExpenseDate >= from && e.ExpenseDate < to
                      && !cashOnlyMethods.Contains(e.PaymentMethod) && e.Category != "عهدة");
-            if (filterDept) expQuery = expQuery.Where(e => e.Department == dept);
+            if (filterDept) expQuery = expQuery.Where(e => e.Department == dept || e.Department == null || e.Department == "");
             decimal expenses = (await expQuery.ToListAsync()).Sum(e => e.Amount);
 
             var advQuery = _context.EmployeeAdvances.Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
@@ -1205,7 +1205,7 @@ namespace Salon.Controllers
                 var expensesQuery = _context.Expenses
                     .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo && e.Category != "عهدة" && e.PaymentMethod != "نقدي");
                 if (filterDept)
-                    expensesQuery = expensesQuery.Where(e => e.Department == dept);
+                    expensesQuery = expensesQuery.Where(e => e.Department == dept || e.Department == null || e.Department == "");
                 var expenses = await expensesQuery
                     .OrderByDescending(e => e.ExpenseDate)
                     .ToListAsync();
