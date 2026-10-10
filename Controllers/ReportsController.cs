@@ -220,13 +220,21 @@ namespace Salon.Controllers
 
             // للأدمن: القسم يأتي من الفلتر؛ لمستخدم القسم: يأتي من حساب المستخدم
             var effectiveDept = isDeptUser ? userDept : dept;
+            var (deptUserEmployeeIds, deptUserNames) = await GetDepartmentUserEmployeeKeysAsync(effectiveDept, !string.IsNullOrEmpty(effectiveDept));
 
             var expQuery = _context.Expenses
+                .Include(e => e.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo);
             if (effectiveDept == "مساج")
-                expQuery = expQuery.Where(e => e.Department == "مساج");
+                expQuery = expQuery.Where(e => e.Department == "مساج"
+                    || (e.EmployeeId.HasValue && ((e.Employee!.RevenueDepartment ?? e.Employee!.DepartmentNav!.Name) == "مساج"
+                        || deptUserEmployeeIds.Contains(e.EmployeeId.Value)
+                        || deptUserNames.Contains(e.Employee!.FullName))));
             else if (effectiveDept == "حلاقة")
-                expQuery = expQuery.Where(e => e.Department == "حلاقة");
+                expQuery = expQuery.Where(e => e.Department == "حلاقة"
+                    || (e.EmployeeId.HasValue && ((e.Employee!.RevenueDepartment ?? e.Employee!.DepartmentNav!.Name) == "حلاقة"
+                        || deptUserEmployeeIds.Contains(e.EmployeeId.Value)
+                        || deptUserNames.Contains(e.Employee!.FullName))));
 
             var expenses = await expQuery
                 .OrderByDescending(e => e.ExpenseDate)
@@ -239,9 +247,13 @@ namespace Salon.Controllers
                 .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Where(s => s.PaidDate >= dateFrom && s.PaidDate < dateTo);
             if (effectiveDept == "مساج")
-                salariesQuery = salariesQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == "مساج");
+                salariesQuery = salariesQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == "مساج"
+                    || deptUserEmployeeIds.Contains(s.EmployeeId)
+                    || deptUserNames.Contains(s.Employee!.FullName));
             else if (effectiveDept == "حلاقة")
-                salariesQuery = salariesQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == "حلاقة");
+                salariesQuery = salariesQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == "حلاقة"
+                    || deptUserEmployeeIds.Contains(s.EmployeeId)
+                    || deptUserNames.Contains(s.Employee!.FullName));
 
             var salaries = await salariesQuery
                 .OrderBy(s => s.PaidDate)
@@ -259,7 +271,20 @@ namespace Salon.Controllers
 
             // Sub-groups — only for admin with no specific dept filter
             bool showSubGroups = !isDeptUser && string.IsNullOrEmpty(effectiveDept);
-            var barberExpenses = showSubGroups ? expenses.Where(e => e.Department == "حلاقة").ToList() : new List<Expense>();
+            var (barberUserEmployeeIds, barberUserNames) = showSubGroups
+                ? await GetDepartmentUserEmployeeKeysAsync("حلاقة", true)
+                : (new List<int>(), new List<string>());
+            var (massageUserEmployeeIds, massageUserNames) = showSubGroups
+                ? await GetDepartmentUserEmployeeKeysAsync("مساج", true)
+                : (new List<int>(), new List<string>());
+            static bool ExpenseBelongsToDepartment(Expense e, string department, List<int> userEmployeeIds, List<string> userNames) =>
+                e.Department == department
+                || (e.EmployeeId.HasValue
+                    && ((e.Employee?.RevenueDepartment ?? e.Employee?.DepartmentNav?.Name) == department
+                        || userEmployeeIds.Contains(e.EmployeeId.Value)
+                        || userNames.Contains(e.Employee?.FullName ?? "")));
+
+            var barberExpenses = showSubGroups ? expenses.Where(e => ExpenseBelongsToDepartment(e, "حلاقة", barberUserEmployeeIds, barberUserNames)).ToList() : new List<Expense>();
             var barberSalaries = showSubGroups ? salaries.Where(s => (s.Employee?.RevenueDepartment ?? s.Employee?.Department) == "حلاقة").ToList() : new List<Salary>();
             decimal barberExp = barberExpenses.Sum(e => e.Amount);
             decimal barberSal = barberSalaries.Sum(s => s.NetSalary);
@@ -269,7 +294,7 @@ namespace Salon.Controllers
             ViewBag.TotalBarberSalaries = barberSal;
             ViewBag.TotalBarberCombined = barberExp + barberSal;
 
-            var massageExpenses = showSubGroups ? expenses.Where(e => e.Department == "مساج").ToList() : new List<Expense>();
+            var massageExpenses = showSubGroups ? expenses.Where(e => ExpenseBelongsToDepartment(e, "مساج", massageUserEmployeeIds, massageUserNames)).ToList() : new List<Expense>();
             var massageSalaries = showSubGroups ? salaries.Where(s => (s.Employee?.RevenueDepartment ?? s.Employee?.Department) == "مساج").ToList() : new List<Salary>();
             decimal massageExp = massageExpenses.Sum(e => e.Amount);
             decimal massageSal = massageSalaries.Sum(s => s.NetSalary);
@@ -851,9 +876,13 @@ namespace Salon.Controllers
                 // العهدة مبلغ منفصل تحت عهدة الموظف، مش مصروف فعلي خرج من الصندوق، فلا يجب أن
                 // تظهر كحركة "مصروف" هنا ولا تُخصم من رصيد الكاش.
                 var expensesQuery = _context.Expenses
+                    .Include(e => e.Employee).ThenInclude(e => e!.DepartmentNav)
                     .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo && e.Category != "عهدة");
                 if (filterDept)
-                    expensesQuery = expensesQuery.Where(e => e.Department == dept || e.Department == null || e.Department == "");
+                    expensesQuery = expensesQuery.Where(e => e.Department == dept || e.Department == null || e.Department == ""
+                        || (e.EmployeeId.HasValue && ((e.Employee!.RevenueDepartment ?? e.Employee!.DepartmentNav!.Name) == dept
+                            || deptUserEmployeeIds.Contains(e.EmployeeId.Value)
+                            || deptUserNames.Contains(e.Employee!.FullName))));
                 var expenses = await expensesQuery
                     .OrderByDescending(e => e.ExpenseDate)
                     .ToListAsync();
@@ -1141,9 +1170,13 @@ namespace Salon.Controllers
             if (filterDept) depositsQuery = depositsQuery.Where(d => d.Department == dept);
             decimal deposits = (await depositsQuery.ToListAsync()).Sum(d => d.Amount);
 
-            var expQuery = _context.Expenses.Where(e => e.ExpenseDate >= from && e.ExpenseDate < to
+            var expQuery = _context.Expenses.Include(e => e.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Where(e => e.ExpenseDate >= from && e.ExpenseDate < to
                      && !cashOnlyMethods.Contains(e.PaymentMethod) && e.Category != "عهدة");
-            if (filterDept) expQuery = expQuery.Where(e => e.Department == dept || e.Department == null || e.Department == "");
+            if (filterDept) expQuery = expQuery.Where(e => e.Department == dept || e.Department == null || e.Department == ""
+                || (e.EmployeeId.HasValue && ((e.Employee!.RevenueDepartment ?? e.Employee!.DepartmentNav!.Name) == dept
+                    || deptUserEmployeeIds.Contains(e.EmployeeId.Value)
+                    || deptUserNames.Contains(e.Employee!.FullName))));
             decimal expenses = (await expQuery.ToListAsync()).Sum(e => e.Amount);
 
             var advQuery = _context.EmployeeAdvances.Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
@@ -1203,9 +1236,13 @@ namespace Salon.Controllers
             if (showExpenses)
             {
                 var expensesQuery = _context.Expenses
+                    .Include(e => e.Employee).ThenInclude(e => e!.DepartmentNav)
                     .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate < dateTo && e.Category != "عهدة" && e.PaymentMethod != "نقدي");
                 if (filterDept)
-                    expensesQuery = expensesQuery.Where(e => e.Department == dept || e.Department == null || e.Department == "");
+                    expensesQuery = expensesQuery.Where(e => e.Department == dept || e.Department == null || e.Department == ""
+                        || (e.EmployeeId.HasValue && ((e.Employee!.RevenueDepartment ?? e.Employee!.DepartmentNav!.Name) == dept
+                            || deptUserEmployeeIds.Contains(e.EmployeeId.Value)
+                            || deptUserNames.Contains(e.Employee!.FullName))));
                 var expenses = await expensesQuery
                     .OrderByDescending(e => e.ExpenseDate)
                     .ToListAsync();

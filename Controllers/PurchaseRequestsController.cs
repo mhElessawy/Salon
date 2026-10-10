@@ -51,6 +51,23 @@ namespace Salon.Controllers
             return roles.Contains("Admin") || roles.Contains("Manager") || roles.Contains("Cashier");
         }
 
+        private async Task<string?> GetEmployeeExpenseDepartmentAsync(Employee? employee)
+        {
+            if (employee == null) return null;
+
+            var employeeDepartment = employee.RevenueDepartment ?? employee.DepartmentNav?.Name;
+            if (employeeDepartment == "حلاقة" || employeeDepartment == "مساج")
+                return employeeDepartment;
+
+            var userDepartment = await _context.Users
+                .Where(u => (u.LinkedEmployeeId == employee.Id || u.FullName == employee.FullName)
+                         && (u.UserDepartment == "حلاقة" || u.UserDepartment == "مساج"))
+                .Select(u => u.UserDepartment)
+                .FirstOrDefaultAsync();
+
+            return userDepartment ?? employeeDepartment;
+        }
+
         public async Task<IActionResult> Index(int? employeeId, string? status)
         {
             var currentUser = await _userManager.GetUserAsync(User);
@@ -399,12 +416,13 @@ namespace Salon.Controllers
 
             if (!isDeferred)
             {
+                var expenseDepartment = await GetEmployeeExpenseDepartmentAsync(request.Employee);
                 var expense = new Expense
                 {
                     Description = $"شراء عهدة ({request.Employee?.FullName ?? request.EmployeeId.ToString()}): {request.ItemsSummary}",
                     Amount = actualAmount,
                     Category = "مشتريات عهدة",
-                    Department = request.Employee?.DepartmentNav?.Name,
+                    Department = expenseDepartment,
                     ExpenseDate = DateTime.Today,
                     PaymentMethod = "نقدي",
                     EmployeeId = request.EmployeeId,

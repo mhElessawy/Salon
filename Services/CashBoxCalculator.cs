@@ -119,10 +119,14 @@ namespace Salon.Services
             // بعض بيانات المصروفات مخزّنة بقيمة "كاش" بدل "نقدي" (زي ما بيحصل في شاشة صرف الرواتب
             // أدناه)، أو حتى "Cash" الإنجليزية لو اتحفظت والواجهة كانت على وضع الإنجليزي — فبنقبل
             // التلات قيم هنا بدل ما نستبعدها غلط من الكاش الفعلي.
-            var expQuery = context.Expenses.Where(e => e.ExpenseDate >= from && e.ExpenseDate < to
+            var expQuery = context.Expenses.Include(e => e.Employee).ThenInclude(e => e!.DepartmentNav)
+                .Where(e => e.ExpenseDate >= from && e.ExpenseDate < to
                      && (e.PaymentMethod == "نقدي" || e.PaymentMethod == "كاش" || e.PaymentMethod == "Cash") && e.Category != "عهدة");
             if (sharedOnly) expQuery = expQuery.Where(e => e.Department != "حلاقة" && e.Department != "مساج");
-            else if (filterDept) expQuery = expQuery.Where(e => e.Department == dept || e.Department == null || e.Department == "");
+            else if (filterDept) expQuery = expQuery.Where(e => e.Department == dept || e.Department == null || e.Department == ""
+                || (e.EmployeeId.HasValue && ((e.Employee!.RevenueDepartment ?? e.Employee!.DepartmentNav!.Name) == dept
+                    || deptUserEmployeeIds.Contains(e.EmployeeId.Value)
+                    || deptUserNames.Contains(e.Employee!.FullName))));
             decimal cashExpenses = (await expQuery.ToListAsync()).Sum(e => e.Amount);
 
             // القسم "الفعلي" للموظف يُحسب حسب RevenueDepartment إن وُجد، أو قسم سجل الموظف،
