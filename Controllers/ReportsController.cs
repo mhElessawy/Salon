@@ -816,6 +816,7 @@ namespace Salon.Controllers
             bool showKNetSales = string.IsNullOrEmpty(type) || type == "كي نت";
             bool showWithdrawals = string.IsNullOrEmpty(type) || type == "سحب";
             bool filterDept = !string.IsNullOrEmpty(dept);
+            var (deptUserEmployeeIds, deptUserNames) = await GetDepartmentUserEmployeeKeysAsync(dept, filterDept);
 
             // Cash balance that already existed in the register before "from" — computed by the
             // same shared CashBoxCalculator that BarberDaily/Index uses, so the two reports can
@@ -832,7 +833,9 @@ namespace Salon.Controllers
                 .Where(c => c.SettlementType == null)
                 .AsQueryable();
             if (filterDept)
-                custodyQuery = custodyQuery.Where(c => (c.Employee!.RevenueDepartment ?? c.Employee!.DepartmentNav!.Name) == dept);
+                custodyQuery = custodyQuery.Where(c => (c.Employee!.RevenueDepartment ?? c.Employee!.DepartmentNav!.Name) == dept
+                    || deptUserEmployeeIds.Contains(c.EmployeeId)
+                    || deptUserNames.Contains(c.Employee!.FullName));
             var allCustodies = await custodyQuery.ToListAsync();
             var currentCustodies = allCustodies
                 .GroupBy(c => c.Employee?.FullName ?? "—")
@@ -866,15 +869,17 @@ namespace Salon.Controllers
                     PaymentMethod = e.PaymentMethod
                 }));
 
-                // القسم "الفعلي" للموظف يُحسب حسب: RevenueDepartment إن وُجد (لموظفي الأقسام غير
-                // الإيرادية كالإدارة)، وإلا فقسمه التنظيمي (DepartmentNav) — حتى تظهر سلف
-                // الإداريين التابعين لقسم حلاقة/مساج تحت نفس القسم مش بس سلف الموظفين المباشرين
+                // القسم "الفعلي" للموظف يُحسب حسب: RevenueDepartment إن وُجد، أو قسم سجل
+                // الموظف، أو حساب المستخدم المرتبط به/المطابق لاسمه. ده مهم للكاشير التابع
+                // لقسم حلاقة/مساج حتى لو مسماه الوظيفي "كاشير" وليس "حلاق".
                 var advancesQuery = _context.EmployeeAdvances
                     .Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                     .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo
                              && EmployeeAdvance.Statuses.Realized.Contains(a.Status));
                 if (filterDept)
-                    advancesQuery = advancesQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == dept);
+                    advancesQuery = advancesQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == dept
+                        || deptUserEmployeeIds.Contains(a.EmployeeId)
+                        || deptUserNames.Contains(a.Employee!.FullName));
                 var advances = await advancesQuery
                     .OrderByDescending(a => a.AdvanceDate)
                     .ToListAsync();
@@ -894,7 +899,9 @@ namespace Salon.Controllers
                     .Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
                     .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= dateFrom && s.PaidDate.Value < dateTo);
                 if (filterDept)
-                    salariesQuery = salariesQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == dept);
+                    salariesQuery = salariesQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == dept
+                        || deptUserEmployeeIds.Contains(s.EmployeeId)
+                        || deptUserNames.Contains(s.Employee!.FullName));
                 var salaries = await salariesQuery
                     .OrderByDescending(s => s.PaidDate)
                     .ToListAsync();
@@ -1093,12 +1100,30 @@ namespace Salon.Controllers
             return View(items);
         }
 
+        private async Task<(List<int> EmployeeIds, List<string> UserNames)> GetDepartmentUserEmployeeKeysAsync(string? dept, bool filterDept)
+        {
+            if (!filterDept)
+                return (new List<int>(), new List<string>());
+
+            var deptUsers = await _context.Users
+                .Where(u => u.UserDepartment == dept)
+                .Select(u => new { u.LinkedEmployeeId, u.FullName })
+                .ToListAsync();
+
+            return (
+                deptUsers.Where(u => u.LinkedEmployeeId.HasValue).Select(u => u.LinkedEmployeeId!.Value).ToList(),
+                deptUsers.Where(u => !string.IsNullOrEmpty(u.FullName)).Select(u => u.FullName).ToList()
+            );
+        }
+
         private record BankFlows(decimal BankRevenue, decimal Deposits, decimal Expenses, decimal Advances, decimal Salaries, decimal Withdrawals);
 
         // معادلة موحّدة لحركة البنك (كل ما هو غير نقدي: كي نت/لينك مبيعات، إيداعات/مصروفات/سلف/رواتب/سحوبات
         // بغير طريقة الدفع "نقدي") يستخدمها تقرير حركة البنك لحساب الرصيد الحالي والرصيد قبل الفترة معاً.
         private async Task<BankFlows> ComputeBankFlowsAsync(DateTime from, DateTime to, string? dept, bool filterDept)
         {
+            var (deptUserEmployeeIds, deptUserNames) = await GetDepartmentUserEmployeeKeysAsync(dept, filterDept);
+
             // نفس مرادفات الكاش المستخدمة في CashBoxCalculator، لازم تُستبعد هنا برضه وإلا فاتورة
             // أو مصروف/إيداع اتسجل بـ"كاش"/"Cash" (بدل "كي نت"/"نقدي") هيتحسب غلط كحركة بنك.
             string[] knetSalesMethods = { "كي نت", "بطاقة", "تحويل بنكي", "K-Net" };
@@ -1124,13 +1149,17 @@ namespace Salon.Controllers
             var advQuery = _context.EmployeeAdvances.Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Where(a => a.AdvanceDate >= from && a.AdvanceDate < to
                          && EmployeeAdvance.Statuses.Realized.Contains(a.Status) && a.PaymentMethod != "نقدي");
-            if (filterDept) advQuery = advQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == dept);
+            if (filterDept) advQuery = advQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == dept
+                || deptUserEmployeeIds.Contains(a.EmployeeId)
+                || deptUserNames.Contains(a.Employee!.FullName));
             decimal advances = (await advQuery.ToListAsync()).Sum(a => a.Amount);
 
             var salQuery = _context.Salaries.Include(s => s.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= from && s.PaidDate.Value < to
                          && s.PaymentMethod != "كاش" && s.PaymentMethod != "نقدي");
-            if (filterDept) salQuery = salQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == dept);
+            if (filterDept) salQuery = salQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == dept
+                || deptUserEmployeeIds.Contains(s.EmployeeId)
+                || deptUserNames.Contains(s.Employee!.FullName));
             decimal salaries = (await salQuery.ToListAsync()).Sum(s => s.NetSalary);
 
             var wdQuery = _context.Withdrawals.Where(w => w.WithdrawalDate >= from && w.WithdrawalDate < to && w.PaymentMethod != "نقدي");
@@ -1161,6 +1190,7 @@ namespace Salon.Controllers
             bool showSales = string.IsNullOrEmpty(type) || type == "كي نت";
             bool showWithdrawals = string.IsNullOrEmpty(type) || type == "سحب";
             bool filterDept = !string.IsNullOrEmpty(dept);
+            var (deptUserEmployeeIds, deptUserNames) = await GetDepartmentUserEmployeeKeysAsync(dept, filterDept);
 
             // رصيد البنك قبل الفترة = صافي كل الحركات غير النقدية منذ أول تاريخ مسجَّل عندنا بيانات
             // فيه (بنفس منطق تثبيت البداية المستخدم في CashBoxCalculator) وحتى بداية الفترة. لا يوجد
@@ -1196,7 +1226,9 @@ namespace Salon.Controllers
                     .Where(a => a.AdvanceDate >= dateFrom && a.AdvanceDate < dateTo
                              && EmployeeAdvance.Statuses.Realized.Contains(a.Status) && a.PaymentMethod != "نقدي");
                 if (filterDept)
-                    advancesQuery = advancesQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == dept);
+                    advancesQuery = advancesQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == dept
+                        || deptUserEmployeeIds.Contains(a.EmployeeId)
+                        || deptUserNames.Contains(a.Employee!.FullName));
                 var advances = await advancesQuery
                     .OrderByDescending(a => a.AdvanceDate)
                     .ToListAsync();
@@ -1217,7 +1249,9 @@ namespace Salon.Controllers
                     .Where(s => s.PaidDate.HasValue && s.PaidDate.Value >= dateFrom && s.PaidDate.Value < dateTo
                              && s.PaymentMethod != "كاش" && s.PaymentMethod != "نقدي");
                 if (filterDept)
-                    salariesQuery = salariesQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == dept);
+                    salariesQuery = salariesQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == dept
+                        || deptUserEmployeeIds.Contains(s.EmployeeId)
+                        || deptUserNames.Contains(s.Employee!.FullName));
                 var salaries = await salariesQuery
                     .OrderByDescending(s => s.PaidDate)
                     .ToListAsync();

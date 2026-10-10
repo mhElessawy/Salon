@@ -71,6 +71,19 @@ namespace Salon.Services
         private static async Task<Flows> ComputeFlowsAsync(
             ApplicationDbContext context, DateTime from, DateTime to, string? dept, bool filterDept, bool sharedOnly)
         {
+            var deptUserEmployeeIds = filterDept && !sharedOnly
+                ? await context.Users
+                    .Where(u => u.UserDepartment == dept && u.LinkedEmployeeId.HasValue)
+                    .Select(u => u.LinkedEmployeeId!.Value)
+                    .ToListAsync()
+                : new List<int>();
+            var deptUserNames = filterDept && !sharedOnly
+                ? await context.Users
+                    .Where(u => u.UserDepartment == dept && u.FullName != "")
+                    .Select(u => u.FullName)
+                    .ToListAsync()
+                : new List<string>();
+
             // كل أنواع الفواتير (حلاقة/مساج/منتجات) تدخل الصندوق الفعلي، وليس فواتير الموظفين
             // فقط — الصندوق واحد للمحل بالكامل.
             // بعض الفواتير بتتسجل بـ"نقدي" أو حتى "Cash" الإنجليزية (لو كانت الواجهة على وضع
@@ -112,16 +125,17 @@ namespace Salon.Services
             else if (filterDept) expQuery = expQuery.Where(e => e.Department == dept);
             decimal cashExpenses = (await expQuery.ToListAsync()).Sum(e => e.Amount);
 
-            // القسم "الفعلي" للموظف يُحسب حسب RevenueDepartment إن وُجد (لموظفي الأقسام غير
-            // الإيرادية كالإدارة)، وإلا فقسمه التنظيمي (DepartmentNav) — يطابق نفس المنطق
-            // المستخدم في تقرير الأرباح/الإيرادات حتى تظهر سلف ورواتب الإداريين التابعين لقسم
-            // حلاقة/مساج تحت نفس القسم مش بس موظفيه المباشرين.
+            // القسم "الفعلي" للموظف يُحسب حسب RevenueDepartment إن وُجد، أو قسم سجل الموظف،
+            // أو حساب المستخدم المرتبط به/المطابق لاسمه. الأخير مهم للكاشير: وظيفته ممكن تكون
+            // "كاشير" لكن حسابه محدد على قسم حلاقة/مساج، فلا يسقط من تقارير القسم.
             var advQuery = context.EmployeeAdvances.Include(a => a.Employee).ThenInclude(e => e!.DepartmentNav)
                 .Where(a => a.AdvanceDate >= from && a.AdvanceDate < to
                          && EmployeeAdvance.Statuses.Realized.Contains(a.Status) && a.PaymentMethod == "نقدي");
             if (sharedOnly) advQuery = advQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) != "حلاقة"
                      && (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) != "مساج");
-            else if (filterDept) advQuery = advQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == dept);
+            else if (filterDept) advQuery = advQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == dept
+                || deptUserEmployeeIds.Contains(a.EmployeeId)
+                || deptUserNames.Contains(a.Employee!.FullName));
             decimal cashAdvances = (await advQuery.ToListAsync()).Sum(a => a.Amount);
 
             // ملحوظة: شاشة صرف الرواتب فعليًا بتخزّن "كاش" (مش "نقدي") كقيمة الدفع النقدي، والقيمة
@@ -131,7 +145,9 @@ namespace Salon.Services
                          && (s.PaymentMethod == "كاش" || s.PaymentMethod == "نقدي"));
             if (sharedOnly) salQuery = salQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) != "حلاقة"
                      && (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) != "مساج");
-            else if (filterDept) salQuery = salQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == dept);
+            else if (filterDept) salQuery = salQuery.Where(s => (s.Employee!.RevenueDepartment ?? s.Employee!.DepartmentNav!.Name) == dept
+                || deptUserEmployeeIds.Contains(s.EmployeeId)
+                || deptUserNames.Contains(s.Employee!.FullName));
             decimal cashSalaries = (await salQuery.ToListAsync()).Sum(s => s.NetSalary);
 
             // السحب بطريقة "لينك" مش نقدي فعلي بيطلع من الدرج، فمينفعش يخصم من رصيد الكاش.
