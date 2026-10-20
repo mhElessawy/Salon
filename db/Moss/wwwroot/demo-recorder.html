@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>Salon Demo Recorder</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #101418; color: #fff; font-family: "Segoe UI", Tahoma, Arial, sans-serif; }
+    main { display: grid; place-items: center; min-height: 100%; gap: 16px; }
+    canvas { width: min(96vw, 1280px); aspect-ratio: 16 / 9; background: #f7f7f2; box-shadow: 0 20px 60px #0008; }
+    button { font: inherit; padding: 12px 20px; border: 0; border-radius: 8px; background: #f7941d; color: #111; cursor: pointer; }
+    #status { color: #d8dde2; }
+  </style>
+</head>
+<body>
+  <main>
+    <canvas id="stage" width="1280" height="720"></canvas>
+    <button id="start">إنشاء فيديو الديمو</button>
+    <div id="status">جاهز</div>
+    <audio id="voice" src="/demo-video-assets/narration.mp3" preload="auto"></audio>
+  </main>
+  <script>
+    const canvas = document.getElementById("stage");
+    const ctx = canvas.getContext("2d");
+    const statusEl = document.getElementById("status");
+    const voice = document.getElementById("voice");
+    const W = canvas.width;
+    const H = canvas.height;
+    let slides = [];
+
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function fitText(text, x, y, maxWidth, size, color, align = "right") {
+      ctx.fillStyle = color;
+      ctx.textAlign = align;
+      ctx.font = `700 ${size}px Segoe UI, Tahoma, Arial`;
+      ctx.fillText(text, x, y, maxWidth);
+    }
+
+    function drawSlide(slide, index, progress) {
+      ctx.fillStyle = "#f5f2ea";
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = "#111820";
+      ctx.fillRect(0, 0, W, 92);
+      ctx.fillStyle = "#f7941d";
+      ctx.fillRect(0, 0, W, 8);
+      fitText("نظام معهد موس", W - 48, 58, 500, 30, "#fff");
+      ctx.textAlign = "left";
+      ctx.font = "600 22px Segoe UI, Tahoma, Arial";
+      ctx.fillStyle = "#f7941d";
+      ctx.fillText(String(index + 1).padStart(2, "0") + " / " + String(slides.length).padStart(2, "0"), 48, 58);
+
+      ctx.fillStyle = "#fff";
+      roundRect(52, 128, 286, 520, 8);
+      ctx.fill();
+      ctx.fillStyle = "#151b22";
+      ctx.font = "700 24px Segoe UI, Tahoma, Arial";
+      ctx.textAlign = "right";
+      ctx.fillText("الشاشات", 300, 174);
+      const menu = ["لوحة التحكم", "العملاء", "المواعيد", "المبيعات", "المخزون", "الموظفين", "الصندوق", "التقارير", "الإعدادات"];
+      menu.forEach((m, i) => {
+        const y = 214 + i * 44;
+        const active = slide.title.includes(m) || (slide.section.includes("مالية") && m === "الصندوق") || (slide.section.includes("التعريفات") && m === "المبيعات");
+        ctx.fillStyle = active ? "#f7941d" : "#eef0f2";
+        roundRect(78, y - 24, 226, 34, 6);
+        ctx.fill();
+        ctx.fillStyle = active ? "#111820" : "#3d4650";
+        ctx.font = "600 18px Segoe UI, Tahoma, Arial";
+        ctx.fillText(m, 282, y);
+      });
+
+      ctx.fillStyle = "#fff";
+      roundRect(380, 128, 848, 520, 8);
+      ctx.fill();
+      ctx.fillStyle = "#f7941d";
+      ctx.font = "700 24px Segoe UI, Tahoma, Arial";
+      ctx.textAlign = "right";
+      ctx.fillText(slide.section, 1180, 186);
+      fitText(slide.title, 1180, 252, 760, 54, "#111820");
+      ctx.font = "500 30px Segoe UI, Tahoma, Arial";
+      ctx.fillStyle = "#37404a";
+      ctx.fillText(slide.body, 1180, 314, 760);
+
+      slide.items.forEach((item, i) => {
+        const y = 390 + i * 62;
+        ctx.fillStyle = "#eef3f5";
+        roundRect(520, y - 34, 660, 46, 8);
+        ctx.fill();
+        ctx.fillStyle = "#f7941d";
+        ctx.beginPath();
+        ctx.arc(1148, y - 11, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#18202a";
+        ctx.font = "600 24px Segoe UI, Tahoma, Arial";
+        ctx.fillText(item, 1128, y, 560);
+      });
+
+      ctx.fillStyle = "#111820";
+      roundRect(380, 664, 848, 8, 4);
+      ctx.fill();
+      ctx.fillStyle = "#f7941d";
+      roundRect(380, 664, 848 * progress, 8, 4);
+      ctx.fill();
+    }
+
+    async function loadSlides() {
+      slides = await fetch("/demo-video-assets/slides.json").then(r => r.json());
+      drawSlide(slides[0], 0, 0);
+    }
+
+    async function record() {
+      document.getElementById("start").disabled = true;
+      statusEl.textContent = "جاري إنشاء الفيديو...";
+      const audioStream = voice.captureStream ? voice.captureStream() : voice.mozCaptureStream();
+      const stream = canvas.captureStream(30);
+      audioStream.getAudioTracks().forEach(t => stream.addTrack(t));
+      const chunks = [];
+      const rec = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp9,opus" });
+      rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+      rec.onstop = async () => {
+        const blob = new Blob(chunks, { type: "video/webm" });
+        const response = await fetch("http://127.0.0.1:5099/upload", {
+          method: "POST",
+          headers: { "Content-Type": "video/webm" },
+          body: blob
+        });
+        statusEl.textContent = response.ok ? "تم إنشاء الفيديو وحفظه في المشروع." : "تعذر حفظ الفيديو.";
+      };
+
+      const total = Math.max(voice.duration || 100, slides.length * 6);
+      const perSlide = total / slides.length;
+      let start = performance.now();
+      function frame(now) {
+        const elapsed = (now - start) / 1000;
+        const index = Math.min(slides.length - 1, Math.floor(elapsed / perSlide));
+        const progress = Math.min(1, (elapsed - index * perSlide) / perSlide);
+        drawSlide(slides[index], index, progress);
+        if (elapsed < total + 0.5 && !voice.ended) requestAnimationFrame(frame);
+        else rec.stop();
+      }
+      await voice.play();
+      rec.start(1000);
+      requestAnimationFrame(frame);
+    }
+
+    document.getElementById("start").addEventListener("click", record);
+    loadSlides();
+  </script>
+</body>
+</html>
