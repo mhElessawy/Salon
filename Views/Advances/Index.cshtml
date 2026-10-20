@@ -14,6 +14,7 @@
     bool isManager = (bool)(ViewBag.IsManager ?? false);
     bool isCashier = (bool)(ViewBag.IsCashier ?? false);
     bool canRepay = (bool)(ViewBag.CanRepay ?? true);
+    bool canConfirmTransfer = (bool)(ViewBag.CanConfirmTransfer ?? false);
     int? myEmployeeId = ViewBag.MyEmployeeId as int?;
 
     var statusBadgeClasses = new Dictionary<string, string>
@@ -380,7 +381,7 @@ else
                                                                 <i class="fas fa-hand-holding-usd"></i> تم تسليم المبلغ
                                                             </button>
                                                         }
-                                                        @if (adv.Status == "معتمد - بانتظار التحويل البنكي" && isManager)
+                                                        @if (adv.Status == "معتمد - بانتظار التحويل البنكي" && canConfirmTransfer)
                                                         {
                                                             <button type="button" class="btn btn-xs btn-primary"
                                                                     onclick="event.stopPropagation(); openTransferModal(@adv.Id, @empNameJs, '@adv.Amount.ToString("N3")')"

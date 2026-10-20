@@ -208,6 +208,9 @@ namespace Salon.Controllers
                 ? userPerms.ToDictionary(p => p.Module, p => p.CanAccess)
                 : AppModules.AllKeys().ToDictionary(k => k, _ => true);
 
+            if (!userPerms.Any(p => p.Module == "AdvancesConfirmTransfer" && p.CanAccess))
+                permSet["AdvancesConfirmTransfer"] = false;
+
             ViewBag.UserId = id;
             ViewBag.UserFullName = user.FullName;
             ViewBag.UserRole = roles.FirstOrDefault() ?? "-";

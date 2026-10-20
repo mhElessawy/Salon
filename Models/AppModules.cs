@@ -92,7 +92,13 @@ namespace Salon.Models
             "Advances"
         };
 
-        // جميع مفاتيح الصلاحيات (مشاهدة + إضافة + حذف + عملائي فقط + موافقة + سداد)
+        // تأكيد التحويل البنكي للسلف مستقل عن السداد.
+        public static readonly HashSet<string> HasConfirmTransfer = new()
+        {
+            "Advances"
+        };
+
+        // جميع مفاتيح الصلاحيات
         public static IEnumerable<string> AllKeys()
         {
             foreach (var (Key, _, _, _) in All)
@@ -103,6 +109,7 @@ namespace Salon.Models
                 if (HasMyOnly.Contains(Key)) yield return Key + "MyOnly";
                 if (HasApprove.Contains(Key)) yield return Key + "Approve";
                 if (HasRepay.Contains(Key)) yield return Key + "Repay";
+                if (HasConfirmTransfer.Contains(Key)) yield return Key + "ConfirmTransfer";
             }
         }
     }

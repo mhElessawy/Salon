@@ -50,6 +50,12 @@ namespace Salon.Controllers
             return await IsCashierOrManagerAsync(user) && await _perms.HasAccessAsync("AdvancesRepay");
         }
 
+        private async Task<bool> CanConfirmTransferAsync(ApplicationUser? user)
+        {
+            return await IsCashierOrManagerAsync(user)
+                && await _perms.HasAccessAsync("AdvancesConfirmTransfer");
+        }
+
         public async Task<IActionResult> Index(string? search)
         {
             var currentUser = await _userManager.GetUserAsync(User);
@@ -115,6 +121,7 @@ namespace Salon.Controllers
             ViewBag.ApprovedCount = advances.Count(a => EmployeeAdvance.Statuses.Realized.Contains(a.Status));
             ViewBag.ApprovedTotal = advances.Where(a => EmployeeAdvance.Statuses.Realized.Contains(a.Status)).Sum(a => a.Amount);
             ViewBag.CanRepay = await _perms.HasAccessAsync("AdvancesRepay");
+            ViewBag.CanConfirmTransfer = await CanConfirmTransferAsync(currentUser);
             return View(summaries);
         }
 
@@ -409,7 +416,7 @@ namespace Salon.Controllers
         public async Task<IActionResult> ConfirmTransfer(int id, string transferReference, string? transferBank, string? transferNotes)
         {
             var currentUser = await _userManager.GetUserAsync(User);
-            if (!await IsManagerAsync(currentUser))
+            if (!await CanConfirmTransferAsync(currentUser))
             {
                 TempData["Error"] = "غير مصرح لك بتنفيذ التحويلات البنكية";
                 return RedirectToAction(nameof(Index));

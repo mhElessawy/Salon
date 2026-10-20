@@ -222,7 +222,8 @@ else
                     var hasMyOnly = AppModules.HasMyOnly.Contains(mod.Key);
                     var hasApprove = AppModules.HasApprove.Contains(mod.Key);
                     var hasRepay = AppModules.HasRepay.Contains(mod.Key);
-                    var hasActions = hasAdd || hasDelete || hasMyOnly || hasApprove || hasRepay;
+                    var hasConfirmTransfer = AppModules.HasConfirmTransfer.Contains(mod.Key);
+                    var hasActions = hasAdd || hasDelete || hasMyOnly || hasApprove || hasRepay || hasConfirmTransfer;
 
                     var viewOn = HasPerm(mod.Key);
                     var addOn = HasPerm(mod.Key + "Add");
@@ -230,6 +231,7 @@ else
                     var myOnlyOn = HasPerm(mod.Key + "MyOnly");
                     var approveOn = HasPerm(mod.Key + "Approve");
                     var repayOn = HasPerm(mod.Key + "Repay");
+                    var confirmTransferOn = HasPerm(mod.Key + "ConfirmTransfer");
 
                     <div class="perm-row" data-group="@group.Key">
                         <div class="perm-label">
@@ -332,6 +334,22 @@ else
                                         <span class="perm-action-status" id="label_@(mod.Key)Repay"
                                               style="color:@(repayOn ? "#7e22ce" : "#adb5bd")">
                                             @(repayOn ? "مسموح" : "محظور")
+                                        </span>
+                                    </div>
+                                }
+
+                                @if (hasConfirmTransfer)
+                                {
+                                    <div class="perm-action-item">
+                                        <span class="perm-action-label action-view"><i class="fas fa-university me-1"></i>تأكيد التحويل</span>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input perm-toggle" type="checkbox"
+                                                   name="allowedModules" value="@(mod.Key)ConfirmTransfer"
+                                                   id="perm_@(mod.Key)ConfirmTransfer" @(confirmTransferOn ? "checked" : "") />
+                                        </div>
+                                        <span class="perm-action-status" id="label_@(mod.Key)ConfirmTransfer"
+                                              style="color:@(confirmTransferOn ? "var(--primary)" : "#adb5bd")">
+                                            @(confirmTransferOn ? "مسموح" : "محظور")
                                         </span>
                                     </div>
                                 }

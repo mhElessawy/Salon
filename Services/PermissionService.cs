@@ -62,6 +62,10 @@ namespace Salon.Services
                 ? perms.ToHashSet()
                 : AppModules.AllKeys().ToHashSet();
 
+            // تأكيد التحويل كان مقصوراً على الإدارة؛ لا يُمنح تلقائياً للمستخدمين الحاليين.
+            if (!perms.Contains("AdvancesConfirmTransfer"))
+                result.Remove("AdvancesConfirmTransfer");
+
             // Apply department-based filtering: each department sees only its own invoice type
             var appUser = await _userManager.FindByIdAsync(userId!);
             if (appUser?.UserDepartment == "مساج")
