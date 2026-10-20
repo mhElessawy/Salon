@@ -65,7 +65,7 @@ namespace Salon.Controllers
                 .AsQueryable();
 
             if (userDept == "حلاقة" || userDept == "مساج")
-                advancesQuery = advancesQuery.Where(a => a.Employee!.DepartmentNav!.Name == userDept);
+                advancesQuery = advancesQuery.Where(a => (a.Employee!.RevenueDepartment ?? a.Employee!.DepartmentNav!.Name) == userDept);
 
             if (!isCashier && linkedEmpId.HasValue)
                 advancesQuery = advancesQuery.Where(a => a.EmployeeId == linkedEmpId.Value);
