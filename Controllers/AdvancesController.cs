@@ -126,7 +126,7 @@ namespace Salon.Controllers
 
             var empQuery = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
             if (userDept == "حلاقة" || userDept == "مساج")
-                empQuery = empQuery.Where(e => e.DepartmentNav!.Name == userDept);
+                empQuery = empQuery.Where(e => (e.RevenueDepartment ?? e.DepartmentNav!.Name) == userDept);
 
             // If linked to an employee, pre-select them
             int? linkedEmpId = currentUser?.LinkedEmployeeId;
@@ -175,7 +175,9 @@ namespace Salon.Controllers
 
             var ud2 = currentUser?.UserDepartment;
             var eq2 = _context.Employees.Include(e => e.DepartmentNav).Where(e => e.IsActive);
-            if (ud2 == "حلاقة" || ud2 == "مساج") eq2 = eq2.Where(e => e.DepartmentNav!.Name == ud2);
+            if (ud2 == "حلاقة" || ud2 == "مساج") eq2 = eq2.Where(e => (e.RevenueDepartment ?? e.DepartmentNav!.Name) == ud2);
+            if (linkedEmpId.HasValue && !isManager)
+                eq2 = eq2.Where(e => e.Id == linkedEmpId.Value);
             ViewBag.Employees = new SelectList(await eq2.OrderBy(e => e.FullName).ToListAsync(), "Id", "FullName");
             ViewBag.IsManager = isManager;
             return View(model);
