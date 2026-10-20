@@ -38,7 +38,7 @@ namespace Salon.Controllers
                 .Where(e => e.IsActive);
 
             if (userDept == "حلاقة" || userDept == "مساج")
-                query = query.Where(e => e.DepartmentNav!.Name == userDept);
+                query = query.Where(e => (e.RevenueDepartment ?? e.DepartmentNav!.Name) == userDept);
 
             // Employees see only themselves
             if (isEmployee && linkedEmpId.HasValue)
@@ -135,7 +135,8 @@ namespace Salon.Controllers
             bool detailIsManager = detailRoles.Contains("Admin") || detailRoles.Contains("Manager");
             bool detailIsEmployee = !detailIsManager && detailRoles.Contains("Employee");
 
-            if ((userDept == "حلاقة" || userDept == "مساج") && employee.DepartmentNav?.Name != userDept)
+            if ((userDept == "حلاقة" || userDept == "مساج") &&
+                (employee.RevenueDepartment ?? employee.DepartmentNav?.Name) != userDept)
                 return Forbid();
 
             if (detailIsEmployee && currentUser?.LinkedEmployeeId.HasValue == true && employee.Id != currentUser.LinkedEmployeeId.Value)
