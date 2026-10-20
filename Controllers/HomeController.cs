@@ -31,15 +31,14 @@ namespace Salon.Controllers
         {
             var vm = new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier };
 
-            // ÈíãÓß ÇáÇÓÊËäÇÁ ÇáÍŞíŞí Çááí æŞøÚ ÇáÕİÍÉ æíÓÌøáå İí ÇááæÌ ÏÇíãÇğ¡ æíÚÑÖå
-            // Úáì ÇáÔÇÔÉ ÈÓ áæ ShowDetailedErrors ãİÚøáÉ İí appsettings.json (íÏæíÇğ æŞÊ
-            // ÇáÊÔÎíÕ) - ÚÔÇä ãÇ íÊÓÑÈÔ ÊİÇÕíá ÍÓÇÓÉ ááÒæÇÑ İí ÇáæÖÚ ÇáØÈíÚí.
             var exceptionFeature = HttpContext.Features.Get<IExceptionHandlerPathFeature>();
             if (exceptionFeature?.Error is { } ex)
             {
-                _logger.LogError(ex, "Unhandled exception at {Path}", exceptionFeature.Path);
+                vm.RequestPath = exceptionFeature.Path;
+                _logger.LogError(ex, "Unhandled exception at {Path}. Request ID: {RequestId}", exceptionFeature.Path, vm.RequestId);
 
-                if (_configuration.GetValue<bool>("ShowDetailedErrors"))
+                if (User.IsInRole("Admin") || User.IsInRole("Manager") ||
+                    _configuration.GetValue<bool>("ShowDetailedErrors"))
                 {
                     vm.ExceptionType = ex.GetType().FullName;
                     vm.ExceptionMessage = ex.Message;

@@ -7,6 +7,7 @@ namespace Salon.Models
         public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 
         public string? ExceptionType { get; set; }
+        public string? RequestPath { get; set; }
         public string? ExceptionMessage { get; set; }
         public string? StackTrace { get; set; }
 

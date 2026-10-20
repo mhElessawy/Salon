@@ -1,34 +1,49 @@
-﻿@model  ErrorViewModel
+@model ErrorViewModel
 @{
-    ViewData["Title"] = "Error";
+    Layout = null;
+    ViewData["Title"] = "تفاصيل الخطأ";
 }
-
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
-
-@if (Model.ShowRequestId)
-{
-    <p>
-        <strong>Request ID:</strong> <code>@Model.RequestId</code>
-    </p>
-}
-
-@if (Model.ShowExceptionDetails)
-{
-    <div class="alert alert-danger" style="white-space: pre-wrap; text-align: left; direction: ltr;">
-        <p><strong>@Model.ExceptionType:</strong> @Model.ExceptionMessage</p>
-        <hr />
-        <pre style="white-space: pre-wrap;">@Model.StackTrace</pre>
-    </div>
-}
-
-<h3>Development Mode</h3>
-<p>
-    Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
-</p>
-<p>
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
-</p>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"]</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 24px; background: #f5f6f8; color: #202938; font-family: Tahoma, Arial, sans-serif; line-height: 1.8; }
+        main { max-width: 1100px; margin: 32px auto; padding: 28px; background: white; border: 1px solid #e0e3e8; border-radius: 12px; }
+        h1 { margin-top: 0; color: #b42318; font-size: 26px; }
+        h2 { font-size: 19px; }
+        .message { padding: 16px; background: #fff1f0; border: 1px solid #f4c7c3; border-radius: 8px; overflow-wrap: anywhere; }
+        pre { padding: 18px; background: #182230; color: #f2f4f7; border-radius: 8px; white-space: pre-wrap; overflow-wrap: anywhere; text-align: left; direction: ltr; }
+        code { overflow-wrap: anywhere; }
+        a { display: inline-block; margin-top: 16px; color: #175cd3; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>تعذّر إكمال العملية</h1>
+        @if (Model.ShowExceptionDetails)
+        {
+            <p>حدث الخطأ التالي أثناء معالجة الطلب. يمكنك نسخ التفاصيل للمساعدة في إصلاحه.</p>
+            <div class="message" dir="auto">
+                <strong>@Model.ExceptionType</strong>
+                <div>@Model.ExceptionMessage</div>
+            </div>
+            <p><strong>مسار الطلب:</strong> <bdi>@Model.RequestPath</bdi></p>
+            <h2>التفاصيل الفنية والأخطاء الداخلية</h2>
+            <pre>@Model.StackTrace</pre>
+        }
+        else
+        {
+            <p>حدث خطأ أثناء تنفيذ الطلب. تواصل مع مدير النظام وأرسل رقم تتبّع الخطأ أدناه. تظهر التفاصيل الفنية عند حدوث الخطأ بحساب مدير النظام.</p>
+        }
+        @if (Model.ShowRequestId)
+        {
+            <p><strong>رقم تتبّع الخطأ:</strong> <bdi><code>@Model.RequestId</code></bdi></p>
+        }
+        <a href="@Url.Action("Index", "Home")">العودة إلى الصفحة الرئيسية</a>
+    </main>
+</body>
+</html>
