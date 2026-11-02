@@ -6,8 +6,11 @@
         public List<EmployeeAdvance> Advances { get; set; } = new();
         public List<SalaryAdvanceDeduction> SalaryDeductions { get; set; } = new();
 
-        public decimal TotalAmount => Advances.Sum(a => a.Amount);
-        public decimal TotalDeducted => Advances.Sum(a => a.DeductedAmount);
+        private IEnumerable<EmployeeAdvance> NonRejectedAdvances =>
+            Advances.Where(a => a.Status != EmployeeAdvance.Statuses.Rejected);
+
+        public decimal TotalAmount => NonRejectedAdvances.Sum(a => a.Amount);
+        public decimal TotalDeducted => NonRejectedAdvances.Sum(a => a.DeductedAmount);
         public decimal TotalRemaining => TotalAmount - TotalDeducted;
     }
 
