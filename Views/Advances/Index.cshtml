@@ -317,7 +317,8 @@ else
                                         <tbody>
                                             @foreach (var adv in summary.Advances)
                                             {
-                                                var isRejected = adv.Status == Salon.Models.EmployeeAdvance.Statuses.Rejected;
+                                                var isExcluded = adv.Status == Salon.Models.EmployeeAdvance.Statuses.Rejected
+                                                    || adv.Status == Salon.Models.EmployeeAdvance.Statuses.Cancelled;
                                                 var remaining = adv.Amount - adv.DeductedAmount;
                                                 bool isOwner = myEmployeeId.HasValue && adv.EmployeeId == myEmployeeId.Value;
                                                 // نص JSON آمن للتضمين داخل onclick — Razor يُهرّب علامات الاقتباس تلقائياً
@@ -329,7 +330,7 @@ else
                                                     <td>@adv.AdvanceDate.ToString("yyyy/MM/dd")</td>
                                                     <td class="fw-bold">@adv.Amount.ToString("N3") <small class="text-muted">د.ك</small></td>
                                                     <td>
-                                                        @if (!isRejected && adv.DeductedAmount > 0)
+                                                        @if (!isExcluded && adv.DeductedAmount > 0)
                                                         {
                                                             <span class="text-success">@adv.DeductedAmount.ToString("N3") <small class="text-muted">د.ك</small></span>
                                                         }
@@ -339,7 +340,7 @@ else
                                                         }
                                                     </td>
                                                     <td>
-                                                        @if (isRejected)
+                                                        @if (isExcluded)
                                                         {
                                                             <span class="text-muted">-</span>
                                                         }
