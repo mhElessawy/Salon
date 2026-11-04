@@ -318,7 +318,7 @@ else
                                             @foreach (var adv in summary.Advances)
                                             {
                                                 var isExcluded = adv.Status == Salon.Models.EmployeeAdvance.Statuses.Rejected
-                                                    || adv.Status == Salon.Models.EmployeeAdvance.Statuses.Cancelled;
+                                                || adv.Status == Salon.Models.EmployeeAdvance.Statuses.Cancelled;
                                                 var remaining = adv.Amount - adv.DeductedAmount;
                                                 bool isOwner = myEmployeeId.HasValue && adv.EmployeeId == myEmployeeId.Value;
                                                 // نص JSON آمن للتضمين داخل onclick — Razor يُهرّب علامات الاقتباس تلقائياً
