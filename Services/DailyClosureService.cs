@@ -79,10 +79,7 @@ namespace Salon.Services
                 || shift.ApprovalStatus == Shift.ApprovalStatuses.ApprovedWithDiscrepancy)
                 return true;
 
-            // يوم سابق أُغلق آلياً بلا اعتماد يبقى محمياً من التعديل حتى تتم مراجعته، أما اليوم
-            // الحالي (لسه شغال) فلا يُقفل بمجرد تجاوز وقت الإغلاق الآلي.
-            if (shift.ApprovalStatus == Shift.ApprovalStatuses.AutoClosedUnapproved && day < DateTime.Today)
-                return true;
+            // الإغلاق الآلي لا يمنع التصحيح قبل الاعتماد؛ القفل مرتبط بالاعتماد فقط.
 
             return false;
         }
